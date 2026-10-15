@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+# gl-note — publish a review comment to a GitLab merge request.
+#
+# The write-side counterpart to gl-mr. Split into a separate script on purpose:
+# gl-mr is GET-only and allowlisted so reading never interrupts a review, while
+# this one is DELIBERATELY NOT ALLOWLISTED. Every publish therefore raises a
+# permission prompt. Do not add Bash(gl-note:*) to settings.json.
+#
+# Note on that gate: the permission prompt shows the command, not the markdown,
+# and the body file was written by the agent moments earlier — so approving the
+# prompt alone confirms a filename, not a comment. Run --dry-run first (it
+# prints the exact body and payload and posts nothing) and read that. The
+# mr-review skill does this by default.
+#
+# The body always comes from a file, never from the command line: review bodies
+# are long markdown full of backticks and newlines, which would be unreadable in
+# a permission prompt and a quoting minefield in argv.
+#
+# Usage:
+#   gl-note <iid> --file <path>                          post an MR-level note
+#   gl-note <iid> --file <path> --inline <path>:<line>   post an inline thread
+#   gl-note <iid> --file <path> [...] --dry-run          print, post nothing
+#   gl-note <iid> --file <path> --inline <p>:<l> --force skip anchor validation
+#
+# Inline anchors are checked against `gl-mr <iid> newlines` before anything is
+# sent. GitLab needs a position that resolves to a real line code, so an anchor
+# on a context or removed line comes back as
+#   400 Note {:line_code=>["can't be blank", "must be a valid line code"]}
+# after the comment text is already written. Validating up front turns that into
+# a local error. --force exists for the unchanged-line case, which additionally
+# needs old_line and is not supported here.
+#
+# Project and host come from gl-mr, which reads them from `git remote get-url
+# origin` unless GL_PROJECT and GL_HOST are set. Token file: GL_TOKEN_FILE.
+
+set -euo pipefail
+
+TOKEN_FILE="${GL_TOKEN_FILE:-${HOME}/token}"
+
+die() { printf 'gl-note: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  sed -n '/^# Usage:/,/^# Project and host/p' "$0" | sed 's/^# \{0,1\}//'
+  exit "${1:-0}"
+}
+
+case "${1:-}" in
+  ''|-h|--help) usage 0 ;;
+esac
+
+iid="$1"; shift
+case "$iid" in
+  *[!0-9]*) die "MR id must be a number, got '${iid}'" ;;
+esac
+
+body_file="" inline="" dry_run=0 force=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --file)     body_file="${2:-}"; shift 2 || die "--file needs a path" ;;
+    --inline)   inline="${2:-}";    shift 2 || die "--inline needs <path>:<line>" ;;
+    --dry-run)  dry_run=1; shift ;;
+    --force)    force=1; shift ;;
+    *)          die "unknown argument '$1'" ;;
+  esac
+done
+
+[ -n "$body_file" ] || die "--file is required"
+[ -r "$body_file" ] || die "cannot read body file '${body_file}'"
+[ -s "$body_file" ] || die "body file '${body_file}' is empty"
+
+command -v curl  >/dev/null 2>&1 || die "curl not found"
+command -v jq    >/dev/null 2>&1 || die "jq not found"
+command -v gl-mr >/dev/null 2>&1 || die "gl-mr not found on PATH (needed for diff_refs and anchor validation)"
+
+[ -r "$TOKEN_FILE" ] || die "no readable token at ${TOKEN_FILE}"
+TOKEN="$(tr -d '\r\n' < "$TOKEN_FILE")"
+[ -n "$TOKEN" ] || die "token file ${TOKEN_FILE} is empty"
+
+# gl-mr owns host/project resolution; ask it once rather than duplicating the
+# logic. project_id is numeric, so no path escaping is needed here.
+mr_json="$(gl-mr "$iid" json)" || die "cannot read MR !${iid}"
+ENDPOINT_BASE="$(printf '%s' "$mr_json" | jq -r '
+  "\(.web_url | capture("^(?<h>https?://[^/]+)/").h)/api/v4/projects/\(.project_id)/merge_requests/\(.iid)"
+')"
+case "$ENDPOINT_BASE" in
+  https://*|http://*) ;;
+  *) die "could not derive an API endpoint for MR !${iid}" ;;
+esac
+
+# jq -Rs slurps the file as one raw string and emits it as a JSON string, so any
+# backticks, quotes and newlines in the review body are escaped correctly.
+if [ -n "$inline" ]; then
+  case "$inline" in
+    *:*) ;;
+    *) die "--inline expects <path>:<line>, got '${inline}'" ;;
+  esac
+  in_path="${inline%:*}"
+  in_line="${inline##*:}"
+  case "$in_line" in
+    ''|*[!0-9]*) die "--inline line must be a number, got '${in_line}'" ;;
+  esac
+
+  if [ "$force" -eq 0 ]; then
+    # Capture first, then match against a here-string, rather than piping
+    # gl-mr straight into grep. `grep -q` exits the moment it matches, which
+    # SIGPIPEs gl-mr mid-write; under `set -o pipefail` that 141 becomes the
+    # pipeline's status and a VALID anchor is reported as invalid. It only
+    # shows up on an MR big enough that gl-mr is still writing when grep
+    # leaves, so small MRs pass and large ones fail with a wrong message.
+    addable="$(gl-mr "$iid" newlines)" \
+      || die "could not list addable lines for MR !${iid}"
+    grep -Fxq "${in_path}:${in_line}" <<<"$addable" \
+      || die "${in_path}:${in_line} is not an added line in MR !${iid}. GitLab would reject this position. Anchor on a '+' line (\`gl-mr ${iid} newlines\`), post an MR-level note instead, or pass --force if you know what you're doing."
+  fi
+
+  refs="$(gl-mr "$iid" refs)" || die "could not read diff_refs for MR !${iid}"
+
+  endpoint="${ENDPOINT_BASE}/discussions"
+  # Both old_path and new_path are required by the discussions API and must name
+  # the file before and after the change. For an added line, set new_line and
+  # omit old_line.
+  payload="$(jq -Rs \
+    --argjson refs "$refs" --arg path "$in_path" --argjson line "$in_line" '
+      { body: .,
+        position: ($refs + { position_type: "text",
+                             old_path: $path,
+                             new_path: $path,
+                             new_line: $line }) }
+    ' < "$body_file")"
+  target="inline thread on ${in_path}:${in_line}"
+else
+  endpoint="${ENDPOINT_BASE}/notes"
+  payload="$(jq -Rs '{body: .}' < "$body_file")"
+  target="MR-level note"
+fi
+
+if [ "$dry_run" -eq 1 ]; then
+  printf '=== DRY RUN: nothing posted ===\n'
+  printf 'target:   %s\n' "$target"
+  printf 'endpoint: POST %s\n' "$endpoint"
+  printf '=== body ===\n'
+  cat "$body_file"
+  printf '\n=== payload ===\n'
+  printf '%s\n' "$payload" | jq .
+  exit 0
+fi
+
+printf 'Posting %s to MR !%s…\n' "$target" "$iid" >&2
+
+# Capture the response and the status separately. The old version piped curl
+# --fail-with-body straight into jq, so on a 4xx the error JSON still parsed and
+# printed a "posted: id=?" line to stdout next to the failure on stderr.
+resp_file="$(mktemp)"
+trap 'rm -f "$resp_file"' EXIT
+status="$(curl -sS --max-time 30 -X POST \
+            -H "PRIVATE-TOKEN: ${TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data "$payload" \
+            -o "$resp_file" -w '%{http_code}' "$endpoint")" \
+  || die "POST to ${endpoint} failed to complete"
+
+case "$status" in
+  2*) jq -r '"posted: id=\(.id // .notes[0].id // "?")  url=\(.notes[0].web_url // .web_url // "see MR")"' \
+        < "$resp_file" ;;
+  *)  printf 'gl-note: POST %s returned HTTP %s\n' "$endpoint" "$status" >&2
+      jq -r '.message // .error // .' < "$resp_file" >&2 2>/dev/null \
+        || cat "$resp_file" >&2
+      exit 1 ;;
+esac

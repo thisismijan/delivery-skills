@@ -1,0 +1,251 @@
+# Improve delivery
+
+Approval-gated self-improvement for the delivery skill. It turns accepted,
+evidence-backed retro lessons into an isolated candidate, proves the candidate
+against the current skill, and installs it only after the operator approves that
+exact candidate.
+
+This workflow may change only the delivery skill, its bundled workflows, and its
+contract tests. Improvements to ig-spec, factory skills, target repositories,
+review skills, CI, or Jira remain ordinary tickets or merge requests.
+
+## Inputs
+
+| Command | Action |
+|---------|--------|
+| `/delivery improve <KEY>` | Prepare candidates from one run's accepted lessons |
+| `/delivery improve all` | Prepare candidates from qualifying accepted lessons across all ledgers |
+| `/delivery improve status` | List candidates and versions; make no changes |
+| `/delivery improve apply <candidate>` | Approve and install that exact candidate |
+| `/delivery improve reject <candidate>` | Reject that candidate |
+| `/delivery improve rollback <version>` | Approve restoring one exact version |
+
+Bare `/delivery improve` uses the run already established in the conversation;
+otherwise ask for a key or `all`.
+
+## Storage
+
+Paths are relative to the delivery skill's folder:
+
+```text
+candidates/<candidate>/
+  manifest.md
+  patch.diff
+  scorecard.md
+  skill/               # complete candidate delivery skill
+versions/<utc>-<baseline-hash>/
+  skill/               # complete rollback copy
+```
+
+Candidate id: `improve-<yyyymmdd>-<short-class-slug>`. If it exists, add `-2`,
+`-3`, and so on. After the checkpoint, the candidate's `skill/`, `patch.diff`,
+and `scorecard.md` are immutable. Status transitions are appended to
+`manifest.md`; existing lines are never edited. Version folders are fully
+immutable. Never overwrite a candidate or version.
+
+The manifest records:
+
+- candidate id and creation time;
+- exact baseline hash;
+- source ledger Lessons lines and evidence links;
+- mistake class, intended behaviour, scope, and non-goals;
+- files changed;
+- the new regression test and its expected baseline failure;
+- status: `awaiting-approval`, `installed`, `rejected`, `superseded`, or
+  `failed`;
+- installation or rejection decision when terminal.
+
+Do not copy transcripts, ticket bodies, MR discussions, secrets, personal data,
+or product source into these folders. Link sanitized evidence.
+
+## Baseline identity
+
+Hash the bytes and relative paths of the managed tree in sorted order:
+
+- `SKILL.md`;
+- every file under `workflows/`;
+- every file under `checks/`.
+
+Use SHA-256 and record the full digest. Exclude `runs/`, `candidates/`, and
+`versions/`. A candidate applies only to this exact baseline.
+
+## Prepare
+
+Preparation never edits the live managed tree.
+
+### 1. Select evidence
+
+Read the ledger Lessons entries and their linked primary sources. A class
+qualifies only when:
+
+- it occurred in at least two independent delivery runs; or
+- one occurrence reached production; or
+- one occurrence exposed a Critical security, data-loss, or governance gap.
+
+The lesson must be accepted, target the delivery conductor or one of its bundled
+workflows, and name a reproducible past case. A model's opinion, a hypothetical,
+or elapsed time alone is not evidence.
+
+Group equivalent lessons. Do not prepare a second candidate when an
+`awaiting-approval` or `installed` candidate already covers the class.
+
+### 2. Capture the baseline
+
+Compute the baseline hash. Run the live contract suite:
+
+```bash
+BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test <skill>/checks/delivery-specs.test.ts
+```
+
+If it is not green, stop. Self-improvement never builds on an unproved baseline.
+
+### 3. Build in isolation
+
+Copy the complete managed tree to `candidates/<id>/skill/`. Make all edits only
+there.
+
+Write the regression test first. It must encode the intended behaviour from the
+evidence, not merely assert that new prose exists. Run the candidate test file
+against the live baseline by setting `DELIVERY_SKILL_ROOT` to the live skill
+folder and `DELIVERY_SKILLS_ROOT` to its parent skills folder. At least one new
+assertion must fail for the expected reason. Existing assertions must not newly
+fail.
+
+Then implement the smallest candidate change and run the same test file with
+`DELIVERY_SKILL_ROOT` set to `candidates/<id>/skill/` and
+`DELIVERY_SKILLS_ROOT` still set to the live parent skills folder. It must be
+green.
+
+Do not broaden the proposal, perform adjacent cleanup, weaken a test, remove a
+gate, or reduce an approval requirement.
+
+### 4. Adversarial evaluation
+
+Use a bounded, read-only evaluation phase. In Cursor, run three fresh subagents
+in parallel. In Claude Code, a dynamic workflow may run the equivalent phase
+when that runtime is enabled. The candidate must not depend on Claude Code:
+subagents remain the portable path.
+
+Give every evaluator the same immutable brief: evidence, baseline hash,
+candidate patch, tests, output schema, and no author reasoning. Require
+structured output with `verdict`, `verifiedClaims`, `unverifiedClaims`,
+`findings`, and `evidence` fields.
+
+Use three independent lenses, no more:
+
+1. **Evidence auditor:** does the lesson qualify, and would the candidate have
+   prevented the cited past cases?
+2. **Regression auditor:** does the new test fail on baseline and pass on the
+   candidate for the stated reason, without weakening existing assertions?
+3. **Safety auditor:** did any command, status, capability, approval, failure
+   mode, privacy boundary, or rollback path become unreachable or weaker?
+
+Then the main conversation adjudicates the structured outputs against the raw
+artifacts. Reviewer agreement is not proof. A missing, null, stalled,
+malformed, or unverified evaluator result is a failed evaluation, never a pass.
+
+A finding or incomplete evaluation leaves the candidate `failed`; do not repair
+and re-review in the same attempt. A later prepare creates a new candidate id.
+Start with one candidate; never fan out candidate authoring across several
+lessons until this bounded evaluation has succeeded.
+
+### 5. Present the checkpoint
+
+Write `patch.diff`, `manifest.md`, and `scorecard.md`. Show:
+
+- candidate id and baseline hash;
+- problem and linked occurrences;
+- behavioural change and non-goals;
+- full patch;
+- baseline failing-test evidence;
+- candidate passing-test evidence;
+- adversarial verdict;
+- rollback plan.
+
+Ask exactly:
+
+> Install `<candidate>` on baseline `<hash>`? Recommended: yes only if the
+> evidence, patch, and changed behaviour above are correct.
+
+Offer: apply, reject, or leave pending. End the turn. Silence, “looks good”, and
+approval of another candidate do not count.
+
+## Apply
+
+`/delivery improve apply <candidate>` is approval for that candidate only.
+Record the operator's exact command before changing the live skill.
+
+1. Require candidate status `awaiting-approval`.
+2. Recompute the live baseline hash. It must exactly equal the manifest's hash.
+   If not, mark the candidate `superseded`; prepare a fresh candidate rather
+   than merging generated changes.
+3. Rerun the candidate contract suite. It must be green.
+4. Copy the complete live managed tree to a new immutable
+   `versions/<utc>-<baseline-hash>/skill/` folder and verify its hash.
+5. Install only the candidate managed tree. Never touch `runs/`, `candidates/`,
+   or `versions/`.
+6. Run the live contract suite and verify the live hash equals the candidate
+   hash. On either failure, restore the version immediately, verify the restored
+   hash and tests, and mark the candidate `failed`.
+7. Mark the candidate `installed` and record the version.
+
+Stop after installation. Say that the current conversation still has the old
+skill instructions loaded and that a new chat is required.
+
+## Reject
+
+`/delivery improve reject <candidate>` records the exact command and marks an
+`awaiting-approval` candidate `rejected`. It changes no managed file. A rejected
+candidate is never reopened or installed.
+
+## Rollback
+
+`/delivery improve rollback <version>` is approval to restore that exact
+version.
+
+1. Verify the version is complete and its recorded hash is correct.
+2. Snapshot the current managed tree as another immutable version.
+3. Restore the selected version, run the live contract suite, and verify its
+   hash.
+4. If verification fails, restore the just-created snapshot and report failure.
+5. Record the rollback and stop; a new chat is required.
+
+## Checkpoint
+
+No candidate installation or rollback occurs without the operator's explicit
+`apply <candidate>` or `rollback <version>` command. Approval is never inferred
+from retro acceptance, chat sentiment, a passing scorecard, or `/delivery auto`.
+Retro acceptance is not installation approval.
+
+## Ledger writes
+
+- Decisions: candidate prepared, rejected, superseded, failed, installed, or
+  rolled back, with candidate/version id and evidence link.
+- Approvals: the exact `apply <candidate>` or `rollback <version>` command,
+  scoped to the recorded baseline hash.
+- Lessons: after install, append which candidate addressed the class. Never
+  edit the original lesson.
+
+## Terminal stops
+
+| Stop | Message | Next command |
+|------|---------|--------------|
+| No qualifying accepted lesson | No evidence-backed delivery improvement qualifies | `/delivery retro <KEY>` |
+| Baseline tests fail | The current delivery skill is not a green baseline | Fix the baseline, then `/delivery improve <KEY>` |
+| Candidate evaluation fails | Candidate `<id>` failed; live skill unchanged | Inspect its scorecard, then prepare a new candidate |
+| Baseline moved | Candidate `<id>` targets an older delivery version | `/delivery improve <KEY or all>` |
+| Install verification fails | Candidate failed and the previous version was restored | Inspect the candidate and rollback evidence |
+| Rollback verification fails | Rollback failed and the pre-rollback version was restored | Inspect the version and test output |
+
+## Never
+
+- Edit the live managed tree while preparing or evaluating a candidate.
+- Install, merge candidates, or rollback without exact operator approval.
+- Let `/delivery auto` imply approval.
+- Learn from generated summaries when primary evidence exists.
+- Copy secrets, personal data, transcripts, or product source into the skill.
+- Weaken or delete a test, gate, review requirement, approval, or safety rule.
+- Modify ig-spec, review skills, factory skills, target repositories, CI, Jira,
+  or GitLab.
+- Continue using newly installed instructions in the conversation that
+  installed them.

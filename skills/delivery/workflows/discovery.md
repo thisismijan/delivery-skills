@@ -1,0 +1,159 @@
+# Discovery
+
+Stage 0 of the delivery conductor. It turns a vague idea into a one-page brief
+that groom can work from. Groom asks how to slice and build an idea; discovery
+asks whether it is the right idea, what has been tried before, and what done
+looks like.
+
+It ends with a one-pager the operator approves with an explicit yes. It never
+creates tickets, writes production code, or pushes branches.
+
+## Inputs
+
+- The idea: inline text, a file path, or a link.
+- Or the id of an earlier discovery ledger (`discover-<yyyy-mm-dd>-<slug>`). That
+  resumes it: read the ledger and its one-pager, and continue from the first
+  step or map item that is not done.
+
+## Preconditions
+
+1. cwd is the target repo, so the code and its history can be searched.
+2. Open or create the ledger with id `discover-<yyyy-mm-dd>-<slug>`
+   (`delivery-ledger.md`). Add one Keys row with the ledger id as its key and
+   status `[discovering]`.
+3. Note which sources can be read: Jira, Confluence, and any other connected
+   sources. A source that cannot be read is recorded as a gap, not skipped.
+
+## Steps
+
+### 1. State the hypothesis
+
+Write one sentence: "We believe <who> needs <outcome> because <evidence>. We
+will know it worked when <signal>." Give your confidence as a percentage. Under
+70%, say what would raise it.
+
+Show it to the operator before going further. It is the first thing they can
+correct.
+
+### 2. Search for prior work
+
+Run one read-only subagent per source, in parallel. Each searches by the idea's
+domain terms, not just its wording, and returns links to what it found. A
+search that finds nothing is reported as a finding: "searched <where> for
+<terms>, found nothing".
+
+| Source | Look for |
+|--------|----------|
+| Code and git history | Code that already does part of this; reverted attempts; commits that mention the terms |
+| Jira | Open, closed, and won't-fix tickets and epics on the same problem |
+| Confluence | Designs, decisions, postmortems |
+| OpenSpec | Current specs and archived changes in the target repo |
+| ADRs | Decisions that constrain or contradict the idea |
+
+Merge the results into four lists:
+
+- **Preserve**: what exists and must keep working.
+- **Change**: what the idea really needs to change.
+- **Avoid**: what was tried and did not hold, and why.
+- **Risk**: what could make this harder than it looks.
+
+### 3. Interview
+
+Ask the operator one question at a time. Give a recommended answer with each,
+worded so that "yes" accepts it.
+
+- Never ask for a fact you can look up. Look it up.
+- A question you could answer by running something is not the operator's to
+  answer. Write a throwaway probe in a scratch directory outside the repo, run
+  it, and report the result. Probes are never committed or pushed.
+- Cover, in whatever order the conversation needs: who it is for, the outcome
+  they need, why now, the success signal, constraints, and what is out of scope.
+
+Stop when the operator confirms you understand the idea, not when you run out of
+questions.
+
+### 4. Widen, then narrow
+
+Do this step only if more than one direction is still credible.
+
+1. Write 5 to 8 variations, each through a different lens: do the opposite,
+   remove a constraint, 10 times the scale, the smallest useful version, reuse
+   what exists, and do nothing.
+2. Group them into 2 or 3 real directions.
+3. For each direction: the value if it works, how feasible it is with what
+   exists, and the cost of being wrong.
+4. Recommend one and say why the others lost.
+
+### 5. Check the size
+
+Ask: could groom slice this in one session? If yes, go to step 6.
+
+If not, write a **map** into the discovery one-pager:
+
+- **Destination**: one sentence.
+- **Decisions so far**: settled answers, each with its reason.
+- **Not yet specified**: open questions. Write each as a question you could ask
+  precisely today. Anything vaguer stays as "unclear: <area>".
+- **Out of scope.**
+- **Decision items**: each open question as one item, typed as interview,
+  probe, research, or task, and marked as needing the operator or not.
+
+Resolve one interview or probe item per session. Research items can run in
+parallel as background read-only subagents. Run discovery again to continue the
+map; the ledger says where it got to.
+
+### 6. Write the one-pager
+
+Save it next to the ledger as `<ledger id>-discovery.md` and link it from the
+ledger header's `Discovery:` line.
+
+```markdown
+# <destination>
+
+## Problem
+## Hypothesis
+<the sentence from step 1, revised> — confidence <n>%
+## Who it is for
+## Success signal
+## Direction
+<chosen direction and why the others lost>
+## Not doing, and why
+## Assumptions to test
+- <assumption> — how we will test it
+## Risks
+## Open questions
+## Prior work
+- <link> — what it tells us
+## Map
+<only if step 5 needed one>
+```
+
+## Checkpoint
+
+The operator approves the one-pager with an explicit yes. "Sounds good",
+"looks fine", and silence are not approval; ask again. Record the approval in
+the ledger.
+
+After approval, the one-pager is the argument to Stage 1. Continue in this
+session, because groom needs the discovery as a primary source.
+
+## Ledger writes
+
+- Decisions: the chosen direction and every settled answer from the interview.
+- Approvals: the one-pager approval with the operator's words.
+- Stops: any terminal stop.
+
+## Terminal stops
+
+| Stop | Message | Next command |
+|------|---------|--------------|
+| Operator stops | Idea parked at <step> | `/delivery discover <ledger id>` to resume |
+| Already done | The idea is already delivered by <link> | None |
+| Rejected before | The idea was rejected in <link> for <reason> | Operator decides whether to reopen |
+
+## Never
+
+- Create a Jira epic or ticket. Groom does that, behind its own gates.
+- Commit or push a probe.
+- Start drafting an OpenSpec change.
+- Treat a search that found nothing as a search that was not run.

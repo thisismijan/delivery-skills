@@ -1,0 +1,8 @@
+node_modules/
+factory/node_modules/
+.review/
+runs/
+candidates/
+versions/
+*.previous
+.DS_Store
