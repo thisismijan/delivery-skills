@@ -21,6 +21,8 @@ This command consumes the review comments on the **existing** MR for this ticket
 - **Tests first for bugs.** A `bug` comment gets a failing test proven red via `test-gate.ts` **before** any fix code, then brought to green. Never modify a test to make it pass.
 - **One commit per actioned comment**, referencing the comment; the reply on that thread carries the commit SHA.
 - **Reply on EVERY assessed thread** exactly once (actioned, answered, or disputed) using the `auditComment` prefix. **Never resolve a thread** — humans own resolution.
+- **Replay safe.** A thread that already has an `address-comments` audit reply is complete and must not be classified, changed, or replied to again.
+- Reviewer rank, sunk cost, or a "nitpick" label never permits silently fixing, discarding, or skipping a comment; route it and leave the human-visible reply required below.
 - **Subagents only judge/edit; YOU do all I/O.** The `comment-assessor` and `holdout-reviewer` are read-only by construction (tools: `Read, Grep, Glob` — no `Bash`, no MCP). Their entire contribution is one JSON verdict; treat it as raw input to a parser that **fails closed**. Never accept a subagent's prose ("I replied / classified / resolved the thread") as having happened — its tools cannot do those things. Every `glab`, `git`, and Jira action is performed by **this command**.
 - **Fail closed:** no MR, ambiguous change match, malformed classification verdict, malformed/non-approve re-review verdict, or exhausted fix attempts → stop + escalate, leaving the MR unblessed and posting no "passed" Jira comment.
 - **The factory NEVER runs `glab mr merge` or `glab mr close`, and NEVER transitions Jira status.** Its only Jira write is the single summary comment at the end.
@@ -44,7 +46,7 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    glab api "projects/:fullpath/merge_requests/<mr>/discussions" --paginate | bun "${FACTORY_ROOT}/scripts/glab-comments.ts"
    ```
-   (`:fullpath` resolves from the git remote; `--paginate` fetches every page.) `scripts/glab-comments.ts` flattens the discussions to one entry per note (`parseMrComments`, fail-closed on non-JSON / non-array), dropping GitLab system notes and carrying each note's parent `discussionId` (needed to reply on its thread in step 7). It then excludes the factory's own audit note (`excludeHoldoutNote`, any comment whose body starts with the `auditComment` prefix `**ig-spec** ·`). The remaining comments are **in scope**. Non-zero exit (unparseable output) → stop + escalate.
+   (`:fullpath` resolves from the git remote; `--paginate` fetches every page.) `scripts/glab-comments.ts` flattens the discussions to one entry per note (`parseMrComments`, fail-closed on non-JSON / non-array), dropping GitLab system notes and carrying each note's parent `discussionId` (needed to reply on its thread in step 7). It then applies `excludeHandledThreads`: if any note in a discussion starts with the factory audit prefix `**ig-spec** ·`, the **entire discussion** is excluded. Removing only the factory reply would leave the original human note in scope and cause a duplicate action on re-entry. The remaining comments are **in scope**. Non-zero exit (unparseable output) → stop + escalate.
 
 5. **Classify (single batch, read-only).** Dispatch **exactly one** `comment-assessor` subagent (Sonnet, tools `Read, Grep, Glob` only) with the in-scope comments (each with its `commentId` and `discussionId`), the diff, and `<changeDir>` (spec + tasks). Keep each comment's `discussionId` so step 7 can reply on the right thread. It returns a single `ClassificationVerdict` JSON array. Validate it:
    ```
@@ -71,6 +73,11 @@ This command consumes the review comments on the **existing** MR for this ticket
    - **`non-functional`** (action, green-only): make the change (no new test required), then require the **green gate** plus lint plus typecheck to pass (commands as above). Commit referencing the comment; capture the SHA.
 
      For both action cases, on a gate/lint/typecheck failure dispatch the `implementer` to fix the **source** (never the tests) and re-run; loop a bounded number of times up to `maxFixAttempts`, then **stop + escalate** for that comment.
+
+     After **two failures that share the same assumption**, **state the premise**
+     and run **one discriminating observation** that could disprove it. There is
+     **no third fix** before this check. If it does not reveal a defensible next
+     action within `maxFixAttempts`, stop and escalate.
 
    - **`nitpick` / `false-positive`** (dispute): make **no** code change. Note it as "disputed — human decides".
 
@@ -103,7 +110,7 @@ This command consumes the review comments on the **existing** MR for this ticket
      bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
      ```
      Post **one** Jira summary comment (wrapped via `scripts/audit.ts`) with the MR link, that rendered holdout outcome, and the **actioned / disputed / skipped** counts written in plain language. **STOP.** A human performs the merge.
-   - **`fix`** → dispatch the `implementer` to address the verdict `findings`, re-run the green gate (+ lint/typecheck), increment `attempt`, and **go back to step 8** (the re-review runs fresh). Do **not** re-mark ready during the fix loop.
+   - **`fix`** → dispatch the `implementer` to address the verdict `findings`, re-run the green gate (+ lint/typecheck), increment `attempt`, and **go back to step 8** (the re-review runs fresh). Do **not** re-mark ready during the fix loop. If two failed fixes share the same assumption, apply the premise checkpoint from step 6 before any third fix.
    - **`escalate`** (including `reject`, `shouldEscalate`, or exhausted attempts) → post the `reason`/`findings` as a Jira comment and stop (NEEDS_HUMAN). Leave the MR **unblessed** (not re-marked ready); post no "passed" comment.
 
-9. **Invariants.** The MR is re-marked ready **only** on a satisfied cumulative re-review. The factory **never** merges, closes, archives, or resolves threads, and **never** transitions Jira status — humans own all of that. The reviewer never sees implementer/assessor reasoning. Every assessed thread received exactly one reply; the only Jira write is the single summary comment.
+9. **Invariants.** The MR is re-marked ready **only** on a satisfied cumulative re-review. The factory **never** merges, closes, archives, or resolves threads, and **never** transitions Jira status — humans own all of that. The reviewer never sees implementer/assessor reasoning. Every assessed thread received exactly one reply across all re-entries; the only Jira write is the single summary comment.

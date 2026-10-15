@@ -57,7 +57,11 @@ export async function verifyChangeArtifacts(
 		warnings.push("tasks.md does not appear tests-first");
 	}
 
-	return { ok: missing.length === 0, missing, warnings };
+	return {
+		ok: missing.length === 0 && warnings.length === 0,
+		missing,
+		warnings,
+	};
 }
 
 if (import.meta.main) {

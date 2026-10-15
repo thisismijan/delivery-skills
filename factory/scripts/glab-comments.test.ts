@@ -1,5 +1,9 @@
 import { expect, test } from "bun:test";
-import { excludeHoldoutNote, parseMrComments } from "./glab-comments";
+import {
+	excludeHandledThreads,
+	excludeHoldoutNote,
+	parseMrComments,
+} from "./glab-comments";
 
 // ---------------------------------------------------------------------------
 // glab-comments — pure parsing/filtering unit tests. No glab process is
@@ -335,4 +339,39 @@ test("excludeHoldoutNote: prefix match is exact — a close-but-different prefix
 		},
 	];
 	expect(excludeHoldoutNote(notExact).length).toBe(2);
+});
+
+test("excludeHandledThreads: drops the original comment when its thread already has an audit reply", () => {
+	const comments = [
+		{
+			id: 1,
+			discussionId: "handled",
+			author: "Alice",
+			body: "Please add a boundary test.",
+		},
+		{
+			id: 2,
+			discussionId: "handled",
+			author: "factory",
+			body: `${AUDIT_PREFIX} address-comments\n\nAdded in abc123.`,
+		},
+		{
+			id: 3,
+			discussionId: "new",
+			author: "Bob",
+			body: "What happens on timeout?",
+		},
+	];
+
+	expect(excludeHandledThreads(comments).map((comment) => comment.id)).toEqual([
+		3,
+	]);
+});
+
+test("excludeHandledThreads: keeps every note in a thread with no audit reply", () => {
+	const comments = [
+		{ id: 1, discussionId: "open", author: "Alice", body: "First" },
+		{ id: 2, discussionId: "open", author: "Bob", body: "Follow-up" },
+	];
+	expect(excludeHandledThreads(comments)).toEqual(comments);
 });

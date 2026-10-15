@@ -67,6 +67,8 @@ Ask the operator questions to fill in gaps, resolve ambiguities, and surface con
 
 - **Exactly one question per turn.** Never batch two or more questions.
 - **Every question includes a recommended answer** (e.g. "Recommended: Yes, scope it to the dashboard page only."). The operator can accept the recommendation or override it.
+- Maintain a **question frontier**: ask only a question whose prerequisites are already settled. Do not ask downstream scope or acceptance questions while an earlier product decision can change them.
+- **Facts are discovered; decisions are asked.** Inspect the input and codebase for facts. Ask the operator only for intent, trade-offs, or decisions that cannot be discovered.
 - **Prefer inspecting the code** over asking when the answer is discoverable from the codebase (the explorer's report or a direct `Read`/`Grep`).
 - **Depth scales to input maturity.** A thin or raw idea is grilled harder (more questions) than an already-detailed PRD of equivalent scope. Assess the input's completeness and calibrate accordingly.
 - Ask about: user impact, scope boundaries, success criteria, constraints or NFRs, blocked-by dependencies, out-of-scope items, and acceptance criteria phrased as Given/When/Then behaviour statements. Never ask about test seams or implementation decisions — those are how-level questions owned by `/draft` and `/execute`, not grooming.
@@ -95,6 +97,12 @@ What you present here depends on Step 4's recommendation:
   - Are any slices missing?
 
 Iterate based on operator feedback until the operator explicitly approves the ticket or the breakdown. **Write no draft files during this step.**
+
+Prefer independently deployable vertical slices. A wide refactor may use an
+explicit **expand-contract exception** only when compatibility requires a
+temporary two-phase change; name the expand slice, contract slice, compatibility
+window, and rollback boundary instead of hiding both phases in one oversized
+ticket.
 
 ### Step 8 — Emit drafts on approval
 
