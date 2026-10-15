@@ -332,6 +332,12 @@ Keep the lifecycle portable between Cursor and Claude Code.
 - Reusable orchestration is promoted only after a real run succeeds. Generated
   orchestration never bypasses the stage's existing approval, permission,
   failure, or rollback rules.
+- **Shadow model routing.** Factory stages persist a `TaskProfile` and a
+  `shadow-route.ts` decision next to their other artifacts. Live workers still
+  follow `select-model.ts` (Sonnet by default, Opus for holdout and defended
+  high-complexity implementation). A cheaper `shadowTier` is recorded, never
+  dispatched. A model catalogue maps `fast` / `standard` / `frontier` names
+  for later evaluation; changing it does not change this run.
 
 ## Checkpoint policy
 

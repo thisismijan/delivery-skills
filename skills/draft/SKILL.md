@@ -96,6 +96,12 @@ approval.
    ```
    Pass the justification argument **only** when `complexitySignal` is `high` and you can name the specific complexity (concurrency/locking, intricate algorithm, cross-cutting refactor); otherwise omit it. This writes `openspec/changes/<changeName>/.ig-spec.json`, which is committed with the change folder in step 9.
 
+   **Shadow-route the remaining draft work.** Write `<reviewDir>/author-profile.json` describing the OpenSpec authoring task (workType `design` or `implement` as fits), then:
+   ```
+   bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/author-profile.json" sonnet "<reviewDir>/author-shadow.json"
+   ```
+   Record the decision; **do not change the model used to author**. Live dispatch stays Sonnet unless an existing factory rule already says otherwise. The shadow file is evidence only.
+
 8. **Verify artifacts (fail closed).** Run:
    ```
    bun "${FACTORY_ROOT}/scripts/verify-change.ts" openspec/changes/<changeName>

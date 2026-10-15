@@ -462,6 +462,15 @@ describe("engineering learning postmortem", () => {
 	});
 });
 
+describe("shadow model routing", () => {
+	test("the conductor records shadow decisions and does not dispatch them", () => {
+		const policy = section(SKILL, "## Orchestration policy");
+		expect(policy).toContain("Shadow model routing");
+		expect(policy).toContain("A cheaper `shadowTier` is recorded, never\n  dispatched");
+		expect(policy).toContain("select-model.ts");
+	});
+});
+
 describe("portable dynamic orchestration", () => {
   const policy = section(SKILL, "## Orchestration policy");
 

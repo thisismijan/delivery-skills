@@ -131,6 +131,15 @@ describe("bounded recovery and replay safety", () => {
 		}
 	});
 
+	test("shadow routing records a cheaper tier without changing live dispatch", () => {
+		expect(execute).toContain("select-model.ts");
+		expect(execute).toContain("shadow-route.ts");
+		expect(execute).toContain("Dispatch still uses the live");
+		expect(execute).toContain("never this run's worker");
+		expect(draft).toContain("do not change the model used to author");
+		expect(addressComments).toContain("Classification still ran on Sonnet");
+	});
+
 	test("pressure cannot bypass deterministic or human gates", () => {
 		expect(execute).toMatch(/time pressure.*never.*skip.*red gate/i);
 		expect(draft).toMatch(/sponsor|authority/i);

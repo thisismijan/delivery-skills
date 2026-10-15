@@ -1,0 +1,20 @@
+{
+	"version": 1,
+	"tiers": {
+		"frontier": {
+			"cursor": "claude-opus-5-5-high",
+			"claudeCode": "opus",
+			"purpose": "routing, architecture, high-risk reasoning, and adjudication"
+		},
+		"standard": {
+			"cursor": "claude-sonnet-5-5-medium",
+			"claudeCode": "sonnet",
+			"purpose": "ordinary implementation and bounded reasoning"
+		},
+		"fast": {
+			"cursor": "composer-1",
+			"claudeCode": "haiku",
+			"purpose": "mechanical and strongly verified work"
+		}
+	}
+}

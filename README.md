@@ -171,6 +171,10 @@ ambiguous match stops the run instead of guessing.
   stale write instead of overwriting another session's update.
 - **Waiting never polls.** A running pipeline or deploy ends the turn with the
   command to resume.
+- **Model routing is shadow-only.** Stages record a task profile and a cheaper
+  recommended tier, but they still dispatch today's Sonnet/Opus selection.
+  Safety floors keep auth, migrations, concurrency, holdout review, and
+  irreversible work on the frontier recommendation.
 - **Retro teaches the engineering journey.** It writes a chronological
   postmortem covering the problem, attempted models, counterexamples, design
   evolution, final invariants, DSA complexity, and system-design trade-offs. It
