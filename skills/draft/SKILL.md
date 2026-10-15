@@ -96,11 +96,16 @@ approval.
    ```
    Pass the justification argument **only** when `complexitySignal` is `high` and you can name the specific complexity (concurrency/locking, intricate algorithm, cross-cutting refactor); otherwise omit it. This writes `openspec/changes/<changeName>/.ig-spec.json`, which is committed with the change folder in step 9.
 
-   **Shadow-route the remaining draft work.** Write `<reviewDir>/author-profile.json` describing the OpenSpec authoring task (workType `design` or `implement` as fits), then:
+   **Profile then shadow-route the remaining draft work.** Dispatch the `task-profile-controller` subagent (Opus, tools: `Read, Grep, Glob` only) with a compact evidence bundle for the OpenSpec authoring task. Persist its JSON to `<reviewDir>/author-profile.json` and validate it:
    ```
+   bun "${FACTORY_ROOT}/scripts/task-profile.ts" "<reviewDir>/author-profile.json"
    bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/author-profile.json" sonnet "<reviewDir>/author-shadow.json"
    ```
-   Record the decision; **do not change the model used to author**. Live dispatch stays Sonnet unless an existing factory rule already says otherwise. The shadow file is evidence only.
+   Record the decision; **do not change the model used to author**. Live dispatch stays Sonnet unless an existing factory rule already says otherwise. The shadow file is evidence only. After `verify-change.ts` returns, persist the observation under the target repo's `.delivery/routing/`:
+   ```
+   bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/author-profile.json" sonnet "<reviewDir>/author-outcome.json"
+   ```
+   `author-outcome.json` records whether verification passed, any repairs, and any escalation. Include token counts when the host exposes them; otherwise omit them or record character counts as a labelled stand-in.
 
 8. **Verify artifacts (fail closed).** Run:
    ```

@@ -134,10 +134,24 @@ describe("bounded recovery and replay safety", () => {
 	test("shadow routing records a cheaper tier without changing live dispatch", () => {
 		expect(execute).toContain("select-model.ts");
 		expect(execute).toContain("shadow-route.ts");
+		expect(execute).toContain("task-profile-controller");
+		expect(execute).toContain("record-routing.ts");
+		expect(execute).toContain(".delivery/routing/");
+		expect(execute).toContain("90 percent");
 		expect(execute).toContain("Dispatch still uses the live");
 		expect(execute).toContain("never this run's worker");
 		expect(draft).toContain("do not change the model used to author");
+		expect(draft).toContain("task-profile-controller");
 		expect(addressComments).toContain("Classification still ran on Sonnet");
+		expect(addressComments).toContain("task-profile-controller");
+	});
+
+	test("the profile controller is Opus-level and read-only", () => {
+		const controller = read("agents/task-profile-controller.md");
+		expect(controller).toMatch(/^---[\s\S]*model: opus[\s\S]*tools: Read, Grep, Glob/);
+		expect(controller).toContain("You do not implement");
+		expect(controller).toContain("TaskProfileInput");
+		expect(controller).toContain("**no** `Bash`");
 	});
 
 	test("pressure cannot bypass deterministic or human gates", () => {

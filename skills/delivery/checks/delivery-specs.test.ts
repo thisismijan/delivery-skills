@@ -178,6 +178,7 @@ describe("source of truth", () => {
 
   test("the ledger lives in target-repo state with compare-and-swap", () => {
     expect(section(SKILL, "## Source of truth")).toContain("`.delivery/`");
+    expect(section(SKILL, "## Source of truth")).toContain("routing/");
     expect(LEDGER).toContain("<target repo>/.delivery/runs/");
     expect(LEDGER).toContain("compare-and-swap");
   });
@@ -466,7 +467,10 @@ describe("shadow model routing", () => {
 	test("the conductor records shadow decisions and does not dispatch them", () => {
 		const policy = section(SKILL, "## Orchestration policy");
 		expect(policy).toContain("Shadow model routing");
-		expect(policy).toContain("A cheaper `shadowTier` is recorded, never\n  dispatched");
+		expect(policy).toContain("task-profile-controller");
+		expect(policy).toContain(".delivery/routing/");
+		expect(policy).toContain("90 percent");
+		expect(policy).toContain("never dispatched");
 		expect(policy).toContain("select-model.ts");
 	});
 });

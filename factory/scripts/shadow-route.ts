@@ -42,7 +42,17 @@ export function maxTier(a: ModelTier, b: ModelTier): ModelTier {
 	return RANK[a] >= RANK[b] ? a : b;
 }
 
-export function isFastEligible(profile: TaskProfileInput): boolean {
+export type FastEligibleFields = Pick<
+	TaskProfileInput,
+	| "workType"
+	| "risk"
+	| "ambiguity"
+	| "blastRadius"
+	| "novelty"
+	| "verificationStrength"
+>;
+
+export function isFastEligible(profile: FastEligibleFields): boolean {
 	return (
 		FAST_WORK.has(profile.workType) &&
 		profile.risk === "reversible" &&
