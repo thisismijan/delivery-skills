@@ -5,10 +5,12 @@ argument-hint: <JIRA-KEY>
 disable-model-invocation: true
 ---
 
-Load `../../factory/RUNTIME.md` (resolve this SKILL.md first if it is a symlink).
-Set `FACTORY_ROOT` to that `factory/` directory and export `CLAUDE_PLUGIN_ROOT="$FACTORY_ROOT"`
-so existing gate scripts keep working. Cursor has no plugin agent loader: when a
-step names a subagent, read `$FACTORY_ROOT/agents/<name>.md` and follow it.
+Resolve this SKILL.md to its real path, then load the first existing runtime:
+`../_factory/RUNTIME.md` (Cloud store), `../../factory/RUNTIME.md` (clone), or
+`$DELIVERY_FACTORY_ROOT/RUNTIME.md`. Follow its `FACTORY_ROOT` procedure and
+export `CLAUDE_PLUGIN_ROOT="$FACTORY_ROOT"` so existing gate scripts keep
+working. Cursor has no plugin agent loader: when a step names a subagent, read
+`$FACTORY_ROOT/agents/<name>.md` and follow it.
 
 
 You are running **/execute** for Jira ticket **$ARGUMENTS**.

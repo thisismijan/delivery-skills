@@ -24,7 +24,9 @@ cd delivery-skills
 
 `--all` installs Cursor and Claude Code, then copies the Cloud Agent store if
 that path is writable. On a Mac it skips `/cursor` instead of failing after
-the desktop hosts are already linked.
+the desktop hosts are already linked. Store updates keep `runs/`, `candidates/`,
+and `versions/`, and install the factory under the synced `skills/_factory/`
+tree.
 
 Open a **new** chat on each host so the skills reload.
 

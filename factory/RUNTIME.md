@@ -10,8 +10,11 @@ Use the first match:
 
 1. `$DELIVERY_FACTORY_ROOT` when it contains `scripts/find-change.ts`.
 2. The real path of this skill's `SKILL.md` (follow symlinks), then
-   `../.. /factory` from that skill directory.
-3. `$CLAUDE_PLUGIN_ROOT` when it contains `scripts/find-change.ts`.
+   `../_factory` from that skill directory. This is the Cloud Agent store
+   layout (`skills/<skill>` beside `skills/_factory`).
+3. From the same real skill directory, `../../factory`. This is the clone and
+   desktop-symlink layout.
+4. `$CLAUDE_PLUGIN_ROOT` when it contains `scripts/find-change.ts`.
 
 Stop if none match: clone `delivery-skills` and run `./install.sh`.
 
