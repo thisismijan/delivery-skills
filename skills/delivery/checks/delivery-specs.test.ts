@@ -458,6 +458,39 @@ describe("portable dynamic orchestration", () => {
 
 describe("portable factory pack", () => {
   const packRoot = join(ROOT, "..", "..");
+  const readme = readFileSync(join(packRoot, "README.md"), "utf8");
+
+  test("install --all skips an unwritable Cloud Agent store", () => {
+    const installer = readFileSync(join(packRoot, "install.sh"), "utf8");
+    expect(installer).toContain('hosts+=(cursor claude store)');
+    expect(installer).toContain("Agent store skipped (not writable here)");
+    expect(installer).toContain('case "$store" in');
+    expect(installer).toContain("/cursor/*) echo /cursor ;;");
+    expect(readme).toContain("On a Mac it skips `/cursor` instead of failing");
+  });
+
+  test("the README SDLC names every stage skill and every human gate", () => {
+    expect(readme).toContain("```mermaid");
+    expect(readme).toContain("flowchart TD");
+    for (const node of [
+      "groom",
+      "draft",
+      "Test-seam checkpoint",
+      "execute",
+      "Reconcile MR, tests, gates, dirty tree",
+      "code-review-max or native code-review max",
+      "mr-review",
+      "address-comments",
+      "Human merges",
+      "archive",
+      "improve",
+      "Operator apply, reject, or rollback",
+    ]) {
+      expect(readme).toContain(node);
+    }
+    expect(readme).toContain("Typing `/delivery execute` is the approval to build.");
+  });
+
 
   test("factory skills and runtime ship beside the conductor", () => {
     for (const name of ["groom", "draft", "execute", "address-comments", "openspec-archive"]) {

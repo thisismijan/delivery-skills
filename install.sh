@@ -18,7 +18,7 @@ if [[ ${#hosts[@]} -eq 0 ]]; then
   hosts=(cursor claude)
 fi
 
-if command -v bun >/dev/null 2>&1; then
+if [[ -z "${DELIVERY_INSTALL_SKIP_BUN:-}" ]] && command -v bun >/dev/null 2>&1; then
   (cd "$root/factory" && bun install)
 else
   echo "bun is not on PATH; factory gate scripts will fail until it is installed" >&2
@@ -50,16 +50,30 @@ for host in "${hosts[@]}"; do
       # follow links outside itself. Place factory as a sibling of `skills/`
       # so `../../factory` from a skill still resolves.
       store="${CURSOR_AGENT_STORE:-/cursor/stores/user/skills}"
-      mkdir -p "$store"
+      store_parent="$(dirname "$store")"
+      store_probe="${CURSOR_AGENT_STORE_PROBE:-$(
+        case "$store" in
+          /cursor/*) echo /cursor ;;
+          *) echo "$store_parent" ;;
+        esac
+      )}"
+      if [[ ! -d "$store_probe" ]] || [[ ! -w "$store_probe" ]]; then
+        echo "Agent store skipped (not writable here): $store"
+        continue
+      fi
+      if ! mkdir -p "$store" 2>/dev/null; then
+        echo "Agent store skipped (not writable here): $store"
+        continue
+      fi
       for skill in "$root/skills"/*; do
         name="$(basename "$skill")"
         rm -rf "$store/$name"
         cp -R "$skill" "$store/$name"
       done
-      rm -rf "$(dirname "$store")/factory"
-      cp -R "$root/factory" "$(dirname "$store")/factory"
+      rm -rf "$store_parent/factory"
+      cp -R "$root/factory" "$store_parent/factory"
       echo "Agent store -> $store"
-      echo "Factory -> $(dirname "$store")/factory"
+      echo "Factory -> $store_parent/factory"
       ;;
   esac
 done
