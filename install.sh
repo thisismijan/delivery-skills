@@ -54,10 +54,10 @@ for host in "${hosts[@]}"; do
       for skill in "$root/skills"/*; do
         name="$(basename "$skill")"
         rm -rf "$store/$name"
-        cp -a "$skill" "$store/$name"
+        cp -R "$skill" "$store/$name"
       done
       rm -rf "$(dirname "$store")/factory"
-      cp -a "$root/factory" "$(dirname "$store")/factory"
+      cp -R "$root/factory" "$(dirname "$store")/factory"
       echo "Agent store -> $store"
       echo "Factory -> $(dirname "$store")/factory"
       ;;
