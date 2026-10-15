@@ -424,6 +424,44 @@ describe("approval-gated self-improvement", () => {
   });
 });
 
+describe("engineering learning postmortem", () => {
+	const retro = SPECS["retro.md"];
+
+	test("retro persists a chronological, evidence-backed learning artifact", () => {
+		expect(retro).toContain(".delivery/runs/<run-id>-postmortem.md");
+		expect(retro).toContain(
+			"`attempt → evidence of failure → changed model → result`",
+		);
+		expect(retro).toContain(
+			"Every claim\nabout an attempt or failure links to a commit",
+		);
+		expect(retro).toContain("## Exercises for the reader");
+	});
+
+	test("retro teaches DSA without inventing algorithmic depth", () => {
+		expect(retro).toContain("#### Data structures and algorithms");
+		expect(retro).toContain("State the invariant");
+		expect(retro).toContain("time and space complexity");
+		expect(retro).toContain("No material DSA decision in this change");
+	});
+
+	test("retro covers concrete system-design trade-offs and recovery", () => {
+		expect(retro).toContain("#### System design");
+		for (const topic of [
+			"trust boundaries",
+			"consistency model",
+			"concurrency control",
+			"idempotency",
+			"observability",
+			"rollback",
+		]) {
+			expect(retro).toContain(topic);
+		}
+		expect(retro).toContain("what became cheaper");
+		expect(retro).toContain("what became more expensive");
+	});
+});
+
 describe("portable dynamic orchestration", () => {
   const policy = section(SKILL, "## Orchestration policy");
 

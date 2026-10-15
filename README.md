@@ -126,7 +126,7 @@ flowchart TD
   ship -->|"NO-GO"| address
   mergeWait --> archive
   archive -->|"operator yes"| verify
-  verify --> retro
+  verify --> retro["retro: learning postmortem"]
   retro -->|"accepted delivery lesson"| improve
   improve -->|"isolated candidate"| applyWait["Operator apply, reject, or rollback"]
 
@@ -171,6 +171,10 @@ ambiguous match stops the run instead of guessing.
   stale write instead of overwriting another session's update.
 - **Waiting never polls.** A running pipeline or deploy ends the turn with the
   command to resume.
+- **Retro teaches the engineering journey.** It writes a chronological
+  postmortem covering the problem, attempted models, counterexamples, design
+  evolution, final invariants, DSA complexity, and system-design trade-offs. It
+  does not invent algorithmic depth when the change had none.
 
 ## Artifacts
 
@@ -178,7 +182,7 @@ All live state belongs to the target repository and is gitignored:
 
 | Path | Holds |
 |------|-------|
-| `.delivery/runs/` | Run ledgers and discovery evidence |
+| `.delivery/runs/` | Run ledgers, discovery evidence, and engineering postmortems |
 | `.delivery/candidates/`, `.delivery/versions/` | Improvement candidates and rollback copies |
 | `.review/<change>/` | Gate commands, append-only gate results, diffs, verdicts |
 | `.review/mr-<iid>/<head-sha>/` | Review brief, max-pass findings, and draft notes |
