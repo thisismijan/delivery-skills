@@ -248,9 +248,11 @@ tree, say they need committing; do not commit them.
 
 ### Entry F — Retro
 
-1. Follow `retro.md` for the key or epic. It proposes changes to the
-   environment (checks, review standards, ig-spec, factory gates, or this
-   conductor) and applies none of them.
+1. Follow `retro.md` for the key or epic. It writes an evidence-backed
+   engineering postmortem under `.delivery/runs/`, teaching the problem,
+   attempts, counterexamples, design evolution, DSA choices, system-design
+   trade-offs, complexity, and reusable lessons. It separately proposes changes
+   to the environment and applies none of them.
 2. An accepted proposal targeting this delivery skill becomes input to
    `/delivery improve <KEY>` in a later step. Every other accepted proposal
    becomes its own ticket or MR through the normal process.
