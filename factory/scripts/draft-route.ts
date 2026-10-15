@@ -68,9 +68,10 @@ if (import.meta.main) {
 	const mode = process.argv[2];
 	const input = process.argv[3] ?? "";
 	try {
-		const json = input && (await Bun.file(input).exists())
-			? await Bun.file(input).text()
-			: input;
+		const json =
+			input && (await Bun.file(input).exists())
+				? await Bun.file(input).text()
+				: input;
 		if (mode === "assessment") {
 			const routing = routeAfterAssessment(parseAssessmentVerdict(json));
 			console.log(
