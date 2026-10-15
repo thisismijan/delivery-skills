@@ -16,10 +16,15 @@ The pack includes:
 git clone https://gitlab.com/Sheikh.Ahmed1/delivery-skills.git
 cd delivery-skills
 ./install.sh                 # Cursor + Claude Code
+# ./install.sh --all         # also copies the Cloud Agent store when writable
 # ./install.sh --cursor
 # ./install.sh --claude
 # ./install.sh --store       # Cursor Cloud Agent skill store
 ```
+
+`--all` installs Cursor and Claude Code, then copies the Cloud Agent store if
+that path is writable. On a Mac it skips `/cursor` instead of failing after
+the desktop hosts are already linked.
 
 Open a **new** chat on each host so the skills reload.
 

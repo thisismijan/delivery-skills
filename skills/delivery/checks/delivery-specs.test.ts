@@ -460,6 +460,15 @@ describe("portable factory pack", () => {
   const packRoot = join(ROOT, "..", "..");
   const readme = readFileSync(join(packRoot, "README.md"), "utf8");
 
+  test("install --all skips an unwritable Cloud Agent store", () => {
+    const installer = readFileSync(join(packRoot, "install.sh"), "utf8");
+    expect(installer).toContain('hosts+=(cursor claude store)');
+    expect(installer).toContain("Agent store skipped (not writable here)");
+    expect(installer).toContain('case "$store" in');
+    expect(installer).toContain("/cursor/*) echo /cursor ;;");
+    expect(readme).toContain("On a Mac it skips `/cursor` instead of failing");
+  });
+
   test("the README SDLC names every stage skill and every human gate", () => {
     expect(readme).toContain("```mermaid");
     expect(readme).toContain("flowchart TD");
