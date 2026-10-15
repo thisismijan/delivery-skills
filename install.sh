@@ -47,7 +47,8 @@ for host in "${hosts[@]}"; do
       ;;
     store)
       # Cloud Agent personal store. Copy, do not symlink: the store may not
-      # follow links outside itself.
+      # follow links outside itself. Place factory as a sibling of `skills/`
+      # so `../../factory` from a skill still resolves.
       store="${CURSOR_AGENT_STORE:-/cursor/stores/user/skills}"
       mkdir -p "$store"
       for skill in "$root/skills"/*; do
@@ -55,7 +56,10 @@ for host in "${hosts[@]}"; do
         rm -rf "$store/$name"
         cp -a "$skill" "$store/$name"
       done
+      rm -rf "$(dirname "$store")/factory"
+      cp -a "$root/factory" "$(dirname "$store")/factory"
       echo "Agent store -> $store"
+      echo "Factory -> $(dirname "$store")/factory"
       ;;
   esac
 done
