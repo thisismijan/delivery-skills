@@ -20,6 +20,7 @@ This command turns whatever the operator provides (a file path, inline text, or 
 
 - **No MCP, git, or Jira tools.** This command and both its subagents (`groom-explorer`, `groom-writer`) carry no MCP, git, or Jira tools. `Bash` is present on this command ONLY to run the local deterministic Bun scripts (`groom-paths.ts`, `verify-ticket.ts`, `human-text.ts`) and to make the idempotent `.gitignore` edit. Never invoke `git`, `glab`, or any Jira/MCP call from it. A run produces zero commits and zero Jira activity. All writes land only under `.ig-spec/grooming/` (plus the single `.gitignore` line).
 - **One question per turn.** The grilling loop emits exactly one question per turn, always with a recommended answer. Never batch two or more questions into a single turn.
+- **Atomic and complete.** Every ticket is one useful vertical outcome that can be understood, tested, implemented, and reviewed in one fresh small-context session. Prefer another ticket over another independent outcome.
 - **Write nothing before approval.** No draft file is written until the operator explicitly approves the ticket or the slice breakdown.
 - **Fail closed on bad drafts.** A draft that fails `verify-ticket.ts` is fixed and re-emitted, never written as the final artifact.
 - **All human-facing output passes through `sanitizeHumanText`.** No em dashes or en dashes in any output (see `scripts/human-text.ts`).
@@ -55,7 +56,7 @@ The grilling loop and slice proposals **MUST** reference concrete module names, 
 
 Before asking the operator anything, classify the input as one of:
 
-- **A single ticket:** one small, self-contained deliverable.
+- **A single ticket:** one atomic, self-contained vertical outcome that meets the context-budget checklist in Step 7.
 - **A PRD-worthy initiative:** broad enough to need a PRD and a vertical-slice breakdown into multiple tickets.
 - **A split-worthy ask:** reads as more than one ticket's worth of work but does not need a full PRD.
 
@@ -90,6 +91,9 @@ What you present here depends on Step 4's recommendation:
   - **Title** (short, descriptive)
   - **Blocked by** (other slices this depends on, by number; or "Nothing")
   - **Story covered** (the single user story from the PRD or grilling this slice delivers)
+  - **Observable outcome** (the one behaviour this ticket leaves working)
+  - **Acceptance criteria** (one to three Given/When/Then statements)
+  - **Out of scope** (the nearest outcomes deliberately deferred)
 
   Quiz the operator on:
   - Is the granularity right? (Each slice should be individually deployable and cover a single user story.)
@@ -97,6 +101,23 @@ What you present here depends on Step 4's recommendation:
   - Are any slices missing?
 
 Iterate based on operator feedback until the operator explicitly approves the ticket or the breakdown. **Write no draft files during this step.**
+
+Apply this **small-context budget** to the single-ticket path and every proposed
+slice:
+
+- one user-visible outcome and one primary public contract or behaviour;
+- one cohesive code area plus its tests, not several unrelated subsystems;
+- one to three acceptance criteria from a single behaviour cluster;
+- no independently deployable "and" outcome hidden in the title, story, or
+  criteria;
+- enough scope to be useful when merged, including the thin end-to-end path,
+  but no speculative framework, broad cleanup, or second consumer.
+
+If any check fails or the likely implementation needs a continuation session,
+split again. Keep every result **vertically complete**. When uncertain,
+recommend the smaller split. Do not create
+frontend-only, backend-only, test-only, or "foundation" microtickets unless
+that layer is itself a usable public contract.
 
 Prefer independently deployable vertical slices. A wide refactor may use an
 explicit **expand-contract exception** only when compatibility requires a
@@ -117,7 +138,7 @@ On explicit operator approval of the ticket (single-ticket path) or the slice br
    ```
    bun "${FACTORY_ROOT}/scripts/verify-ticket.ts" "<draft-file-path>"
    ```
-   - **Non-zero exit** (missing section, zero acceptance criteria, more than one user story, or an acceptance criterion that is not a Given/When/Then statement): dispatch `groom-writer` again with the failing draft and the error output to fix and re-emit. A draft covering more than one story must be split into one draft per story. Never write the failing draft as the final artifact. Loop until the draft passes.
+   - **Non-zero exit** (missing section, zero or more than three acceptance criteria, more than one user story, or an acceptance criterion that is not a Given/When/Then statement): dispatch `groom-writer` again with the failing draft and the error output to fix and re-emit. A draft covering more than one story or behaviour cluster must be split into separate vertical tickets, not shortened by deleting required behaviour. Never write the failing draft as the final artifact. Loop until the draft passes.
    - **Zero exit (ok):** the draft is accepted as final.
 
 3. Write the PRD (`prd.md`) into the output directory if one was synthesized.
@@ -151,6 +172,8 @@ Print a closing summary that includes:
 - A run of `/groom` makes **no commits** and **no Jira activity**.
 - All generated artifacts (PRD and ticket drafts) land only under `.ig-spec/grooming/` — never elsewhere in the repo. The sole exception is the single idempotent `.gitignore` line added in Step 9.
 - No draft with zero acceptance criteria is ever written as a final artifact.
+- No draft with more than three acceptance criteria is ever written as a final artifact.
 - No draft with a non-Given/When/Then acceptance criterion is ever written as a final artifact.
+- Every approved ticket passes the small-context budget: one useful vertical outcome, one primary contract, one cohesive code area plus tests, and one to three criteria.
 - The input shape is classified and recommended to the operator before the first grilling question (Step 4), and PRD synthesis and the vertical-slice breakdown (Steps 6 and 7) are conditional on that recommendation, not a default path.
 - No groom output (PRD or ticket draft) contains an `Implementation decisions` or `Test seams` section, or any prose describing how the change is built or tested.

@@ -17,6 +17,15 @@ export interface DraftRouting {
 export function routeAfterAssessment(
 	a: AssessmentVerdict,
 ): DraftRouting | null {
+	if (a.scopeFit === "too_large") {
+		return {
+			decision: "clarify",
+			state: "SPLIT_REQUIRED",
+			reason: a.splitRecommendation.length
+				? `Ticket is too large for one small-context implementation. Split it into: ${a.splitRecommendation.join("; ")}`
+				: "Ticket is too large for one small-context implementation. Split it into atomic, independently completable tickets before drafting.",
+		};
+	}
 	if (a.quality === "needs_clarification") {
 		return {
 			decision: "clarify",

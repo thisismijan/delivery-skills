@@ -12,12 +12,37 @@ export const ReviewVerdict = z.object({
 });
 export type ReviewVerdict = z.infer<typeof ReviewVerdict>;
 
-export const AssessmentVerdict = z.object({
-	quality: z.enum(["good", "needs_clarification", "reject"]),
-	gaps: z.array(z.string()),
-	derivedAcceptanceCriteria: z.array(z.string()),
-	confidence: z.enum(["high", "medium", "low"]),
-});
+export const AssessmentVerdict = z
+	.object({
+		quality: z.enum(["good", "needs_clarification", "reject"]),
+		scopeFit: z.enum(["atomic", "too_large"]),
+		splitRecommendation: z.array(z.string()),
+		gaps: z.array(z.string()),
+		derivedAcceptanceCriteria: z.array(z.string()),
+		confidence: z.enum(["high", "medium", "low"]),
+	})
+	.superRefine((verdict, ctx) => {
+		if (
+			verdict.scopeFit === "too_large" &&
+			verdict.splitRecommendation.length === 0
+		) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["splitRecommendation"],
+				message: "an oversized ticket requires a concrete split recommendation",
+			});
+		}
+		if (
+			verdict.scopeFit === "atomic" &&
+			verdict.splitRecommendation.length > 0
+		) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["splitRecommendation"],
+				message: "an atomic ticket must not carry split recommendations",
+			});
+		}
+	});
 export type AssessmentVerdict = z.infer<typeof AssessmentVerdict>;
 
 export const FeasibilityVerdict = z.object({

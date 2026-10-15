@@ -66,6 +66,8 @@ test("fail closed: throws when readyForMain is not a boolean", () => {
 
 const validAssessment = {
 	quality: "good",
+	scopeFit: "atomic",
+	splitRecommendation: [] as string[],
 	gaps: [] as string[],
 	derivedAcceptanceCriteria: ["AC1"],
 	confidence: "high",
@@ -82,6 +84,43 @@ test("assessment: throws on invalid quality", () => {
 		parseAssessmentVerdict(
 			JSON.stringify({ ...validAssessment, quality: "ok" }),
 		),
+	).toThrow();
+});
+
+test("assessment: parses an atomic scope verdict", () => {
+	expect(
+		parseAssessmentVerdict(JSON.stringify(validAssessment)).scopeFit,
+	).toBe("atomic");
+});
+
+test("assessment: parses an oversized verdict with concrete split recommendations", () => {
+	const parsed = parseAssessmentVerdict(
+		JSON.stringify({
+			...validAssessment,
+			scopeFit: "too_large",
+			splitRecommendation: ["Add the contract", "Consume the contract"],
+		}),
+	);
+	expect(parsed.scopeFit).toBe("too_large");
+	expect(parsed.splitRecommendation).toHaveLength(2);
+});
+
+test("assessment: fails closed when an oversized verdict omits the split", () => {
+	expect(() =>
+		parseAssessmentVerdict(
+			JSON.stringify({
+				...validAssessment,
+				scopeFit: "too_large",
+				splitRecommendation: [],
+			}),
+		),
+	).toThrow("concrete split recommendation");
+});
+
+test("assessment: fails closed when scope fit is omitted", () => {
+	const { scopeFit, ...withoutScopeFit } = validAssessment;
+	expect(() =>
+		parseAssessmentVerdict(JSON.stringify(withoutScopeFit)),
 	).toThrow();
 });
 

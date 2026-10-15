@@ -4,18 +4,24 @@ import type { AssessmentVerdict, FeasibilityVerdict } from "./verdicts";
 
 const good: AssessmentVerdict = {
 	quality: "good",
+	scopeFit: "atomic",
+	splitRecommendation: [],
 	gaps: [],
 	derivedAcceptanceCriteria: ["AC1"],
 	confidence: "high",
 };
 const vague: AssessmentVerdict = {
 	quality: "needs_clarification",
+	scopeFit: "atomic",
+	splitRecommendation: [],
 	gaps: ["no acceptance criteria"],
 	derivedAcceptanceCriteria: [],
 	confidence: "low",
 };
 const bad: AssessmentVerdict = {
 	quality: "reject",
+	scopeFit: "atomic",
+	splitRecommendation: [],
 	gaps: ["out of scope"],
 	derivedAcceptanceCriteria: [],
 	confidence: "high",
@@ -29,6 +35,31 @@ test("needs_clarification -> clarify", () => {
 });
 test("reject -> reject", () => {
 	expect(routeAfterAssessment(bad)?.decision).toBe("reject");
+});
+
+test("oversized ticket -> split required even when other quality fields are good", () => {
+	const oversized: AssessmentVerdict = {
+		...good,
+		scopeFit: "too_large",
+		splitRecommendation: [
+			"Expose the read contract",
+			"Render the contract in the dashboard",
+		],
+	};
+	const result = routeAfterAssessment(oversized);
+	expect(result?.decision).toBe("clarify");
+	expect(result?.state).toBe("SPLIT_REQUIRED");
+	expect(result?.reason).toContain("Expose the read contract");
+});
+
+test("oversized ticket without a split proposal still fails closed", () => {
+	const result = routeAfterAssessment({
+		...good,
+		scopeFit: "too_large",
+		splitRecommendation: [],
+	});
+	expect(result?.decision).toBe("clarify");
+	expect(result?.reason).toContain("atomic");
 });
 
 const feasible: FeasibilityVerdict = {

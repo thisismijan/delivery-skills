@@ -102,6 +102,26 @@ When the input-shape classification recommends a PRD-worthy initiative or a spli
 - **WHEN** the operator has not yet approved the ticket or the slice breakdown
 - **THEN** no draft file is written
 
+### Requirement: Atomic tickets fit a small context
+Every ticket SHALL be one useful vertical outcome that can be understood,
+tested, implemented, verified, and reviewed in one fresh small-context session.
+It SHALL contain one user story, one primary public contract or behaviour, one
+cohesive code area plus tests, and one to three acceptance criteria. Independent
+outcomes, behaviour clusters, consumers, or unrelated subsystems SHALL be split
+into separate tickets. A split SHALL remain vertically complete and SHALL NOT
+default to frontend-only, backend-only, test-only, or speculative foundation
+microtickets.
+
+#### Scenario: A broad slice is split before approval
+- **WHEN** a proposed slice contains independently deployable outcomes or more than three acceptance criteria
+- **THEN** groom recommends smaller vertical tickets
+- **AND** does not present the broad slice as approval-ready
+
+#### Scenario: A split remains complete
+- **WHEN** groom splits a broad outcome
+- **THEN** each resulting ticket leaves one useful behaviour or public contract working
+- **AND** no resulting ticket is merely a technical layer required by an unspecified later ticket
+
 ### Requirement: Groom output describes what, not how
 No section of any groom output (a `prd.md` or a ticket draft) SHALL describe how the change is implemented or tested. Groom output SHALL contain no `Implementation decisions` section and no `Test seams` section. The grilling loop SHALL NOT ask the operator about test seams or implementation decisions; any such questions SHALL be replaced with what-level questions (success criteria, constraints or NFRs).
 
@@ -116,7 +136,7 @@ No section of any groom output (a `prd.md` or a ticket draft) SHALL describe how
 - **AND** any replacement questions are what-level (success criteria, constraints or NFRs)
 
 ### Requirement: Ticket drafts conform to the template
-Each emitted ticket draft SHALL contain all required template sections (Context, User stories, What to build, Acceptance criteria, Out of scope, Blocked by), a single clear deliverable, at most one user story, and acceptance criteria each phrased as a Given/When/Then behaviour statement.
+Each emitted ticket draft SHALL contain all required template sections (Context, User stories, What to build, Acceptance criteria, Out of scope, Blocked by), a single clear deliverable, at most one user story, between one and three acceptance criteria, and acceptance criteria each phrased as a Given/When/Then behaviour statement.
 
 #### Scenario: Draft has all sections and Given/When/Then criteria
 - **WHEN** a ticket draft is emitted
@@ -128,8 +148,12 @@ Each emitted ticket draft SHALL contain all required template sections (Context,
 - **WHEN** a ticket draft is emitted
 - **THEN** its User stories section contains at most one user story (never more than one)
 
+#### Scenario: Draft carries at most three acceptance criteria
+- **WHEN** a ticket draft is emitted
+- **THEN** its Acceptance criteria section contains between one and three criteria
+
 ### Requirement: Structural ticket-draft verification (fail closed)
-`scripts/verify-ticket.ts` SHALL reject a draft missing any required section, SHALL reject a draft with zero acceptance criteria, SHALL reject a draft whose User stories section contains more than one user story, SHALL reject a draft in which any acceptance criterion is not a Given/When/Then behaviour statement, and SHALL warn when a slice exceeds the size heuristic. It SHALL emit structured JSON and exit non-zero on failure, and it SHALL be exercised by `bun test`. A draft that fails verification SHALL be fixed and re-emitted, and SHALL never be written as the final artifact.
+`scripts/verify-ticket.ts` SHALL reject a draft missing any required section, SHALL reject a draft with zero or more than three acceptance criteria, SHALL reject a draft whose User stories section contains more than one user story, SHALL reject a draft in which any acceptance criterion is not a Given/When/Then behaviour statement, and SHALL warn when a slice exceeds the size heuristic. It SHALL emit structured JSON and exit non-zero on failure, and it SHALL be exercised by `bun test`. A draft that fails verification SHALL be fixed and re-emitted, and SHALL never be written as the final artifact.
 
 #### Scenario: Missing section is rejected
 - **WHEN** `verify-ticket.ts` checks a draft missing any required section
@@ -138,6 +162,10 @@ Each emitted ticket draft SHALL contain all required template sections (Context,
 #### Scenario: Zero acceptance criteria is rejected
 - **WHEN** `verify-ticket.ts` checks a draft with zero acceptance criteria
 - **THEN** it reports failure, emits structured JSON, and exits non-zero
+
+#### Scenario: More than three acceptance criteria is rejected
+- **WHEN** `verify-ticket.ts` checks a draft with more than three acceptance criteria
+- **THEN** it reports failure, recommends splitting behaviour clusters, and exits non-zero
 
 #### Scenario: More than one user story is rejected
 - **WHEN** `verify-ticket.ts` checks a draft whose User stories section contains more than one user story
@@ -193,12 +221,13 @@ All human-facing output produced by the command SHALL pass through `sanitizeHuma
 - **AND** contains no em dashes or en dashes
 
 ### Requirement: Chaos guarantees for groom
-A chaos-style test SHALL assert that groom never writes files outside `.ig-spec/grooming/`, never emits a draft with zero acceptance criteria, and never emits a draft with a non-Given/When/Then acceptance criterion.
+A chaos-style test SHALL assert that groom never writes files outside `.ig-spec/grooming/`, never emits a draft with zero or more than three acceptance criteria, and never emits a draft with a non-Given/When/Then acceptance criterion.
 
 #### Scenario: Chaos test asserts the standing guarantees
 - **WHEN** the chaos test runs
 - **THEN** it asserts no write ever lands outside `.ig-spec/grooming/`
 - **AND** it asserts no draft with zero acceptance criteria is emitted as a final artifact
+- **AND** it asserts no draft with more than three acceptance criteria is emitted as a final artifact
 - **AND** it asserts no draft with a non-Given/When/Then acceptance criterion is emitted as a final artifact
 
 ### Requirement: Closing summary and handoff

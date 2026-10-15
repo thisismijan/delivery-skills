@@ -53,6 +53,10 @@ export async function verifyTicket(
 		missing.push(
 			"Missing acceptance criteria: no checkboxes found (add at least one - [ ] or - [x] checkbox)",
 		);
+	} else if (checkboxes.length > 3) {
+		missing.push(
+			`Too many acceptance criteria: found ${checkboxes.length}, expected at most three (split independent behaviour clusters into atomic vertical tickets)`,
+		);
 	}
 
 	// Each acceptance-criterion checkbox must be a single-line, ordered,

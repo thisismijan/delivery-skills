@@ -328,6 +328,39 @@ N/A
 	expect(result.ok).toBe(false);
 });
 
+test("groom chaos: a draft with more than three acceptance criteria is never a valid final artifact", async () => {
+	const oversizedCriterionSet = `# Ticket
+
+## Context
+
+Background.
+
+## User stories
+
+- As a user I want to export data so that I can analyse it.
+
+## What to build
+
+Build the export outcome.
+
+## Acceptance criteria
+
+- [ ] Given data exists, When export is requested, Then a file downloads
+- [ ] Given export is requested, When it completes, Then an audit event is stored
+- [ ] Given export is requested, When it fails, Then the user sees an error
+- [ ] Given export completes, When alerts are enabled, Then an email is sent
+
+## Out of scope
+
+Imports.
+
+## Blocked by
+
+Nothing.
+`;
+	expect((await verifyTicket(oversizedCriterionSet)).ok).toBe(false);
+});
+
 test("groom chaos: groomOutputDir always stays within .ig-spec/grooming/ for a normal title", () => {
 	const dir = groomOutputDir("normal grooming title");
 	expect(dir.startsWith(".ig-spec/grooming/")).toBe(true);

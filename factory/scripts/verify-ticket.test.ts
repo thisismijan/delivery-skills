@@ -90,6 +90,21 @@ test("valid draft with multiple acceptance criteria -> ok true", async () => {
 	await rm(filePath);
 });
 
+test("draft with more than three acceptance criteria -> ok false and split required", async () => {
+	const content = validDraft().replace(
+		"- [ ] Given the export button is visible, When the user clicks it, Then a CSV file downloads",
+		[
+			"- [ ] Given the export button is visible, When the user clicks it, Then a CSV file downloads",
+			"- [ ] Given an export is requested, When it completes, Then an audit event is recorded",
+			"- [ ] Given an export completes, When notifications are enabled, Then an email is sent",
+		].join("\n"),
+	);
+	const result = await verifyTicket(content);
+	expect(result.ok).toBe(false);
+	expect(result.missing.join(" ")).toContain("at most three");
+	expect(result.missing.join(" ")).toContain("atomic vertical tickets");
+});
+
 test("result has ok, missing, and warnings fields", async () => {
 	const filePath = await writeTmpDraft(validDraft());
 	const result = await verifyTicket(filePath);

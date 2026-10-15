@@ -222,9 +222,9 @@ tree, say they need committing; do not commit them.
 
 1. Read and follow `epic-to-backlog.md` with the idea/file/text argument.
    Invoke `/groom …` as that workflow specifies; honor its grilling
-   and approval gates. Prefer **max parallelism** and **session-fit slices**
-   (~50% of a context window per ticket for draft+execute; blockers only when
-   real — see that workflow).
+   and approval gates. Prefer **max parallelism** and **small-context atomic
+   slices** (at most ~25% of a context window for the complete ticket,
+   including tests and review; blockers only when real - see that workflow).
 2. Compute the **ready-now** set (blocked-by empty / already merged). If more
    than one key: emit one fan-out brief per key (see Fan-out brief) and stop —
    do not multiplex execute. If the operator wants serial, honor that.

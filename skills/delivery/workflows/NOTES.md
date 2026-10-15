@@ -87,7 +87,7 @@ Factory stages (this clone's `skills/` + `factory/`, both hosts):
 ## Vocabulary
 
 - **Target repo** — the product codebase under change, not the ig-spec plugin repo.
-- **Slice** — one groom vertical slice = one user story = one future Jira ticket = one OpenSpec change.
+- **Slice** — one groom vertical slice = one useful outcome = one user story = one future Jira ticket = one OpenSpec change, with one primary contract and one to three acceptance criteria.
 - **Brief** — checkpoint payload: decision-ready summary + links to artifacts; never the raw draft dump.
 - **Push right** — do maximal prep before the human checkpoint; ask once, late.
 - **Holdout** — Opus reviewer in execute / address-comments; sees outcome only, not implementer reasoning.
@@ -108,7 +108,7 @@ Recorded so workflows do not re-litigate them:
 - Epic workflow input: freeform / file / HLD / PRD to groom (same as `/groom`). Optional Jira epic key is operator-provided context pasted or exported into that input — groom itself does not call Jira.
 - Three stage workflows are source of truth; a thin conductor may sequence them but must not duplicate stage logic.
 - **Slice for max parallelism:** default is "all tickets in one parallel wave" when the codebase allows. Add blockers only when a true dependency exists. Inventing a foundation ticket "so there is a blocker" is wrong. Long linear chains are the anti-pattern when a fan-out would work.
-- **Slice for session fit:** each ticket must be completable (draft → execute → ready MR, or review chain for that ticket) within **~50% of one Claude session context window**. If a slice would burn most of a session, or clearly needs a continuation session to finish execute, split it. Prefer more, smaller vertical slices over one fat story.
+- **Slice for small context:** each ticket must be understood, drafted, tested, implemented, verified, and reviewed within **~25% of one session context window**. If it has independent outcomes, unrelated code areas, more than three acceptance criteria, or needs continuation, split it. Prefer more atomic but vertically complete slices over one fat story or technical-layer microtickets.
 - **Parallel execution:** when a wave has no remaining unmerged blockers, run each ticket as its own `/delivery <KEY>` (or ticket-to-mr) in a **separate worktree + session**. The conductor in one session does not multiplex execute; it briefs the wave and stops for the operator to fan out.
 
 ## Workflow index
