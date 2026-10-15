@@ -75,6 +75,12 @@ and command it proved; stale or ambiguous evidence is not reusable.
    ```
    If the meta read exits non-zero (a change drafted before this file existed, or a corrupt file), **do not guess** — treat it as no defended case and use `sonnet` (PRD §9: absent a recorded, defended complexity case, Sonnet). If it prints `opus`, the recorded justification must appear in the MR description.
 
+   **Shadow-route implementation.** Write `<reviewDir>/implement-profile.json` from the spec, feasibility meta, and blast radius. Pass the **live** model that `select-model.ts` just printed (`sonnet` or `opus`):
+   ```
+   bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/implement-profile.json" <live-model> "<reviewDir>/implement-shadow.json"
+   ```
+   Persist that JSON. **Dispatch still uses the live `select-model.ts` result.** A cheaper `shadowTier` is a recommendation for later evaluation, never this run's worker.
+
 7. **Implement to green.** Dispatch the `implementer` subagent using the model from step 6. (Override the dispatch model to the selected value; if the host can't override a plugin agent's model, route to `implementer-opus` for the opus case.)
 
 8. **Green gates.** Write `<reviewDir>/green-command.json` with argv, cwd, and all expected test paths. Run the full green gate, lint, and typecheck **in parallel**, persist each result under an append-only name containing the source commit, and wait for all three:
@@ -92,7 +98,7 @@ and command it proved; stale or ambiguous evidence is not reusable.
 
 9. **Self-review.** The `implementer` reviews its own diff against `specs/` and `tasks.md`, and marks `tasks.md` items done.
 
-10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the reviewer model: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ `opus`). Dispatch the `holdout-reviewer` subagent (Opus) with **only**: the Jira ticket, `<changeDir>` (the spec), the diff file, the test files, all gate-result files, and the **skip report** (`<reviewDir>/skips.md`). **Do not pass the implementer's reasoning or any prior chatter.** It returns a `ReviewVerdict` JSON. **No MR is opened at this point.**
+10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the reviewer model: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ `opus`). Write `<reviewDir>/review-profile.json` with workType `review` and persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"`. The holdout still runs on Opus. Dispatch the `holdout-reviewer` subagent (Opus) with **only**: the Jira ticket, `<changeDir>` (the spec), the diff file, the test files, all gate-result files, and the **skip report** (`<reviewDir>/skips.md`). **Do not pass the implementer's reasoning or any prior chatter.** It returns a `ReviewVerdict` JSON. **No MR is opened at this point.**
 
 11. **Route the verdict (deterministic).**
     ```
