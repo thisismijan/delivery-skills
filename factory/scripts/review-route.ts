@@ -24,10 +24,13 @@ export function routeReview(
 			reason: v.reasoning || "Reviewer flagged for human escalation.",
 		};
 	}
-	// Defensive guard: code not ready for main can never approve, even if the
-	// reviewer inconsistently set satisfied: "yes". Route exactly as
-	// changes_requested does.
-	if (!v.readyForMain) {
+	// Every independent readiness dimension must hold before approval.
+	if (
+		!v.specFaithful ||
+		!v.testsMeaningful ||
+		!v.codeMatchesSpec ||
+		!v.readyForMain
+	) {
 		if (attempt < maxAttempts) {
 			return {
 				action: "fix",

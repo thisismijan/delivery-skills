@@ -19,7 +19,16 @@ test("malformed verdict never parses (fail closed)", () => {
 
 test("a passing red gate is never satisfied", () => {
 	expect(
-		evaluateGate({ passed: true, exitCode: 0, output: "" }, "red").ok,
+		evaluateGate(
+			{
+				passed: true,
+				exitCode: 0,
+				output: "",
+				timedOut: false,
+				executedExpectedTests: true,
+			},
+			"red",
+		).ok,
 	).toBe(false);
 });
 

@@ -1,15 +1,31 @@
 import { z } from "zod";
 
-export const ReviewVerdict = z.object({
-	satisfied: z.enum(["yes", "changes_requested", "reject"]),
-	specFaithful: z.boolean(),
-	testsMeaningful: z.boolean(),
-	codeMatchesSpec: z.boolean(),
-	readyForMain: z.boolean(),
-	findings: z.array(z.string()),
-	shouldEscalate: z.boolean(),
-	reasoning: z.string(),
-});
+export const ReviewVerdict = z
+	.object({
+		satisfied: z.enum(["yes", "changes_requested", "reject"]),
+		specFaithful: z.boolean(),
+		testsMeaningful: z.boolean(),
+		codeMatchesSpec: z.boolean(),
+		readyForMain: z.boolean(),
+		findings: z.array(z.string()),
+		shouldEscalate: z.boolean(),
+		reasoning: z.string(),
+	})
+	.superRefine((verdict, ctx) => {
+		if (
+			verdict.satisfied === "yes" &&
+			(!verdict.specFaithful ||
+				!verdict.testsMeaningful ||
+				!verdict.codeMatchesSpec ||
+				!verdict.readyForMain)
+		) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["satisfied"],
+				message: "a satisfied review requires every readiness dimension",
+			});
+		}
+	});
 export type ReviewVerdict = z.infer<typeof ReviewVerdict>;
 
 export const AssessmentVerdict = z
@@ -40,6 +56,21 @@ export const AssessmentVerdict = z
 				code: "custom",
 				path: ["splitRecommendation"],
 				message: "an atomic ticket must not carry split recommendations",
+			});
+		}
+		if (
+			verdict.quality === "good" &&
+			(verdict.derivedAcceptanceCriteria.length === 0 ||
+				verdict.derivedAcceptanceCriteria.length > 3 ||
+				verdict.derivedAcceptanceCriteria.some(
+					(criterion) => criterion.trim().length === 0,
+				))
+		) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["derivedAcceptanceCriteria"],
+				message:
+					"a good ticket requires one to three non-empty acceptance criteria",
 			});
 		}
 	});
@@ -99,11 +130,59 @@ export function parseClassificationVerdict(
 	return ClassificationVerdict.parse(parseJson(input));
 }
 
+export function assertClassificationComplete(
+	verdict: ClassificationVerdict,
+	expectedIds: Array<string | number>,
+): void {
+	const actual = verdict.map((item) => item.commentId);
+	const expected = expectedIds.map(String);
+	if (new Set(actual).size !== actual.length) {
+		throw new Error("classification contains duplicate comment ids");
+	}
+	const missing = expected.filter((id) => !actual.includes(id));
+	const extra = actual.filter((id) => !expected.includes(id));
+	if (missing.length > 0 || extra.length > 0) {
+		throw new Error(
+			`classification ids do not match comments (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"})`,
+		);
+	}
+}
+
 if (import.meta.main) {
-	const input = await new Response(Bun.stdin.stream()).text();
+	const mode = process.argv[2];
+	const inputFile = process.argv[3];
+	if (
+		!mode ||
+		!["review", "assessment", "feasibility", "classification"].includes(mode)
+	) {
+		console.error(
+			"usage: verdicts <review|assessment|feasibility|classification> [verdict-file] [expected-ids-file]",
+		);
+		process.exit(2);
+	}
+	const input = inputFile
+		? await Bun.file(inputFile).text()
+		: await new Response(Bun.stdin.stream()).text();
 	try {
-		const v = parseReviewVerdict(input);
-		console.log(JSON.stringify({ valid: true, satisfied: v.satisfied }));
+		let detail: Record<string, unknown> = {};
+		if (mode === "review") {
+			detail = { satisfied: parseReviewVerdict(input).satisfied };
+		} else if (mode === "assessment") {
+			detail = { quality: parseAssessmentVerdict(input).quality };
+		} else if (mode === "feasibility") {
+			detail = { feasible: parseFeasibilityVerdict(input).feasible };
+		} else {
+			const verdict = parseClassificationVerdict(input);
+			const expectedFile = process.argv[4];
+			if (expectedFile) {
+				const expected = z
+					.array(z.union([z.string(), z.number()]))
+					.parse(await Bun.file(expectedFile).json());
+				assertClassificationComplete(verdict, expected);
+			}
+			detail = { comments: verdict.length };
+		}
+		console.log(JSON.stringify({ valid: true, ...detail }));
 	} catch (e) {
 		console.error(e instanceof Error ? e.message : String(e));
 		process.exit(1);

@@ -46,9 +46,11 @@ export async function verifyTicket(
 		}
 	}
 
-	// Count acceptance criteria checkboxes
+	// Count checkboxes only inside the Acceptance criteria section. Examples
+	// elsewhere and fenced code are not acceptance criteria.
+	const acceptanceCriteria = sectionBody(text, "acceptance criteria");
 	const checkboxPattern = /^- \[[ xX]\]/gm;
-	const checkboxes = text.match(checkboxPattern) ?? [];
+	const checkboxes = acceptanceCriteria.match(checkboxPattern) ?? [];
 	if (checkboxes.length === 0) {
 		missing.push(
 			"Missing acceptance criteria: no checkboxes found (add at least one - [ ] or - [x] checkbox)",
@@ -65,7 +67,7 @@ export async function verifyTicket(
 	// non-conforming criterion.
 	const gwtOrderPattern = /\bgiven\b.*\bwhen\b.*\bthen\b/i;
 	const checkboxLinePattern = /^- \[[ xX]\](.*)$/gm;
-	for (const match of text.matchAll(checkboxLinePattern)) {
+	for (const match of acceptanceCriteria.matchAll(checkboxLinePattern)) {
 		const content = (match[1] ?? "").trim();
 		if (!gwtOrderPattern.test(content)) {
 			missing.push(
@@ -96,6 +98,29 @@ export async function verifyTicket(
 
 function escapeRegex(s: string): string {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function sectionBody(text: string, name: string): string {
+	const lines = text.split("\n");
+	const headingPattern = /^#{1,6}\s+(.+?)\s*$/;
+	let inSection = false;
+	let inFence = false;
+	const body: string[] = [];
+	for (const line of lines) {
+		if (/^\s*```/.test(line)) {
+			inFence = !inFence;
+			continue;
+		}
+		if (inFence) continue;
+		const heading = line.match(headingPattern);
+		if (heading) {
+			if (inSection) break;
+			inSection = heading[1]?.trim().toLowerCase() === name.toLowerCase();
+			continue;
+		}
+		if (inSection) body.push(line);
+	}
+	return body.join("\n");
 }
 
 // Count list items in the "User stories" section (between its heading and the

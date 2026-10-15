@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import {
+	assertClassificationComplete,
 	parseAssessmentVerdict,
 	parseClassificationVerdict,
 	parseFeasibilityVerdict,
@@ -60,6 +61,19 @@ test("fail closed: throws when readyForMain is not a boolean", () => {
 	).toThrow();
 });
 
+test("a yes verdict is invalid when any readiness dimension is false", () => {
+	for (const field of [
+		"specFaithful",
+		"testsMeaningful",
+		"codeMatchesSpec",
+		"readyForMain",
+	] as const) {
+		expect(() =>
+			parseReviewVerdict(JSON.stringify({ ...valid, [field]: false })),
+		).toThrow("every readiness dimension");
+	}
+});
+
 // ---------------------------------------------------------------------------
 // AssessmentVerdict
 // ---------------------------------------------------------------------------
@@ -88,9 +102,9 @@ test("assessment: throws on invalid quality", () => {
 });
 
 test("assessment: parses an atomic scope verdict", () => {
-	expect(
-		parseAssessmentVerdict(JSON.stringify(validAssessment)).scopeFit,
-	).toBe("atomic");
+	expect(parseAssessmentVerdict(JSON.stringify(validAssessment)).scopeFit).toBe(
+		"atomic",
+	);
 });
 
 test("assessment: parses an oversized verdict with concrete split recommendations", () => {
@@ -122,6 +136,14 @@ test("assessment: fails closed when scope fit is omitted", () => {
 	expect(() =>
 		parseAssessmentVerdict(JSON.stringify(withoutScopeFit)),
 	).toThrow();
+});
+
+test("assessment: good quality requires one to three acceptance criteria", () => {
+	expect(() =>
+		parseAssessmentVerdict(
+			JSON.stringify({ ...validAssessment, derivedAcceptanceCriteria: [] }),
+		),
+	).toThrow("one to three");
 });
 
 // ---------------------------------------------------------------------------
@@ -262,4 +284,25 @@ test("classification: fail closed — throws when top-level value is null", () =
 
 test("classification: fail closed — throws on empty string input", () => {
 	expect(() => parseClassificationVerdict("")).toThrow();
+});
+
+test("classification completeness requires an exact id bijection", () => {
+	const verdict = parseClassificationVerdict(
+		JSON.stringify([
+			validClassComment,
+			{ ...validClassComment, commentId: "2" },
+		]),
+	);
+	expect(() =>
+		assertClassificationComplete(verdict, ["c-001", 2]),
+	).not.toThrow();
+	expect(() => assertClassificationComplete(verdict, ["c-001", 2, 3])).toThrow(
+		"missing: 3",
+	);
+	expect(() => assertClassificationComplete(verdict, ["c-001"])).toThrow(
+		"extra: 2",
+	);
+	expect(() =>
+		assertClassificationComplete([...verdict, verdict[0]!], ["c-001", 2]),
+	).toThrow("duplicate");
 });

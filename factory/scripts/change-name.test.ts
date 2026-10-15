@@ -13,14 +13,19 @@ test("strips punctuation and trims", () => {
 	);
 });
 
-test("empty summary -> key only", () => {
-	expect(changeName("PROJ-9", "")).toBe("proj-9");
+test("empty summary uses a safe fallback slug", () => {
+	expect(changeName("PROJ-9", "")).toBe("proj-9-change");
 });
 
 test("caps the slug at 6 words", () => {
-	expect(changeName("X-1", "one two three four five six seven eight")).toBe(
-		"x-1-one-two-three-four-five-six",
+	expect(changeName("XY-1", "one two three four five six seven eight")).toBe(
+		"xy-1-one-two-three-four-five-six",
 	);
+});
+
+test("rejects malformed or traversal-like keys", () => {
+	expect(() => changeName("../../tmp", "escape")).toThrow("invalid ticket key");
+	expect(() => changeName("X-1", "too short")).toThrow("invalid ticket key");
 });
 
 test("is stable: same inputs -> same name", () => {

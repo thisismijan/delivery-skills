@@ -39,7 +39,7 @@ This command implements the approved change and, **only after the holdout review
    ```
    Non-zero exit → stop + escalate.
 
-3. **Check out** the spec branch `<changeName>`, then create a review working dir for artifacts the holdout reviewer will read later: `<reviewDir> = ${FACTORY_ROOT}/.review/<changeName>` (`mkdir -p` it). It holds the persisted gate output and the diff; it is a scratch dir, do not commit it.
+3. **Check out** the spec branch `<changeName>`, resolve `<repoRoot>` with `git rev-parse --show-toplevel`, then create `<reviewDir> = <repoRoot>/.review/<changeName>` (`mkdir -p` it). It holds append-only gate evidence and the diff; it is worktree-local scratch state and must be gitignored, never committed.
 
 3a. **Re-entry reconciliation.** Before writing or changing anything, reconcile
 the durable state from a prior interrupted run: the **existing MR**, existing
@@ -58,10 +58,10 @@ and command it proved; stale or ambiguous evidence is not reusable.
 
 4. **Write tests first.** Dispatch the `test-writer` subagent with `<changeDir>/specs/` and `<changeDir>/tasks.md`. It writes test files only. It writes **durable** tests and **skips** inherently transient (point-in-time migration) scenarios, reporting each skip with a reason (see "Test durability" in CLAUDE.md). **Capture its skip report** verbatim to `<reviewDir>/skips.md` (write an explicit "none" if it skipped nothing) - the holdout reviewer reads it in step 10 and the MR surfaces it in step 11.
 
-5. **Red gate (enforced).** Determine the target repo's test command scoped to the new tests, then run it **and persist its JSON output** to `<reviewDir>/red-gate.json` (the tests failing now is the whole point — that failure output cannot be reproduced once the implementation exists, so capture it here):
+5. **Red gate (enforced).** Write `<reviewDir>/red-command.json` containing an argv array (never a shell string), the repo cwd, every expected new test path, and a timeout. Run it and persist the JSON output under an append-only name containing the test commit:
    ```
    set -o pipefail
-   bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<scoped test command>" red | tee "<reviewDir>/red-gate.json"
+   bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/red-command.json" red | tee "<reviewDir>/red-gate-<test-commit>.json"
    ```
    The gate's own exit code still governs the decision: non-zero exit → the tests passed before implementation (vacuous tests or a no-op) → **stop + escalate**. No MR.
 
@@ -77,12 +77,12 @@ and command it proved; stale or ambiguous evidence is not reusable.
 
 7. **Implement to green.** Dispatch the `implementer` subagent using the model from step 6. (Override the dispatch model to the selected value; if the host can't override a plugin agent's model, route to `implementer-opus` for the opus case.)
 
-8. **Green gate.** Run it and **persist its JSON output** to `<reviewDir>/green-gate.json` (overwriting any prior attempt's):
+8. **Green gates.** Write `<reviewDir>/green-command.json` with argv, cwd, and all expected test paths. Run the full green gate, lint, and typecheck **in parallel**, persist each result under an append-only name containing the source commit, and wait for all three:
    ```
    set -o pipefail
-   bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<full target test command>" green | tee "<reviewDir>/green-gate.json"
+   bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/green-command.json" green | tee "<reviewDir>/green-gate-<source-commit>.json"
    ```
-   and run the target's lint + typecheck. If any fail, dispatch the `implementer` again to fix the source (not the tests). Loop a small bounded number of times (the formal ceiling is N6), then **stop + escalate**.
+   If any of the three fail, dispatch the `implementer` again to fix the source (not the tests). Loop a small bounded number of times (the formal ceiling is N6), then **stop + escalate**.
 
    **Premise checkpoint:** after **two failures that share the same
    assumption**, **state the premise** and run **one discriminating observation**
@@ -92,14 +92,14 @@ and command it proved; stale or ambiguous evidence is not reusable.
 
 9. **Self-review.** The `implementer` reviews its own diff against `specs/` and `tasks.md`, and marks `tasks.md` items done.
 
-10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). The gate results are **already persisted** from steps 5 and 8 (`<reviewDir>/red-gate.json`, `<reviewDir>/green-gate.json`) — do NOT re-run the gates or roll back the implementation to reconstruct them. Confirm the reviewer model: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ `opus`). Dispatch the `holdout-reviewer` subagent (Opus) with **only**: the Jira ticket, `<changeDir>` (the spec), the diff file, the test files, the two gate-result files, and the **skip report** (`<reviewDir>/skips.md`) so it can police the skips (a transient test committed, or a durable scenario wrongly skipped, is a finding). **Do not pass the implementer's reasoning or any prior chatter.** It returns a `ReviewVerdict` JSON. **No MR is opened at this point.**
+10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the reviewer model: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ `opus`). Dispatch the `holdout-reviewer` subagent (Opus) with **only**: the Jira ticket, `<changeDir>` (the spec), the diff file, the test files, all gate-result files, and the **skip report** (`<reviewDir>/skips.md`). **Do not pass the implementer's reasoning or any prior chatter.** It returns a `ReviewVerdict` JSON. **No MR is opened at this point.**
 
 11. **Route the verdict (deterministic).**
     ```
     bun "${FACTORY_ROOT}/scripts/review-route.ts" '<verdict-json>' <attempt> <maxAttempts>
     ```
     `maxAttempts` comes from `bun "${FACTORY_ROOT}/scripts/config.ts"` (`maxFixAttempts`, default 2); `attempt` starts at 1 and increments each fix loop. **Non-zero exit = malformed verdict → stop + escalate** (fail closed). Then act on `action`:
-    - **`approve`** → **now open the MR.** Push the branch (`git push -u origin <changeName>`) and create it **ready for merge** with `glab mr create`, targeting the default branch. **Build the MR title with the title helper so it always opens with the Jira reference** (Rule 3):
+    - **`approve`** → **now open a draft MR.** Push the branch (`git push -u origin <changeName>`) and create it with `glab mr create --draft`, targeting the default branch. Stage 3 review, not execute, marks it ready. **Build the MR title with the title helper so it always opens with the Jira reference** (Rule 3):
       ```
       bun "${FACTORY_ROOT}/scripts/mr-title.ts" $ARGUMENTS "<ticket summary>"
       ```

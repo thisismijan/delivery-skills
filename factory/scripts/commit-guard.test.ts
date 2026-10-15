@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { isAttributionViolation } from "./commit-guard";
+import { isAttributionViolation, isForbiddenMutation } from "./commit-guard";
 
 describe("commit-guard", () => {
 	test("blocks git commit -m carrying a Co-Authored-By trailer", () => {
@@ -56,5 +56,27 @@ describe("commit-guard", () => {
 
 	test("empty command is allowed", () => {
 		expect(isAttributionViolation("").blocked).toBe(false);
+	});
+});
+
+describe("mutation guard", () => {
+	test.each([
+		"glab mr merge 12",
+		"glab mr close 12",
+		"git push --force origin main",
+		"git push --force-with-lease origin topic",
+		"git reset --hard HEAD~1",
+		"transitionJiraIssue",
+	])("blocks %s", (command) => {
+		expect(isForbiddenMutation(command).blocked).toBe(true);
+	});
+
+	test.each([
+		"glab mr create --draft",
+		"glab mr update 12 --ready",
+		"git push -u origin topic",
+		'git commit -m "fix: safe"',
+	])("allows %s", (command) => {
+		expect(isForbiddenMutation(command).blocked).toBe(false);
 	});
 });

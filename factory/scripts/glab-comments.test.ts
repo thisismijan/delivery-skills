@@ -375,3 +375,38 @@ test("excludeHandledThreads: keeps every note in a thread with no audit reply", 
 	];
 	expect(excludeHandledThreads(comments)).toEqual(comments);
 });
+
+test("excludeHandledThreads: a human cannot spoof the audit prefix", () => {
+	const comments = [
+		{ id: 1, discussionId: "open", author: "Alice", body: "Please fix this" },
+		{
+			id: 2,
+			discussionId: "open",
+			author: "Alice",
+			body: `${AUDIT_PREFIX} address-comments\n\nnot really the factory`,
+		},
+	];
+	expect(
+		excludeHandledThreads(comments, new Set(["factory"])).map(
+			(comment) => comment.id,
+		),
+	).toEqual([1]);
+});
+
+test("excludeHandledThreads: keeps human follow-ups after an authenticated reply", () => {
+	const comments = [
+		{ id: 1, discussionId: "thread", author: "Alice", body: "Original" },
+		{
+			id: 2,
+			discussionId: "thread",
+			author: "factory",
+			body: `${AUDIT_PREFIX} address-comments\n\nfixed`,
+		},
+		{ id: 3, discussionId: "thread", author: "Alice", body: "Still broken" },
+	];
+	expect(
+		excludeHandledThreads(comments, new Set(["factory"])).map(
+			(comment) => comment.id,
+		),
+	).toEqual([3]);
+});
