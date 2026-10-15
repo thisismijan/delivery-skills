@@ -124,10 +124,26 @@ export function excludeHoldoutNote(comments: MrComment[]): MrComment[] {
 	return comments.filter((c) => !c.body.startsWith(AUDIT_PREFIX));
 }
 
+// Re-entry-safe scope: an audit reply proves this workflow already handled the
+// discussion. Drop the whole thread, not just the reply, or the original human
+// note would be classified and answered again on every invocation.
+export function excludeHandledThreads(comments: MrComment[]): MrComment[] {
+	const handled = new Set(
+		comments
+			.filter((comment) => comment.body.startsWith(AUDIT_PREFIX))
+			.map((comment) => comment.discussionId),
+	);
+	return comments.filter(
+		(comment) =>
+			!handled.has(comment.discussionId) &&
+			!comment.body.startsWith(AUDIT_PREFIX),
+	);
+}
+
 if (import.meta.main) {
 	const input = await new Response(Bun.stdin.stream()).text();
 	try {
-		const comments = excludeHoldoutNote(parseMrComments(input));
+		const comments = excludeHandledThreads(parseMrComments(input));
 		console.log(JSON.stringify(comments));
 	} catch (e) {
 		console.error(e instanceof Error ? e.message : String(e));

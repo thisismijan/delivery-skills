@@ -1,4 +1,7 @@
 import { expect, test } from "bun:test";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { classifyRoute } from "./classify-route";
 import { loadConfig } from "./config";
 import { EscalateError, assertOrEscalate } from "./escalate";
@@ -24,6 +27,20 @@ test("an empty change dir is never ok", async () => {
 	expect((await verifyChangeArtifacts("/nonexistent-change-dir-xyz")).ok).toBe(
 		false,
 	);
+});
+
+test("implementation-first tasks are never accepted as a valid change", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "factory-chaos-"));
+	await writeFile(join(dir, "proposal.md"), "# Proposal");
+	await writeFile(join(dir, "design.md"), "# Design");
+	await mkdir(join(dir, "specs"));
+	await writeFile(join(dir, "specs", "spec.md"), "# Spec");
+	await writeFile(
+		join(dir, "tasks.md"),
+		"1. Implement the feature\n2. Write tests",
+	);
+	expect((await verifyChangeArtifacts(dir)).ok).toBe(false);
+	await rm(dir, { recursive: true });
 });
 
 test("ambiguous change never yields a single match", () => {

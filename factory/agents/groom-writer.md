@@ -70,6 +70,8 @@ Rules:
 - Each draft carries **at most one user story** — never more than one. `verify-ticket.ts` rejects a draft with more than one story, so a slice covering several stories must be split into one draft per story.
 - Each draft describes **one** clear deliverable (one slice, not multiple).
 - Describe **what** the slice delivers, never how it is implemented or tested. Do not include implementation decisions, test seams, or MCP/git/Jira steps in the draft content.
+- State the **current behaviour** and the **desired behaviour** in terms of the user-visible or public contract. Prefer stable interface and behaviour language over file paths, line numbers, or private symbols that become stale before implementation.
+- Make **Out of scope** explicit and specific. Do not use "N/A" when a nearby capability, caller, platform, migration, or operational concern could reasonably be mistaken as included.
 
 ## Output
 

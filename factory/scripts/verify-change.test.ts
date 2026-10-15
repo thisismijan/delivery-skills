@@ -45,11 +45,12 @@ test("missing design.md is reported and ok is false", async () => {
 	await rm(dir, { recursive: true });
 });
 
-test("tasks not tests-first -> warning", async () => {
+test("tasks not tests-first -> warning and fail-closed result", async () => {
 	const dir = await makeChange({
 		tasks: "1. Implement feature\n2. Write test",
 	});
 	const r = await verifyChangeArtifacts(dir);
+	expect(r.ok).toBe(false);
 	expect(r.warnings.some((w) => w.includes("tests-first"))).toBe(true);
 	await rm(dir, { recursive: true });
 });

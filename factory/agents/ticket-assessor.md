@@ -17,6 +17,7 @@ Your **only** output is the single `AssessmentVerdict` JSON object described bel
 2. **Deliverable** — is there a concrete, single deliverable (not "improve X", "make it better")?
 3. **Acceptance criteria** — are there testable acceptance criteria? If absent, can you derive them *unambiguously* from the ticket? If they can only be guessed, that is a gap, not a derivation.
 4. **Scope & constraints** — note any explicit out-of-scope items, non-functional requirements, or constraints.
+5. **Durability** — does the ticket distinguish **current behaviour** from **desired behaviour**, name the stable public contract, and state what is **out of scope**? File paths and line numbers may be supporting evidence, but a ticket defined only by source coordinates will become stale; report that as a gap.
 
 ## Bias
 
