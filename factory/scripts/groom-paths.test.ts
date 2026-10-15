@@ -1,5 +1,8 @@
 import { expect, test } from "bun:test";
-import { groomOutputDir, slugify } from "./groom-paths";
+import { mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { assertGroomPath, groomOutputDir, slugify } from "./groom-paths";
 
 // ---------------------------------------------------------------------------
 // slugify — determinism and correctness
@@ -101,4 +104,22 @@ test("groomOutputDir path contains the derived slug", () => {
 test("groomOutputDir path does not contain path-traversal sequences", () => {
 	const dir = groomOutputDir("normal title");
 	expect(dir).not.toContain("..");
+});
+
+test("assertGroomPath rejects traversal, absolute paths, and symlink escapes", async () => {
+	const root = await mkdtemp(join(tmpdir(), "groom-paths-"));
+	await mkdir(join(root, ".ig-spec", "grooming"), { recursive: true });
+	await symlink(tmpdir(), join(root, ".ig-spec", "grooming", "escape"));
+	try {
+		await expect(assertGroomPath(root, "../outside.md")).rejects.toThrow();
+		await expect(assertGroomPath(root, "/tmp/outside.md")).rejects.toThrow();
+		await expect(
+			assertGroomPath(root, ".ig-spec/grooming/escape/out.md"),
+		).rejects.toThrow("symlink");
+		await expect(
+			assertGroomPath(root, ".ig-spec/grooming/safe/draft.md"),
+		).resolves.toContain(".ig-spec/grooming/safe/draft.md");
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
 });

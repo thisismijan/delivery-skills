@@ -30,6 +30,11 @@ const bad: AssessmentVerdict = {
 test("good assessment -> continue (null)", () => {
 	expect(routeAfterAssessment(good)).toBeNull();
 });
+test("good assessment with no acceptance criteria fails closed", () => {
+	expect(
+		routeAfterAssessment({ ...good, derivedAcceptanceCriteria: [] })?.decision,
+	).toBe("clarify");
+});
 test("needs_clarification -> clarify", () => {
 	expect(routeAfterAssessment(vague)?.decision).toBe("clarify");
 });

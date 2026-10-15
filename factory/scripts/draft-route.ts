@@ -17,6 +17,18 @@ export interface DraftRouting {
 export function routeAfterAssessment(
 	a: AssessmentVerdict,
 ): DraftRouting | null {
+	if (
+		a.quality === "good" &&
+		(a.derivedAcceptanceCriteria.length === 0 ||
+			a.derivedAcceptanceCriteria.length > 3)
+	) {
+		return {
+			decision: "clarify",
+			state: "CLARIFICATION_REQUESTED",
+			reason:
+				"A good ticket must have one to three derived acceptance criteria.",
+		};
+	}
 	if (a.scopeFit === "too_large") {
 		return {
 			decision: "clarify",

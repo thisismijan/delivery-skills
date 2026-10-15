@@ -135,6 +135,9 @@ On explicit operator approval of the ticket (single-ticket path) or the slice br
    - The output directory (from Step 2).
    - The approved ticket content or slice breakdown.
    - The PRD content (if built) or a note that it was skipped.
+   Before every write, require
+   `bun "${FACTORY_ROOT}/scripts/groom-paths.ts" verify "<repoRoot>" "<path>"`.
+   A rejection stops the run; never follow a symlink or path escape.
 
 2. For each staged draft the writer emits, run structural verification:
    ```
