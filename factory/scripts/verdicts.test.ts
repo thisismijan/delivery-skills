@@ -302,7 +302,11 @@ test("classification completeness requires an exact id bijection", () => {
 	expect(() => assertClassificationComplete(verdict, ["c-001"])).toThrow(
 		"extra: 2",
 	);
-	expect(() =>
-		assertClassificationComplete([...verdict, verdict[0]!], ["c-001", 2]),
-	).toThrow("duplicate");
+	const first = verdict[0];
+	expect(first).toBeDefined();
+	if (first) {
+		expect(() =>
+			assertClassificationComplete([...verdict, first], ["c-001", 2]),
+		).toThrow("duplicate");
+	}
 });

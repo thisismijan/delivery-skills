@@ -66,8 +66,11 @@ export function routeAfterFeasibility(f: FeasibilityVerdict): DraftRouting {
 
 if (import.meta.main) {
 	const mode = process.argv[2];
-	const json = process.argv[3] ?? "";
+	const input = process.argv[3] ?? "";
 	try {
+		const json = input && (await Bun.file(input).exists())
+			? await Bun.file(input).text()
+			: input;
 		if (mode === "assessment") {
 			const routing = routeAfterAssessment(parseAssessmentVerdict(json));
 			console.log(

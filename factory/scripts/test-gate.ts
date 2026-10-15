@@ -12,6 +12,7 @@ export const GateCommand = z.object({
 		.default(10 * 60_000),
 });
 export type GateCommand = z.infer<typeof GateCommand>;
+export type GateCommandInput = z.input<typeof GateCommand>;
 
 export interface TestGateResult {
 	passed: boolean;
@@ -22,7 +23,7 @@ export interface TestGateResult {
 }
 
 export async function runTestGate(
-	command: GateCommand,
+	command: GateCommandInput,
 ): Promise<TestGateResult> {
 	const spec = GateCommand.parse(command);
 	const proc = Bun.spawn(spec.argv, {

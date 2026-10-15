@@ -53,7 +53,9 @@ test("--all skips an unwritable Cloud Agent store and still installs desktop hos
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain(`Cursor skills -> ${cursor}`);
 		expect(stdout).toContain(`Claude Code skills -> ${claude}`);
-		expect(stdout).toContain(`Agent store skipped (not writable here): ${store}`);
+		expect(stdout).toContain(
+			`Agent store skipped (not writable here): ${store}`,
+		);
 		expect(stderr).not.toMatch(/Read-only file system/);
 	} finally {
 		await rm(root, { recursive: true, force: true });
@@ -96,9 +98,9 @@ test("--store keeps the factory inside the synced tree and preserves delivery st
 				"utf8",
 			),
 		).toContain("findChange");
-		expect(await readFile(join(store, "delivery", "runs", "run.md"), "utf8")).toBe(
-			"ledger",
-		);
+		expect(
+			await readFile(join(store, "delivery", "runs", "run.md"), "utf8"),
+		).toBe("ledger");
 		expect(
 			await readFile(
 				join(store, "delivery", "candidates", "candidate.md"),
@@ -106,10 +108,7 @@ test("--store keeps the factory inside the synced tree and preserves delivery st
 			),
 		).toBe("candidate");
 		expect(
-			await readFile(
-				join(store, "delivery", "versions", "version.md"),
-				"utf8",
-			),
+			await readFile(join(store, "delivery", "versions", "version.md"), "utf8"),
 		).toBe("version");
 		expect(
 			await lstat(join(storeRoot, "factory")).then(

@@ -1,13 +1,13 @@
 import { z } from "zod";
 
 const ConfigSchema = z.object({
-	commandDraft: z.string().default("ig-spec:draft"),
-	commandExecute: z.string().default("ig-spec:execute"),
+	commandDraft: z.literal("/draft").default("/draft"),
+	commandExecute: z.literal("/execute").default("/execute"),
 	maxFixAttempts: z.coerce.number().int().positive().default(2),
 	modelDefault: z.enum(["sonnet", "opus"]).default("sonnet"),
 	openspecProfile: z.string().default("expanded"),
-	issueSource: z.enum(["jira", "github"]).default("jira"),
-	codeHost: z.enum(["gitlab", "github"]).default("gitlab"),
+	issueSource: z.literal("jira").default("jira"),
+	codeHost: z.literal("gitlab").default("gitlab"),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

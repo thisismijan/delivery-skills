@@ -6,7 +6,9 @@ const ID = /^[a-z0-9][a-z0-9-]*$/i;
 export function ledgerGeneration(markdown: string): number {
 	const match = markdown.match(/^Generation:\s*(\d+)\s*$/m);
 	if (!match) throw new Error("ledger has no valid Generation header");
-	return Number.parseInt(match[1]!, 10);
+	const generation = match[1];
+	if (generation === undefined) throw new Error("ledger generation is missing");
+	return Number.parseInt(generation, 10);
 }
 
 export function nextLedger(markdown: string, expected: number): string {

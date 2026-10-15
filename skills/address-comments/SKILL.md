@@ -103,7 +103,7 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    Dispatch a **fresh** `holdout-reviewer` subagent (Opus) over the **cumulative** diff (not per-comment) with **only**: the Jira ticket, `<changeDir>` (the spec), the diff file, the test files, and the gate results. Do **not** pass any implementer/assessor reasoning or prior chatter. It returns a `ReviewVerdict` JSON. Route it:
    ```
-   bun "${FACTORY_ROOT}/scripts/review-route.ts" '<verdict-json>' <attempt> <maxAttempts>
+   bun "${FACTORY_ROOT}/scripts/review-route.ts" "<reviewDir>/holdout-verdict.json" <attempt> <maxAttempts>
    ```
    **Non-zero exit = malformed verdict → stop + escalate** (fail closed): MR not re-marked ready, no Jira "passed" comment. Then act on `action`:
 

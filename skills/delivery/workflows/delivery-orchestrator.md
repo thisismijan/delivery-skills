@@ -1,5 +1,10 @@
 # Workflow: delivery-orchestrator
 
+> Historical pointer only. Do not execute the three-stage flow below.
+> `../SKILL.md` is the conductor and `auto.md` is its complete lifecycle state
+> machine. They include discovery, intake, readiness, archive, verify, retro,
+> and approval-gated improvement for both Cursor and Claude Code.
+
 Thin conductor: sequence the three stage workflows with push-right briefs. No
 duplicate stage logic — every build/review behavior lives in the stage specs
 and the commands they name.

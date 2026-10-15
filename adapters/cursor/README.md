@@ -13,8 +13,8 @@ From the clone:
 
 That is a symlink (or a copy, for the store) of `skills/*`. Do not edit files
 under `~/.cursor/skills`; edit the clone. Store installs place the portable
-runtime at `skills/_factory/` so it is synced with the skills, while preserving
-the delivery skill's `runs/`, `candidates/`, and `versions/` directories.
+runtime at `skills/_factory/` so it is synced with the skills. Live run state is
+worktree-local under the target repository's `.delivery/` directory.
 
 Cursor-only behaviour:
 
@@ -23,3 +23,6 @@ Cursor-only behaviour:
 - Parallel work uses Cursor subagents, not Claude dynamic workflows.
 - `gl-mr` / `gl-note` are installed into `~/.local/bin` by `install.sh`. Ensure
   that directory is on `PATH`.
+- Cursor does not consume Claude hooks. Keep mutation-capable tools out of
+  subagents and follow the explicit allowlists in the skills: no MR merge/close,
+  force push, hard reset, or Jira mutation.

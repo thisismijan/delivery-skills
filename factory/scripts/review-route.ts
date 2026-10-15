@@ -74,10 +74,13 @@ export function routeReview(
 }
 
 if (import.meta.main) {
-	const json = process.argv[2] ?? "";
+	const input = process.argv[2] ?? "";
 	const attempt = Number.parseInt(process.argv[3] ?? "1", 10);
 	const maxAttempts = Number.parseInt(process.argv[4] ?? "2", 10);
 	try {
+		const json = input && (await Bun.file(input).exists())
+			? await Bun.file(input).text()
+			: input;
 		console.log(
 			JSON.stringify(
 				routeReview(parseReviewVerdict(json), attempt, maxAttempts),

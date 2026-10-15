@@ -96,7 +96,7 @@ and command it proved; stale or ambiguous evidence is not reusable.
 
 11. **Route the verdict (deterministic).**
     ```
-    bun "${FACTORY_ROOT}/scripts/review-route.ts" '<verdict-json>' <attempt> <maxAttempts>
+    bun "${FACTORY_ROOT}/scripts/review-route.ts" "<reviewDir>/holdout-verdict.json" <attempt> <maxAttempts>
     ```
     `maxAttempts` comes from `bun "${FACTORY_ROOT}/scripts/config.ts"` (`maxFixAttempts`, default 2); `attempt` starts at 1 and increments each fix loop. **Non-zero exit = malformed verdict → stop + escalate** (fail closed). Then act on `action`:
     - **`approve`** → **now open a draft MR.** Push the branch (`git push -u origin <changeName>`) and create it with `glab mr create --draft`, targeting the default branch. Stage 3 review, not execute, marks it ready. **Build the MR title with the title helper so it always opens with the Jira reference** (Rule 3):

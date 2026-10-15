@@ -19,3 +19,7 @@ Claude-only behaviour:
   both sides of a human approval gate.
 - Factory scripts still honour `CLAUDE_PLUGIN_ROOT` after `RUNTIME.md` sets it
   to this clone's `factory/` directory.
+- To enforce human-owned mutation boundaries, merge
+  `adapters/claude-code/settings.json` into your Claude Code settings and set
+  `DELIVERY_FACTORY_ROOT` to this clone's `factory/` directory. The hook blocks
+  merge/close, force-push, hard reset, and Jira mutation commands.
