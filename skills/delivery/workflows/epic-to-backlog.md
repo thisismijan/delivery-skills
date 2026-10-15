@@ -66,25 +66,29 @@ Order of preference:
 3. **Further waves** — only for remaining true dependencies; still prefer wide
    waves over a long linear chain.
 
-**Session-fit size (hard preference):** each slice must be small enough that
-one Claude session can carry it through the delivery path for that ticket
-(typically `/draft` → spec checkpoint → `/execute` → ready MR)
-using **at most ~50% of the session context window**. Budget the other half
-for review, address-comments, or recovery. Signals a slice is too big:
+**Small-context size (hard requirement):** each slice must be small enough that
+one fresh session can understand, draft, test, implement, verify, and review it
+using **at most ~25% of the session context window**. The remaining context is
+recovery budget, not permission to enlarge the ticket. Each slice has one useful
+vertical outcome, one primary public contract or behaviour, one cohesive code
+area plus tests, and one to three acceptance criteria. Signals a slice is too
+big:
 
 - Touches many unrelated modules or a very large diff surface
 - Multiple independently shippable acceptance criteria clusters
-- Groom or operator expects execute will need a continuation session
+- Groom or operator expects any continuation session
 - Spec/tasks read like a mini-epic
 
 If too big: split into more vertical slices (still one user story each; thin
-the story). Do not "save context" by skipping tests or collapsing stories.
+the story). Keep each slice useful and **vertically complete** when merged; do
+not create frontend-only, backend-only, test-only, or speculative foundation
+microtickets. Do not "save context" by skipping tests or collapsing stories.
 
 When proposing or approving slices, challenge:
 
 - Every blocked-by edge: "Must B wait on A, or can both start now in parallel
   worktrees?"
-- Every slice's size: "Can draft+execute finish in ~half a context window?"
+- Every slice's size: "Can the entire ticket finish in a quarter of a context window?"
 
 Recommended defaults in groom grilling: assume parallel unless you can name a
 concrete merge-order constraint; assume split unless you can defend session
@@ -125,7 +129,7 @@ Present a **brief** only (not the full draft bodies in the chat dump):
 - One-line reminder: each draft = one Jira ticket = later one `/draft`
   or `/delivery <KEY>`; each parallel-wave ticket gets **one worktree** (start
   immediately if blocked-by is empty; otherwise after blockers are merged);
-  each ticket sized for **~50% of a session context window**
+  each ticket sized for **~25% of a session context window**
 - Link/path to optional `prd.md` if present
 - Explicit ask: create the Jira tickets (copy draft content), set epic/parent
   links and Jira "blocked by" / link types to match the wave graph, then reply

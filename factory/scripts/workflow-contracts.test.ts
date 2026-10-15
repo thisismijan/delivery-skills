@@ -72,6 +72,36 @@ describe("durable grooming", () => {
 	});
 });
 
+describe("small-context ticket scope", () => {
+	test("groom requires atomic but complete vertical slices", () => {
+		const contract = plain(groom);
+		expect(contract).toMatch(/small-context budget/i);
+		expect(contract).toMatch(/one user-visible outcome/i);
+		expect(contract).toMatch(/one primary public contract or behaviour/i);
+		expect(contract).toMatch(/one to three acceptance criteria/i);
+		expect(contract).toMatch(/vertically complete/i);
+		expect(contract).toMatch(/frontend-only.*backend-only.*test-only/i);
+	});
+
+	test("writer cannot turn a broad ticket into a technical-layer microticket", () => {
+		const contract = plain(groomWriter);
+		expect(contract).toMatch(/small-context session/i);
+		expect(contract).toMatch(/independently deployable.*and.*outcome/i);
+		expect(contract).toMatch(/vertically complete/i);
+		expect(contract).toMatch(/at most three/i);
+	});
+
+	test("draft fails closed on an oversized ticket and returns a concrete split", () => {
+		const assessor = plain(ticketAssessor);
+		const draftContract = plain(draft);
+		expect(assessor).toMatch(/scopeFit: "too_large"/i);
+		expect(assessor).toMatch(/splitRecommendation/i);
+		expect(assessor).toMatch(/small-context session/i);
+		expect(draftContract).toMatch(/No spec is authored for an oversized ticket/i);
+		expect(draftContract).toMatch(/SPLIT_REQUIRED/i);
+	});
+});
+
 describe("bounded recovery and replay safety", () => {
 	test("execute reconciles durable state before writing", () => {
 		expect(execute).toContain("Re-entry reconciliation");

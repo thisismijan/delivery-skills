@@ -293,6 +293,27 @@ describe("auto", () => {
   });
 });
 
+describe("atomic ticket sizing", () => {
+  test("groom and ticket delivery reserve most context for recovery", () => {
+    for (const doc of [
+      SKILL,
+      SPECS["epic-to-backlog.md"],
+      SPECS["ticket-to-mr.md"],
+      SPECS["NOTES.md"],
+    ]) {
+      expect(doc).toContain("~25%");
+      expect(doc).not.toContain("~50%");
+    }
+  });
+
+  test("oversized tickets stop at draft and return to vertical slicing", () => {
+    expect(SPECS["ticket-to-mr.md"]).toContain("`SPLIT_REQUIRED`");
+    expect(SPECS["ticket-to-mr.md"]).toContain("Human creates the smaller tickets");
+    expect(SPECS["epic-to-backlog.md"]).toContain("one to three acceptance criteria");
+    expect(SPECS["epic-to-backlog.md"]).toContain("vertically complete");
+  });
+});
+
 describe("capabilities", () => {
   const rows = section(SKILL, "## Capabilities")
     .split("\n")

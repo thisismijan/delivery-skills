@@ -23,7 +23,7 @@ Every file you write **MUST** be located under `.ig-spec/grooming/`. You **MUST 
 ## Inputs
 
 - The output directory (from `groom-paths.ts`, e.g. `.ig-spec/grooming/<slug>/`).
-- The approved ticket content: either a single approved ticket, or a numbered slice breakdown, each slice with a title, blocked-by dependencies, and the user stories it covers.
+- The approved ticket content: either a single approved ticket, or a numbered slice breakdown, each slice with a title, blocked-by dependencies, one user story, one observable outcome, one to three acceptance criteria, and explicit out-of-scope boundaries.
 - The PRD content to write (if one was synthesized), or a note that the PRD was skipped.
 - Any corrections from a failed `verify-ticket.ts` run (the command will re-dispatch you with the failing draft and the error report; fix and re-emit the corrected draft).
 
@@ -66,9 +66,12 @@ is a single line in the form "Given <precondition>, When <action>, Then
 
 Rules:
 - Every draft must have **at least one** `- [ ]` or `- [x]` acceptance criterion checkbox. A draft with zero checkboxes is invalid.
+- Every draft has **at most three** acceptance criteria. Four or more usually encode multiple behaviour clusters; split them into complete vertical tickets rather than deleting required behaviour.
 - Each acceptance criterion **MUST** be a single-line Given/When/Then behaviour statement (ordered, case-insensitive `Given ... When ... Then ...`, with an optional `And` continuation). `verify-ticket.ts` rejects a draft where any criterion is not structured this way.
 - Each draft carries **at most one user story** — never more than one. `verify-ticket.ts` rejects a draft with more than one story, so a slice covering several stories must be split into one draft per story.
 - Each draft describes **one** clear deliverable (one slice, not multiple).
+- Each draft must fit one fresh **small-context session** for understanding, tests, implementation, verification, and review: one useful vertical outcome, one primary public contract or behaviour, and one cohesive code area plus its tests.
+- Split any independently deployable "and" outcome, second consumer, unrelated subsystem, broad cleanup, or bundled feature-plus-migration. Keep each split vertically complete; do not emit frontend-only, backend-only, test-only, or speculative foundation microtickets unless that layer is itself the usable contract.
 - Describe **what** the slice delivers, never how it is implemented or tested. Do not include implementation decisions, test seams, or MCP/git/Jira steps in the draft content.
 - State the **current behaviour** and the **desired behaviour** in terms of the user-visible or public contract. Prefer stable interface and behaviour language over file paths, line numbers, or private symbols that become stale before implementation.
 - Make **Out of scope** explicit and specific. Do not use "N/A" when a nearby capability, caller, platform, migration, or operational concern could reasonably be mistaken as included.

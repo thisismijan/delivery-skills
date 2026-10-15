@@ -19,6 +19,7 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
 
 - The Atlassian MCP is **read-only** here. The only write is a single Jira **comment** on clarify/reject/escalate. **Never** transition Jira status — humans own that.
 - **No spec is authored on a weak or infeasible ticket.**
+- **No spec is authored for an oversized ticket.** One ticket must be a complete vertical outcome that can be understood, tested, implemented, and reviewed in one fresh small-context session. The assessor's `scopeFit` verdict is deterministic routing input, not advice.
 - **Readiness is evidence, not rank.** Sponsor urgency or authority never turns failed readiness into `proceed`; use the deterministic route and require the same operator approvals.
 - **Terminal stop.** `clarify`, `reject`, and `escalate` are terminal outcomes. After posting the single Jira comment, **end the run** and yield to the operator. **Do NOT** re-fetch the ticket, re-dispatch `ticket-assessor` or `feasibility-analyst`, re-run any routing, or wait/poll for the human to update the ticket. The human re-invoking `/draft` is a separate, future session — never a continuation of this run. Re-checking the ticket "for updates" after a terminal decision is the loop bug this rule forbids.
 - If any verdict fails to validate, **stop and escalate** (fail closed) — do not proceed on an unparseable verdict.
@@ -28,13 +29,14 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
 
 1. **Fetch the ticket.** Use the Atlassian MCP (read-only) to fetch issue `$ARGUMENTS`: summary, description, acceptance-criteria field, labels.
 
-2. **Assess.** Dispatch the `ticket-assessor` subagent with the ticket. It returns a single JSON `AssessmentVerdict`.
+2. **Assess clarity and atomicity.** Dispatch the `ticket-assessor` subagent with the ticket. It returns a single JSON `AssessmentVerdict`, including `scopeFit` and a concrete `splitRecommendation` when the ticket is too large.
 
 3. **Route on assessment** (this also validates the verdict fail-closed). Run:
    ```
    bun "${FACTORY_ROOT}/scripts/draft-route.ts" assessment '<assessment-json>'
    ```
    - **Non-zero exit** = the verdict was malformed JSON or failed the schema → **stop and escalate** with a Jira comment noting the validator failure. Do not proceed.
+   - `state: "SPLIT_REQUIRED"` → post the concrete vertical split recommendation as a Jira **comment**, then **HARD STOP this run**. No spec. A human creates the smaller tickets and invokes `/draft` separately for each key.
    - `decision: "clarify"` or `"reject"` → post the routing `reason` as a Jira **comment** on `$ARGUMENTS`, then **HARD STOP this run** (see "Terminal stop" below). No spec. For clarify, the comment lists the specific gaps; for both, it notes that a human may edit the ticket and re-invoke `/draft` **in a new session**. That re-invocation is the human's future action, **not** something this run waits for, polls, or performs.
    - `decision: "proceed"` → continue.
 

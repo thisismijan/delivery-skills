@@ -32,10 +32,12 @@ not share one dirty worktree across parallel tickets.
 - Ticket body is expected to be draft-ready (from groom or equivalent); weak
   tickets are handled by draft's terminal clarify/reject, not by this workflow
   inventing requirements
-- Ticket should fit **~50% of a session context** for draft+execute (see
-  [`epic-to-backlog`](epic-to-backlog.md)). If mid-run it is clearly too large,
-  stop and ask the operator to split the ticket rather than burning the full
-  window and continuing blind.
+- Ticket must fit **~25% of a session context** for understanding, draft,
+  tests, implementation, verification, and review (see
+  [`epic-to-backlog`](epic-to-backlog.md)). Draft's assessor fails closed with
+  `SPLIT_REQUIRED` when it contains more than one independently useful outcome.
+  If scope growth appears mid-run, stop and ask the operator to split the
+  ticket rather than consuming the recovery budget.
 
 ## Steps
 
@@ -50,6 +52,7 @@ Outcomes (terminal for this step — do not poll):
 | Outcome | Meaning | Next |
 |---------|---------|------|
 | Spec linked (`SPEC_LINKED`) | Change under `openspec/changes/<name>/`, committed on branch, Jira comment with link | Checkpoint 2 |
+| split required | Ticket exceeds the small-context atomicity contract; Jira comment proposes vertical tickets | Stop. Human creates the smaller tickets; run draft once per key |
 | clarify / reject | Jira comment posted with gaps | Stop. Human edits ticket; re-invoke draft in a **new** session |
 | escalate (feasibility / malformed verdict) | Jira comment posted | Stop. Human changes scope; new session |
 
