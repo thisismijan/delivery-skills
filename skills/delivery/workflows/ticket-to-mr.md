@@ -85,7 +85,7 @@ On explicit approval:
 Factory behavior this workflow must not override:
 
 - Tests first → red gate → implement → green (+ lint/types) → Opus holdout
-- MR opened **only** on holdout `approve`, marked ready
+- Draft MR opened **only** on holdout `approve`; Stage 3 marks it ready
 - On changes-requested: bounded fix loop, still no MR until approve
 - On reject / exhausted attempts: push branch, escalate, **no** MR
 - Never merge, never Jira status transition
@@ -94,14 +94,14 @@ Factory behavior this workflow must not override:
 
 Workflow is done when either:
 
-- A ready MR exists for the change branch (record **MR iid** and URL), or
+- A draft MR exists for the change branch (record **MR iid** and URL), or
 - Execute escalated / stopped with no MR (record reason from factory output)
 
 ## Handoff
 
 | Artifact | Consumer |
 |----------|----------|
-| Ready MR iid + URL | [`mr-review-to-ready`](mr-review-to-ready.md) |
+| Draft MR iid + URL | [`mr-review-to-ready`](mr-review-to-ready.md) |
 | Jira key | address-comments later if needed |
 | Change name / branch | `/openspec-archive` after human merge (outside this workflow) |
 
@@ -125,5 +125,5 @@ Workflow is done when either:
 ## Implementer notes
 
 1. Wrap draft → brief → execute; pass through all factory terminal stops.
-2. Persist MR iid for the review workflow (chat is enough for v1).
-3. Do not add a second holdout or a parallel test runner outside ig-spec.
+2. Persist MR iid and head-keyed review artifact links in the ledger.
+3. Do not add a second holdout. Green, lint, and typecheck may run in parallel.

@@ -81,7 +81,7 @@ Ask the operator questions to fill in gaps, resolve ambiguities, and surface con
 
 This step runs only when Step 4's recommendation is a PRD-worthy initiative.
 
-- **PRD-worthy:** synthesize `prd.md` in the output directory. It MUST contain these sections: Problem, Solution, User stories, Success criteria, Constraints / NFRs, Out of scope. It MUST NOT contain an `Implementation decisions` or `Test seams` section, and no prose describing how the change will be built or tested. Offer the PRD to the operator for review before proposing slices. Incorporate any operator feedback.
+- **PRD-worthy:** synthesize the PRD **in memory**. It MUST contain these sections: Problem, Solution, User stories, Success criteria, Constraints / NFRs, Out of scope. It MUST NOT contain an `Implementation decisions` or `Test seams` section, and no prose describing how the change will be built or tested. Offer it in chat for review before proposing slices. Incorporate feedback, but write no file before slice approval.
 - **Single ticket, or split-worthy without a PRD, or otherwise trivial:** state explicitly that the PRD was skipped, and why (single ticket, or split-worthy without needing a PRD).
 
 ### Step 7 — Propose the ticket breakdown (approval-gated)
@@ -131,17 +131,17 @@ ticket.
 
 On explicit operator approval of the ticket (single-ticket path) or the slice breakdown (PRD-worthy or split-worthy path):
 
-1. Dispatch `groom-writer` with:
+1. Dispatch `groom-writer` with a temporary staging directory inside the approved output directory:
    - The output directory (from Step 2).
    - The approved ticket content or slice breakdown.
    - The PRD content (if built) or a note that it was skipped.
 
-2. For each draft the writer emits, run structural verification:
+2. For each staged draft the writer emits, run structural verification:
    ```
    bun "${FACTORY_ROOT}/scripts/verify-ticket.ts" "<draft-file-path>"
    ```
    - **Non-zero exit** (missing section, zero or more than three acceptance criteria, more than one user story, or an acceptance criterion that is not a Given/When/Then statement): dispatch `groom-writer` again with the failing draft and the error output to fix and re-emit. A draft covering more than one story or behaviour cluster must be split into separate vertical tickets, not shortened by deleting required behaviour. Never write the failing draft as the final artifact. Loop until the draft passes.
-   - **Zero exit (ok):** the draft is accepted as final.
+   - **Zero exit (ok):** atomically move the verified draft to its final path.
 
 3. Write the PRD (`prd.md`) into the output directory if one was synthesized.
 

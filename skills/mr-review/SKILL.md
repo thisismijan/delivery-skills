@@ -1,4 +1,5 @@
 ---
+name: mr-review
 description: Second-pass MR review for GitLab. Runs after code-review-max or Claude Code's native /code-review max, judges whether the author chose the right approach, merges both passes into one set of findings, and publishes them to the merge request. Use when the user types /mr-review, asks whether an MR took the right approach, or asks to post review findings to GitLab.
 disable-model-invocation: true
 effort: max
@@ -21,13 +22,14 @@ Stop and say so, without doing any of the work below, if any of these fail:
 - `$ARGUMENTS` is empty or not a number. Ask for the MR iid.
 - `gl-mr <iid> meta` fails. Report the error verbatim and stop.
 - No accepted correctness pass for this same MR and current head SHA is in this
-  conversation. Accept either:
+  conversation or at `.review/mr-<iid>/<full-head-sha>/max.md`. Accept either:
   - Cursor `/code-review-max !<iid>` output ending in
     `<!-- code-review-max:mr=<iid> head=<full-head-sha> -->`; the iid and SHA
     must exactly match `gl-mr <iid> meta`.
   - Claude Code's native `/code-review max !<iid>` output when it identifies
     this iid and the same full head SHA.
-  Reject Cursor's lightweight `/code-review` output: it is not the max pass and
+  Validate the artifact's final marker against live metadata before reading its
+  findings. Reject Cursor's lightweight `/code-review` output: it is not the max pass and
   has no freshness stamp. Reject a marker for another iid or an older head.
   Tell the user to run `/code-review-max !<iid>` in Cursor (or
   `/code-review max !<iid>` in Claude Code) and stop.
@@ -108,7 +110,8 @@ Build one list. Rules:
 
 ## Phase 6 — Draft, show, then publish
 
-1. `mkdir -p .claude/review/mr-<iid>` and write:
+1. Reuse the matching `brief.md`, then write under
+   `.review/mr-<iid>/<full-head-sha>/`:
    - `summary.md` — the verdict line, the approach comparison, and every finding
      that has no valid inline anchor.
    - `NN-<slug>.md` — one file per finding that does have an anchor, numbered in
@@ -126,7 +129,7 @@ Build one list. Rules:
    for `gl-note` shows only a filename, so this printout is the user's only real
    chance to read what would be published.
 5. Dry run everything, in one batch:
-   `gl-note <iid> --file .claude/review/mr-<iid>/summary.md --dry-run`
+   `gl-note <iid> --file .review/mr-<iid>/<full-head-sha>/summary.md --dry-run`
    and the same for each anchored finding with its `--inline <path>:<line>`.
 6. Ask the user to confirm, and offer three choices: post everything, post the
    summary only, or post nothing. Wait for an answer. Never post before this.

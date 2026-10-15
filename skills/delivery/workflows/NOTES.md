@@ -38,7 +38,7 @@ Do not confuse these review surfaces:
 |------|------------|------|
 | **`/code-review-max !<iid>`** | Cursor skill in the personal skill store. Pinned, multi-lens correctness pass for a GitLab MR. Ends with an iid + head-SHA marker. | After a ready MR exists, before `/mr-review` in the same Cursor conversation. |
 | **`/code-review max !<iid>`** | Claude Code's native equivalent. | After a ready MR exists, before `/mr-review` in the same Claude conversation. |
-| **`/mr-review <iid>`** | Personal skill in both runtimes. Approach pass; validates the correctness pass against the current head, merges both passes, drafts under `.claude/review/mr-<iid>/`, and posts via `gl-note` only after human confirm. | Same conversation, immediately after the matching max pass. |
+| **`/mr-review <iid>`** | Personal skill in both runtimes. Approach pass; validates the correctness pass against the current head, merges both passes, drafts under `.review/mr-<iid>/<head-sha>/`, and posts via `gl-note` only after human confirm. | Same conversation or a fresh one using the matching pinned max artifact. |
 | **Cursor `/code-review`** | Lightweight built-in review command. | **Not** the max pass `/mr-review` depends on; it has no fan-out or freshness marker. |
 
 Factory stages (this clone's `skills/` + `factory/`, both hosts):
@@ -61,7 +61,7 @@ Factory stages (this clone's `skills/` + `factory/`, both hosts):
 | Target repo cwd | Where Claude Code is opened; holds `openspec/`, app code, `.ig-spec/grooming/` |
 | `.ig-spec/grooming/<slug>/` | Groom outputs (ticket drafts, optional `prd.md`); gitignored |
 | `openspec/changes/<key>-…/` | OpenSpec change for one ticket |
-| `.claude/review/mr-<iid>/` | `/mr-review` draft notes before publish |
+| `.review/mr-<iid>/<head-sha>/` | Pinned review brief, max pass, and draft notes |
 | `delivery-skills` clone | Canonical skill pack; `./install.sh` links it into both hosts |
 | `<delivery-skill>/candidates/` | Immutable proposed self-improvements, patches, and scorecards |
 | `<delivery-skill>/versions/` | Immutable rollback snapshots taken before install or rollback |
@@ -91,7 +91,7 @@ Factory stages (this clone's `skills/` + `factory/`, both hosts):
 - **Brief** — checkpoint payload: decision-ready summary + links to artifacts; never the raw draft dump.
 - **Push right** — do maximal prep before the human checkpoint; ask once, late.
 - **Holdout** — Opus reviewer in execute / address-comments; sees outcome only, not implementer reasoning.
-- **Ready MR** — MR marked ready for merge after satisfied holdout; still needs a human merge.
+- **Draft MR** — execute's reviewed handoff; Stage 3 marks it ready only after both review passes.
 - **Terminal stop** — draft/execute/address-comments end the run (clarify/reject/escalate); human re-invokes in a **new** session after fixing the input. No polling.
 - **Blocker** — a slice that must merge before another can start; only when the dependency is real (shared seam, schema, contract). Not required on every epic.
 - **Parallel wave** — a set of slices that do not block each other and can run concurrently in separate git worktrees. May be the entire epic (no blockers). If they depend on blockers, the wave starts only after those are merged.

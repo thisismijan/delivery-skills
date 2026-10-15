@@ -549,3 +549,19 @@ test("completely empty draft is not ok (fail closed)", async () => {
 	expect(result.ok).toBe(false);
 	await rm(filePath);
 });
+
+test("checkboxes outside Acceptance criteria do not count", async () => {
+	const draft = validDraft().replace(
+		"## Context",
+		"## Context\n- [ ] not an acceptance criterion",
+	);
+	expect((await verifyTicket(draft)).ok).toBe(true);
+});
+
+test("fenced checkbox examples in Acceptance criteria are ignored", async () => {
+	const draft = validDraft().replace(
+		"## Acceptance criteria",
+		"## Acceptance criteria\n```\n- [ ] example only\n```",
+	);
+	expect((await verifyTicket(draft)).ok).toBe(true);
+});

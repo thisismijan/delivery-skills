@@ -1,6 +1,6 @@
 ---
 name: execute
-description: Phase 2 — implement an approved OpenSpec change test-first (red gate -> implement -> green gate), run the Opus holdout review, and ONLY on a satisfied review open a merge request marked ready for a HUMAN to merge. The factory never merges. Invoking this command IS the approval to build.
+description: Phase 2 — implement an approved OpenSpec change test-first (red gate -> implement -> green gate), run the Opus holdout review, and ONLY on a satisfied review open a draft merge request for Stage 3. The factory never merges. Invoking this command IS the approval to build.
 argument-hint: <JIRA-KEY>
 disable-model-invocation: true
 ---
