@@ -36,6 +36,76 @@ In the target repository:
 `/code-review-max` or native `/code-review max`, `/mr-review`, and
 `/openspec-archive`. It does not call `/ig-spec:*`.
 
+## SDLC
+
+`/delivery` is the only command to remember. It routes into the stage skills
+below, records state in `runs/`, and stops for operator-owned decisions. Humans
+own merge, archive, Jira status, and any live-skill install.
+
+```mermaid
+flowchart TD
+  start["/delivery"] --> detect["Detect host and entry"]
+  detect --> ledger["Reconcile ledger in runs/"]
+
+  ledger --> discover["discover"]
+  ledger --> triage["triage"]
+  ledger --> groom["groom"]
+  ledger --> draft["draft"]
+  ledger --> execute["execute"]
+  ledger --> review["review"]
+  ledger --> address["address-comments"]
+  ledger --> ship["ship"]
+  ledger --> archive["archive"]
+  ledger --> verify["verify"]
+  ledger --> retro["retro"]
+  ledger --> improve["improve"]
+
+  discover -->|"operator yes on one-pager"| groom
+  triage -->|"ready brief"| draft
+  groom -->|"operator-approved slices"| draft
+
+  draft --> assess["Assess ticket"]
+  assess --> feasible["Feasibility"]
+  feasible --> seams["Test-seam checkpoint"]
+  seams -->|"operator yes"| openspec["Author OpenSpec, tests-first"]
+  openspec --> drafted["Spec linked; wait for execute"]
+
+  drafted -->|"typing execute is the build approval"| execute
+  execute --> resume["Reconcile MR, tests, gates, dirty tree"]
+  resume --> red["Write tests, prove red"]
+  red --> green["Implement, prove green"]
+  green --> holdout["Independent holdout review"]
+  holdout -->|"approve"| mr["Open one MR"]
+  holdout -->|"fix twice on same premise"| premise["State premise, one observation"]
+  premise -->|"no third fix until then"| holdout
+
+  mr --> review
+  review --> maxPass["code-review-max or native code-review max"]
+  maxPass --> mrReview["mr-review"]
+  mrReview -->|"ready"| ship
+  mrReview -->|"comments"| address
+  address -->|"replay-safe threads"| review
+
+  ship -->|"GO"| mergeWait["Human merges"]
+  mergeWait --> archive
+  archive -->|"operator yes"| verify
+  verify --> retro
+  retro -->|"accepted delivery lesson"| improve
+  improve -->|"isolated candidate"| applyWait["Operator apply, reject, or rollback"]
+
+  classDef human fill:#fff4ce,stroke:#8a6d1d
+  classDef stop fill:#f3f3f3,stroke:#666
+  class seams,drafted,mergeWait,applyWait human
+  class start,ledger stop
+```
+
+Human-owned stops, in order:
+
+1. Groom slice approval, then draft test-seam approval.
+2. Typing `/delivery execute` is the approval to build.
+3. Merge, then archive.
+4. Installing or rolling back a delivery-skill candidate.
+
 ## Layout
 
 ```text
