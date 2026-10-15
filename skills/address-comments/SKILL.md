@@ -5,10 +5,12 @@ argument-hint: <JIRA-KEY>
 disable-model-invocation: true
 ---
 
-Load `../../factory/RUNTIME.md` (resolve this SKILL.md first if it is a symlink).
-Set `FACTORY_ROOT` to that `factory/` directory and export `CLAUDE_PLUGIN_ROOT="$FACTORY_ROOT"`
-so existing gate scripts keep working. Cursor has no plugin agent loader: when a
-step names a subagent, read `$FACTORY_ROOT/agents/<name>.md` and follow it.
+Resolve this SKILL.md to its real path, then load the first existing runtime:
+`../_factory/RUNTIME.md` (Cloud store), `../../factory/RUNTIME.md` (clone), or
+`$DELIVERY_FACTORY_ROOT/RUNTIME.md`. Follow its `FACTORY_ROOT` procedure and
+export `CLAUDE_PLUGIN_ROOT="$FACTORY_ROOT"` so existing gate scripts keep
+working. Cursor has no plugin agent loader: when a step names a subagent, read
+`$FACTORY_ROOT/agents/<name>.md` and follow it.
 
 
 You are running **/address-comments** for Jira ticket **$ARGUMENTS**.
@@ -37,7 +39,7 @@ This command consumes the review comments on the **existing** MR for this ticket
 
 2. **Confirm an open MR exists.** Check the MR for the source branch via `glab` (e.g. `glab mr list --source-branch <changeName> --state opened --output json`). If there is **no** open MR for the branch, **stop + escalate** (use `scripts/escalate.ts` semantics / `assertOrEscalate`): make zero commits and post nothing. Record the MR IRI/number as `<mr>`.
 
-3. **Check out** the spec branch `<changeName>`. Read `maxFixAttempts` (default 2) from:
+3. **Check out** the spec branch `<changeName>`. Resolve `<repoRoot>` with `git rev-parse --show-toplevel`, set `<reviewDir> = <repoRoot>/.review/<changeName>/address-comments`, and create it. Mark the MR draft with `glab mr update <mr> --draft` before changing code. Read `maxFixAttempts` (default 2) from:
    ```
    bun "${FACTORY_ROOT}/scripts/config.ts"
    ```
@@ -50,7 +52,7 @@ This command consumes the review comments on the **existing** MR for this ticket
 
 5. **Classify (single batch, read-only).** Dispatch **exactly one** `comment-assessor` subagent (Sonnet, tools `Read, Grep, Glob` only) with the in-scope comments (each with its `commentId` and `discussionId`), the diff, and `<changeDir>` (spec + tasks). Keep each comment's `discussionId` so step 7 can reply on the right thread. It returns a single `ClassificationVerdict` JSON array. Validate it:
    ```
-   bun "${FACTORY_ROOT}/scripts/verdicts.ts"   # parseClassificationVerdict, fail-closed
+   bun "${FACTORY_ROOT}/scripts/verdicts.ts" classification "<reviewDir>/classification.json" "<reviewDir>/expected-comment-ids.json"
    ```
    A malformed or missing verdict → **stop + escalate** and action no comments. If there are zero in-scope comments the verdict is `[]` — nothing to action; go to step 8 only if any prior change was made, otherwise stop cleanly.
 
@@ -62,13 +64,13 @@ This command consumes the review comments on the **existing** MR for this ticket
 
    - **`bug`** (action, tests-first): write a failing test scoped to the comment, prove it red —
      ```
-     bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<scoped test command>" red
+     bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/red-command-<commentId>.json" red | tee "<reviewDir>/red-gate-<commentId>-<test-commit>.json"
      ```
      non-zero exit (test passed before the fix) → stop + escalate. Then dispatch the `implementer` to write the fix, and bring the suite green:
      ```
-     bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<full test command>" green
+     bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/green-command-<commentId>.json" green | tee "<reviewDir>/green-gate-<commentId>-<source-commit>.json"
      ```
-     plus the target's lint + typecheck. Commit referencing the comment; capture the commit SHA.
+     Run the green gate, lint, and typecheck in parallel and persist all three results. Commit referencing the comment; capture the commit SHA.
 
    - **`non-functional`** (action, green-only): make the change (no new test required), then require the **green gate** plus lint plus typecheck to pass (commands as above). Commit referencing the comment; capture the SHA.
 
@@ -85,7 +87,7 @@ This command consumes the review comments on the **existing** MR for this ticket
 
    - **`outdated`** (skip): no reply, no code change. (Tracked only in the final counts.)
 
-7. **Reply on every assessed thread.** For each in-scope comment **except** those routed `skip`, post **exactly one** reply **on that comment's own thread** (not a new general note), wrapping the body with the audit prefix from `scripts/audit.ts`:
+7. **Persist re-review state, then reply.** First write `<reviewDir>/re-review-pending.json` with the MR iid, current head SHA, comment ids, and gate artifact paths. Its presence means step 8 must run even when re-entry finds zero in-scope comments. Then, for each in-scope comment **except** those routed `skip`, post **exactly one** reply **on that comment's own thread** (not a new general note), wrapping the body with the audit prefix from `scripts/audit.ts`:
    ```
    bun "${FACTORY_ROOT}/scripts/audit.ts" address-comments "<reply body>"
    ```
@@ -95,17 +97,17 @@ This command consumes the review comments on the **existing** MR for this ticket
    - disputed (`nitpick`/`false-positive`): give the reasoned rationale and "disputed — human decides".
    For N assessed (non-skipped) comments, post exactly N replies — none silently ignored. **Never** mark any thread resolved.
 
-8. **Cumulative holdout re-review (the only gate to re-marking ready).** Prepare the reviewer's inputs as files (it is read-only): write the **cumulative** branch diff against the default branch (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`) and gather the gate results (red + green output for the actioned comments). Confirm the reviewer model:
+8. **Cumulative gates and holdout re-review (the only gate to re-marking ready).** Run one full green gate, lint, and typecheck in parallel over the cumulative branch, persist all results, and stop on any failure. Prepare the reviewer's inputs as files (it is read-only): write the **cumulative** branch diff against the default branch (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`) and gather every per-comment and cumulative gate artifact. Confirm the reviewer model:
    ```
    bun "${FACTORY_ROOT}/scripts/select-model.ts" review   # -> opus
    ```
    Dispatch a **fresh** `holdout-reviewer` subagent (Opus) over the **cumulative** diff (not per-comment) with **only**: the Jira ticket, `<changeDir>` (the spec), the diff file, the test files, and the gate results. Do **not** pass any implementer/assessor reasoning or prior chatter. It returns a `ReviewVerdict` JSON. Route it:
    ```
-   bun "${FACTORY_ROOT}/scripts/review-route.ts" '<verdict-json>' <attempt> <maxAttempts>
+   bun "${FACTORY_ROOT}/scripts/review-route.ts" "<reviewDir>/holdout-verdict.json" <attempt> <maxAttempts>
    ```
    **Non-zero exit = malformed verdict → stop + escalate** (fail closed): MR not re-marked ready, no Jira "passed" comment. Then act on `action`:
 
-   - **`approve`** → re-mark the MR **ready** via `glab` (e.g. `glab mr update <mr> --ready`; never `glab mr merge`/`glab mr close`). Render the holdout outcome for humans with the summary helper (Rule 2 — never paste raw verdict fields):
+   - **`approve`** → remove `re-review-pending.json`, then re-mark the MR **ready** via `glab` (e.g. `glab mr update <mr> --ready`; never `glab mr merge`/`glab mr close`). Render the holdout outcome for humans with the summary helper (Rule 2 — never paste raw verdict fields):
      ```
      bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
      ```

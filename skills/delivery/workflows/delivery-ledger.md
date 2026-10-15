@@ -6,11 +6,11 @@ Every stage reads the ledger before acting and writes to it before handing back.
 
 ## Location and identity
 
-- Directory: the `runs/` folder next to the delivery skill's SKILL.md. It syncs
-  with the skill, so the operator's Mac and cloud agents read and write the same
-  ledgers.
-- Self-improvement candidates and rollback copies live beside `runs/`, under
-  `candidates/` and `versions/`. Ledgers link to their manifests; they never copy
+- Directory: `<target repo>/.delivery/runs/`. It belongs to the target worktree,
+  is gitignored, and is the only live source of run state. Set
+  `DELIVERY_STATE_ROOT` only when a shared durable volume is intentionally used.
+- Self-improvement candidates and rollback copies live under the same state root,
+  in `candidates/` and `versions/`. Ledgers link to their manifests; they never copy
   patches or evaluation output into Lessons.
 - One file per run. The file name is the first stable id the run had: the epic
   key, a lone ticket key, or `discover-<yyyy-mm-dd>-<slug>` for a run that
@@ -19,7 +19,7 @@ Every stage reads the ledger before acting and writes to it before handing back.
   the epic for a discovery run, add the epic key to `Ids:`; do not rename the
   file.
 - To find the ledger for a key, search the headers:
-  `rg -l '^Ids:.*\bMDF-1234\b' <skill folder>/runs/`.
+  `rg -l '^Ids:.*\bMDF-1234\b' <target repo>/.delivery/runs/`.
   No match means no ledger yet. More than one match is a terminal stop: name the
   files and ask the operator which one is live.
 
@@ -31,6 +31,7 @@ Every stage reads the ledger before acting and writes to it before handing back.
 Ids: <EPIC-or-first-id>[, <more ids>]
 Target repo: <path or remote URL>
 Created: <yyyy-mm-dd>
+Generation: <non-negative integer>
 Discovery: <link to the discovery one-pager, if any>
 
 ## Keys
@@ -83,6 +84,9 @@ empty.
 - Never write a secret, token, or credential into the ledger.
 - Dates are UTC `yyyy-mm-dd`. SHAs and patch-ids are written in full, so a later
   comparison is exact.
+- Every write is compare-and-swap: re-read `Generation`, write only if it still
+  equals the generation originally read, and increment it once. A mismatch is a
+  terminal concurrency stop, never a last-writer-wins merge.
 
 ## Reconciling with real state
 
@@ -147,6 +151,7 @@ The Keys table's Status column uses only these tags.
 | Tag | Set by | Meaning |
 |-----|--------|---------|
 | `[discovering]` | Stage 0 | Discovery is open; no tickets yet |
+| `[discovered]` | Stage 0 | One-pager approved; ready for groom |
 | `[triage: needs-info]` | Intake | Waiting on the reporter; the questions are in the ledger |
 | `[triage: ready]` | Intake | Reproduced and briefed; ready for draft |
 | `[triage: wont-fix]` | Intake | Recommended not to fix; reason in Decisions |
@@ -154,6 +159,7 @@ The Keys table's Status column uses only these tags.
 | `[groomed]` | Stage 1 | Ticket exists with its blocking edges |
 | `[drafted]` | Stage 2 | OpenSpec change exists |
 | `[executing]` | Stage 2 | Factory run dispatched |
+| `[reviewed-blocked !N]` | Stage 3 | Review found blockers at a recorded head |
 | `[ready !N]` | Stage 3 | Review passed at a recorded head |
 | `[go !N]` | Stage 4 | Readiness GO at a recorded head |
 | `[no-go !N]` | Stage 4 | Readiness NO-GO; blockers in the brief |

@@ -11,7 +11,12 @@ Conventions for AI agents (and humans) working in the **ig-spec-driven** reposit
 - Commit messages contain only the change and its rationale, nothing else.
 - **Conventional Commits** format: `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`. Subject under 72 chars; body explains *why*.
 - Commit frequently, one logical step per commit.
-- **Enforced at the tool boundary.** This rule is not just prose: the plugin ships a `PreToolUse` Bash hook (`scripts/commit-guard.ts`, registered in `.claude-plugin/plugin.json`) that **blocks** any `git commit`, `git merge`, `glab mr`, or `gh pr` command whose message or description carries a `Co-Authored-By` trailer or a "Generated with Claude" line. It fires in every target repo that enables the plugin, so the orchestrator cannot attribute commits to Claude even if a prompt slips. Reads (`git log`, `grep`) are never blocked. The matcher is pure and unit-tested (`scripts/commit-guard.test.ts`); a denied commit means: remove the attribution line and re-run.
+- **Enforced at the tool boundary.** Claude Code can install the bundled
+  `adapters/claude-code/settings.json` `PreToolUse` hook, backed by
+  `scripts/commit-guard.ts`. It blocks attribution plus merge/close,
+  force-push, hard reset, and Jira mutation commands. Cursor follows the same
+  explicit skill allowlists. Reads are never blocked. The matcher is pure and
+  unit-tested (`scripts/commit-guard.test.ts`).
 
 ---
 

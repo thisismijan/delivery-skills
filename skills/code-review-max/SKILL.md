@@ -47,6 +47,11 @@ Give every reviewer the same immutable brief:
 Do not give reviewers the MR author's reasoning as evidence. A statement in the
 MR description is a claim to verify.
 
+Persist the brief at `.review/mr-<iid>/<full-head-sha>/brief.md`. Reuse it only
+when its iid and full head SHA still match live `gl-mr` metadata; otherwise
+rebuild it. This worktree-local artifact lets the second pass run in a fresh
+Cursor or Claude Code conversation.
+
 ## Parallel review
 
 Start four fresh read-only subagents in one parallel batch. They may use read,
@@ -140,9 +145,10 @@ Findings are the primary output, ordered by severity. If there are none, say
 <!-- code-review-max:mr=<iid> head=<full-head-sha> -->
 ```
 
-The marker is mandatory and must be the final line. `mr-review` uses it to
-prove that this conversation contains the correctness pass for this exact MR
-head.
+Write this complete output to
+`.review/mr-<iid>/<full-head-sha>/max.md`. The marker is mandatory and must be
+the final line. `mr-review` accepts either this pinned artifact or the same
+output in the conversation, but verifies iid and SHA against live metadata.
 
 Do not publish findings to GitLab. `mr-review` consolidates both passes and owns
 the publish checkpoint.

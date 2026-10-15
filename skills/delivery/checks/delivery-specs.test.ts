@@ -16,12 +16,11 @@ const SPECS = Object.fromEntries(
     .filter((f) => f.endsWith(".md"))
     .map((f) => [f, readFileSync(join(WORKFLOWS, f), "utf8")]),
 );
-
-const EXISTING_ON_MAC = new Set([
-  "delivery-orchestrator.md",
-  "epic-to-backlog.md",
-  "ticket-to-mr.md",
-  "mr-review-to-ready.md",
+const LEGACY_SECTION_EXEMPT = new Set([
+	"delivery-orchestrator.md",
+	"epic-to-backlog.md",
+	"ticket-to-mr.md",
+	"mr-review-to-ready.md",
 ]);
 
 function section(doc: string, heading: string): string {
@@ -169,43 +168,18 @@ describe("one command to remember", () => {
 });
 
 describe("source of truth", () => {
-  const rows = section(SKILL, "## Source of truth")
-    .split("\n")
-    .filter((l) => l.startsWith("| ") && !l.startsWith("| Role") && !l.startsWith("|---"))
-    .map(cells)
-    .map((c) => ({ role: c[1], bundled: c[2].match(/`workflows\/([A-Za-z-]+\.md)`/)?.[1], fallback: c[3] }));
-  const specRows = rows.filter((r) => r.bundled);
-
-  test("only the specs that predate the bundle fall back to the Mac", () => {
-    const fallbacks = specRows.filter((r) => r.fallback).map((r) => r.bundled);
-    expect(new Set(fallbacks)).toEqual(new Set([...EXISTING_ON_MAC, "NOTES.md"]));
-    for (const r of specRows.filter((r) => r.fallback)) {
-      expect(r.fallback).toBe(`\`/Users/sheikh.ahmed/code/${r.bundled === "NOTES.md" ? "" : "workflows/"}${r.bundled}\``);
-    }
-  });
-
-  test("a spec with no fallback is bundled next to the skill", () => {
-    const missing = specRows.filter((r) => !r.fallback && !existsSync(join(WORKFLOWS, r.bundled ?? "")));
-    expect(missing.map((r) => r.bundled)).toEqual([]);
-  });
-
-  test("every bundled spec is named by the skill", () => {
-    const named = specRows.map((r) => r.bundled);
-    expect(Object.keys(SPECS).filter((f) => !named.includes(f))).toEqual([]);
-  });
-
-  test("Mac paths appear only in the fallback column", () => {
-    const outsideTable = SKILL.replace(section(SKILL, "## Source of truth"), "");
-    expect(outsideTable).not.toContain("/Users/");
+  test("workflow specs are bundled and have no personal fallback", () => {
+    expect(section(SKILL, "## Source of truth")).toContain("no machine-specific fallbacks");
+    expect(SKILL).not.toContain("/Users/");
     for (const [name, doc] of Object.entries(SPECS)) {
       expect([name, doc.includes("/Users/") || doc.includes("delivery-runs")]).toEqual([name, false]);
     }
   });
 
-  test("the ledger lives next to the skill, so every machine shares it", () => {
-    expect(rows.find((r) => r.role === "Ledger directory")?.bundled).toBeUndefined();
-    expect(section(SKILL, "## Source of truth")).toContain("| Ledger directory | `runs/` (create it if missing) |");
-    expect(LEDGER).toContain("the `runs/` folder next to the delivery skill's SKILL.md");
+  test("the ledger lives in target-repo state with compare-and-swap", () => {
+    expect(section(SKILL, "## Source of truth")).toContain("`.delivery/`");
+    expect(LEDGER).toContain("<target repo>/.delivery/runs/");
+    expect(LEDGER).toContain("compare-and-swap");
   });
 
   test("the skill keeps its frontmatter", () => {
@@ -286,10 +260,11 @@ describe("auto", () => {
     expect(section(AUTO, "## Waiting")).toContain("**Never retry a failed stage.**");
   });
 
-  test("waiting on a person never polls, and waiting on a job is time-limited", () => {
+  test("waiting ends the turn instead of polling", () => {
     const waiting = section(AUTO, "## Waiting");
     expect(waiting).toMatch(/For a person\*\*[^\n]*: do not poll/);
-    expect(waiting).toMatch(/for up to\s+30 minutes/);
+    expect(waiting).toContain("Do not sleep or poll in the same turn");
+    expect(waiting).not.toMatch(/every 60 seconds|for up to\s+30 minutes/);
   });
 });
 
@@ -358,7 +333,7 @@ describe("capabilities", () => {
 
   test("auto waits on the MR's own pipeline, not the branch's", () => {
     const waiting = section(AUTO, "## Waiting");
-    expect(waiting).toContain("read `head_pipeline` from `glab mr view <iid> --output\n  json`, not the branch's pipeline");
+    expect(waiting).toMatch(/read\s+`head_pipeline` from `glab mr view <iid> --output json`, not the branch's\s+pipeline/);
     expect(waiting).not.toContain("glab ci status --branch <branch>");
   });
 
@@ -393,7 +368,7 @@ describe("hard rules survive", () => {
   });
 
   for (const [name, doc] of Object.entries(SPECS)) {
-    if (name === "delivery-ledger.md" || name === "NOTES.md" || EXISTING_ON_MAC.has(name)) continue;
+    if (name === "delivery-ledger.md" || name === "NOTES.md" || LEGACY_SECTION_EXEMPT.has(name)) continue;
     test(`${basename(name)} has Never, Terminal stops, and Ledger writes sections`, () => {
       expect(doc).toContain("\n## Never\n");
       expect(doc).toContain("\n## Terminal stops\n");

@@ -24,10 +24,13 @@ export function routeReview(
 			reason: v.reasoning || "Reviewer flagged for human escalation.",
 		};
 	}
-	// Defensive guard: code not ready for main can never approve, even if the
-	// reviewer inconsistently set satisfied: "yes". Route exactly as
-	// changes_requested does.
-	if (!v.readyForMain) {
+	// Every independent readiness dimension must hold before approval.
+	if (
+		!v.specFaithful ||
+		!v.testsMeaningful ||
+		!v.codeMatchesSpec ||
+		!v.readyForMain
+	) {
 		if (attempt < maxAttempts) {
 			return {
 				action: "fix",
@@ -71,10 +74,14 @@ export function routeReview(
 }
 
 if (import.meta.main) {
-	const json = process.argv[2] ?? "";
+	const input = process.argv[2] ?? "";
 	const attempt = Number.parseInt(process.argv[3] ?? "1", 10);
 	const maxAttempts = Number.parseInt(process.argv[4] ?? "2", 10);
 	try {
+		const json =
+			input && (await Bun.file(input).exists())
+				? await Bun.file(input).text()
+				: input;
 		console.log(
 			JSON.stringify(
 				routeReview(parseReviewVerdict(json), attempt, maxAttempts),

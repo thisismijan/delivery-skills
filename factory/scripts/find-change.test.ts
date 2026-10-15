@@ -23,3 +23,14 @@ test("more than one match -> ambiguous, no single match", () => {
 test("key match is case-insensitive", () => {
 	expect(findChange("proj-123", ["PROJ-123-x"]).match).toBe("PROJ-123-x");
 });
+
+test("ticket key matching respects the numeric boundary", () => {
+	expect(findChange("MDF-1234", ["mdf-12345-other"]).match).toBeNull();
+});
+
+test("archive is never treated as a change and traversal keys are rejected", () => {
+	expect(findChange("MDF-1234", ["archive"]).match).toBeNull();
+	expect(() => findChange("../MDF-1234", ["mdf-1234-safe"])).toThrow(
+		"invalid ticket key",
+	);
+});

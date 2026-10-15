@@ -18,8 +18,10 @@ if [[ ${#hosts[@]} -eq 0 ]]; then
   hosts=(cursor claude)
 fi
 
-if [[ -z "${DELIVERY_INSTALL_SKIP_BUN:-}" ]] && command -v bun >/dev/null 2>&1; then
-  (cd "$root/factory" && bun install)
+if [[ -n "${DELIVERY_INSTALL_SKIP_BUN:-}" ]]; then
+  :
+elif command -v bun >/dev/null 2>&1; then
+  (cd "$root/factory" && bun install --frozen-lockfile)
 else
   echo "bun is not on PATH; factory gate scripts will fail until it is installed" >&2
 fi
@@ -31,7 +33,68 @@ link_dir() {
   for skill in "$root/skills"/*; do
     local name
     name="$(basename "$skill")"
-    ln -sfn "$skill" "$dest/$name"
+    if [[ -e "$dest/$name" || -L "$dest/$name" ]]; then
+      if [[ -L "$dest/$name" && "$(readlink "$dest/$name")" == "$skill" ]]; then
+        continue
+      fi
+      rm -rf -- "$dest/$name"
+    fi
+    ln -s "$skill" "$dest/$name"
+  done
+}
+
+install_review_tools() {
+  local review_skill="$1"
+  local bin_dir="${DELIVERY_BIN_DIR:-$HOME/.local/bin}"
+  mkdir -p "$bin_dir"
+  local tool
+  for tool in gl-mr gl-note; do
+    cat >"$bin_dir/$tool" <<EOF
+#!/usr/bin/env bash
+exec bash "$review_skill/$tool" "\$@"
+EOF
+    chmod 0755 "$bin_dir/$tool"
+  done
+  echo "Review tools -> $bin_dir"
+}
+
+copy_delivery_skill() {
+  local source="$1" dest="$2"
+  mkdir -p "$dest"
+  local manifest="$dest/.delivery-managed"
+  if [[ -f "$manifest" ]]; then
+    while IFS= read -r name; do
+      case "$name" in runs|candidates|versions|"") continue ;; esac
+      rm -rf -- "$dest/$name"
+    done <"$manifest"
+  fi
+  : >"$manifest"
+  local item name
+  for item in "$source"/*; do
+    name="$(basename "$item")"
+    rm -rf -- "$dest/$name"
+    cp -R "$item" "$dest/$name"
+    printf '%s\n' "$name" >>"$manifest"
+  done
+}
+
+copy_factory() {
+  local dest="$1"
+  mkdir -p "$dest"
+  local manifest="$dest/.delivery-managed"
+  if [[ -f "$manifest" ]]; then
+    while IFS= read -r name; do
+      [[ -n "$name" ]] && rm -rf -- "$dest/$name"
+    done <"$manifest"
+  fi
+  : >"$manifest"
+  local item name
+  for item in "$root/factory"/*; do
+    name="$(basename "$item")"
+    case "$name" in node_modules|.review) continue ;; esac
+    rm -rf -- "$dest/$name"
+    cp -R "$item" "$dest/$name"
+    printf '%s\n' "$name" >>"$manifest"
   done
 }
 
@@ -39,22 +102,23 @@ for host in "${hosts[@]}"; do
   case "$host" in
     cursor)
       link_dir "${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}"
+      install_review_tools "$root/skills/mr-review"
       echo "Cursor skills -> ${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}"
       ;;
     claude)
       link_dir "${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
+      install_review_tools "$root/skills/mr-review"
       echo "Claude Code skills -> ${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
       ;;
     store)
       # Cloud Agent personal store. Copy, do not symlink: the store may not
-      # follow links outside itself. Place factory as a sibling of `skills/`
-      # so `../../factory` from a skill still resolves.
+      # follow links outside itself. Keep the factory inside the synced skills
+      # tree; /cursor/stores/user/factory is a different Cursor namespace.
       store="${CURSOR_AGENT_STORE:-/cursor/stores/user/skills}"
-      store_parent="$(dirname "$store")"
       store_probe="${CURSOR_AGENT_STORE_PROBE:-$(
         case "$store" in
           /cursor/*) echo /cursor ;;
-          *) echo "$store_parent" ;;
+          *) dirname "$store" ;;
         esac
       )}"
       if [[ ! -d "$store_probe" ]] || [[ ! -w "$store_probe" ]]; then
@@ -67,13 +131,17 @@ for host in "${hosts[@]}"; do
       fi
       for skill in "$root/skills"/*; do
         name="$(basename "$skill")"
-        rm -rf "$store/$name"
-        cp -R "$skill" "$store/$name"
+        if [[ "$name" == "delivery" ]]; then
+          copy_delivery_skill "$skill" "$store/$name"
+        else
+          rm -rf -- "$store/$name"
+          cp -R "$skill" "$store/$name"
+        fi
       done
-      rm -rf "$store_parent/factory"
-      cp -R "$root/factory" "$store_parent/factory"
+      copy_factory "$store/_factory"
+      install_review_tools "$store/mr-review"
       echo "Agent store -> $store"
-      echo "Factory -> $store_parent/factory"
+      echo "Factory -> $store/_factory"
       ;;
   esac
 done

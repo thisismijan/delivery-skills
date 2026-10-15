@@ -127,23 +127,36 @@ export function excludeHoldoutNote(comments: MrComment[]): MrComment[] {
 // Re-entry-safe scope: an audit reply proves this workflow already handled the
 // discussion. Drop the whole thread, not just the reply, or the original human
 // note would be classified and answered again on every invocation.
-export function excludeHandledThreads(comments: MrComment[]): MrComment[] {
-	const handled = new Set(
-		comments
-			.filter((comment) => comment.body.startsWith(AUDIT_PREFIX))
-			.map((comment) => comment.discussionId),
-	);
-	return comments.filter(
-		(comment) =>
-			!handled.has(comment.discussionId) &&
-			!comment.body.startsWith(AUDIT_PREFIX),
-	);
+export function excludeHandledThreads(
+	comments: MrComment[],
+	factoryAuthors: ReadonlySet<string> = new Set(["factory", "ig-spec-bot"]),
+): MrComment[] {
+	const lastAuthenticatedReply = new Map<string, number>();
+	comments.forEach((comment, index) => {
+		if (
+			comment.body.startsWith(AUDIT_PREFIX) &&
+			factoryAuthors.has(comment.author)
+		) {
+			lastAuthenticatedReply.set(comment.discussionId, index);
+		}
+	});
+	return comments.filter((comment, index) => {
+		if (comment.body.startsWith(AUDIT_PREFIX)) return false;
+		const cutoff = lastAuthenticatedReply.get(comment.discussionId);
+		return cutoff === undefined || index > cutoff;
+	});
 }
 
 if (import.meta.main) {
 	const input = await new Response(Bun.stdin.stream()).text();
 	try {
-		const comments = excludeHandledThreads(parseMrComments(input));
+		const authors = new Set(
+			(process.env.DELIVERY_FACTORY_AUTHORS ?? "factory,ig-spec-bot")
+				.split(",")
+				.map((author) => author.trim())
+				.filter(Boolean),
+		);
+		const comments = excludeHandledThreads(parseMrComments(input), authors);
 		console.log(JSON.stringify(comments));
 	} catch (e) {
 		console.error(e instanceof Error ? e.message : String(e));

@@ -51,8 +51,8 @@ Claude Code:
 
 Example in Cursor: `/code-review-max !740`.
 
-Leave findings in the conversation. Do not skip ahead to `/mr-review` if this
-did not run for this same iid and current head SHA in this conversation.
+Persist findings at `.review/mr-<iid>/<full-head-sha>/max.md`. Do not skip ahead
+to `/mr-review` unless this exact iid and head has a validated max artifact.
 
 If the command refuses (closed MR, ineligible, etc.), stop and report that.
 Do not invent a replacement correctness review.
@@ -63,15 +63,14 @@ Do not invent a replacement correctness review.
 /mr-review <iid>
 ```
 
-Follow the `mr-review` skill's SKILL.md exactly: `~/.claude/skills/mr-review/SKILL.md`
-on the Mac, or `skills/mr-review/SKILL.md` in the Cursor skill store in a cloud
-agent. Highlights this workflow must not weaken:
+Follow the installed `mr-review` skill's SKILL.md exactly. Highlights this
+workflow must not weaken:
 
-- Stop if max-pass findings for this MR and current head are missing from the
-  conversation
+- Stop if max-pass findings for this MR and current head are missing from both
+  the conversation and the pinned artifact
 - Stop if `gl-mr` diff overflows / truncates
 - Derive approaches **before** reading the diff
-- Write drafts under `.claude/review/mr-<iid>/` with `<!-- mr-review:<head-sha> -->`
+- Write drafts under `.review/mr-<iid>/<full-head-sha>/` with `<!-- mr-review:<head-sha> -->`
 - Dry-run `gl-note`, print full note bodies, then **checkpoint** before publish
 
 ### 3. Checkpoint — publish review notes (push right)
@@ -110,8 +109,8 @@ Factory: classify → action/dispute/answer/skip → reply once per thread →
 cumulative Opus holdout → re-mark ready or escalate. Never merges.
 
 If the branch moves (new head SHA) and the operator wants another review pass,
-restart from step 1 in this or a fresh conversation (mr-review requires
-max-pass findings in-thread for the new SHA).
+restart from step 1 in this or a fresh conversation. Pinned artifacts make a
+fresh conversation valid; a new SHA always requires a new max pass.
 
 ### 6. Done
 
@@ -126,7 +125,7 @@ Workflow is done when the operator states they are ready to merge (or abandon).
 
 | Artifact | Consumer |
 |----------|----------|
-| `.claude/review/mr-<iid>/` | Audit trail; optional re-post after SHA move |
+| `.review/mr-<iid>/<full-head-sha>/` | Pinned review brief and audit trail |
 | Posted `gl-note` threads | Authors / `/address-comments` |
 | Operator "ready to merge" | Human merge + archive |
 

@@ -8,13 +8,11 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -n "${GITLAB_TOKEN:-}" ] || { echo "GITLAB_TOKEN is not set" >&2; exit 1; }
 
+bin_dir="${DELIVERY_BIN_DIR:-${HOME}/.local/bin}"
+mkdir -p "$bin_dir"
 for tool in gl-mr gl-note; do
-  sudo tee "/usr/local/bin/${tool}" >/dev/null <<EOF
-#!/usr/bin/env bash
-url="\$(git config --get remote.origin.url)"; p="\${url#*://}"; p="\${p#*@}"; p="\${p#*[/:]}"; p="\${p%/}"; p="\${p%.git}"
-exec env GL_HOST="\${GL_HOST:-https://gitlab.com}" GL_PROJECT="\${GL_PROJECT:-\$p}" GL_TOKEN_FILE=<(printf %s "\$GITLAB_TOKEN") bash "${here}/${tool}" "\$@"
-EOF
-  sudo chmod 0755 "/usr/local/bin/${tool}"
+  cp "${here}/${tool}" "${bin_dir}/${tool}"
+  chmod 0755 "${bin_dir}/${tool}"
 done
 
-echo "gl-mr and gl-note are on PATH"
+echo "gl-mr and gl-note installed in ${bin_dir}; add it to PATH if needed"

@@ -4,7 +4,8 @@ import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
-const plain = (text: string) => text.replace(/[*`\n]+/g, " ").replace(/\s+/g, " ");
+const plain = (text: string) =>
+	text.replace(/[*`\n]+/g, " ").replace(/\s+/g, " ");
 
 const testWriter = read("agents/test-writer.md");
 const holdoutReviewer = read("agents/holdout-reviewer.md");
@@ -97,7 +98,9 @@ describe("small-context ticket scope", () => {
 		expect(assessor).toMatch(/scopeFit: "too_large"/i);
 		expect(assessor).toMatch(/splitRecommendation/i);
 		expect(assessor).toMatch(/small-context session/i);
-		expect(draftContract).toMatch(/No spec is authored for an oversized ticket/i);
+		expect(draftContract).toMatch(
+			/No spec is authored for an oversized ticket/i,
+		);
 		expect(draftContract).toMatch(/SPLIT_REQUIRED/i);
 	});
 });

@@ -46,6 +46,7 @@ Between steps, do not ask whether to continue. Continue.
 |--------|-----------|-------------------|
 | no ledger yet | Discovery if the idea names no destination, otherwise groom | Discovery's yes, or groom's own gates |
 | `[discovering]` | Resume discovery | The one-pager yes |
+| `[discovered]` | Groom from the approved one-pager and its source artifacts | Groom's own gates |
 | `[triage: needs-info]` | Nothing until the reporter answers | Nothing; it is waiting on the reporter |
 | `[triage: ready]` | Draft | Nothing |
 | `[triage: wont-fix]` | Nothing | Nothing; the key is done |
@@ -53,8 +54,9 @@ Between steps, do not ask whether to continue. Continue.
 | `[groomed]` | Draft, once every blocker is `[merged !N]` or later | Nothing |
 | `[drafted]` | Execute | The draft, unless `build-without-asking: yes` |
 | `[executing]` | Review once the MR exists; while the build runs, wait | Nothing |
+| `[reviewed-blocked !N]` | Address comments, then review the new head | Nothing |
 | `[ready !N]` | Release readiness | Nothing |
-| `[no-go !N]` | Address the blockers with address-comments, then review again | Whether to accept a risk instead, when every blocker is a risk only the operator can accept |
+| `[no-go !N]` | Classify the readiness blockers: address code/comment blockers then run ship again; wait on pipeline/conflicts; ask only for operator-owned risk acceptance | Whether to accept an operator-owned risk |
 | `[go !N]` | The operator merges | The merge |
 | `[merged !N]` | Archive the change, wait for the deploy, then verify | The archive |
 | `[verified !N]` | The key is done. Choose the next key; when none is left, retro | Nothing |
@@ -67,8 +69,8 @@ Between steps, do not ask whether to continue. Continue.
 round. After three rounds without `[ready !N]`, stop and ask the operator how to
 proceed.
 
-**Archive.** Find the change name: the folder under `openspec/changes/` whose
-name starts with the key in lower case. If it is already under
+**Archive.** Resolve the change with `factory/scripts/find-change.ts`; exactly one
+match is required, so `MDF-1234` can never select `MDF-12345`. If it is already under
 `openspec/changes/archive/`, skip the archive. Otherwise ask:
 "!<iid> is merged. Archive <change-name> now? Recommended: yes." On yes, record
 the approval and run `/openspec-archive <change-name>`. If that leaves changes in the
@@ -87,8 +89,9 @@ working tree, tell the operator they need committing; do not commit them.
     the turn. A later `/delivery auto <EPIC>` skips handed-off keys until their
     status shows they are done.
   - **One after another**: work them in ledger order.
-- Two sessions can write one ledger at the same time. Re-read the ledger before
-  every write, and change only the row of the key you are working on.
+- Two sessions can write one ledger at the same time. Every write uses the
+  ledger's generation compare-and-swap. A stale generation is a terminal
+  conflict; re-read and reconcile instead of overwriting.
 
 ## When to ask
 
@@ -113,13 +116,10 @@ step.
 
 ## Waiting
 
-- **For a pipeline, a build, or a deploy.** Check every 60 seconds for up to
-  30 minutes. For an MR, read `head_pipeline` from `glab mr view <iid> --output
-  json`, not the branch's pipeline: with merged-results pipelines the two
-  differ. For the default branch after a merge, use
-  `glab ci status --branch <default branch>`.
-  Set `[waiting: <what>]` while waiting. If it has not finished after 30 minutes,
-  end the turn and give the resume command.
+- **For a pipeline, a build, or a deploy.** Observe it once. For an MR, read
+  `head_pipeline` from `glab mr view <iid> --output json`, not the branch's
+  pipeline. If it is still running, set `[waiting: <what>]`, end the turn, and
+  give the resume command. Do not sleep or poll in the same turn.
 - **For a person** (a merge, a reporter, an answer): do not poll. Set
   `[waiting: <what>]`, ask, and end the turn. Their reply resumes the loop.
 - **Never retry a failed stage.** A failure is a terminal stop, exactly as when

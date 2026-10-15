@@ -23,12 +23,16 @@ export function summarize(results: CheckResult[]): Summary {
 	return { allRequiredPassed, lines };
 }
 
-async function sh(cmd: string): Promise<{ code: number; out: string }> {
-	const p = Bun.spawn(["sh", "-c", cmd], { stdout: "pipe", stderr: "pipe" });
+async function run(argv: string[]): Promise<{ code: number; out: string }> {
+	const p = Bun.spawn(argv, { stdout: "pipe", stderr: "pipe" });
 	const out =
 		(await new Response(p.stdout).text()) +
 		(await new Response(p.stderr).text());
 	return { code: await p.exited, out: out.trim() };
+}
+
+export function redactRemote(value: string): string {
+	return value.replace(/(https?:\/\/)[^/@\s]+@/gi, "$1[redacted]@");
 }
 
 async function runChecks(): Promise<CheckResult[]> {
@@ -52,7 +56,7 @@ async function runChecks(): Promise<CheckResult[]> {
 		detail: depsOk ? "ok" : `run 'bun install' in ${pluginRoot}`,
 	});
 
-	const glab = await sh("glab auth status");
+	const glab = await run(["glab", "auth", "status"]);
 	results.push({
 		name: "glab authenticated",
 		ok: glab.code === 0,
@@ -60,7 +64,7 @@ async function runChecks(): Promise<CheckResult[]> {
 		detail: glab.code === 0 ? "ok" : "install glab and run 'glab auth login'",
 	});
 
-	const osp = await sh("command -v openspec");
+	const osp = await run(["which", "openspec"]);
 	results.push({
 		name: "openspec installed",
 		ok: osp.code === 0,
@@ -77,31 +81,13 @@ async function runChecks(): Promise<CheckResult[]> {
 		detail: ospInit ? cwd : "run 'openspec init' in the target repo",
 	});
 
-	const rem = await sh("git remote -v");
+	const rem = await run(["git", "remote", "-v"]);
 	results.push({
 		name: "git remote present (GitLab)",
 		ok: rem.code === 0 && rem.out.length > 0,
 		required: true,
-		detail: rem.out.split("\n")[0] || "no git remote configured",
+		detail: redactRemote(rem.out.split("\n")[0] || "no git remote configured"),
 	});
-
-	const claude = await sh("command -v claude");
-	if (claude.code === 0) {
-		const v = await sh(`claude plugin validate "${pluginRoot}"`);
-		results.push({
-			name: "claude plugin validate",
-			ok: v.code === 0,
-			required: false,
-			detail: v.code === 0 ? "passed" : "see 'claude plugin validate' output",
-		});
-	} else {
-		results.push({
-			name: "claude CLI (for plugin validate)",
-			ok: false,
-			required: false,
-			detail: "not on PATH — skipped",
-		});
-	}
 
 	results.push({
 		name: "Atlassian (Jira) MCP",
@@ -117,7 +103,9 @@ async function runChecks(): Promise<CheckResult[]> {
 if (import.meta.main) {
 	const results = await runChecks();
 	const { allRequiredPassed, lines } = summarize(results);
-	console.log("ig-spec preflight (run this from inside the target repo)\n");
+	console.log(
+		"delivery-skills preflight (run this from inside the target repo)\n",
+	);
 	console.log(lines.join("\n"));
 	console.log(
 		`\n${allRequiredPassed ? "READY — all required checks passed." : "NOT READY — fix the ✗ items above."}`,

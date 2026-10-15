@@ -41,16 +41,56 @@ export function isAttributionViolation(command: string): GuardResult {
 	return { blocked: false };
 }
 
+const FORBIDDEN_MUTATIONS: Array<{ pattern: RegExp; reason: string }> = [
+	{
+		pattern: /\bglab\s+mr\s+(?:merge|close)\b/i,
+		reason: "Merge and close are human-owned actions.",
+	},
+	{
+		pattern: /\bgit\s+push\b[^\n]*(?:--force(?:-with-lease)?|-f)\b/i,
+		reason: "Force-pushing is not permitted.",
+	},
+	{
+		pattern: /\bgit\s+reset\s+--hard\b/i,
+		reason: "Destructive hard resets are not permitted.",
+	},
+	{
+		pattern:
+			/\b(?:transitionJiraIssue|createJiraIssue|editJiraIssue|executeDestructive)\b/i,
+		reason: "Jira status and destructive changes are human-owned actions.",
+	},
+];
+
+export function isForbiddenMutation(command: string): GuardResult {
+	for (const rule of FORBIDDEN_MUTATIONS) {
+		if (rule.pattern.test(command)) {
+			return { blocked: true, reason: rule.reason };
+		}
+	}
+	return { blocked: false };
+}
+
 if (import.meta.main) {
 	const raw = await new Response(Bun.stdin.stream()).text();
 	let command = "";
 	try {
 		command = JSON.parse(raw)?.tool_input?.command ?? "";
 	} catch {
-		// Unparseable hook payload: do not block (the harness owns malformed input).
+		console.log(
+			JSON.stringify({
+				hookSpecificOutput: {
+					hookEventName: "PreToolUse",
+					permissionDecision: "deny",
+					permissionDecisionReason:
+						"Malformed guard payload; refusing to fail open.",
+				},
+			}),
+		);
 		process.exit(0);
 	}
-	const result = isAttributionViolation(command);
+	const result = isForbiddenMutation(command).blocked
+		? isForbiddenMutation(command)
+		: isAttributionViolation(command);
 	if (result.blocked) {
 		console.log(
 			JSON.stringify({

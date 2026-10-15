@@ -74,7 +74,7 @@ if [ -n "$remote_url" ]; then
     *@*:*)   remote_host="${u#*@}";   remote_host="${remote_host%%:*}"
              remote_path="${u#*:}" ;;
   esac
-  remote_host="${remote_host%%@*}"   # strip any user@ left in the https form
+  remote_host="${remote_host##*@}"   # strip userinfo from credentialed HTTPS URLs
 fi
 
 GL_PROJECT="${GL_PROJECT:-$remote_path}"
@@ -83,18 +83,28 @@ GL_HOST="${GL_HOST:-https://gitlab.com}"
 
 [ -n "$GL_PROJECT" ] || die "cannot determine project from origin; set GL_PROJECT"
 
-[ -r "$TOKEN_FILE" ] || die "no readable token at ${TOKEN_FILE}"
-TOKEN="$(tr -d '\r\n' < "$TOKEN_FILE")"
-[ -n "$TOKEN" ] || die "token file ${TOKEN_FILE} is empty"
+if [ -n "${GITLAB_TOKEN:-}" ]; then
+  TOKEN="$GITLAB_TOKEN"
+elif [ -r "$TOKEN_FILE" ]; then
+  TOKEN="$(tr -d '\r\n' < "$TOKEN_FILE")"
+else
+  die "no token available; set GITLAB_TOKEN or GL_TOKEN_FILE"
+fi
+[ -n "$TOKEN" ] || die "GitLab token is empty"
+
+curl_config="$(mktemp)"
+chmod 0600 "$curl_config"
+trap 'rm -f "$curl_config"' EXIT
+printf 'header = "PRIVATE-TOKEN: %s"\n' "$TOKEN" > "$curl_config"
+unset TOKEN
 
 # / -> %2F so the project path survives as a single URL segment.
 API="${GL_HOST}/api/v4/projects/${GL_PROJECT//\//%2F}/merge_requests/${iid}"
 
-# Token goes in a header via a variable, never on the command line, so it stays
-# out of the process table.
+# The token is read from a mode-0600 curl config, never curl argv.
 get() {
-  curl -sS --fail-with-body --max-time 60 \
-       -H "PRIVATE-TOKEN: ${TOKEN}" "${API}${1:-}" \
+  curl --config "$curl_config" -sS --fail-with-body --max-time 60 \
+       "${API}${1:-}" \
     || die "GET ${API}${1:-} failed"
 }
 

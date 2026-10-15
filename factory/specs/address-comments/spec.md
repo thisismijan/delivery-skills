@@ -20,7 +20,7 @@ The command SHALL resolve the spec branch/change for the Jira key via `find-chan
 - **THEN** the command stops and escalates without guessing or proceeding
 
 ### Requirement: Gather and scope comments
-The command SHALL gather all MR comments (inline diff comments, discussion threads, and general notes) via `glab`, and SHALL exclude the holdout-reviewer's own audit-marked note from classification and from replies. Every other comment SHALL be assessed.
+The command SHALL gather all MR comments via `glab`. It SHALL treat a thread as previously handled only when the audit marker belongs to an authenticated factory author. Human notes after the latest authenticated factory reply remain in scope; a human-authored marker cannot hide a thread.
 
 #### Scenario: Holdout note is excluded
 - **WHEN** the MR contains the holdout-reviewer's note carrying the `ig-spec` `auditComment` prefix
@@ -96,7 +96,7 @@ For N assessed comments, the command SHALL post exactly N replies (actioned, ans
 - **THEN** no thread is marked resolved regardless of outcome
 
 ### Requirement: Cumulative holdout re-review gates the result
-After all actionable comments are addressed, the command SHALL dispatch a fresh Opus `holdout-reviewer` over the cumulative updated diff (not per-comment) and validate its verdict via `review-route.ts`/Zod. On `approve` the MR SHALL be re-marked ready and a single Jira summary comment (MR link + actioned/disputed/skipped counts) posted. On anything other than `approve`, or on a verdict that fails validation, the command MUST fail closed and escalate, leaving the MR unblessed and posting no "passed" Jira comment.
+After all actionable comments are addressed, the command SHALL persist re-review-pending state before posting replies, run cumulative green, lint, and typecheck gates, then dispatch a fresh Opus `holdout-reviewer` over the cumulative updated diff and every append-only gate artifact. Re-entry with a pending marker SHALL still perform holdout even when no comments remain. On `approve` the MR SHALL be re-marked ready and a single Jira summary comment posted. On anything else the command MUST fail closed, leaving the MR draft and unblessed.
 
 #### Scenario: Approved re-review re-marks ready
 - **WHEN** the cumulative holdout re-review returns `approve`

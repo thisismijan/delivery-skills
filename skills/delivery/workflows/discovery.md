@@ -37,8 +37,10 @@ correct.
 
 ### 2. Search for prior work
 
-Run one read-only subagent per source, in parallel. Each searches by the idea's
-domain terms, not just its wording, and returns links to what it found. A
+Create `.delivery/runs/<ledger-id>-discovery/`. Run one read-only subagent per
+source, in parallel. Each searches by the idea's domain terms, not just its
+wording, and writes a named evidence file (`code.md`, `jira.md`,
+`confluence.md`, `openspec.md`, or `adrs.md`). A
 search that finds nothing is reported as a finding: "searched <where> for
 <terms>, found nothing".
 
@@ -104,8 +106,10 @@ map; the ledger says where it got to.
 
 ### 6. Write the one-pager
 
-Save it next to the ledger as `<ledger id>-discovery.md` and link it from the
-ledger header's `Discovery:` line.
+Save it as `.delivery/runs/<ledger-id>-discovery/one-pager.md` and link the
+directory from the ledger header's `Discovery:` line. Later sessions may reuse
+these files as hints after verifying referenced paths; they are never proof that
+the live code or ticket is unchanged.
 
 ```markdown
 # <destination>
@@ -134,8 +138,8 @@ The operator approves the one-pager with an explicit yes. "Sounds good",
 "looks fine", and silence are not approval; ask again. Record the approval in
 the ledger.
 
-After approval, the one-pager is the argument to Stage 1. Continue in this
-session, because groom needs the discovery as a primary source.
+After approval, set the key status to `[discovered]`. The one-pager and named
+source artifacts are the argument to Stage 1, including in a fresh session.
 
 ## Ledger writes
 

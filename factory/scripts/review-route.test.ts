@@ -103,3 +103,17 @@ test("readyForMain: false with satisfied: 'yes' can never route to approve, rega
 			.action,
 	).not.toBe("approve");
 });
+
+test("each false readiness dimension is defensively routed away from approve", () => {
+	for (const field of [
+		"specFaithful",
+		"testsMeaningful",
+		"codeMatchesSpec",
+		"readyForMain",
+	] as const) {
+		expect(routeReview({ ...base, [field]: false }, 1, 2).action).toBe("fix");
+		expect(routeReview({ ...base, [field]: false }, 2, 2).action).toBe(
+			"escalate",
+		);
+	}
+});

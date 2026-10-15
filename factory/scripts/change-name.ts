@@ -1,5 +1,7 @@
+import { normalizeTicketKey } from "./ticket-key";
+
 export function changeName(jiraKey: string, summary: string): string {
-	const key = jiraKey.trim().toLowerCase();
+	const key = normalizeTicketKey(jiraKey).toLowerCase();
 	const slug = summary
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
@@ -8,7 +10,7 @@ export function changeName(jiraKey: string, summary: string): string {
 		.filter((w) => w.length > 0)
 		.slice(0, 6)
 		.join("-");
-	return slug ? `${key}-${slug}` : key;
+	return `${key}-${slug || "change"}`;
 }
 
 if (import.meta.main) {

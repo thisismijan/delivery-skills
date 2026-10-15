@@ -1,4 +1,5 @@
 import { readdir } from "node:fs/promises";
+import { normalizeTicketKey } from "./ticket-key";
 
 export interface ChangeMatch {
 	match: string | null;
@@ -7,8 +8,14 @@ export interface ChangeMatch {
 }
 
 export function findChange(jiraKey: string, entries: string[]): ChangeMatch {
-	const prefix = `${jiraKey.trim().toLowerCase()}-`;
-	const candidates = entries.filter((e) => e.toLowerCase().startsWith(prefix));
+	const key = normalizeTicketKey(jiraKey).toLowerCase();
+	const candidates = entries.filter((entry) => {
+		const normalized = entry.toLowerCase();
+		return (
+			entry !== "archive" &&
+			(normalized === key || normalized.startsWith(`${key}-`))
+		);
+	});
 	if (candidates.length === 1) {
 		return { match: candidates[0] as string, ambiguous: false, candidates };
 	}

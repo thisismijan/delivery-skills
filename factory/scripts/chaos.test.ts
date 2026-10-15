@@ -19,7 +19,16 @@ test("malformed verdict never parses (fail closed)", () => {
 
 test("a passing red gate is never satisfied", () => {
 	expect(
-		evaluateGate({ passed: true, exitCode: 0, output: "" }, "red").ok,
+		evaluateGate(
+			{
+				passed: true,
+				exitCode: 0,
+				output: "",
+				timedOut: false,
+				executedExpectedTests: true,
+			},
+			"red",
+		).ok,
 	).toBe(false);
 });
 
@@ -44,7 +53,7 @@ test("implementation-first tasks are never accepted as a valid change", async ()
 });
 
 test("ambiguous change never yields a single match", () => {
-	expect(findChange("X-1", ["x-1-a", "x-1-b"]).match).toBeNull();
+	expect(findChange("XY-1", ["xy-1-a", "xy-1-b"]).match).toBeNull();
 });
 
 test("invalid config never loads", () => {

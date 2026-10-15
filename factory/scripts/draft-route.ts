@@ -17,6 +17,18 @@ export interface DraftRouting {
 export function routeAfterAssessment(
 	a: AssessmentVerdict,
 ): DraftRouting | null {
+	if (
+		a.quality === "good" &&
+		(a.derivedAcceptanceCriteria.length === 0 ||
+			a.derivedAcceptanceCriteria.length > 3)
+	) {
+		return {
+			decision: "clarify",
+			state: "CLARIFICATION_REQUESTED",
+			reason:
+				"A good ticket must have one to three derived acceptance criteria.",
+		};
+	}
 	if (a.scopeFit === "too_large") {
 		return {
 			decision: "clarify",
@@ -66,8 +78,12 @@ export function routeAfterFeasibility(f: FeasibilityVerdict): DraftRouting {
 
 if (import.meta.main) {
 	const mode = process.argv[2];
-	const json = process.argv[3] ?? "";
+	const input = process.argv[3] ?? "";
 	try {
+		const json =
+			input && (await Bun.file(input).exists())
+				? await Bun.file(input).text()
+				: input;
 		if (mode === "assessment") {
 			const routing = routeAfterAssessment(parseAssessmentVerdict(json));
 			console.log(
