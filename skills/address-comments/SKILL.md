@@ -39,7 +39,12 @@ This command consumes the review comments on the **existing** MR for this ticket
 
 2. **Confirm an open MR exists.** Check the MR for the source branch via `glab` (e.g. `glab mr list --source-branch <changeName> --state opened --output json`). If there is **no** open MR for the branch, **stop + escalate** (use `scripts/escalate.ts` semantics / `assertOrEscalate`): make zero commits and post nothing. Record the MR IRI/number as `<mr>`.
 
-3. **Check out** the spec branch `<changeName>`. Resolve `<repoRoot>` with `git rev-parse --show-toplevel`, set `<reviewDir> = <repoRoot>/.review/<changeName>/address-comments`, and create it. Mark the MR draft with `glab mr update <mr> --draft` before changing code. Read `maxFixAttempts` (default 2) from:
+3. **Check out** the spec branch `<changeName>`. Resolve `<repoRoot>` with `git rev-parse --show-toplevel`, set `<reviewDir> = <repoRoot>/.review/<changeName>/address-comments`, and create it. Mark the MR draft with `glab mr update <mr> --draft` before changing code. Before reusing a persisted per-comment or cumulative gate artifact, verify it is still bound to the current commit, command, and test file contents. The script calls verifyGateEvidence:
+   ```
+   bun "${FACTORY_ROOT}/scripts/test-gate.ts" verify "<reviewDir>/red-gate-<commentId>-<test-commit>.json" "<reviewDir>/red-command-<commentId>.json"
+   bun "${FACTORY_ROOT}/scripts/test-gate.ts" verify "<reviewDir>/green-gate-<commentId>-<source-commit>.json" "<reviewDir>/green-command-<commentId>.json"
+   ```
+   Non-zero exit means the evidence is stale or the command or tests changed — re-run the gate. Do not reuse it. Read `maxFixAttempts` (default 2) from:
    ```
    bun "${FACTORY_ROOT}/scripts/config.ts"
    ```

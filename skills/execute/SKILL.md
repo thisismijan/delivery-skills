@@ -47,6 +47,16 @@ the durable state from a prior interrupted run: the **existing MR**, existing
 **dirty worktree**. Bind reusable gate evidence to the exact test/source commit
 and command it proved; stale or ambiguous evidence is not reusable.
 
+Before reusing a persisted red or green gate artifact, verify it is still
+bound to the current commit, command, and test file contents. The script
+calls verifyGateEvidence:
+```
+bun "${FACTORY_ROOT}/scripts/test-gate.ts" verify "<reviewDir>/red-gate-<test-commit>.json" "<reviewDir>/red-command.json"
+bun "${FACTORY_ROOT}/scripts/test-gate.ts" verify "<reviewDir>/green-gate-<source-commit>.json" "<reviewDir>/green-command.json"
+```
+Non-zero exit means the evidence is stale or the command or tests changed —
+re-run the gate. Do not reuse it.
+
 - If an approved existing MR already points at the current branch head, report
   it and stop successfully. **Never open a duplicate MR.**
 - Resume from the earliest incomplete gate. Never repeat a completed write,

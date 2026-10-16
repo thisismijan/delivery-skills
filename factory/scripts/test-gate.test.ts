@@ -3,15 +3,13 @@ import { createHash } from "node:crypto";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { evaluateGate, runTestGate, type TestGateResult } from "./test-gate";
+import { type TestGateResult, evaluateGate, runTestGate } from "./test-gate";
 
 function sha256(content: string): string {
 	return createHash("sha256").update(content).digest("hex");
 }
 
-function gateResult(
-	overrides: Record<string, unknown> = {},
-): TestGateResult {
+function gateResult(overrides: Record<string, unknown> = {}): TestGateResult {
 	return {
 		passed: false,
 		exitCode: 1,
@@ -48,8 +46,12 @@ async function loadVerifyGateEvidence() {
 
 test("runTestGate: success command -> passed true, exit 0", async () => {
 	const r = await runTestGate({
-		argv: ["bun", "-e", "console.log('sample.test.ts'); process.exit(0)"],
-		expectedTestPaths: ["sample.test.ts"],
+		argv: [
+			"bun",
+			"-e",
+			`console.log(${JSON.stringify(import.meta.path)}); process.exit(0)`,
+		],
+		expectedTestPaths: [import.meta.path],
 	});
 	expect(r.passed).toBe(true);
 	expect(r.exitCode).toBe(0);
@@ -59,6 +61,7 @@ test("runTestGate: success command -> passed true, exit 0", async () => {
 test("runTestGate: failing command -> passed false, non-zero exit", async () => {
 	const r = await runTestGate({
 		argv: ["bun", "-e", "process.exit(3)"],
+		expectedTestPaths: [import.meta.path],
 	});
 	expect(r.passed).toBe(false);
 	expect(r.exitCode).toBe(3);
@@ -67,6 +70,7 @@ test("runTestGate: failing command -> passed false, non-zero exit", async () => 
 test("runTestGate: captures output", async () => {
 	const r = await runTestGate({
 		argv: ["bun", "-e", "console.log('hello-gate')"],
+		expectedTestPaths: [import.meta.path],
 	});
 	expect(r.output).toContain("hello-gate");
 });
@@ -148,10 +152,7 @@ test("green gate rejects a successful command that did not name expected tests",
 });
 
 test("evaluateGate red: empty expected paths fail closed", () => {
-	const evaluation = evaluateGate(
-		gateResult({ expectedTestPaths: [] }),
-		"red",
-	);
+	const evaluation = evaluateGate(gateResult({ expectedTestPaths: [] }), "red");
 	expect(evaluation.ok).toBe(false);
 	expect(evaluation.reason).toMatch(/no expected tests were given/i);
 });
@@ -251,9 +252,9 @@ test("verifyGateEvidence rejects an argv change", async () => {
 test("verifyGateEvidence rejects a cwd change", async () => {
 	const verifyGateEvidence = await loadVerifyGateEvidence();
 	const recorded = evidence();
-	expect(
-		verifyGateEvidence(recorded, evidence({ cwd: "/other" })).ok,
-	).toBe(false);
+	expect(verifyGateEvidence(recorded, evidence({ cwd: "/other" })).ok).toBe(
+		false,
+	);
 });
 
 test("verifyGateEvidence rejects an expected path set change", async () => {
