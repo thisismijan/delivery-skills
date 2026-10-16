@@ -50,11 +50,17 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    (`:fullpath` resolves from the git remote; `--paginate` fetches every page.) `scripts/glab-comments.ts` flattens the discussions to one entry per note (`parseMrComments`, fail-closed on non-JSON / non-array), dropping GitLab system notes and carrying each note's parent `discussionId` (needed to reply on its thread in step 7). It then applies `excludeHandledThreads`: if any note in a discussion starts with the factory audit prefix `**ig-spec** ·`, the **entire discussion** is excluded. Removing only the factory reply would leave the original human note in scope and cause a duplicate action on re-entry. The remaining comments are **in scope**. Non-zero exit (unparseable output) → stop + escalate.
 
-5. **Classify (single batch, read-only).** Dispatch **exactly one** `comment-assessor` subagent (Sonnet, tools `Read, Grep, Glob` only) with the in-scope comments (each with its `commentId` and `discussionId`), the diff, and `<changeDir>` (spec + tasks). Keep each comment's `discussionId` so step 7 can reply on the right thread. It returns a single `ClassificationVerdict` JSON array. Validate it:
+5. **Classify (single batch, read-only).** Resolve `standard` against the runtime
+   model inventory, then dispatch **exactly one** `comment-assessor` subagent
+   with that exact available model (tools `Read, Grep, Glob` only), the in-scope
+   comments (each with its `commentId` and `discussionId`), the diff, and
+   `<changeDir>` (spec + tasks). Keep each comment's `discussionId` so step 7
+   can reply on the right thread. It returns a single `ClassificationVerdict`
+   JSON array. Validate it:
    ```
    bun "${FACTORY_ROOT}/scripts/verdicts.ts" classification "<reviewDir>/classification.json" "<reviewDir>/expected-comment-ids.json"
    ```
-   A malformed or missing verdict → **stop + escalate** and action no comments. If there are zero in-scope comments the verdict is `[]` — nothing to action; go to step 8 only if any prior change was made, otherwise stop cleanly. After a valid verdict, dispatch `task-profile-controller` (Opus, read-only) for the classify task, validate with `task-profile.ts`, persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-shadow.json"`, then `record-routing.ts persist` into `.delivery/routing/`. Classification still ran on Sonnet; the shadow file must not change that.
+   A malformed or missing verdict → **stop + escalate** and action no comments. If there are zero in-scope comments the verdict is `[]` — nothing to action; go to step 8 only if any prior change was made, otherwise stop cleanly. After a valid verdict, resolve `frontier` and dispatch `task-profile-controller` with that exact available model for the classify task, validate with `task-profile.ts`, persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-shadow.json"`, then `record-routing.ts persist` into `.delivery/routing/`. Classification still used the current semantic standard route; the shadow file must not change that.
 
 6. **Route each comment.** For every entry, derive its action group:
    ```
@@ -100,12 +106,17 @@ This command consumes the review comments on the **existing** MR for this ticket
 8. **Cumulative gates and holdout re-review (the only gate to re-marking ready).** Run one full green gate, lint, and typecheck in parallel over the cumulative branch, persist all results, and stop on any failure. Prepare the reviewer's inputs as files (it is read-only): write the **cumulative** branch diff against the default branch (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`) and gather every per-comment and cumulative gate artifact. Confirm the reviewer model:
    ```
    bun "${FACTORY_ROOT}/scripts/select-model.ts" review   # -> opus
-   # Dispatch task-profile-controller (Opus, read-only) first; persist its JSON.
+   # Resolve frontier and dispatch task-profile-controller read-only first.
    bun "${FACTORY_ROOT}/scripts/task-profile.ts" "<reviewDir>/review-profile.json"
    bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"
-   bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-outcome.json"
+   bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-outcome.json" "<reviewDir>/review-usage.json" <frontier-model> <frontier-model>
    ```
-   Dispatch a **fresh** `holdout-reviewer` subagent (Opus) over the **cumulative** diff (not per-comment) with **only**: the Jira ticket, `<changeDir>` (the spec), the diff file, the test files, and the gate results. Do **not** pass any implementer/assessor reasoning or prior chatter. It returns a `ReviewVerdict` JSON. Route it:
+   Resolve `frontier`, then dispatch a **fresh** `holdout-reviewer` subagent
+   with that exact available model over the **cumulative** diff (not
+   per-comment) and **only**: the Jira ticket, `<changeDir>` (the spec), the
+   diff file, the test files, and the gate results. Do **not** pass any
+   implementer/assessor reasoning or prior chatter. It returns a
+   `ReviewVerdict` JSON. Route it:
    ```
    bun "${FACTORY_ROOT}/scripts/review-route.ts" "<reviewDir>/holdout-verdict.json" <attempt> <maxAttempts>
    ```

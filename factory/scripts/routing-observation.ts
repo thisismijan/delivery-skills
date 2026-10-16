@@ -57,9 +57,11 @@ export const RoutingObservation = ShadowDecision.extend({
 	runId: z.string().min(1),
 	recordedAt: z.string().min(1),
 	source: z.enum(["live", "representative-run"]),
+	currentModelId: z.string().min(1).optional(),
 	controller: z.object({
-		kind: z.literal("opus-readonly"),
+		kind: z.enum(["opus-readonly", "frontier-readonly"]),
 		agent: z.literal("task-profile-controller"),
+		model: z.string().min(1).optional(),
 	}),
 	context: z.object({
 		size: TaskProfile.shape.contextSize,

@@ -96,6 +96,21 @@ State the chosen entry and what it runs in one line, then continue.
 4. Check the capabilities the next stage needs (below). For `auto`, check them
    all once and show the result as a table before starting.
 
+5. **Record the runtime model inventory.** Read the exact model identifiers the
+   host advertises for subagents. On Cursor, use the session's supplied
+   subagent-model list; on Claude Code, use its accepted aliases. Write
+   `.delivery/routing/model-inventory.json` with `version: 1`, the host,
+   `recordedAt`, and those exact identifiers. Do not infer names from the
+   catalogue. Before each dispatch, determine the capability tier, then resolve
+   it against that inventory:
+   ```
+   bun "${FACTORY_ROOT}/scripts/model-catalogue.ts" resolve <tier> \
+     .delivery/routing/model-inventory.json
+   ```
+   Pass the returned exact model identifier to the subagent. Muse Wonder is a
+   frontier candidate. Static agent `model:` fields are fallback values only.
+   A model that is available but marked `evaluation-only` cannot run live.
+
 Do not deep-audit beyond that — each stage workflow lists its own
 preconditions; fail when a stage command fails.
 
@@ -332,12 +347,13 @@ Keep the lifecycle portable between Cursor and Claude Code.
 - Reusable orchestration is promoted only after a real run succeeds. Generated
   orchestration never bypasses the stage's existing approval, permission,
   failure, or rollback rules.
-- **Shadow model routing.** An Opus-level read-only `task-profile-controller`
+- **Shadow model routing.** A frontier-level read-only `task-profile-controller`
   classifies each task. Factory stages persist that profile, gate outcomes,
   repairs, escalations, context size, and token or character counts under
-  `.delivery/routing/`. Live workers still follow `select-model.ts` (Sonnet by
-  default, Opus for holdout and defended high-complexity implementation). A
-  cheaper shadow recommendation is recorded, never dispatched. After each run,
+  `.delivery/routing/`. `select-model.ts` determines the required capability;
+  `model-catalogue.ts` chooses an exact model from the runtime-advertised list.
+  Muse Wonder can satisfy frontier work. A cheaper shadow recommendation is
+  recorded, never dispatched. After each run,
   generate the routing comparison report and rebuild the evaluation corpus from
   those files. Fast catalogue models stay off until scored reversible, strongly
   verified work clears the 90 percent bar. Changing the catalogue does not

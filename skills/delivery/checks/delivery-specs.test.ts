@@ -472,6 +472,15 @@ describe("shadow model routing", () => {
 		expect(policy).toContain("90 percent");
 		expect(policy).toContain("never dispatched");
 		expect(policy).toContain("select-model.ts");
+		expect(policy).toContain("model-catalogue.ts");
+		expect(policy).toContain("Muse Wonder");
+	});
+
+	test("the conductor records the host-advertised model list", () => {
+		const preconditions = section(SKILL, "## Phase 1 — Preconditions and ledger");
+		expect(preconditions).toContain("model-inventory.json");
+		expect(preconditions).toContain("exact model identifiers");
+		expect(preconditions).toContain("evaluation-only");
 	});
 });
 
@@ -511,8 +520,8 @@ describe("portable factory pack", () => {
     const installer = readFileSync(join(packRoot, "install.sh"), "utf8");
     expect(installer).toContain('hosts+=(cursor claude store)');
     expect(installer).toContain("Agent store skipped (not writable here)");
-    expect(installer).toContain('case "$store" in');
-    expect(installer).toContain("/cursor/*) echo /cursor ;;");
+    expect(installer).toContain('elif [[ "$store" == /cursor/* ]]');
+    expect(installer).toContain("store_probe=/cursor");
     expect(readme).toContain("On a Mac it skips `/cursor` instead of failing");
   });
 

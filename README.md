@@ -171,8 +171,11 @@ ambiguous match stops the run instead of guessing.
   stale write instead of overwriting another session's update.
 - **Waiting never polls.** A running pipeline or deploy ends the turn with the
   command to resume.
-- **Model routing is shadow-only.** An Opus-level read-only controller writes
-  each task profile. Stages record the cheaper recommended tier, gate
+- **Model routing is shadow-only.** A frontier-level read-only controller
+  writes each task profile. The host's advertised model identifiers are
+  recorded, and the catalogue resolves each required capability to an
+  available model. Muse Wonder is a frontier candidate. Stages record the
+  cheaper recommended tier, gate
   outcomes, repairs, escalations, and token or character counts under
   `.delivery/routing/`, then emit a comparison report. They still dispatch
   today's Sonnet/Opus selection. Fast models stay off until scored reversible

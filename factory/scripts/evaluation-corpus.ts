@@ -26,6 +26,7 @@ export const CorpusEntry = z.object({
 	observation: RoutingObservationSchema,
 	evaluation: z
 		.object({
+			candidateModel: z.string().min(1),
 			relativeUtility: z.number().min(0).max(1),
 			criticalMisses: z.number().int().nonnegative(),
 		})
@@ -77,9 +78,7 @@ export function corpusEntryFrom(
 	});
 }
 
-export function buildCorpus(
-	observations: RoutingObservation[],
-): CorpusEntry[] {
+export function buildCorpus(observations: RoutingObservation[]): CorpusEntry[] {
 	return observations.map((item) => corpusEntryFrom(item));
 }
 

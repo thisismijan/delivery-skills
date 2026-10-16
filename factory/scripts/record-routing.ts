@@ -1,14 +1,14 @@
-import { mkdir, readdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { LiveModel as LiveModelName } from "./task-profile";
 import {
 	type CurrentOutcome,
 	type RoutingObservation,
-	type Usage,
 	UNAVAILABLE_USAGE,
+	type Usage,
 	parseRoutingObservation,
 } from "./routing-observation";
 import { shadowRoute } from "./shadow-route";
+import type { LiveModel as LiveModelName } from "./task-profile";
 import {
 	LiveModel,
 	type TaskProfileInput,
@@ -40,6 +40,8 @@ export function buildObservation(input: {
 	usage?: Usage;
 	source?: RoutingObservation["source"];
 	recordedAt?: string;
+	controllerModel?: string;
+	currentModelId?: string;
 }): RoutingObservation {
 	const profile = TaskProfileInputSchema.parse(input.profile);
 	const decision = shadowRoute(profile, input.currentModel);
@@ -49,9 +51,11 @@ export function buildObservation(input: {
 		runId: input.runId,
 		recordedAt: input.recordedAt ?? new Date().toISOString(),
 		source: input.source ?? "live",
+		...(input.currentModelId ? { currentModelId: input.currentModelId } : {}),
 		controller: {
-			kind: "opus-readonly",
+			kind: input.controllerModel ? "frontier-readonly" : "opus-readonly",
 			agent: "task-profile-controller",
+			...(input.controllerModel ? { model: input.controllerModel } : {}),
 		},
 		context: {
 			size: profile.contextSize,
@@ -92,11 +96,20 @@ export async function loadObservations(
 }
 
 if (import.meta.main) {
-	const [command, root, runId, profileFile, modelArg, outcomeFile, usageFile] =
-		process.argv.slice(2);
+	const [
+		command,
+		root,
+		runId,
+		profileFile,
+		modelArg,
+		outcomeFile,
+		usageFile,
+		controllerModel,
+		currentModelId,
+	] = process.argv.slice(2);
 	if (command !== "persist" || !root || !runId || !profileFile || !modelArg) {
 		console.error(
-			"usage: record-routing persist <routing-root> <run-id> <profile.json> <sonnet|opus> <outcome.json> [usage.json]",
+			"usage: record-routing persist <routing-root> <run-id> <profile.json> <sonnet|opus> <outcome.json> [usage.json] [controller-model] [current-model-id]",
 		);
 		process.exit(2);
 	}
@@ -123,6 +136,8 @@ if (import.meta.main) {
 			currentModel,
 			outcome,
 			usage,
+			controllerModel,
+			currentModelId,
 		});
 		const path = await persistObservation(root, observation);
 		console.log(JSON.stringify({ path, shadowTier: observation.shadowTier }));

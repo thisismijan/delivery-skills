@@ -56,7 +56,15 @@ and command it proved; stale or ambiguous evidence is not reusable.
   artifact belongs to different tests, or commits cannot be attributed), stop
   and escalate rather than guessing.
 
-4. **Write tests first.** Dispatch the `test-writer` subagent with `<changeDir>/specs/` and `<changeDir>/tasks.md`. It writes test files only. It writes **durable** tests and **skips** inherently transient (point-in-time migration) scenarios, reporting each skip with a reason (see "Test durability" in CLAUDE.md). **Capture its skip report** verbatim to `<reviewDir>/skips.md` (write an explicit "none" if it skipped nothing) - the holdout reviewer reads it in step 10 and the MR surfaces it in step 11.
+4. **Write tests first.** Resolve `standard` against
+   `.delivery/routing/model-inventory.json`, then dispatch the `test-writer`
+   subagent with that exact available model, `<changeDir>/specs/`, and
+   `<changeDir>/tasks.md`. It writes test files only. It writes **durable** tests
+   and **skips** inherently transient (point-in-time migration) scenarios,
+   reporting each skip with a reason (see "Test durability" in CLAUDE.md).
+   **Capture its skip report** verbatim to `<reviewDir>/skips.md` (write an
+   explicit "none" if it skipped nothing) - the holdout reviewer reads it in
+   step 10 and the MR surfaces it in step 11.
 
 5. **Red gate (enforced).** Write `<reviewDir>/red-command.json` containing an argv array (never a shell string), the repo cwd, every expected new test path, and a timeout. Run it and persist the JSON output under an append-only name containing the test commit:
    ```
@@ -73,20 +81,32 @@ and command it proved; stale or ambiguous evidence is not reusable.
    ```
    bun "${FACTORY_ROOT}/scripts/select-model.ts" implement <complexitySignal> "<opusJustification from the meta>"
    ```
-   If the meta read exits non-zero (a change drafted before this file existed, or a corrupt file), **do not guess** — treat it as no defended case and use `sonnet` (PRD §9: absent a recorded, defended complexity case, Sonnet). If it prints `opus`, the recorded justification must appear in the MR description.
+   If the meta read exits non-zero (a change drafted before this file existed, or a corrupt file), **do not guess** — treat it as no defended case and use `sonnet` (PRD §9: absent a recorded, defended complexity case, Sonnet). Map `sonnet` to the `standard` capability and `opus` to `frontier`, then resolve that tier against `.delivery/routing/model-inventory.json`. The resolver's exact model identifier is the implementation worker. If the semantic selection prints `opus`, the recorded justification must appear in the MR description.
 
-   **Profile then shadow-route implementation.** Dispatch the `task-profile-controller` subagent (Opus, tools: `Read, Grep, Glob` only) with a compact bundle of the spec, feasibility meta, and blast radius. Persist its JSON to `<reviewDir>/implement-profile.json` and validate it:
+   **Profile then shadow-route implementation.** Resolve `frontier`, then dispatch the `task-profile-controller` subagent with that exact available model (tools: `Read, Grep, Glob` only) and a compact bundle of the spec, feasibility meta, and blast radius. Persist its JSON to `<reviewDir>/implement-profile.json` and validate it:
    ```
    bun "${FACTORY_ROOT}/scripts/task-profile.ts" "<reviewDir>/implement-profile.json"
    bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/implement-profile.json" <live-model> "<reviewDir>/implement-shadow.json"
    ```
-   Persist that JSON. **Dispatch still uses the live `select-model.ts` result.** A cheaper `shadowTier` is a recommendation for later evaluation, never this run's worker. After the red and green gates (or an escalation), persist the observation:
+   Persist that JSON. **Dispatch still uses the live `select-model.ts`
+   capability and the exact model returned by `model-catalogue.ts`.** A cheaper
+   `shadowTier` is a recommendation for later evaluation, never this run's
+   worker. After the red and green gates (or an escalation), persist the
+   observation:
    ```
-   bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/implement-profile.json" <live-model> "<reviewDir>/implement-outcome.json"
+   bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/implement-profile.json" <live-model> "<reviewDir>/implement-outcome.json" "<reviewDir>/implement-usage.json" <controller-model> <implementation-model>
    ```
-   The outcome file records each gate result, repair count, and escalations. Include token or character counts when available. Do not dispatch a catalogue fast model unless `fast-dispatch.ts` later reports that reversible, strongly verified work has cleared the 90 percent bar.
+   The outcome file records each gate result, repair count, and escalations.
+   The usage file records token or character counts when available, otherwise
+   `{ "source": "unavailable" }`. Persist both exact resolved model identifiers.
+   Do not dispatch a catalogue fast model unless `fast-dispatch.ts` later
+   reports that the exact candidate on reversible, strongly verified work has
+   cleared the 90 percent bar.
 
-7. **Implement to green.** Dispatch the `implementer` subagent using the model from step 6. (Override the dispatch model to the selected value; if the host can't override a plugin agent's model, route to `implementer-opus` for the opus case.)
+7. **Implement to green.** Dispatch the `implementer` subagent using the exact
+   runtime model resolved in step 6. Override the prompt's static model. If the
+   host cannot override a plugin agent's model, use the existing
+   `implementer-opus` fallback only for the semantic frontier case.
 
 8. **Green gates.** Write `<reviewDir>/green-command.json` with argv, cwd, and all expected test paths. Run the full green gate, lint, and typecheck **in parallel**, persist each result under an append-only name containing the source commit, and wait for all three:
    ```
@@ -103,7 +123,7 @@ and command it proved; stale or ambiguous evidence is not reusable.
 
 9. **Self-review.** The `implementer` reviews its own diff against `specs/` and `tasks.md`, and marks `tasks.md` items done.
 
-10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the reviewer model: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ `opus`). Dispatch `task-profile-controller` (Opus, read-only) for the holdout task, validate with `task-profile.ts`, then persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"`. After the verdict, persist the observation with `record-routing.ts` under `.delivery/routing/`. The holdout still runs on Opus. Dispatch the `holdout-reviewer` subagent (Opus) with **only**: the Jira ticket, `<changeDir>` (the spec), the diff file, the test files, all gate-result files, and the **skip report** (`<reviewDir>/skips.md`). **Do not pass the implementer's reasoning or any prior chatter.** It returns a `ReviewVerdict` JSON. **No MR is opened at this point.**
+10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the required capability: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ semantic `opus`, therefore `frontier`), then resolve the exact available frontier model. Dispatch `task-profile-controller` with that frontier model, validate with `task-profile.ts`, then persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"`. After the verdict, persist the observation with `record-routing.ts` under `.delivery/routing/`, including the controller's exact model identifier. Dispatch the `holdout-reviewer` subagent with the same resolved frontier model and **only**: the Jira ticket, `<changeDir>` (the spec), the diff file, the test files, all gate-result files, and the **skip report** (`<reviewDir>/skips.md`). **Do not pass the implementer's reasoning or any prior chatter.** It returns a `ReviewVerdict` JSON. **No MR is opened at this point.**
 
 11. **Route the verdict (deterministic).**
     ```
