@@ -12,9 +12,9 @@
 - [x] 2.2 Replace source-framework attribution, host branches, native review commands, and hard-coded integration instructions with delivery-native stages and capability descriptors; verify the neutrality contract passes
 - [x] 2.3 Convert forge, tracker, review, subprocess, and subagent operations to normalized provider inputs and fail-closed missing-provider results; verify workflow contract tests cover absent and fake providers
 - [x] 2.4 Update model routing to use capability traits and runtime-advertised identifiers without named host or vendor examples in core; verify routing tests preserve safety floors and promotion gates
-- [ ] 2.5 Resolve the live conductor conflict by preserving both Stage 3 dual-review readiness and interrupted-execute recovery; verify both existing behavior suites pass together
-- [ ] 2.6 Replace source-framework state names and comment identity with `.delivery/grooming/`, delivery-owned change metadata, and a delivery-owned audit marker; verify legacy reads live only in an optional migration adapter
-- [ ] 2.7 Restrict generic skill frontmatter to portable skill fields and move native argument placeholders, tool allowlists, effort, and model hints into adapters; verify every generic skill passes the portable metadata test
+- [x] 2.5 Resolve the live conductor conflict by preserving both Stage 3 dual-review readiness and interrupted-execute recovery; verify both existing behavior suites pass together
+- [x] 2.6 Replace source-framework state names and comment identity with `.delivery/grooming/`, delivery-owned change metadata, and a delivery-owned audit marker; verify legacy reads live only in an optional migration adapter
+- [x] 2.7 Restrict generic skill frontmatter to portable skill fields and move native argument placeholders, tool allowlists, effort, and model hints into adapters; verify every generic skill passes the portable metadata test
 
 ## 3. Generic packaging and adapters
 
@@ -22,12 +22,12 @@
 - [x] 3.2 Make explicit destination installation the default interface and install the generic runtime beside the skills; verify installer tests pass
 - [x] 3.3 Move existing host paths, hooks, native commands, forge commands, and tracker setup into optional adapters validated against the runtime manifest; verify adapter contract tests pass
 - [x] 3.4 Rewrite the README and generic runtime documentation around the portable protocol and bounded capability prerequisites; verify documented commands in installer tests
-- [ ] 3.5 Move forge, tracker, and spec-tool configuration out of factory defaults into explicit providers; verify the generic install includes none unless selected
+- [x] 3.5 Move forge, tracker, and spec-tool configuration out of factory defaults into explicit providers; verify the generic install includes none unless selected
 
 ## 4. Integration
 
 - [ ] 4.1 Run strict OpenSpec validation, the full factory test suite, typecheck, formatting checks, delivery contracts, neutrality scans, and adapter tests; verify all are green
-- [ ] 4.2 Run a fake-host end-to-end lifecycle through a read-only stage and a denied mutating stage; verify normalized outputs and fail-closed behavior
+- [x] 4.2 Run a fake-host end-to-end lifecycle through a read-only stage and a denied mutating stage; verify normalized outputs and fail-closed behavior
 
 ## Workflow follow-up
 
