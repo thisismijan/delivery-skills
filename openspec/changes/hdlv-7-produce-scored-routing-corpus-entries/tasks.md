@@ -18,4 +18,4 @@
 - [x] 4.2 Implement `buildPromotionReport` grouping by candidate, task class and source
 - [x] 4.3 Require a validated outcome in `buildObservation`, `persistObservation` and the `record-routing` command line; remove the default success
 - [x] 4.4 Audit and update `representative-routing-runs.ts`, the skills and `factory/RUNTIME.md` so every caller supplies an explicit outcome
-- [ ] 4.5 Run `bun test` in `factory/` and confirm all tests pass
+- [x] 4.5 Run `bun test` in `factory/` and confirm all tests pass`
