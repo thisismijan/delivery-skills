@@ -75,7 +75,9 @@ describe("recoverExecuting unattributable evidence", () => {
 		expect(result.kind).toBe("escalate");
 		if (result.kind !== "escalate") return;
 		expect(result.reason).toMatch(/working tree|dirty/i);
-		expect(result.reason).toMatch(/cannot be attributed|will not discard|will not guess/i);
+		expect(result.reason).toMatch(
+			/cannot be attributed|will not discard|will not guess/i,
+		);
 		expect(isJargon(result.reason)).toBe(false);
 	});
 
@@ -128,9 +130,7 @@ describe("recoverExecuting unattributable evidence", () => {
 
 describe("recoverExecuting live wait", () => {
 	test("an active owner with no merge request waits and is not interrupted", () => {
-		const result = recoverExecuting(
-			evidence({ owner: { status: "active" } }),
-		);
+		const result = recoverExecuting(evidence({ owner: { status: "active" } }));
 		expect(result.kind).toBe("wait");
 		if (result.kind !== "wait") return;
 		expect(result.reason).toMatch(/still running|wait/i);
@@ -139,9 +139,7 @@ describe("recoverExecuting live wait", () => {
 	});
 
 	test("an unknown owner with no merge request escalates rather than waiting or restarting", () => {
-		const result = recoverExecuting(
-			evidence({ owner: { status: "unknown" } }),
-		);
+		const result = recoverExecuting(evidence({ owner: { status: "unknown" } }));
 		expect(result.kind).toBe("escalate");
 		if (result.kind !== "escalate") return;
 		expect(result.reason.length).toBeGreaterThan(0);

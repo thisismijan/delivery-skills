@@ -69,7 +69,11 @@ re-run the gate. Do not reuse it.
   identifying whether it belongs to this run.
 - If state conflicts (for example, an MR exists for an unapproved head, a red
   artifact belongs to different tests, or commits cannot be attributed), stop
-  and escalate rather than guessing.
+  and escalate rather than guessing. Never discard unattributable dirty work,
+  a stale branch, or stale gate evidence.
+- `/delivery execute <KEY>` after an interrupted stop is the safe resume.
+  Typing execute is still the approval to build. Do not start execute from a
+  bare-key resume.
 
 4. **Write tests first.** Resolve `standard` against
    `.delivery/routing/model-inventory.json`, then dispatch the `test-writer`
