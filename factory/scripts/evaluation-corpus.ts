@@ -1,0 +1,125 @@
+import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
+import { z } from "zod";
+import { loadObservations } from "./record-routing";
+import {
+	type RoutingObservation,
+	RoutingObservation as RoutingObservationSchema,
+} from "./routing-observation";
+
+export const CorpusEntry = z.object({
+	taskId: z.string().min(1),
+	runId: z.string().min(1),
+	stage: z.string().min(1),
+	workType: z.string().min(1),
+	allowedContext: z.object({
+		size: z.enum(["small", "medium", "large"]),
+		usage: RoutingObservationSchema.shape.context.shape.usage,
+	}),
+	expectedOutputContract: z.string().min(1),
+	deterministicChecks: z.array(z.string().min(1)),
+	knownImportantFindings: z.array(z.string()),
+	knownForbiddenActions: z.array(z.string()),
+	liveOutcome: RoutingObservationSchema.shape.currentOutcome,
+	currentTier: RoutingObservationSchema.shape.currentTier,
+	shadowTier: RoutingObservationSchema.shape.shadowTier,
+	observation: RoutingObservationSchema,
+	evaluation: z
+		.object({
+			relativeUtility: z.number().min(0).max(1),
+			criticalMisses: z.number().int().nonnegative(),
+		})
+		.optional(),
+});
+export type CorpusEntry = z.infer<typeof CorpusEntry>;
+
+const CONTRACT: Record<string, string> = {
+	search: "Return the named sources and omit unrelated files.",
+	classify: "Label each item with one allowed class and a checkable reason.",
+	summarise: "Summarise the supplied logs without inventing failures.",
+	decompose: "Split into atomic, vertically complete tickets.",
+	design: "Author the OpenSpec change without writing product code.",
+	"write-tests": "Write failing tests for the accepted scenarios.",
+	implement: "Make the accepted tests pass without weakening them.",
+	review: "Judge the committed diff against the spec and gate evidence.",
+};
+
+export function corpusEntryFrom(
+	observation: RoutingObservation,
+	evaluation?: CorpusEntry["evaluation"],
+): CorpusEntry {
+	const workType = observation.profile.workType;
+	return CorpusEntry.parse({
+		taskId: observation.profile.taskId,
+		runId: observation.runId,
+		stage: observation.profile.stage,
+		workType,
+		allowedContext: observation.context,
+		expectedOutputContract:
+			CONTRACT[workType] ??
+			"Complete the named task against its evidence bundle.",
+		deterministicChecks: [
+			"profile validates as TaskProfileInput",
+			"shadow decision does not change live dispatch",
+			"gate outcomes are recorded",
+		],
+		knownImportantFindings: observation.profile.reason,
+		knownForbiddenActions: [
+			"dispatch the shadow recommendation",
+			"merge or close an MR",
+			"transition Jira status",
+		],
+		liveOutcome: observation.currentOutcome,
+		currentTier: observation.currentTier,
+		shadowTier: observation.shadowTier,
+		observation,
+		evaluation,
+	});
+}
+
+export function buildCorpus(
+	observations: RoutingObservation[],
+): CorpusEntry[] {
+	return observations.map((item) => corpusEntryFrom(item));
+}
+
+export async function writeCorpus(
+	outDir: string,
+	entries: CorpusEntry[],
+): Promise<string> {
+	await mkdir(outDir, { recursive: true });
+	const index = entries.map((entry) => ({
+		runId: entry.runId,
+		taskId: entry.taskId,
+		workType: entry.workType,
+		shadowTier: entry.shadowTier,
+		hasEvaluation: Boolean(entry.evaluation),
+	}));
+	await Bun.write(
+		join(outDir, "index.json"),
+		`${JSON.stringify({ version: 1, entries: index }, null, 2)}\n`,
+	);
+	for (const entry of entries) {
+		const name = `${entry.runId}-${entry.taskId}.json`;
+		await Bun.write(join(outDir, name), `${JSON.stringify(entry, null, 2)}\n`);
+	}
+	return join(outDir, "index.json");
+}
+
+if (import.meta.main) {
+	const root = process.argv[2];
+	if (!root) {
+		console.error("usage: evaluation-corpus <routing-root> [corpus-dir]");
+		process.exit(2);
+	}
+	try {
+		const observations = await loadObservations(root);
+		const entries = buildCorpus(observations);
+		const outDir = process.argv[3] ?? join(root, "corpus");
+		const index = await writeCorpus(outDir, entries);
+		console.log(JSON.stringify({ index, count: entries.length }));
+	} catch (error) {
+		console.error(error instanceof Error ? error.message : String(error));
+		process.exit(1);
+	}
+}

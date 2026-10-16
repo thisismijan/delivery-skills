@@ -171,10 +171,14 @@ ambiguous match stops the run instead of guessing.
   stale write instead of overwriting another session's update.
 - **Waiting never polls.** A running pipeline or deploy ends the turn with the
   command to resume.
-- **Model routing is shadow-only.** Stages record a task profile and a cheaper
-  recommended tier, but they still dispatch today's Sonnet/Opus selection.
-  Safety floors keep auth, migrations, concurrency, holdout review, and
-  irreversible work on the frontier recommendation.
+- **Model routing is shadow-only.** An Opus-level read-only controller writes
+  each task profile. Stages record the cheaper recommended tier, gate
+  outcomes, repairs, escalations, and token or character counts under
+  `.delivery/routing/`, then emit a comparison report. They still dispatch
+  today's Sonnet/Opus selection. Fast models stay off until scored reversible
+  work clears the 90 percent bar. Safety floors keep auth, migrations,
+  concurrency, holdout review, and irreversible work on the frontier
+  recommendation.
 - **Retro teaches the engineering journey.** It writes a chronological
   postmortem covering the problem, attempted models, counterexamples, design
   evolution, final invariants, DSA complexity, and system-design trade-offs. It
@@ -187,6 +191,7 @@ All live state belongs to the target repository and is gitignored:
 | Path | Holds |
 |------|-------|
 | `.delivery/runs/` | Run ledgers, discovery evidence, and engineering postmortems |
+| `.delivery/routing/` | Task profiles, shadow decisions, outcomes, comparison report, evaluation corpus |
 | `.delivery/candidates/`, `.delivery/versions/` | Improvement candidates and rollback copies |
 | `.review/<change>/` | Gate commands, append-only gate results, diffs, verdicts |
 | `.review/mr-<iid>/<head-sha>/` | Review brief, max-pass findings, and draft notes |

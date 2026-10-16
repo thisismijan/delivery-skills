@@ -37,3 +37,21 @@ test("implement uses opus only with high complexity AND a justification", () => 
 		}),
 	).toBe("sonnet"); // not high
 });
+
+test("live selection never returns a fast catalogue model", () => {
+	const models = [
+		selectModel({ step: "assess" }),
+		selectModel({ step: "implement" }),
+		selectModel({
+			step: "implement",
+			complexitySignal: "high",
+			opusJustification: "intricate locking",
+		}),
+		selectModel({ step: "review" }),
+	];
+	expect(models.every((model) => model === "sonnet" || model === "opus")).toBe(
+		true,
+	);
+	expect(models).not.toContain("composer-1");
+	expect(models).not.toContain("haiku");
+});

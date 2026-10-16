@@ -51,7 +51,7 @@ export const TaskProfileInput = z.object({
 	),
 	reason: z.array(z.string().min(1)).min(1),
 	promotionTriggers: z.array(z.string().min(1)).default([]),
-});
+}).strict();
 export type TaskProfileInput = z.infer<typeof TaskProfileInput>;
 
 export const TaskProfile = TaskProfileInput.extend({
@@ -61,4 +61,23 @@ export type TaskProfile = z.infer<typeof TaskProfile>;
 
 export function liveModelToTier(model: LiveModel): ModelTier {
 	return model === "opus" ? "frontier" : "standard";
+}
+
+export function parseTaskProfileInput(input: unknown): TaskProfileInput {
+	return TaskProfileInput.parse(input);
+}
+
+if (import.meta.main) {
+	const file = process.argv[2];
+	if (!file) {
+		console.error("usage: task-profile <profile.json>");
+		process.exit(2);
+	}
+	try {
+		const profile = parseTaskProfileInput(await Bun.file(file).json());
+		console.log(JSON.stringify(profile));
+	} catch (error) {
+		console.error(error instanceof Error ? error.message : String(error));
+		process.exit(1);
+	}
 }

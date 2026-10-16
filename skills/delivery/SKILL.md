@@ -34,7 +34,7 @@ by you, exactly as the operator would type it.
 Workflow specs are bundled under `workflows/` next to this SKILL.md. There are
 no machine-specific fallbacks. Missing bundled content is a terminal stop.
 Live state belongs to the target repository under `.delivery/` (`runs/`,
-`candidates/`, and `versions/`), never beside the installed skill.
+`candidates/`, `versions/`, and `routing/`), never beside the installed skill.
 
 Always read `workflows/delivery-ledger.md`. Read `workflows/auto.md` for `auto`
 and for the Next line every single step ends with. Of the stage specs, read only
@@ -332,12 +332,16 @@ Keep the lifecycle portable between Cursor and Claude Code.
 - Reusable orchestration is promoted only after a real run succeeds. Generated
   orchestration never bypasses the stage's existing approval, permission,
   failure, or rollback rules.
-- **Shadow model routing.** Factory stages persist a `TaskProfile` and a
-  `shadow-route.ts` decision next to their other artifacts. Live workers still
-  follow `select-model.ts` (Sonnet by default, Opus for holdout and defended
-  high-complexity implementation). A cheaper `shadowTier` is recorded, never
-  dispatched. A model catalogue maps `fast` / `standard` / `frontier` names
-  for later evaluation; changing it does not change this run.
+- **Shadow model routing.** An Opus-level read-only `task-profile-controller`
+  classifies each task. Factory stages persist that profile, gate outcomes,
+  repairs, escalations, context size, and token or character counts under
+  `.delivery/routing/`. Live workers still follow `select-model.ts` (Sonnet by
+  default, Opus for holdout and defended high-complexity implementation). A
+  cheaper shadow recommendation is recorded, never dispatched. After each run,
+  generate the routing comparison report and rebuild the evaluation corpus from
+  those files. Fast catalogue models stay off until scored reversible, strongly
+  verified work clears the 90 percent bar. Changing the catalogue does not
+  change this run.
 
 ## Checkpoint policy
 
