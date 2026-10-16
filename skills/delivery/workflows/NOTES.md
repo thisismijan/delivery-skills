@@ -63,8 +63,8 @@ Factory stages (this clone's `skills/` + `factory/`, both hosts):
 | `openspec/changes/<key>-…/` | OpenSpec change for one ticket |
 | `.review/mr-<iid>/<head-sha>/` | Pinned review brief, max pass, and draft notes |
 | `delivery-skills` clone | Canonical skill pack; `./install.sh` links it into both hosts |
-| `<delivery-skill>/candidates/` | Immutable proposed self-improvements, patches, and scorecards |
-| `<delivery-skill>/versions/` | Immutable rollback snapshots taken before install or rollback |
+| `<state root>/candidates/` | Immutable proposed self-improvements, patches, and scorecards. Default: `<target repo>/.delivery/candidates/` |
+| `<state root>/versions/` | Immutable rollback snapshots taken before install or rollback. Default: `<target repo>/.delivery/versions/` |
 
 ## Human gates (today, by design)
 

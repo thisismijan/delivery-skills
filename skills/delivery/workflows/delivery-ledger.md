@@ -11,7 +11,9 @@ Every stage reads the ledger before acting and writes to it before handing back.
   `DELIVERY_STATE_ROOT` only when a shared durable volume is intentionally used.
 - Self-improvement candidates and rollback copies live under the same state root,
   in `candidates/` and `versions/`. Ledgers link to their manifests; they never copy
-  patches or evaluation output into Lessons.
+  patches or evaluation output into Lessons. Leftover skill-local copies are
+  reported by `/delivery improve status` with their destination under this state
+  root. They are never installed from beside the skill.
 - One file per run. The file name is the first stable id the run had: the epic
   key, a lone ticket key, or `discover-<yyyy-mm-dd>-<slug>` for a run that
   started in discovery.
