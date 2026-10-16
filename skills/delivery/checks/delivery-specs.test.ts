@@ -349,7 +349,7 @@ function normaliseTag(tag: string): string {
     .replace(/\s+/g, " ");
 }
 
-const STATUS_TAG = /`(\[(?:discovering|triage|groomed|drafted|executing|ready|go|no-go|merged|verified|regressed|retro|stopped|waiting)[^`]*\])`/g;
+const STATUS_TAG = /`(\[(?:discovering|triage|groomed|drafted|executing|addressed|ready|go|no-go|merged|verified|regressed|retro|stopped|waiting)[^`]*\])`/g;
 
 const vocabulary = new Set(
   [...section(LEDGER, "## Status tags").matchAll(/^\| `(\[[^`]+\])` \|/gm)].map((m) => normaliseTag(m[1])),

@@ -96,11 +96,12 @@ For N assessed comments, the command SHALL post exactly N replies (actioned, ans
 - **THEN** no thread is marked resolved regardless of outcome
 
 ### Requirement: Cumulative holdout re-review gates the result
-After all actionable comments are addressed, the command SHALL persist re-review-pending state before posting replies, run cumulative green, lint, and typecheck gates, then dispatch a fresh Opus `holdout-reviewer` over the cumulative updated diff and every append-only gate artifact. Re-entry with a pending marker SHALL still perform holdout even when no comments remain. On `approve` the MR SHALL be re-marked ready and a single Jira summary comment posted. On anything else the command MUST fail closed, leaving the MR draft and unblessed.
+After all actionable comments are addressed, the command SHALL persist re-review-pending state before posting replies, run cumulative green, lint, and typecheck gates, then dispatch a fresh Opus `holdout-reviewer` over the cumulative updated diff and every append-only gate artifact. Re-entry with a pending marker SHALL still perform holdout even when no comments remain. On `approve` the MR SHALL remain draft, status SHALL become `[addressed !N]`, and a single Jira summary comment posted. On anything else the command MUST fail closed, leaving the MR draft and unblessed. Holdout MUST NOT undraft the merge request.
 
-#### Scenario: Approved re-review re-marks ready
-- **WHEN** the cumulative holdout re-review returns `approve`
-- **THEN** the MR is re-marked ready
+#### Scenario: Approved re-review leaves the MR draft
+- **WHEN** the cumulative holdout re-review returns `approve` on a new head
+- **THEN** the MR remains draft
+- **AND** status becomes `[addressed !N]`
 - **AND** a single Jira summary comment with the MR link and actioned/disputed/skipped counts is posted
 
 #### Scenario: Non-approve re-review fails closed

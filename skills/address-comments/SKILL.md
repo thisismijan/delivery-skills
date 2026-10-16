@@ -122,7 +122,7 @@ This command consumes the review comments on the **existing** MR for this ticket
    - disputed (`nitpick`/`false-positive`): give the reasoned rationale and "disputed — human decides".
    For N assessed (non-skipped) comments, post exactly N replies — none silently ignored. **Never** mark any thread resolved.
 
-8. **Cumulative gates and holdout re-review (the only gate to re-marking ready).** Run one full green gate, lint, and typecheck in parallel over the cumulative branch, persist all results, and stop on any failure. Prepare the reviewer's inputs as files (it is read-only): write the **cumulative** branch diff against the default branch (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`) and gather every per-comment and cumulative gate artifact. Confirm the reviewer model:
+8. **Cumulative gates and holdout re-review (quality gate for this round; Stage 3 dual review is the only authority that may undraft).** Run one full green gate, lint, and typecheck in parallel over the cumulative branch, persist all results, and stop on any failure. Prepare the reviewer's inputs as files (it is read-only): write the **cumulative** branch diff against the default branch (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`) and gather every per-comment and cumulative gate artifact. Confirm the reviewer model:
    ```
    bun "${FACTORY_ROOT}/scripts/select-model.ts" review   # -> opus
    # Resolve frontier and dispatch task-profile-controller read-only first.
@@ -141,7 +141,7 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    **Non-zero exit = malformed verdict → stop + escalate** (fail closed): MR not re-marked ready, no Jira "passed" comment. Then act on `action`:
 
-   - **`approve`** → remove `re-review-pending.json`, then re-mark the MR **ready** via `glab` (e.g. `glab mr update <mr> --ready`; never `glab mr merge`/`glab mr close`). Render the holdout outcome for humans with the summary helper (Rule 2 — never paste raw verdict fields):
+   - **`approve`** → remove `re-review-pending.json`. Leave the MR **draft**. Do not undraft it. Status becomes `[addressed !N]` until Stage 3 dual review passes (never `glab mr merge`/`glab mr close`). Render the holdout outcome for humans with the summary helper (Rule 2 — never paste raw verdict fields):
      ```
      bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
      ```
@@ -149,4 +149,4 @@ This command consumes the review comments on the **existing** MR for this ticket
    - **`fix`** → dispatch the `implementer` to address the verdict `findings`, re-run the green gate (+ lint/typecheck), increment `attempt`, and **go back to step 8** (the re-review runs fresh). Do **not** re-mark ready during the fix loop. If two failed fixes share the same assumption, apply the premise checkpoint from step 6 before any third fix.
    - **`escalate`** (including `reject`, `shouldEscalate`, or exhausted attempts) → post the `reason`/`findings` as a Jira comment and stop (NEEDS_HUMAN). Leave the MR **unblessed** (not re-marked ready); post no "passed" comment.
 
-9. **Invariants.** The MR is re-marked ready **only** on a satisfied cumulative re-review. The factory **never** merges, closes, archives, or resolves threads, and **never** transitions Jira status — humans own all of that. The reviewer never sees implementer/assessor reasoning. Every assessed thread received exactly one reply across all re-entries; the only Jira write is the single summary comment.
+9. **Invariants.** Holdout approve leaves the MR **draft** under `[addressed !N]`. Stage 3 dual review is the only authority that may undraft. The factory **never** merges, closes, archives, or resolves threads, and **never** transitions Jira status — humans own all of that. The reviewer never sees implementer/assessor reasoning. Every assessed thread received exactly one reply across all re-entries; the only Jira write is the single summary comment.

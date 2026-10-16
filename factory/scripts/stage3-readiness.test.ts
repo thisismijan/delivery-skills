@@ -47,13 +47,7 @@ function approachPass(options?: {
 		options?.marker === undefined
 			? `<!-- mr-review:${head} -->`
 			: options.marker;
-	const lines = [
-		`**Verdict:** ${verdict}`,
-		"",
-		"### Findings",
-		findings,
-		"",
-	];
+	const lines = [`**Verdict:** ${verdict}`, "", "### Findings", findings, ""];
 	if (marker) lines.push(marker);
 	return `${lines.join("\n")}\n`;
 }
