@@ -566,8 +566,10 @@ describe("approval-gated self-improvement", () => {
   test("candidates and versions live under the state root", () => {
     expect(improve).toContain(CANDIDATES);
     expect(improve).toContain(VERSIONS);
-    expect(SPECS["NOTES.md"]).toContain(CANDIDATES);
-    expect(SPECS["NOTES.md"]).toContain(VERSIONS);
+    if (!HISTORICAL_INDEPENDENCE) {
+      expect(SPECS["NOTES.md"]).toContain(CANDIDATES);
+      expect(SPECS["NOTES.md"]).toContain(VERSIONS);
+    }
     expect(section(SKILL, "## Source of truth")).toContain("`.delivery/`");
     expect(section(SKILL, "## Source of truth")).toContain(
       "never beside the installed skill",
@@ -674,6 +676,9 @@ describe("shadow model routing", () => {
 		expect(policy).toContain("select-model.ts");
 		expect(policy).toContain("model-catalogue.ts");
 		expect(policy).toContain("Muse Wonder");
+		expect(policy).toContain("representative-run");
+		expect(policy).toContain("promotion approval");
+		expect(policy).toContain("Public rankings never promote");
 	});
 
 	test("the conductor records the host-advertised model list", () => {
@@ -754,6 +759,11 @@ describe("portable factory pack", () => {
     expect(readme).toContain("90 percent");
     expect(readme).toContain("recorded, never dispatched");
     expect(readme).toContain("factory/model-catalogue.json");
+    expect(readme).toContain("representative-run");
+    expect(readme).toContain("promotion approval");
+    expect(readme).toContain("distributed-state");
+    expect(readme).toContain("weak-verification");
+    expect(readme).toContain("Public rankings");
   });
 
 

@@ -178,9 +178,13 @@ ambiguous match stops the run instead of guessing.
   exact advertised identifier for that capability. Muse Wonder can cover
   frontier work when the host lists it. A cheaper shadow recommendation is
   recorded, never dispatched. Fast catalogue models stay evaluation-only until
-  scored reversible, strongly verified work for that exact candidate clears
-  the 90 percent bar. Safety floors keep auth, migrations, concurrency,
-  holdout review, and irreversible work on the frontier recommendation.
+  representative-run scores for that exact candidate clear the 90 percent bar
+  with at least five reversible cases and no critical misses. Live evidence is
+  not mixed into that sample. Safety floors keep auth, migration, concurrency,
+  distributed-state, weak-verification, holdout review, and irreversible work
+  on the frontier recommendation. Live availability stays unchanged without an
+  exact operator promotion approval naming the candidate. Public rankings and
+  unscored fixtures never promote.
 - **Retro teaches the engineering journey.** It writes a chronological
   postmortem covering the problem, attempted models, counterexamples, design
   evolution, final invariants, DSA complexity, and system-design trade-offs. It

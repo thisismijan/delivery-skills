@@ -398,9 +398,12 @@ Keep the lifecycle portable between Cursor and Claude Code.
   Muse Wonder can satisfy frontier work. A cheaper shadow recommendation is
   recorded, never dispatched. After each run,
   generate the routing comparison report and rebuild the evaluation corpus from
-  those files. Fast catalogue models stay off until scored reversible, strongly
-  verified work clears the 90 percent bar. Changing the catalogue does not
-  change this run.
+  those files. Fast catalogue models stay evaluation-only until
+  representative-run scores for the exact candidate clear the 90 percent bar.
+  Named safety floors block auth, migration, concurrency, distributed-state,
+  weak-verification, and holdout work. Live availability stays unchanged
+  without an exact operator promotion approval. Public rankings never promote.
+  Changing the catalogue does not change this run.
 
 ## Checkpoint policy
 
