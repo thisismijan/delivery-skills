@@ -1,11 +1,25 @@
 import { expect, setDefaultTimeout, test } from "bun:test";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	chmod,
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 setDefaultTimeout(20_000);
 
-const glNote = join(import.meta.dir, "..", "..", "skills", "mr-review", "gl-note");
+const glNote = join(
+	import.meta.dir,
+	"..",
+	"..",
+	"skills",
+	"mr-review",
+	"gl-note",
+);
 const factoryRoot = join(import.meta.dir, "..");
 
 async function run(
@@ -47,12 +61,16 @@ test("gl-note calls the publication check before any network call", async () => 
 			);
 			await chmod(path, 0o755);
 		}
-		const result = await run(["bash", glNote, "12", "--file", body], {
-			PATH: `${bin}:${process.env.PATH ?? ""}`,
-			GITLAB_TOKEN: "dummy-token",
-			DELIVERY_FACTORY_ROOT: factoryRoot,
-			GL_TOKEN_FILE: join(root, "missing-token"),
-		}, root);
+		const result = await run(
+			["bash", glNote, "12", "--file", body],
+			{
+				PATH: `${bin}:${process.env.PATH ?? ""}`,
+				GITLAB_TOKEN: "dummy-token",
+				DELIVERY_FACTORY_ROOT: factoryRoot,
+				GL_TOKEN_FILE: join(root, "missing-token"),
+			},
+			root,
+		);
 		expect(result.exitCode).not.toBe(0);
 		expect(await readFile(record, "utf8")).toBe("");
 	} finally {

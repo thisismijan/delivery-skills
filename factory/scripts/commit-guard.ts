@@ -38,7 +38,8 @@ export function isAttributionViolation(command: string): GuardResult {
 }
 
 const MERGE_CLOSE_REASON = "Merge and close are human-owned actions.";
-const JIRA_REASON = "Jira status and destructive changes are human-owned actions.";
+const JIRA_REASON =
+	"Jira status and destructive changes are human-owned actions.";
 const FORCE_REASON = "Force-pushing is not permitted.";
 const RESET_REASON = "Destructive hard resets are not permitted.";
 

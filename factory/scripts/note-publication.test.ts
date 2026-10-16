@@ -1,14 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import {
-	checkNotePublication,
 	type NotePublicationDeps,
+	checkNotePublication,
 } from "./note-publication";
 
 const REPO = "/repo";
 const REVIEW = "/repo/.review";
 const CLEAN = "/repo/.review/mr-1/summary.md";
 
-function deps(entries: Record<string, { real: string; content?: string }>): NotePublicationDeps {
+function deps(
+	entries: Record<string, { real: string; content?: string }>,
+): NotePublicationDeps {
 	return {
 		realpath: (path: string) => {
 			const hit = entries[path];
@@ -68,21 +70,25 @@ describe("checkNotePublication", () => {
 		expect(result.allowed).toBe(false);
 	});
 
-	test.each([".env", "id_rsa", "id_rsa.pub", "credentials", "credentials.json", "tls.pem"])(
-		"refuses secret-bearing name %s",
-		(name) => {
-			const bodyPath = `${REVIEW}/${name}`;
-			const result = checkNotePublication(
-				{ bodyPath, repoRoot: REPO, content: "plain note" },
-				deps({
-					...baseFs,
-					[bodyPath]: { real: bodyPath, content: "plain note" },
-				}),
-			);
-			expect(result.allowed).toBe(false);
-			expect(result.reason).toMatch(/secret|sensitive|name/i);
-		},
-	);
+	test.each([
+		".env",
+		"id_rsa",
+		"id_rsa.pub",
+		"credentials",
+		"credentials.json",
+		"tls.pem",
+	])("refuses secret-bearing name %s", (name) => {
+		const bodyPath = `${REVIEW}/${name}`;
+		const result = checkNotePublication(
+			{ bodyPath, repoRoot: REPO, content: "plain note" },
+			deps({
+				...baseFs,
+				[bodyPath]: { real: bodyPath, content: "plain note" },
+			}),
+		);
+		expect(result.allowed).toBe(false);
+		expect(result.reason).toMatch(/secret|sensitive|name/i);
+	});
 
 	test.each([
 		"token glpat-abcdefghijklmnopqrstuvwxyz",

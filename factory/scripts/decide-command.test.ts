@@ -7,10 +7,19 @@ describe("decideCommand", () => {
 		["glab mr close 12", /close/i],
 		["gh pr merge 12", /merge/i],
 		["gh pr close 12", /close/i],
-		["glab api --method POST projects/acme/demo/merge_requests/12/merge", /merge/i],
-		["glab api -X PUT projects/acme/demo/merge_requests/12?state_event=close", /close/i],
+		[
+			"glab api --method POST projects/acme/demo/merge_requests/12/merge",
+			/merge/i,
+		],
+		[
+			"glab api -X PUT projects/acme/demo/merge_requests/12?state_event=close",
+			/close/i,
+		],
 		["gh api -X PUT repos/acme/demo/pulls/12/merge", /merge/i],
-		["gh api --method PATCH repos/acme/demo/pulls/12 --raw-field state=closed", /close/i],
+		[
+			"gh api --method PATCH repos/acme/demo/pulls/12 --raw-field state=closed",
+			/close/i,
+		],
 	])("blocks merge or close via %s", (command, reason) => {
 		const result = decideCommand(command);
 		expect(result.blocked).toBe(true);

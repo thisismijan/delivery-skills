@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
-	canStartStage,
-	CURSOR_HOST,
 	CLAUDE_CODE_HOST,
+	CURSOR_HOST,
 	UNKNOWN_HOST,
+	canStartStage,
 } from "./stage-gating";
 
 describe("canStartStage", () => {
@@ -51,9 +51,9 @@ describe("canStartStage", () => {
 
 	test("Cursor mutating stages stay blocked while its declaration is unenforced", () => {
 		expect(CURSOR_HOST.mutationEnforcement).toBe("unenforced");
-		expect(
-			canStartStage({ stage: "execute", host: CURSOR_HOST }).allowed,
-		).toBe(false);
+		expect(canStartStage({ stage: "execute", host: CURSOR_HOST }).allowed).toBe(
+			false,
+		);
 		expect(
 			canStartStage({ stage: "address-comments", host: CURSOR_HOST }).allowed,
 		).toBe(false);

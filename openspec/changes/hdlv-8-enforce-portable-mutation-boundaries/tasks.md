@@ -14,4 +14,4 @@
 - [x] 2.3 Add the host declaration and `canStartStage`, and call it from the mutating stage preconditions.
 - [x] 2.4 Make the hook entry point deny payloads with no command.
 - [x] 2.5 Update `skills/delivery/workflows/NOTES.md` and adapter READMEs to match.
-- [ ] 2.6 Run `bun run test` in `factory` and confirm green.
+- [x] 2.6 Run `bun run test` in `factory` and confirm green.
