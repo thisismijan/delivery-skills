@@ -547,6 +547,15 @@ describe("portable factory pack", () => {
     expect(readme).toContain("Typing `/delivery execute` is the approval to build.");
   });
 
+  test("the README describes runtime model inventory and shadow routing", () => {
+    expect(readme).toContain("model-inventory.json");
+    expect(readme).toContain("Muse Wonder");
+    expect(readme).toContain("evaluation-only");
+    expect(readme).toContain("90 percent");
+    expect(readme).toContain("recorded, never dispatched");
+    expect(readme).toContain("factory/model-catalogue.json");
+  });
+
 
   test("factory skills and runtime ship beside the conductor", () => {
     for (const name of ["groom", "draft", "execute", "address-comments", "openspec-archive"]) {
