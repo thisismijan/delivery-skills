@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { ExecuteRecoveryEvidence } from "./execute-recovery";
 
 // biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
 export const NEXT_ACTION_INVOCATION = "scripts/next-action.ts <args> <status|->";
@@ -15,8 +16,16 @@ export type ClassifiedEntry =
 	| { kind: "other"; args: string };
 
 export type NextAction =
-	| { kind: "run"; verb: string; singleStep: true }
-	| { kind: "stop"; reason: string };
+	| { kind: "run"; verb: string; singleStep: true; iid?: number }
+	| { kind: "stop"; reason: string; nextCommand?: string }
+	| { kind: "wait"; reason: string }
+	| { kind: "escalate"; reason: string };
+
+export type NextActionInput = {
+	args: string;
+	status: string | null;
+	recovery?: ExecuteRecoveryEvidence;
+};
 
 const TICKET_KEY = /^[A-Z][A-Z0-9]+-\d+$/;
 const IID = /^\d+$/;
@@ -192,7 +201,7 @@ function stopped(reason: string): NextAction {
 }
 
 export function selectNextAction(
-	input: { args: string; status: string | null },
+	input: NextActionInput,
 	writer?: LedgerWriter,
 ): NextAction {
 	void writer;

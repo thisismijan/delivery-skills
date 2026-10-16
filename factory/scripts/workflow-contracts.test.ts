@@ -127,6 +127,12 @@ describe("bounded recovery and replay safety", () => {
 		expect(execute).toMatch(/never open a duplicate MR/i);
 	});
 
+	test("resume and execute escalate unattributable branch, gate, or dirty-tree evidence", () => {
+		expect(plain(execute)).toMatch(/stop and escalate rather than guessing/i);
+		expect(plain(delivery)).toMatch(/cannot be attributed/i);
+		expect(plain(delivery)).toMatch(/never discard/i);
+	});
+
 	test("repeated failures force a premise check before a third fix", () => {
 		for (const skill of [execute, addressComments]) {
 			const contract = plain(skill);
