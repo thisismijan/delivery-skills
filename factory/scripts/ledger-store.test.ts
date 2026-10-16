@@ -10,8 +10,8 @@ import {
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-	ConcurrencyConflict,
 	CONCURRENCY_CONFLICT_EXIT_CODE,
+	ConcurrencyConflict,
 	ledgerGeneration,
 	nextLedger,
 	recoverLock,
@@ -131,9 +131,9 @@ test("a held lock gives a conflict and leaves the ledger unchanged", async () =>
 		expect(await readFile(join(root, "mdf-1.md"), "utf8")).toContain(
 			"original",
 		);
-		expect(ledgerGeneration(await readFile(join(root, "mdf-1.md"), "utf8"))).toBe(
-			0,
-		);
+		expect(
+			ledgerGeneration(await readFile(join(root, "mdf-1.md"), "utf8")),
+		).toBe(0);
 	});
 });
 
@@ -217,7 +217,9 @@ test("recovery leaves a live owner, a foreign host, and an unreadable owner reco
 			pid: 12,
 			host: "other-host.example",
 		});
-		const foreign = await recoverLock(root, "foreign", { isAlive: () => false });
+		const foreign = await recoverLock(root, "foreign", {
+			isAlive: () => false,
+		});
 		expect(foreign.cleared).toBe(false);
 		expect(foreign.reason.toLowerCase()).toMatch(/host/);
 		expect(await lockPresent(root, "foreign")).toBe(true);

@@ -5,7 +5,9 @@ import { dirname, join } from "node:path";
 const ID = /^[a-z0-9][a-z0-9-]*$/i;
 const OWNER_FILE = "owner.json";
 
+// biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
 export const LEDGER_WRITE_INVOCATION = "scripts/ledger-store.ts <root> <id> <expected-generation|-1> <input.md>";
+// biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
 export const LEDGER_RECOVER_INVOCATION = "scripts/ledger-store.ts recover <root> <id>";
 export const CONCURRENCY_CONFLICT_EXIT_CODE = 4;
 
@@ -86,7 +88,9 @@ async function pathExists(path: string): Promise<boolean> {
 
 async function readOwner(lock: string): Promise<LockOwner | undefined> {
 	try {
-		const parsed = JSON.parse(await readFile(join(lock, OWNER_FILE), "utf8")) as {
+		const parsed = JSON.parse(
+			await readFile(join(lock, OWNER_FILE), "utf8"),
+		) as {
 			pid?: unknown;
 			host?: unknown;
 			timestamp?: unknown;
@@ -244,9 +248,7 @@ if (import.meta.main) {
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));
 		process.exit(
-			error instanceof ConcurrencyConflict
-				? CONCURRENCY_CONFLICT_EXIT_CODE
-				: 1,
+			error instanceof ConcurrencyConflict ? CONCURRENCY_CONFLICT_EXIT_CODE : 1,
 		);
 	}
 }

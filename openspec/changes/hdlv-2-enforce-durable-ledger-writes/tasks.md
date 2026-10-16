@@ -17,4 +17,4 @@
 
 ## 3. Verify
 
-- [ ] 3.1 Run the root test suite and confirm the new tests pass
+- [x] 3.1 Run the root test suite and confirm the new tests pass
