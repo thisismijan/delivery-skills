@@ -179,6 +179,13 @@ describe("bounded recovery and replay safety", () => {
 		expect(runtime).toMatch(/explicit outcome/);
 	});
 
+	test("execute and address-comments verify gate evidence before reuse", () => {
+		for (const skill of [execute, addressComments]) {
+			expect(skill).toContain("verifyGateEvidence");
+			expect(skill).toMatch(/test-gate\.ts"\s+verify/);
+		}
+	});
+
 	test("pressure cannot bypass deterministic or human gates", () => {
 		expect(execute).toMatch(/time pressure.*never.*skip.*red gate/i);
 		expect(draft).toMatch(/sponsor|authority/i);
