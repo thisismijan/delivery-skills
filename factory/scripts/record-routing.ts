@@ -1,7 +1,7 @@
 import { mkdir, readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
-	type CurrentOutcome,
+	CurrentOutcome,
 	type RoutingObservation,
 	UNAVAILABLE_USAGE,
 	type Usage,
@@ -44,6 +44,7 @@ export function buildObservation(input: {
 	currentModelId?: string;
 }): RoutingObservation {
 	const profile = TaskProfileInputSchema.parse(input.profile);
+	const outcome = CurrentOutcome.parse(input.outcome);
 	const decision = shadowRoute(profile, input.currentModel);
 	return parseRoutingObservation({
 		...decision,
@@ -61,7 +62,7 @@ export function buildObservation(input: {
 			size: profile.contextSize,
 			usage: input.usage ?? UNAVAILABLE_USAGE,
 		},
-		currentOutcome: input.outcome,
+		currentOutcome: outcome,
 	});
 }
 
@@ -70,6 +71,7 @@ export async function persistObservation(
 	observation: RoutingObservation,
 ): Promise<string> {
 	const parsed = parseRoutingObservation(observation);
+	CurrentOutcome.parse(parsed.currentOutcome);
 	const path = observationPath(root, parsed.runId, parsed.profile.taskId);
 	await mkdir(join(root, parsed.runId), { recursive: true });
 	await Bun.write(path, `${JSON.stringify(parsed, null, 2)}\n`);
@@ -107,7 +109,14 @@ if (import.meta.main) {
 		controllerModel,
 		currentModelId,
 	] = process.argv.slice(2);
-	if (command !== "persist" || !root || !runId || !profileFile || !modelArg) {
+	if (
+		command !== "persist" ||
+		!root ||
+		!runId ||
+		!profileFile ||
+		!modelArg ||
+		!outcomeFile
+	) {
 		console.error(
 			"usage: record-routing persist <routing-root> <run-id> <profile.json> <sonnet|opus> <outcome.json> [usage.json] [controller-model] [current-model-id]",
 		);
@@ -118,15 +127,7 @@ if (import.meta.main) {
 			await Bun.file(profileFile).json(),
 		);
 		const currentModel = LiveModel.parse(modelArg);
-		const outcome = outcomeFile
-			? ((await Bun.file(outcomeFile).json()) as CurrentOutcome)
-			: {
-					gates: [],
-					gatesPassed: true,
-					repairs: 0,
-					escalations: 0,
-					terminal: "continue" as const,
-				};
+		const outcome = CurrentOutcome.parse(await Bun.file(outcomeFile).json());
 		const usage = usageFile
 			? ((await Bun.file(usageFile).json()) as Usage)
 			: UNAVAILABLE_USAGE;
