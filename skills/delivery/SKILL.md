@@ -96,7 +96,12 @@ State the chosen entry and what it runs in one line, then continue.
    `pwd` looks like the ig-spec plugin repo itself and the operator did not say
    that is intentional, warn once and ask to continue or cd.
 2. Find or create the run ledger and reconcile it with the real state, as
-   `delivery-ledger.md` says. The real state wins.
+   `delivery-ledger.md` says. The real state wins. Every mutation uses the
+   durable writer. Never edit the ledger file directly:
+   `bun "${FACTORY_ROOT}/scripts/ledger-store.ts" <root> <id> <expected-generation|-1> <input.md>`
+   If a lock is left behind, recover it before writing again:
+   `bun "${FACTORY_ROOT}/scripts/ledger-store.ts" recover <root> <id>`
+   A concurrency conflict is a terminal stop.
 3. Never infer an approval from chat history. An approval counts only when the
    ledger records it.
 
@@ -162,9 +167,13 @@ recorded, record the one execute opened.
 
 ## Ledger writes the conductor owns
 
-The bundled specs write the ledger themselves. Stages 1 to 3 predate the ledger,
-so the conductor writes for them, using only the status tags in
-`delivery-ledger.md`:
+The bundled specs write the ledger themselves through the durable writer. Stages
+1 to 3 predate the ledger, so the conductor writes for them with
+`scripts/ledger-store.ts <root> <id> <expected-generation|-1> <input.md>`
+and, when a lock is left behind,
+`scripts/ledger-store.ts recover <root> <id>`,
+using only the status tags in `delivery-ledger.md`. A concurrency conflict is a
+terminal stop.
 
 - **After groom**: one Keys row per ticket groom created, with its blockers,
   status `[groomed]`. Add the epic key to the ledger's `Ids:` line.
