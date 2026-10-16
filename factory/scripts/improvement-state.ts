@@ -35,11 +35,7 @@ async function listEntries(dir: string): Promise<string[]> {
 	try {
 		return (await readdir(dir)).sort();
 	} catch (error) {
-		if (
-			error instanceof Error &&
-			"code" in error &&
-			error.code === "ENOENT"
-		) {
+		if (error instanceof Error && "code" in error && error.code === "ENOENT") {
 			return [];
 		}
 		throw error;

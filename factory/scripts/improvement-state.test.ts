@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import {
 	mkdir,
 	mkdtemp,
-	readdir,
 	readFile,
+	readdir,
 	rm,
 	stat,
 	writeFile,
@@ -91,7 +91,10 @@ test("detection reports leftover skill-local candidates and versions with destin
 			"legacy candidate",
 		);
 		await mkdir(join(skill, "versions", version), { recursive: true });
-		await writeFile(join(skill, "versions", version, "skill.md"), "legacy version");
+		await writeFile(
+			join(skill, "versions", version, "skill.md"),
+			"legacy version",
+		);
 		const beforeSkill = await fingerprint(skill);
 		const beforeState = await fingerprint(stateRoot);
 		const report = await detectLegacyState(skill, stateRoot);
@@ -128,9 +131,9 @@ test("detection performs no writes against an empty or missing skill folder", as
 		await mkdir(join(emptySkill, "versions"), { recursive: true });
 		const beforeEmpty = await fingerprint(emptySkill);
 		const beforeRoot = await fingerprint(root);
-		expect((await detectLegacyState(missingSkill, missingState)).entries).toEqual(
-			[],
-		);
+		expect(
+			(await detectLegacyState(missingSkill, missingState)).entries,
+		).toEqual([]);
 		expect((await detectLegacyState(emptySkill, missingState)).entries).toEqual(
 			[],
 		);

@@ -167,9 +167,9 @@ test("reinstall leaves skill-local leftover candidates and versions untouched", 
 		expect(second.exitCode).toBe(0);
 		expect(await readFile(leftoverCandidate, "utf8")).toBe("keep-candidate");
 		expect(await readFile(leftoverVersion, "utf8")).toBe("keep-version");
-		expect(await readFile(join(store, "delivery", "runs", "run.md"), "utf8")).toBe(
-			"keep-run",
-		);
+		expect(
+			await readFile(join(store, "delivery", "runs", "run.md"), "utf8"),
+		).toBe("keep-run");
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

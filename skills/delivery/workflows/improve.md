@@ -68,11 +68,10 @@ and versions under `<state root>/versions/`. Apply and rollback use only those
 state-root folders. It makes no changes.
 
 If leftover `candidates/` or `versions/` entries exist beside the installed
-skill, status reports each leftover with the state-root path it should be
-migrated to. Run `detectLegacyState` from
-`factory/scripts/improvement-state.ts` against the installed skill folder and
-the state root. Detection is read-only: nothing is moved, copied, installed, or
-changed. A leftover copy is never eligible for apply or rollback.
+skill, status reports each leftover with the state-root path it should be migrated to.
+Run `detectLegacyState` from `factory/scripts/improvement-state.ts` against
+the installed skill folder and the state root. Detection is read-only: nothing
+is moved, copied, installed, or changed. A leftover copy is never eligible for apply or rollback.
 
 ## Baseline identity
 
@@ -221,8 +220,7 @@ candidate is never reopened or installed.
 version. The version must already exist under `<state root>/versions/`.
 
 1. Verify the version is complete and its recorded hash is correct.
-2. Snapshot the current managed tree as another immutable version under
-   `<state root>/versions/`.
+2. Snapshot the current managed tree as another immutable version.
 3. Restore the selected version, run the live contract suite, and verify its
    hash.
 4. If verification fails, restore the just-created snapshot and report failure.

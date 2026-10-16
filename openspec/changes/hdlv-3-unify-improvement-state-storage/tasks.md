@@ -18,4 +18,4 @@
 
 ## 4. Verify
 
-- [ ] 4.1 Run the full factory and delivery test suites and confirm they are green.
+- [x] 4.1 Run the full factory and delivery test suites and confirm they are green.
