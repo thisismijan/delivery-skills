@@ -15,7 +15,7 @@ review skills, CI, or Jira remain ordinary tickets or merge requests.
 |---------|--------|
 | `/delivery improve <KEY>` | Prepare candidates from one run's accepted lessons |
 | `/delivery improve all` | Prepare candidates from qualifying accepted lessons across all ledgers |
-| `/delivery improve status` | List candidates and versions; make no changes |
+| `/delivery improve status` | List state-root candidates and versions; report leftover skill-local copies; make no changes |
 | `/delivery improve apply <candidate>` | Approve and install that exact candidate |
 | `/delivery improve reject <candidate>` | Reject that candidate |
 | `/delivery improve rollback <version>` | Approve restoring one exact version |
@@ -25,15 +25,18 @@ otherwise ask for a key or `all`.
 
 ## Storage
 
-Paths are relative to the delivery skill's folder:
+Improvement state uses the same root as the run ledger: `DELIVERY_STATE_ROOT`
+when set, otherwise `<target repo>/.delivery/`. Resolve it with
+`resolveStateRoot` in `factory/scripts/improvement-state.ts`. Paths below are
+relative to that state root. Nothing is written beside the installed skill.
 
 ```text
-candidates/<candidate>/
+<state root>/candidates/<candidate>/
   manifest.md
   patch.diff
   scorecard.md
   skill/               # complete candidate delivery skill
-versions/<utc>-<baseline-hash>/
+<state root>/versions/<utc>-<baseline-hash>/
   skill/               # complete rollback copy
 ```
 
@@ -57,6 +60,18 @@ The manifest records:
 
 Do not copy transcripts, ticket bodies, MR discussions, secrets, personal data,
 or product source into these folders. Link sanitized evidence.
+
+## Status
+
+`/delivery improve status` lists candidates under `<state root>/candidates/`
+and versions under `<state root>/versions/`. Apply and rollback use only those
+state-root folders. It makes no changes.
+
+If leftover `candidates/` or `versions/` entries exist beside the installed
+skill, status reports each leftover with the state-root path it should be migrated to.
+Run `detectLegacyState` from `factory/scripts/improvement-state.ts` against
+the installed skill folder and the state root. Detection is read-only: nothing
+is moved, copied, installed, or changed. A leftover copy is never eligible for apply or rollback.
 
 ## Baseline identity
 
@@ -101,7 +116,7 @@ If it is not green, stop. Self-improvement never builds on an unproved baseline.
 
 ### 3. Build in isolation
 
-Copy the complete managed tree to `candidates/<id>/skill/`. Make all edits only
+Copy the complete managed tree to `<state root>/candidates/<id>/skill/`. Make all edits only
 there.
 
 Write the regression test first. It must encode the intended behaviour from the
@@ -112,7 +127,7 @@ assertion must fail for the expected reason. Existing assertions must not newly
 fail.
 
 Then implement the smallest candidate change and run the same test file with
-`DELIVERY_SKILL_ROOT` set to `candidates/<id>/skill/` and
+`DELIVERY_SKILL_ROOT` set to `<state root>/candidates/<id>/skill/` and
 `DELIVERY_SKILLS_ROOT` still set to the live parent skills folder. It must be
 green.
 
@@ -181,9 +196,10 @@ Record the operator's exact command before changing the live skill.
    than merging generated changes.
 3. Rerun the candidate contract suite. It must be green.
 4. Copy the complete live managed tree to a new immutable
-   `versions/<utc>-<baseline-hash>/skill/` folder and verify its hash.
+   `<state root>/versions/<utc>-<baseline-hash>/skill/` folder and verify its hash.
 5. Install only the candidate managed tree. Never touch `runs/`, `candidates/`,
-   or `versions/`.
+   or `versions/`. The candidate must already exist under
+   `<state root>/candidates/`.
 6. Run the live contract suite and verify the live hash equals the candidate
    hash. On either failure, restore the version immediately, verify the restored
    hash and tests, and mark the candidate `failed`.
@@ -201,7 +217,7 @@ candidate is never reopened or installed.
 ## Rollback
 
 `/delivery improve rollback <version>` is approval to restore that exact
-version.
+version. The version must already exist under `<state root>/versions/`.
 
 1. Verify the version is complete and its recorded hash is correct.
 2. Snapshot the current managed tree as another immutable version.
@@ -249,3 +265,4 @@ Retro acceptance is not installation approval.
   or GitLab.
 - Continue using newly installed instructions in the conversation that
   installed them.
+- Apply or rollback a leftover copy found beside the installed skill.
