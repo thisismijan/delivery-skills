@@ -127,6 +127,54 @@ test("--store keeps the factory inside the synced tree and preserves delivery st
 	}
 });
 
+test("reinstall leaves skill-local leftover candidates and versions untouched", async () => {
+	const root = await mkdtemp(join(tmpdir(), "delivery-leftovers-"));
+	try {
+		const storeRoot = join(root, "store");
+		const store = join(storeRoot, "skills");
+		const leftoverCandidate = join(
+			store,
+			"delivery",
+			"candidates",
+			"improve-20261015-missing-rollback",
+			"manifest.md",
+		);
+		const leftoverVersion = join(
+			store,
+			"delivery",
+			"versions",
+			"20261015T000000Z-deadbeef",
+			"skill.md",
+		);
+		await mkdir(join(leftoverCandidate, ".."), { recursive: true });
+		await mkdir(join(leftoverVersion, ".."), { recursive: true });
+		await writeFile(leftoverCandidate, "keep-candidate");
+		await writeFile(leftoverVersion, "keep-version");
+		await mkdir(join(store, "delivery", "runs"), { recursive: true });
+		await writeFile(join(store, "delivery", "runs", "run.md"), "keep-run");
+
+		const first = await runInstaller(["--store"], {
+			CURSOR_AGENT_STORE: store,
+			CURSOR_AGENT_STORE_PROBE: storeRoot,
+			DELIVERY_BIN_DIR: join(root, "bin"),
+		});
+		expect(first.exitCode).toBe(0);
+		const second = await runInstaller(["--store"], {
+			CURSOR_AGENT_STORE: store,
+			CURSOR_AGENT_STORE_PROBE: storeRoot,
+			DELIVERY_BIN_DIR: join(root, "bin"),
+		});
+		expect(second.exitCode).toBe(0);
+		expect(await readFile(leftoverCandidate, "utf8")).toBe("keep-candidate");
+		expect(await readFile(leftoverVersion, "utf8")).toBe("keep-version");
+		expect(await readFile(join(store, "delivery", "runs", "run.md"), "utf8")).toBe(
+			"keep-run",
+		);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
 test("--cursor replaces a stale real skill directory with a symlink", async () => {
 	const root = await mkdtemp(join(tmpdir(), "delivery-cursor-"));
 	try {

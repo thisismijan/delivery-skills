@@ -381,6 +381,28 @@ describe("hard rules survive", () => {
 describe("approval-gated self-improvement", () => {
   const improve = SPECS["improve.md"];
   const retro = SPECS["retro.md"];
+  const STATE_ROOT = "<state root>";
+  const CANDIDATES = `${STATE_ROOT}/candidates/`;
+  const VERSIONS = `${STATE_ROOT}/versions/`;
+
+  test("candidates and versions live under the state root", () => {
+    expect(improve).toContain(CANDIDATES);
+    expect(improve).toContain(VERSIONS);
+    expect(SPECS["NOTES.md"]).toContain(CANDIDATES);
+    expect(SPECS["NOTES.md"]).toContain(VERSIONS);
+    expect(section(SKILL, "## Source of truth")).toContain("`.delivery/`");
+    expect(section(SKILL, "## Source of truth")).toContain(
+      "never beside the installed skill",
+    );
+  });
+
+  test("status reports leftover skill-local state and never installs it", () => {
+    expect(improve).toContain(
+      "reports each leftover with the state-root path it should be migrated to",
+    );
+    expect(improve).toContain("Detection is read-only");
+    expect(improve).toContain("never eligible for apply or rollback");
+  });
 
   test("preparation is isolated from the live skill", () => {
     expect(improve).toContain("Preparation never edits the live managed tree.");
@@ -390,7 +412,7 @@ describe("approval-gated self-improvement", () => {
 
   test("a candidate proves a new test against baseline and candidate", () => {
     expect(improve).toMatch(/At least one new\s+assertion must fail for the expected reason\./);
-    expect(improve).toContain("`DELIVERY_SKILL_ROOT` set to `candidates/<id>/skill/`");
+    expect(improve).toContain(`\`DELIVERY_SKILL_ROOT\` set to \`${CANDIDATES}<id>/skill/\``);
     expect(improve).toContain("run three fresh subagents\nin parallel");
     expect(improve).toContain("Reviewer agreement is not proof.");
   });
