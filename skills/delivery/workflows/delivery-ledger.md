@@ -86,9 +86,19 @@ empty.
 - Never write a secret, token, or credential into the ledger.
 - Dates are UTC `yyyy-mm-dd`. SHAs and patch-ids are written in full, so a later
   comparison is exact.
-- Every write is compare-and-swap: re-read `Generation`, write only if it still
-  equals the generation originally read, and increment it once. A mismatch is a
-  terminal concurrency stop, never a last-writer-wins merge.
+- Every mutation goes through the durable writer as compare-and-swap. Never
+  edit the ledger file directly. Re-read `Generation`, write only if it still
+  equals the generation originally read, and increment it once. A ledger with
+  no `Generation` header counts as generation 0 and is stamped on that first
+  write.
+- Writer: `scripts/ledger-store.ts <root> <id> <expected-generation|-1> <input.md>`
+  Run as `bun "${FACTORY_ROOT}/scripts/ledger-store.ts" <root> <id> <expected-generation|-1> <input.md>`.
+- Recovery: `scripts/ledger-store.ts recover <root> <id>`
+  Run as `bun "${FACTORY_ROOT}/scripts/ledger-store.ts" recover <root> <id>`.
+  Run recovery only for a lock left behind. It clears a lock whose owner is
+  gone on this host. A live owner, a foreign host, or an unreadable owner
+  record is left in place.
+- A concurrency conflict is a terminal stop, never a last-writer-wins merge.
 
 ## Reconciling with real state
 

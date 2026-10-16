@@ -1,27 +1,164 @@
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { hostname } from "node:os";
 import { dirname, join } from "node:path";
 
 const ID = /^[a-z0-9][a-z0-9-]*$/i;
+const OWNER_FILE = "owner.json";
+
+export const LEDGER_WRITE_INVOCATION =
+	"scripts/ledger-store.ts <root> <id> <expected-generation|-1> <input.md>";
+export const LEDGER_RECOVER_INVOCATION =
+	"scripts/ledger-store.ts recover <root> <id>";
+export const CONCURRENCY_CONFLICT_EXIT_CODE = 4;
+
+export class ConcurrencyConflict extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "ConcurrencyConflict";
+	}
+}
+
+export interface LockOwner {
+	pid: number;
+	host: string;
+	timestamp: string;
+}
+
+export interface RecoverLockReport {
+	cleared: boolean;
+	reason: string;
+	owner?: LockOwner;
+}
+
+export interface LedgerLockOptions {
+	isAlive?: (pid: number) => boolean;
+}
 
 export function ledgerGeneration(markdown: string): number {
 	const match = markdown.match(/^Generation:\s*(\d+)\s*$/m);
-	if (!match) throw new Error("ledger has no valid Generation header");
+	if (!match) return 0;
 	const generation = match[1];
-	if (generation === undefined) throw new Error("ledger generation is missing");
+	if (generation === undefined) return 0;
 	return Number.parseInt(generation, 10);
+}
+
+function stampGeneration(markdown: string, generation: number): string {
+	const header = `Generation: ${generation}`;
+	if (/^Generation:\s*\d+\s*$/m.test(markdown)) {
+		return markdown.replace(/^Generation:\s*\d+\s*$/m, header);
+	}
+	const nl = markdown.indexOf("\n");
+	if (nl === -1) return `${markdown}\n\n${header}\n`;
+	return `${markdown.slice(0, nl + 1)}\n${header}\n${markdown.slice(nl + 1)}`;
 }
 
 export function nextLedger(markdown: string, expected: number): string {
 	const actual = ledgerGeneration(markdown);
 	if (actual !== expected) {
-		throw new Error(
+		throw new ConcurrencyConflict(
 			`stale ledger generation: expected ${expected}, found ${actual}`,
 		);
 	}
-	return markdown.replace(
-		/^Generation:\s*\d+\s*$/m,
-		`Generation: ${actual + 1}`,
+	return stampGeneration(markdown, actual + 1);
+}
+
+function processIsAlive(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (error) {
+		const code =
+			error instanceof Error && "code" in error ? error.code : undefined;
+		return code === "EPERM";
+	}
+}
+
+function lockPath(root: string, id: string): string {
+	return join(root, `${id}.md.lock`);
+}
+
+async function pathExists(path: string): Promise<boolean> {
+	try {
+		await stat(path);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+async function readOwner(lock: string): Promise<LockOwner | undefined> {
+	try {
+		const parsed = JSON.parse(await readFile(join(lock, OWNER_FILE), "utf8")) as {
+			pid?: unknown;
+			host?: unknown;
+			timestamp?: unknown;
+		};
+		if (
+			typeof parsed.pid !== "number" ||
+			typeof parsed.host !== "string" ||
+			typeof parsed.timestamp !== "string"
+		) {
+			return undefined;
+		}
+		return { pid: parsed.pid, host: parsed.host, timestamp: parsed.timestamp };
+	} catch {
+		return undefined;
+	}
+}
+
+async function lockConflict(
+	lock: string,
+	options?: LedgerLockOptions,
+): Promise<ConcurrencyConflict> {
+	const owner = await readOwner(lock);
+	if (!owner) {
+		return new ConcurrencyConflict("ledger is locked by another writer");
+	}
+	const alive = (options?.isAlive ?? processIsAlive)(owner.pid);
+	if (owner.host === hostname() && !alive) {
+		return new ConcurrencyConflict(
+			`ledger is locked by inactive owner pid ${owner.pid} on ${owner.host}; run recover`,
+		);
+	}
+	return new ConcurrencyConflict(
+		`ledger is locked by pid ${owner.pid} on ${owner.host}`,
 	);
+}
+
+export async function recoverLock(
+	root: string,
+	id: string,
+	options?: LedgerLockOptions,
+): Promise<RecoverLockReport> {
+	if (!ID.test(id)) throw new Error("invalid ledger id");
+	const lock = lockPath(root, id);
+	if (!(await pathExists(lock))) {
+		return { cleared: false, reason: "no lock" };
+	}
+	const owner = await readOwner(lock);
+	if (!owner) {
+		return { cleared: false, reason: "owner record is unreadable" };
+	}
+	if (owner.host !== hostname()) {
+		return {
+			cleared: false,
+			reason: `owner host ${owner.host} cannot be checked from ${hostname()}`,
+			owner,
+		};
+	}
+	if ((options?.isAlive ?? processIsAlive)(owner.pid)) {
+		return {
+			cleared: false,
+			reason: `owner pid ${owner.pid} is still active on ${owner.host}`,
+			owner,
+		};
+	}
+	await rm(lock, { recursive: true, force: true });
+	return {
+		cleared: true,
+		reason: `cleared lock owned by pid ${owner.pid} on ${owner.host}`,
+		owner,
+	};
 }
 
 export async function writeLedger(
@@ -29,6 +166,7 @@ export async function writeLedger(
 	id: string,
 	expected: number,
 	markdown: string,
+	options?: LedgerLockOptions,
 ): Promise<void> {
 	if (!ID.test(id)) throw new Error("invalid ledger id");
 	const path = join(root, `${id}.md`);
@@ -36,10 +174,19 @@ export async function writeLedger(
 	await mkdir(dirname(path), { recursive: true });
 	try {
 		await mkdir(lock);
-	} catch {
-		throw new Error("ledger is being updated by another process");
+	} catch (error) {
+		if (await pathExists(lock)) throw await lockConflict(lock, options);
+		throw error;
 	}
 	try {
+		await writeFile(
+			join(lock, OWNER_FILE),
+			JSON.stringify({
+				pid: process.pid,
+				host: hostname(),
+				timestamp: new Date().toISOString(),
+			}),
+		);
 		let current = "";
 		try {
 			current = await readFile(path, "utf8");
@@ -54,7 +201,7 @@ export async function writeLedger(
 		} else {
 			const actual = ledgerGeneration(current);
 			if (actual !== expected) {
-				throw new Error(
+				throw new ConcurrencyConflict(
 					`stale ledger generation: expected ${expected}, found ${actual}`,
 				);
 			}
@@ -73,14 +220,23 @@ export async function writeLedger(
 }
 
 if (import.meta.main) {
-	const [root, id, expectedRaw, input] = process.argv.slice(2);
-	if (!root || !id || expectedRaw === undefined || !input) {
-		console.error(
-			"usage: ledger-store <root> <id> <expected-generation|-1> <input.md>",
-		);
-		process.exit(2);
-	}
+	const args = process.argv.slice(2);
 	try {
+		if (args[0] === "recover") {
+			const root = args[1];
+			const id = args[2];
+			if (!root || !id || args.length !== 3) {
+				console.error(`usage: ${LEDGER_RECOVER_INVOCATION}`);
+				process.exit(2);
+			}
+			console.log(JSON.stringify(await recoverLock(root, id)));
+			process.exit(0);
+		}
+		const [root, id, expectedRaw, input] = args;
+		if (!root || !id || expectedRaw === undefined || !input) {
+			console.error(`usage: ${LEDGER_WRITE_INVOCATION}`);
+			process.exit(2);
+		}
 		await writeLedger(
 			root,
 			id,
@@ -89,6 +245,10 @@ if (import.meta.main) {
 		);
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));
-		process.exit(1);
+		process.exit(
+			error instanceof ConcurrencyConflict
+				? CONCURRENCY_CONFLICT_EXIT_CODE
+				: 1,
+		);
 	}
 }

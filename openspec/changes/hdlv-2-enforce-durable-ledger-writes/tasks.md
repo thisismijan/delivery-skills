@@ -9,11 +9,11 @@
 
 ## 2. Implementation
 
-- [ ] 2.1 Implement the typed concurrency conflict and a distinct command-line exit code
-- [ ] 2.2 Implement the lock owner record (process id, host, timestamp)
-- [ ] 2.3 Implement `recoverLock` with an injectable liveness check
-- [ ] 2.4 Implement generation-0 handling for headerless ledgers
-- [ ] 2.5 Update `delivery-ledger.md` and `SKILL.md` to require the writer and recovery step
+- [x] 2.1 Implement the typed concurrency conflict and a distinct command-line exit code
+- [x] 2.2 Implement the lock owner record (process id, host, timestamp)
+- [x] 2.3 Implement `recoverLock` with an injectable liveness check
+- [x] 2.4 Implement generation-0 handling for headerless ledgers
+- [x] 2.5 Update `delivery-ledger.md` and `SKILL.md` to require the writer and recovery step
 
 ## 3. Verify
 
