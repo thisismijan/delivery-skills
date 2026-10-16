@@ -26,7 +26,7 @@
 
 ## 4. Integration
 
-- [ ] 4.1 Run strict OpenSpec validation, the full factory test suite, typecheck, formatting checks, delivery contracts, neutrality scans, and adapter tests; verify all are green
+- [x] 4.1 Run strict OpenSpec validation, the full factory test suite, typecheck, formatting checks, delivery contracts, neutrality scans, and adapter tests; verify all are green
 - [x] 4.2 Run a fake-host end-to-end lifecycle through a read-only stage and a denied mutating stage; verify normalized outputs and fail-closed behavior
 
 ## Workflow follow-up
