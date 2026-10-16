@@ -174,7 +174,7 @@ describe("bounded recovery and replay safety", () => {
 	test("factory dispatch resolves exact models from the runtime inventory", () => {
 		expect(runtime).toContain("Runtime model inventory");
 		expect(runtime).toContain("model-inventory.json");
-		expect(runtime).toContain("Muse Wonder");
+		expect(runtime).toContain("exact model identifiers");
 		expect(runtime).toContain("evaluation-only");
 		expect(execute).toContain("exact available model");
 		expect(draft).toContain("exact available model");

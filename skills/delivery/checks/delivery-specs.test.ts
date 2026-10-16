@@ -276,6 +276,7 @@ if (!HISTORICAL_INDEPENDENCE) {
         }
         cpSync(join(packRoot, "skills"), join(dest, "skills"), { recursive: true });
         cpSync(join(packRoot, "factory"), join(dest, "factory"), { recursive: true });
+        cpSync(join(packRoot, "adapters"), join(dest, "adapters"), { recursive: true });
         writeFileSync(join(dest, "skills", "delivery", "workflows", "NOTES.md"), CONTRADICTED_NOTES);
         writeFileSync(
           join(dest, "skills", "delivery", "workflows", "delivery-orchestrator.md"),
@@ -723,12 +724,16 @@ describe("portable factory pack", () => {
   const readme = readFileSync(join(packRoot, "README.md"), "utf8");
 
   test("install --all skips an unwritable Cloud Agent store", () => {
-    const installer = readFileSync(join(packRoot, "install.sh"), "utf8");
-    expect(installer).toContain('hosts+=(cursor claude store)');
-    expect(installer).toContain("Agent store skipped (not writable here)");
-    expect(installer).toContain('elif [[ "$store" == /cursor/* ]]');
-    expect(installer).toContain("store_probe=/cursor");
-    expect(readme).toContain("On a Mac it skips `/cursor` instead of failing");
+    const compat = readFileSync(join(packRoot, "adapters", "compat.sh"), "utf8");
+    const store = readFileSync(
+      join(packRoot, "adapters", "cursor", "install-store.sh"),
+      "utf8",
+    );
+    expect(compat).toContain("targets+=(cursor claude store)");
+    expect(store).toContain("Agent store skipped (not writable here)");
+    expect(store).toContain('elif [[ "$store" == /cursor/* ]]');
+    expect(store).toContain("store_probe=/cursor");
+    expect(readme).toContain("./install.sh --skills-dir");
   });
 
   test("the README SDLC names every stage skill and every human gate", () => {
@@ -740,7 +745,7 @@ describe("portable factory pack", () => {
       "Test-seam checkpoint",
       "execute",
       "Reconcile MR, tests, gates, dirty tree",
-      "code-review-max or native code-review max",
+      "correctness review pass",
       "mr-review",
       "address-comments",
       "Human merges",
@@ -755,7 +760,6 @@ describe("portable factory pack", () => {
 
   test("the README describes runtime model inventory and shadow routing", () => {
     expect(readme).toContain("model-inventory.json");
-    expect(readme).toContain("Muse Wonder");
     expect(readme).toContain("evaluation-only");
     expect(readme).toContain("90 percent");
     expect(readme).toContain("recorded, never dispatched");

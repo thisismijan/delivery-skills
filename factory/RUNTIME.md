@@ -1,8 +1,25 @@
 # Factory runtime
 
-This `factory/` directory is the portable ig-spec factory: gate scripts, subagent
-prompts, and capability specs. It is not a Claude Code plugin. Cursor and Claude
-Code both load the skills under `skills/` and resolve this directory the same way.
+This `factory/` directory is the portable delivery runtime: gate scripts,
+subagent prompts, and capability specs. The installer copies it beside the
+skills as `_factory/` so a host that can load skills can also resolve the
+runtime without a named product layout.
+
+## Prerequisites
+
+The runtime is bounded. It needs:
+
+- A writable target repository for `.delivery/` and `.review/` artifacts.
+- Subprocess execution for deterministic gates. A text-only chat cannot run
+  tests, write ledgers, or enforce verdicts.
+- An enforceable mutation boundary before mutating stages. Read-only stages
+  remain available when that guard is absent; mutating stages stop closed.
+- Provider capabilities for forge, tracker, and review publication only when a
+  stage reaches those boundaries. A missing provider stops with completed work
+  intact.
+
+If a required capability is missing, stop with that gap and a configuration
+remedy. Do not invent a tool the host did not expose.
 
 ## Resolve FACTORY_ROOT
 
@@ -10,13 +27,15 @@ Use the first match:
 
 1. `$DELIVERY_FACTORY_ROOT` when it contains `scripts/find-change.ts`.
 2. The real path of this skill's `SKILL.md` (follow symlinks), then
-   `../_factory` from that skill directory. This is the Cloud Agent store
-   layout (`skills/<skill>` beside `skills/_factory`).
-3. From the same real skill directory, `../../factory`. This is the clone and
-   desktop-symlink layout.
-4. `$CLAUDE_PLUGIN_ROOT` when it contains `scripts/find-change.ts`.
+   `../_factory` from that skill directory. This is the installed-pack layout
+   (`<skills-dir>/<skill>` beside `<skills-dir>/_factory`).
+3. From the same real skill directory, `../../factory`. This is the clone
+   layout before installation.
+4. `$CLAUDE_PLUGIN_ROOT` when it contains `scripts/find-change.ts`. This is a
+   compatibility alias for existing factory scripts.
 
-Stop if none match: clone `delivery-skills` and run `./install.sh`.
+Stop if none match: clone this pack and run
+`./install.sh --skills-dir <path>`.
 
 Export both for the rest of the run:
 
@@ -26,32 +45,32 @@ export CLAUDE_PLUGIN_ROOT="$FACTORY_ROOT"
 ```
 
 Gate scripts still read `CLAUDE_PLUGIN_ROOT` and otherwise default to the parent
-of `scripts/`, which is this directory.
+of `scripts/`, which is this directory. Prefer `$DELIVERY_FACTORY_ROOT` in new
+invocations.
 
 ## Subagents
 
-Claude Code plugins auto-load `agents/*.md`. Cursor does not. Every factory
-skill must `Read` `$FACTORY_ROOT/agents/<name>.md` and give that prompt to the
-subagent. Do not invent a cheaper substitute prompt.
+Hosts do not auto-load `agents/*.md`. Every factory skill must `Read`
+`$FACTORY_ROOT/agents/<name>.md` and give that prompt to the subagent. Do not
+invent a cheaper substitute prompt.
 
-## Host
+## Host adapters
 
 Factory commands (`/groom`, `/draft`, `/execute`, `/address-comments`) are
-identical on Cursor and Claude Code. Host-specific behaviour lives only in
-review: Cursor uses `/code-review-max`; Claude Code may use native
-`/code-review max` when present, otherwise the same `/code-review-max` skill.
+identical on every capable host. Native review commands, hooks, forge wrappers,
+and tracker setup live in optional `adapters/` packages and are selected with
+`./install.sh --skills-dir <path> --adapter <name>`.
 
 ## Runtime model inventory
 
-The host, not this repository, is the source of truth for which subagent models
-the current account may use. At the start of a factory run:
+The current runtime, not this repository, is the source of truth for which
+models the session may use. At the start of a factory run:
 
-1. Read the exact model identifiers advertised by the current runtime. Cursor
-   supplies them in the session's subagent model list. Claude Code supplies its
-   accepted aliases. Never probe by repeatedly dispatching invalid names and
-   never invent a model that the runtime did not advertise.
+1. Read the exact model identifiers advertised by the current runtime. Never
+   probe by repeatedly dispatching invalid names and never invent a model that
+   the runtime did not advertise.
 2. Persist this JSON to `<target repo>/.delivery/routing/model-inventory.json`:
-   `{"version":1,"host":"cursor|claudeCode","recordedAt":"<ISO time>","models":["<exact id>", "..."]}`.
+   `{"version":1,"recordedAt":"<ISO time>","models":["<exact id>", "..."]}`.
 3. Determine the required capability tier from the workflow first. Then run
    `bun "$FACTORY_ROOT/scripts/model-catalogue.ts" resolve <tier> <inventory>`.
    Dispatch the returned exact model identifier, overriding an agent prompt's
@@ -76,13 +95,11 @@ the current account may use. At the start of a factory run:
    task class. Promotion reports keep `live` and `representative-run` evidence in
    separate groups and never pool them.
 
-The catalogue is ordered policy. It currently recognises Muse Wonder as a
-frontier model and Muse Spark as a fast evaluation candidate. Runtime
-availability chooses among catalogue candidates; it never lowers safety floors.
+The catalogue is ordered policy. Runtime availability chooses among catalogue
+candidates; it never lowers safety floors.
 
 ## Provenance
 
-Vendored from the internal ig-spec plugin so delivery does not depend on
-`/plugin install ig-spec`. Behavioural changes belong here, then flow to both
-hosts through `install.sh`. Do not load the original Claude plugin in the same
-session: two factories will fight.
+Behavioural changes belong in this runtime, then flow to installed skills
+through `./install.sh --skills-dir <path>`. Do not load a second factory in the
+same session: two runtimes will fight.

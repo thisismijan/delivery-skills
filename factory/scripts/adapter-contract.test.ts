@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
 	ADAPTER_CAPABILITY_IDS,
@@ -16,6 +16,21 @@ function adapterDirs(): string[] {
 		return statSync(path).isDirectory();
 	});
 }
+
+const COMPLETE_CAPABILITIES = ADAPTER_CAPABILITY_IDS.map((id) => ({
+	id,
+	available: id !== "mutation.guard",
+	mode: id === "mutation.guard" ? "unenforced" : "native",
+}));
+
+test("validateAdapterManifest accepts a complete portable document", () => {
+	expect(
+		validateAdapterManifest(
+			{ name: "sample", version: 1, capabilities: COMPLETE_CAPABILITIES },
+			"sample",
+		),
+	).toEqual([]);
+});
 
 test("validateAdapterManifest rejects a host-named incomplete document", () => {
 	expect(
@@ -54,7 +69,7 @@ test("generic installer keeps named-host flags out of the core interface", () =>
 	expect(installer).toContain("--skills-dir");
 	expect(installer).toContain("--adapter");
 	expect(installer).not.toMatch(/hosts=\(cursor claude\)/);
-	expect(installer).not.toContain('hosts+=(cursor claude store)');
+	expect(installer).not.toContain("hosts+=(cursor claude store)");
 	expect(installer).not.toMatch(/\$HOME\/\.cursor\/skills/);
 	expect(installer).not.toMatch(/\$HOME\/\.claude\/skills/);
 });
@@ -69,7 +84,7 @@ test("named-host compatibility wrappers live with their adapters", () => {
 	expect(
 		readFileSync(join(adaptersRoot, "claude-code", "install.sh"), "utf8"),
 	).toContain("--adapter claude-code");
-	expect(
-		readFileSync(join(adaptersRoot, "compat.sh"), "utf8"),
-	).toMatch(/--cursor|--claude|--store|--all/);
+	expect(readFileSync(join(adaptersRoot, "compat.sh"), "utf8")).toMatch(
+		/--cursor|--claude|--store|--all/,
+	);
 });

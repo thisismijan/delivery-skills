@@ -54,7 +54,10 @@ async function withInstallRoot(
 	try {
 		await fn(root);
 	} finally {
-		await chmod(root, 0o755).catch(() => undefined);
+		await Bun.spawn(["chmod", "-R", "u+w", root], {
+			stdout: "ignore",
+			stderr: "ignore",
+		}).exited;
 		await rm(root, { recursive: true, force: true });
 	}
 }
@@ -87,9 +90,9 @@ test("--skills-dir installs generic skills and runtime beside them", async () =>
 		expect(stdout).toContain(`Skills -> ${dest}`);
 		expect(stdout).toContain(`Runtime -> ${dest}/_factory`);
 		expect(stdout).not.toMatch(/Cursor|Claude|ig-spec/i);
-		expect(
-			await readFile(join(dest, "groom", "SKILL.md"), "utf8"),
-		).toContain("name: groom");
+		expect(await readFile(join(dest, "groom", "SKILL.md"), "utf8")).toContain(
+			"name: groom",
+		);
 		expect(
 			await readFile(join(dest, "_factory", "RUNTIME.md"), "utf8"),
 		).toMatch(/runtime/i);
@@ -139,9 +142,9 @@ test("reinstall replaces managed files and preserves unmanaged files and state",
 			DELIVERY_BIN_DIR: join(root, "bin"),
 		});
 		expect(second.exitCode).toBe(0);
-		expect(
-			await readFile(join(dest, "groom", "SKILL.md"), "utf8"),
-		).toContain("name: groom");
+		expect(await readFile(join(dest, "groom", "SKILL.md"), "utf8")).toContain(
+			"name: groom",
+		);
 		expect(await readFile(join(dest, "operator-notes.md"), "utf8")).toBe(
 			"keep-unmanaged",
 		);
@@ -155,10 +158,7 @@ test("reinstall replaces managed files and preserves unmanaged files and state",
 			),
 		).toBe("keep-candidate");
 		expect(
-			await readFile(
-				join(dest, "delivery", "versions", "version.md"),
-				"utf8",
-			),
+			await readFile(join(dest, "delivery", "versions", "version.md"), "utf8"),
 		).toBe("keep-version");
 	});
 });
@@ -176,7 +176,9 @@ test("unwritable destination fails without replacing an existing install", async
 		);
 		expect(exitCode).not.toBe(0);
 		expect(`${stdout}\n${stderr}`).toMatch(/not writable|cannot be written/i);
-		expect(`${stdout}\n${stderr}`).not.toMatch(/--cursor|--claude|--store|--all/);
+		expect(`${stdout}\n${stderr}`).not.toMatch(
+			/--cursor|--claude|--store|--all/,
+		);
 		expect(await readFile(join(dest, "operator-notes.md"), "utf8")).toBe(
 			"keep-existing",
 		);
@@ -224,9 +226,24 @@ printf 'sample-adapter\\n' >"$DELIVERY_SKILLS_DIR/.adapter-marker"
 		expect(await readFile(join(dest, ".adapter-marker"), "utf8")).toBe(
 			"sample-adapter\n",
 		);
-		expect(
-			await readFile(join(dest, "groom", "SKILL.md"), "utf8"),
-		).toContain("name: groom");
+		expect(await readFile(join(dest, "groom", "SKILL.md"), "utf8")).toContain(
+			"name: groom",
+		);
+	});
+});
+
+test("shipped cursor adapter installs review wrappers for an explicit destination", async () => {
+	await withInstallRoot(async (root) => {
+		const dest = join(root, "skills");
+		const bin = join(root, "bin");
+		const { stdout, exitCode } = await runInstaller(
+			["--skills-dir", dest, "--adapter", "cursor"],
+			{ DELIVERY_BIN_DIR: bin },
+		);
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain("Adapter cursor");
+		expect(await pathExists(join(bin, "gl-mr"))).toBe(true);
+		expect(await pathExists(join(bin, "gl-note"))).toBe(true);
 	});
 });
 

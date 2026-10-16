@@ -12,7 +12,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const installer = join(import.meta.dir, "..", "..", "install.sh");
+const installer = join(import.meta.dir, "..", "..", "adapters", "compat.sh");
+const genericInstaller = join(import.meta.dir, "..", "..", "install.sh");
 const rootDir = join(import.meta.dir, "..", "..");
 
 async function runInstaller(
@@ -175,7 +176,7 @@ test("reinstall leaves skill-local leftover candidates and versions untouched", 
 	}
 });
 
-test("--cursor replaces a stale real skill directory with a symlink", async () => {
+test("--cursor replaces a stale real skill directory with the managed pack copy", async () => {
 	const root = await mkdtemp(join(tmpdir(), "delivery-cursor-"));
 	try {
 		const cursor = join(root, "cursor-skills");
@@ -188,7 +189,8 @@ test("--cursor replaces a stale real skill directory with a symlink", async () =
 		});
 
 		expect(exitCode).toBe(0);
-		expect((await lstat(join(cursor, "groom"))).isSymbolicLink()).toBe(true);
+		expect((await lstat(join(cursor, "groom"))).isSymbolicLink()).toBe(false);
+		expect((await lstat(join(cursor, "groom"))).isDirectory()).toBe(true);
 		expect(await readFile(join(cursor, "groom", "SKILL.md"), "utf8")).toContain(
 			"name: groom",
 		);
@@ -198,9 +200,11 @@ test("--cursor replaces a stale real skill directory with a symlink", async () =
 });
 
 test("the installer avoids syntax macOS bash 3.2 cannot parse", async () => {
-	const script = await readFile(installer, "utf8");
-	const substitutions = script.match(/\$\([\s\S]*?\)\}?"/g) ?? [];
-	for (const body of substitutions) {
-		expect(body).not.toMatch(/\bcase\b[\s\S]*\besac\b/);
+	for (const path of [installer, genericInstaller]) {
+		const script = await readFile(path, "utf8");
+		const substitutions = script.match(/\$\([\s\S]*?\)\}?"/g) ?? [];
+		for (const body of substitutions) {
+			expect(body).not.toMatch(/\bcase\b[\s\S]*\besac\b/);
+		}
 	}
 });
