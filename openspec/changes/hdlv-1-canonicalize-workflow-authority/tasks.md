@@ -8,11 +8,11 @@
 
 ## 2. Implementation
 
-- [ ] 2.1 Declare live and historical sources in `skills/delivery/SKILL.md` "## Source of truth", keeping the existing assertions
-- [ ] 2.2 Mark `workflows/NOTES.md` historical and remove or rewrite its authority and stale-behaviour claims
-- [ ] 2.3 Mark `workflows/delivery-orchestrator.md` historical and rewrite its source-of-truth claims
-- [ ] 2.4 Add one historical-file constant in `delivery-specs.test.ts`, drop `SPECS["NOTES.md"]` from the `~25%` loop, and skip historical files in the live-contract loops without touching `LEGACY_SECTION_EXEMPT`
+- [x] 2.1 Declare live and historical sources in `skills/delivery/SKILL.md` "## Source of truth", keeping the existing assertions
+- [x] 2.2 Mark `workflows/NOTES.md` historical and remove or rewrite its authority and stale-behaviour claims
+- [x] 2.3 Mark `workflows/delivery-orchestrator.md` historical and rewrite its source-of-truth claims
+- [x] 2.4 Add one historical-file constant in `delivery-specs.test.ts`, drop `SPECS["NOTES.md"]` from the `~25%` loop, and skip historical files in the live-contract loops without touching `LEGACY_SECTION_EXEMPT`
 
 ## 3. Verify
 
-- [ ] 3.1 Run `bun run test` from the workspace root and confirm it is green
+- [x] 3.1 Run `bun run test` from the workspace root and confirm it is green
