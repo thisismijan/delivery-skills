@@ -15,6 +15,7 @@ const LEDGER = readFileSync(join(WORKFLOWS, "delivery-ledger.md"), "utf8");
 const AUTO = readFileSync(join(WORKFLOWS, "auto.md"), "utf8");
 const CODE_REVIEW_MAX = readFileSync(join(SKILLS_ROOT, "code-review-max", "SKILL.md"), "utf8");
 const MR_REVIEW = readFileSync(join(SKILLS_ROOT, "mr-review", "SKILL.md"), "utf8");
+const ADDRESS_COMMENTS = readFileSync(join(SKILLS_ROOT, "address-comments", "SKILL.md"), "utf8");
 const SPECS = Object.fromEntries(
   readdirSync(WORKFLOWS)
     .filter((f) => f.endsWith(".md"))
@@ -859,6 +860,44 @@ describe("ledger resume", () => {
     expect(entryB).toContain(command);
     expect(entryB).not.toMatch(/Follow `ticket-to-mr\.md` for the key/);
     expect(entryB).toMatch(/only that step|selected (action|step)/i);
+  });
+});
+
+describe("stage 3 readiness", () => {
+  const factoryScripts = join(SKILLS_ROOT, "..", "factory", "scripts");
+
+  test("the ledger and auto table send addressed tickets to review", () => {
+    expect(vocabulary.has(normaliseTag("[addressed !N]"))).toBe(true);
+    const table = section(AUTO, "### Next step by status");
+    const row = table.split("\n").find((line) => line.includes("`[addressed !N]`"));
+    expect(row).toBeTruthy();
+    expect(cells(row ?? "")[2]).toMatch(/Review/);
+    expect(cells(row ?? "")[2]).not.toMatch(/Address comments/i);
+  });
+
+  test("address-comments holdout approve leaves the merge request draft", () => {
+    expect(ADDRESS_COMMENTS).toContain("[addressed !N]");
+    expect(ADDRESS_COMMENTS).not.toMatch(
+      /`approve`[\s\S]{0,800}glab mr update <mr> --ready/,
+    );
+    expect(ADDRESS_COMMENTS).toMatch(/approve[\s\S]{0,500}draft/i);
+  });
+
+  test("ship does not treat a conductor-written review row as Stage 3 passing", () => {
+    const helperPath = join(factoryScripts, "stage3-readiness.ts");
+    expect(existsSync(helperPath)).toBe(true);
+    const helper = readFileSync(helperPath, "utf8");
+    const match = helper.match(
+      /export const STAGE3_READINESS_INVOCATION = "([^"]+)"/,
+    );
+    expect(match?.[1]).toBeTruthy();
+    const command = match?.[1] ?? "";
+    expect(SPECS["release-readiness.md"]).toContain(command);
+    expect(SPECS["release-readiness.md"]).toMatch(
+      /review row (alone|is not enough|cannot stand in)|not (enough|sufficient) to (undraft|stand in)/i,
+    );
+    expect(SKILL).toContain(command);
+    expect(SKILL).toContain("[addressed !N]");
   });
 });
 

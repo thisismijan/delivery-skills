@@ -85,6 +85,17 @@ describe("selectNextAction resume", () => {
 		expect(result.verb).toBe("address");
 		expect(result.singleStep).toBe(true);
 	});
+
+	test("a bare key at addressed selects review, not address comments", () => {
+		const result = selectNextAction({
+			args: "MDF-1234",
+			status: "[addressed !12]",
+		});
+		expect(result.kind).toBe("run");
+		if (result.kind !== "run") return;
+		expect(result.verb).toBe("review");
+		expect(result.singleStep).toBe(true);
+	});
 });
 
 describe("selectNextAction explicit verb", () => {
