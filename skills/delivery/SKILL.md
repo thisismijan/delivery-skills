@@ -36,6 +36,13 @@ no machine-specific fallbacks. Missing bundled content is a terminal stop.
 Live state belongs to the target repository under `.delivery/` (`runs/`,
 `candidates/`, `versions/`, and `routing/`), never beside the installed skill.
 
+Live and actionable: this conductor (`SKILL.md`), `workflows/auto.md` (the
+next-step table), `workflows/delivery-ledger.md`, and the current stage specs
+(the other `workflows/*.md` files except the historical set). Historical and
+non-actionable: `workflows/NOTES.md` and `workflows/delivery-orchestrator.md`.
+Historical files cannot override this conductor, the auto next-step table, or
+the current stage specs.
+
 Always read `workflows/delivery-ledger.md`. Read `workflows/auto.md` for `auto`
 and for the Next line every single step ends with. Of the stage specs, read only
 the one for the stage you are about to run.

@@ -177,6 +177,7 @@ describe("source of truth", () => {
     expect(section(SKILL, "## Source of truth")).toContain("no machine-specific fallbacks");
     expect(SKILL).not.toContain("/Users/");
     for (const [name, doc] of Object.entries(SPECS)) {
+      if (HISTORICAL_FILES.has(name)) continue;
       expect([name, doc.includes("/Users/") || doc.includes("delivery-runs")]).toEqual([name, false]);
     }
   });
@@ -325,7 +326,7 @@ describe("ledger vocabulary", () => {
     expect(vocabulary.size).toBeGreaterThan(10);
   });
 
-  const docs: [string, string][] = [["SKILL.md", SKILL], ...Object.entries(SPECS)];
+  const docs: [string, string][] = [["SKILL.md", SKILL], ...Object.entries(SPECS).filter(([name]) => !HISTORICAL_FILES.has(name))];
   for (const [name, doc] of docs) {
     test(`${name} uses only ledger status tags`, () => {
       const used = [...doc.matchAll(STATUS_TAG)].map((m) => normaliseTag(m[1]));
@@ -393,7 +394,6 @@ describe("atomic ticket sizing", () => {
       SKILL,
       SPECS["epic-to-backlog.md"],
       SPECS["ticket-to-mr.md"],
-      SPECS["NOTES.md"],
     ]) {
       expect(doc).toContain("~25%");
       expect(doc).not.toContain("~50%");
@@ -487,7 +487,7 @@ describe("hard rules survive", () => {
   });
 
   for (const [name, doc] of Object.entries(SPECS)) {
-    if (name === "delivery-ledger.md" || name === "NOTES.md" || LEGACY_SECTION_EXEMPT.has(name)) continue;
+    if (name === "delivery-ledger.md" || HISTORICAL_FILES.has(name) || LEGACY_SECTION_EXEMPT.has(name)) continue;
     test(`${basename(name)} has Never, Terminal stops, and Ledger writes sections`, () => {
       expect(doc).toContain("\n## Never\n");
       expect(doc).toContain("\n## Terminal stops\n");
