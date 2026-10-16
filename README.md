@@ -22,11 +22,14 @@ git clone https://gitlab.com/Sheikh.Ahmed1/delivery-skills.git
 cd delivery-skills
 ./install.sh --skills-dir /path/to/skills
 # ./install.sh --skills-dir /path/to/skills --adapter <name>
+# ./install.sh --skills-dir /path/to/skills --provider <name>
 ```
 
 `--skills-dir` is required. The installer never infers a host. Optional
 `--adapter <name>` applies setup from `adapters/<name>/` after the generic pack
-is in place. Named-host wrappers live with those adapters, not in the generic
+is in place. Optional `--provider <name>` selects a forge, tracker, or spec-tool
+provider from `providers/<name>/`. Generic install includes none of those unless
+selected. Named-host wrappers live with those adapters, not in the generic
 interface.
 
 What the installer does:

@@ -1,8 +1,6 @@
 ---
 name: execute
 description: Phase 2 — implement an approved OpenSpec change test-first (red gate -> implement -> green gate), run the Opus holdout review, and ONLY on a satisfied review open a draft merge request for Stage 3. The factory never merges. Invoking this command IS the approval to build.
-argument-hint: <WORK-ITEM-KEY>
-disable-model-invocation: true
 ---
 
 Resolve this SKILL.md to its real path, then load the first existing runtime:
@@ -12,7 +10,7 @@ Export `FACTORY_ROOT` as that file describes. When a step names a subagent, read
 `$FACTORY_ROOT/agents/<name>.md` and follow it. Do not invent a cheaper substitute prompt.
 
 
-You are running **/execute** for work item **$ARGUMENTS**.
+You are running **/execute** for the work item named in the skill arguments (`<work-item-key>`).
 
 This command implements the approved change and, **only after the holdout review is satisfied**, opens the merge request. Follow the steps in order. Treat the gate scripts as ground truth — never substitute your own judgement for a gate's exit code.
 
@@ -33,7 +31,7 @@ This command implements the approved change and, **only after the holdout review
 
 1. **Locate the change.** Run:
    ```
-   bun "${FACTORY_ROOT}/scripts/find-change.ts" $ARGUMENTS openspec/changes
+   bun "${FACTORY_ROOT}/scripts/find-change.ts" <work-item-key> openspec/changes
    ```
    Non-zero exit (no match, or `ambiguous` with more than one match) → **stop + escalate** (fail closed). Otherwise use the printed `match` as `<changeName>` (and `openspec/changes/<changeName>` as `<changeDir>`, also the branch name).
 
@@ -95,9 +93,9 @@ re-run the gate. Do not reuse it.
    ```
    bun "${FACTORY_ROOT}/scripts/change-meta.ts" read <changeDir>
    ```
-   Use the `complexitySignal` and `opusJustification` (if any) from that JSON:
+   Use the `complexitySignal` and `frontierJustification` (if any) from that JSON:
    ```
-   bun "${FACTORY_ROOT}/scripts/select-model.ts" implement <complexitySignal> "<opusJustification from the meta>"
+   bun "${FACTORY_ROOT}/scripts/select-model.ts" implement <complexitySignal> "<frontierJustification from the meta>"
    ```
    If the meta read exits non-zero (a change drafted before this file existed, or a corrupt file), **do not guess** — treat it as no defended case and use `sonnet` (PRD §9: absent a recorded, defended complexity case, Sonnet). Map `sonnet` to the `standard` capability and `opus` to `frontier`, then resolve that tier against `.delivery/routing/model-inventory.json`. The resolver's exact model identifier is the implementation worker. If the semantic selection prints `opus`, the recorded justification must appear in the MR description.
 
@@ -159,7 +157,7 @@ re-run the gate. Do not reuse it.
     `maxAttempts` comes from `bun "${FACTORY_ROOT}/scripts/config.ts"` (`maxFixAttempts`, default 2); `attempt` starts at 1 and increments each fix loop. **Non-zero exit = malformed verdict → stop + escalate** (fail closed). Then act on `action`:
     - **`approve`** → **now open a draft MR.** Push the branch (`git push -u origin <changeName>`) and create it with the forge provider's draft-create action, targeting the default branch. Stage 3 review, not execute, marks it ready. **Build the MR title with the title helper so it always opens with the work-item reference** (Rule 3):
       ```
-      bun "${FACTORY_ROOT}/scripts/mr-title.ts" $ARGUMENTS "<ticket summary>"
+      bun "${FACTORY_ROOT}/scripts/mr-title.ts" <work-item-key> "<ticket summary>"
       ```
       (yields e.g. `SMAI-123 - Add new fireworks feature`.) The MR description carries `Closes`, the spec link, a short human-readable paragraph explaining what the change does and how, and any frontier justification — write it like a person would (no field-name dumps, no em dashes; see the human-output rules in `CONVENTIONS.md`). If `<reviewDir>/skips.md` lists any skipped scenarios, **surface them in the description** as a short plain-language note ("The following acceptance points were verified as part of this change but intentionally not given a permanent test, because they only describe the migration moment: ..."), so the human sees what was deliberately left untested and why. Never drop skips silently. Render the holdout outcome for the MR note and the tracker comment with the summary helper (Rule 2 — never paste raw verdict fields):
       ```

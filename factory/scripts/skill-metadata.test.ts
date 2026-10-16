@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
 	HOST_FRONTMATTER_KEYS,
@@ -52,9 +52,7 @@ describe("portable skill metadata", () => {
 		const issues: string[] = [];
 		for (const file of files) {
 			const relative = file.slice(PACK_ROOT.length + 1);
-			issues.push(
-				...skillMetadataIssues(readFileSync(file, "utf8"), relative),
-			);
+			issues.push(...skillMetadataIssues(readFileSync(file, "utf8"), relative));
 		}
 		expect(issues).toEqual([]);
 	});

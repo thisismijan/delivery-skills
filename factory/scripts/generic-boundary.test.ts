@@ -157,9 +157,7 @@ describe("generic boundary", () => {
 		mkdirSync(join(root, "factory", "agents"), { recursive: true });
 		writeFileSync(
 			join(root, "skills", "delivery", "SKILL.md"),
-			["<<<<<<< HEAD", "ours", "=======", "theirs", ">>>>>>> other"].join(
-				"\n",
-			) + "\n",
+			"<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> other\n",
 		);
 		writeFileSync(join(root, "factory", "RUNTIME.md"), "Factory runtime\n");
 		writeFileSync(

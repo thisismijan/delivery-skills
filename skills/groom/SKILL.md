@@ -1,9 +1,6 @@
 ---
 name: groom
 description: Grooming — turn raw input (idea, HLD, or PRD) into small, individually deployable ticket drafts ready for /draft. Writes only to the grooming output directory. No MCP, no git, no tracker.
-argument-hint: "[file-path | inline-text]"
-tools: Read, Grep, Glob, Task, Bash
-disable-model-invocation: true
 ---
 
 Resolve this SKILL.md to its real path, then load the first existing runtime:
@@ -30,11 +27,11 @@ This command turns whatever the operator provides (a file path, inline text, or 
 
 ### Step 1 — Resolve input (precedence: file path > inline text > conversation context)
 
-Examine `$ARGUMENTS`:
+Examine the skill arguments:
 
-- If `$ARGUMENTS` looks like a file path (no newline, ends in `.md` or `.txt`, or starts with `/` or `./`), attempt to read it. If readable, use its content as input.
-- If `$ARGUMENTS` is non-empty inline text, use it directly as input.
-- If `$ARGUMENTS` is empty or absent, look for usable context in the current conversation (a pasted idea, HLD, or description).
+- If the skill arguments look like a file path (no newline, ends in `.md` or `.txt`, or starts with `/` or `./`), attempt to read it. If readable, use its content as input.
+- If the skill arguments are non-empty inline text, use them directly as input.
+- If the skill arguments are empty or absent, look for usable context in the current conversation (a pasted idea, HLD, or description).
 - If there is genuinely no usable input anywhere, **stop and ask** the operator to provide an idea, file path, or description. Do not guess or proceed on nothing.
 
 ### Step 2 — Derive the output directory

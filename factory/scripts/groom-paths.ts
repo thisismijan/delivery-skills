@@ -1,6 +1,8 @@
 import { lstat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
+export const GROOM_ROOT = ".delivery/grooming";
+
 export function slugify(title: string): string {
 	const slug = title
 		.toLowerCase()
@@ -12,14 +14,14 @@ export function slugify(title: string): string {
 
 export function groomOutputDir(title: string): string {
 	const slug = slugify(title);
-	return `.ig-spec/grooming/${slug}/`;
+	return `${GROOM_ROOT}/${slug}/`;
 }
 
 export async function assertGroomPath(
 	repoRoot: string,
 	candidate: string,
 ): Promise<string> {
-	const base = resolve(repoRoot, ".ig-spec", "grooming");
+	const base = resolve(repoRoot, ".delivery", "grooming");
 	const target = resolve(repoRoot, candidate);
 	const rel = relative(base, target);
 	if (
@@ -28,7 +30,7 @@ export async function assertGroomPath(
 		rel.startsWith(`..${sep}`) ||
 		rel.length === 0
 	) {
-		throw new Error("groom output must stay under .ig-spec/grooming");
+		throw new Error("groom output must stay under .delivery/grooming");
 	}
 	let current = base;
 	for (const segment of rel.split(sep).slice(0, -1)) {

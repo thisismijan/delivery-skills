@@ -2,10 +2,7 @@ import { describe, expect, setDefaultTimeout, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-	capabilityResult,
-	parseRuntimeManifest,
-} from "./runtime-manifest";
+import { capabilityResult, parseRuntimeManifest } from "./runtime-manifest";
 
 setDefaultTimeout(20_000);
 
@@ -14,7 +11,10 @@ const stageGating = join(import.meta.dir, "stage-gating.ts");
 async function runStage(
 	stage: string,
 	manifestPath: string,
-): Promise<{ exitCode: number; result: { allowed: boolean; reason?: string } }> {
+): Promise<{
+	exitCode: number;
+	result: { allowed: boolean; reason?: string };
+}> {
 	const proc = Bun.spawn(["bun", stageGating, stage, manifestPath], {
 		stdout: "pipe",
 		stderr: "pipe",

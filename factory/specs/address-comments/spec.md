@@ -23,7 +23,7 @@ The command SHALL resolve the spec branch/change for the Jira key via `find-chan
 The command SHALL gather all MR comments via `glab`. It SHALL treat a thread as previously handled only when the audit marker belongs to an authenticated factory author. Human notes after the latest authenticated factory reply remain in scope; a human-authored marker cannot hide a thread.
 
 #### Scenario: Holdout note is excluded
-- **WHEN** the MR contains the holdout-reviewer's note carrying the `ig-spec` `auditComment` prefix
+- **WHEN** the MR contains the holdout-reviewer's note carrying the factory `auditComment` prefix
 - **THEN** that note is neither classified nor replied to
 
 #### Scenario: All other comments are in scope

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { auditComment } from "./audit";
 import { META_FILENAME, parseChangeMeta } from "./change-meta";
@@ -84,9 +84,9 @@ describe("delivery-owned runtime state names", () => {
 			".delivery/grooming/add-export-button/",
 		);
 		expect(META_FILENAME).toBe(".delivery.json");
-		expect(auditComment("merged", "ready").startsWith("**delivery** · merged")).toBe(
-			true,
-		);
+		expect(
+			auditComment("merged", "ready").startsWith("**delivery** · merged"),
+		).toBe(true);
 		const meta = parseChangeMeta(
 			JSON.stringify({
 				workItemKey: "SMAI-123",

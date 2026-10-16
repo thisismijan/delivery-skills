@@ -4,11 +4,13 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 adapters_root="${DELIVERY_ADAPTERS_DIR:-$root/adapters}"
+providers_root="${DELIVERY_PROVIDERS_DIR:-$root/providers}"
 skills_dir=""
 adapter=""
+providers=()
 
 usage() {
-  echo "usage: $0 --skills-dir <path> [--adapter <name>]" >&2
+  echo "usage: $0 --skills-dir <path> [--adapter <name>] [--provider <name>]" >&2
   exit 2
 }
 
@@ -22,6 +24,11 @@ while [[ $# -gt 0 ]]; do
     --adapter)
       [[ $# -ge 2 ]] || usage
       adapter="$2"
+      shift 2
+      ;;
+    --provider)
+      [[ $# -ge 2 ]] || usage
+      providers+=("$2")
       shift 2
       ;;
     --cursor|--claude|--store|--all)
@@ -39,6 +46,12 @@ if [[ -n "$adapter" && ! -d "$adapters_root/$adapter" ]]; then
   echo "unknown adapter: $adapter" >&2
   exit 2
 fi
+for provider in "${providers[@]+"${providers[@]}"}"; do
+  if [[ ! -d "$providers_root/$provider" ]]; then
+    echo "unknown provider: $provider" >&2
+    exit 2
+  fi
+done
 
 if [[ "$skills_dir" != /* ]]; then
   skills_dir="$(pwd)/$skills_dir"
@@ -167,15 +180,23 @@ if [[ -n "$backup" ]]; then
 fi
 trap - EXIT
 
-if [[ -n "$adapter" ]]; then
+if [[ -n "$adapter" || ${#providers[@]} -gt 0 ]]; then
   export DELIVERY_SKILLS_DIR="$skills_dir"
   export DELIVERY_FACTORY_ROOT="$skills_dir/_factory"
   export DELIVERY_PACK_ROOT="$root"
+fi
+if [[ -n "$adapter" ]]; then
   if [[ -f "$adapters_root/$adapter/setup.sh" ]]; then
     bash "$adapters_root/$adapter/setup.sh"
   fi
   echo "Adapter $adapter applied"
 fi
+for provider in "${providers[@]+"${providers[@]}"}"; do
+  if [[ -f "$providers_root/$provider/setup.sh" ]]; then
+    bash "$providers_root/$provider/setup.sh"
+  fi
+  echo "Provider $provider applied"
+done
 
 echo "Skills -> $skills_dir"
 echo "Runtime -> $skills_dir/_factory"

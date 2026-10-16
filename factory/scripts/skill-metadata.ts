@@ -43,7 +43,10 @@ export function parseSkillFrontmatter(text: string): {
 	return { keys, body };
 }
 
-export function skillMetadataIssues(text: string, relativePath: string): string[] {
+export function skillMetadataIssues(
+	text: string,
+	relativePath: string,
+): string[] {
 	const issues: string[] = [];
 	const { keys, body } = parseSkillFrontmatter(text);
 	if (keys.length === 0) {
@@ -51,11 +54,15 @@ export function skillMetadataIssues(text: string, relativePath: string): string[
 		return issues;
 	}
 	if (!keys.includes("name") || !keys.includes("description")) {
-		issues.push(`${relativePath}: frontmatter must include name and description`);
+		issues.push(
+			`${relativePath}: frontmatter must include name and description`,
+		);
 	}
 	for (const key of keys) {
 		if (HOST.has(key)) {
-			issues.push(`${relativePath}: host field '${key}' belongs in an adapter overlay`);
+			issues.push(
+				`${relativePath}: host field '${key}' belongs in an adapter overlay`,
+			);
 		} else if (!PORTABLE.has(key)) {
 			issues.push(`${relativePath}: non-portable frontmatter field '${key}'`);
 		}

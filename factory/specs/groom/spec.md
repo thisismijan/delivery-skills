@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The `groom` capability provides an operator-invoked `/groom` command that turns raw input (an idea, an HLD, or a PRD) into small, individually deployable ticket drafts ready for `/draft`. It runs interactively, grounds itself in the target codebase, classifies the input shape and recommends it to the operator, grills the operator one question at a time, conditionally synthesizes a PRD, and emits approval-gated ticket drafts (a single ticket, or a vertical-slice breakdown) confined to `.ig-spec/grooming/`. Every acceptance criterion is a Given/When/Then behaviour statement, and no groom output describes how the change is built or tested. It performs no MCP, git, or Jira side effects.
+The `groom` capability provides an operator-invoked `/groom` command that turns raw input (an idea, an HLD, or a PRD) into small, individually deployable ticket drafts ready for `/draft`. It runs interactively, grounds itself in the target codebase, classifies the input shape and recommends it to the operator, grills the operator one question at a time, conditionally synthesizes a PRD, and emits approval-gated ticket drafts (a single ticket, or a vertical-slice breakdown) confined to `.delivery/grooming/`. Every acceptance criterion is a Given/When/Then behaviour statement, and no groom output describes how the change is built or tested. It performs no MCP, git, or Jira side effects.
 
 ## Requirements
 
@@ -185,21 +185,21 @@ Each emitted ticket draft SHALL contain all required template sections (Context,
 - **AND** it is never written as the final artifact
 
 ### Requirement: Deterministic output paths
-`scripts/groom-paths.ts` SHALL derive a slug from the input title such that the same title always yields the same output path under `.ig-spec/grooming/<slug>/`, and it SHALL be exercised by `bun test`.
+`scripts/groom-paths.ts` SHALL derive a slug from the input title such that the same title always yields the same output path under `.delivery/grooming/<slug>/`, and it SHALL be exercised by `bun test`.
 
 #### Scenario: Same title yields the same path
 - **WHEN** `groom-paths.ts` derives a path for a given input title twice
-- **THEN** both calls return the same `.ig-spec/grooming/<slug>/` directory
+- **THEN** both calls return the same `.delivery/grooming/<slug>/` directory
 
 ### Requirement: Output confined to the grooming directory with idempotent gitignore
-All generated files SHALL be written only under `.ig-spec/grooming/`. After a run, `.ig-spec/grooming/` SHALL be present in `.gitignore`, added idempotently so a second run does not duplicate the entry.
+All generated files SHALL be written only under `.delivery/grooming/`. After a run, `.delivery/grooming/` SHALL be present in `.gitignore`, added idempotently so a second run does not duplicate the entry.
 
 #### Scenario: All output lands under the grooming directory
 - **WHEN** a grooming run writes any file
-- **THEN** that file is located under `.ig-spec/grooming/`
+- **THEN** that file is located under `.delivery/grooming/`
 
 #### Scenario: Gitignore entry is added once
-- **WHEN** a run completes and `.ig-spec/grooming/` is not yet in `.gitignore`
+- **WHEN** a run completes and `.delivery/grooming/` is not yet in `.gitignore`
 - **THEN** the entry is added
 - **AND** a second run does not duplicate the entry
 
@@ -221,11 +221,11 @@ All human-facing output produced by the command SHALL pass through `sanitizeHuma
 - **AND** contains no em dashes or en dashes
 
 ### Requirement: Chaos guarantees for groom
-A chaos-style test SHALL assert that groom never writes files outside `.ig-spec/grooming/`, never emits a draft with zero or more than three acceptance criteria, and never emits a draft with a non-Given/When/Then acceptance criterion.
+A chaos-style test SHALL assert that groom never writes files outside `.delivery/grooming/`, never emits a draft with zero or more than three acceptance criteria, and never emits a draft with a non-Given/When/Then acceptance criterion.
 
 #### Scenario: Chaos test asserts the standing guarantees
 - **WHEN** the chaos test runs
-- **THEN** it asserts no write ever lands outside `.ig-spec/grooming/`
+- **THEN** it asserts no write ever lands outside `.delivery/grooming/`
 - **AND** it asserts no draft with zero acceptance criteria is emitted as a final artifact
 - **AND** it asserts no draft with more than three acceptance criteria is emitted as a final artifact
 - **AND** it asserts no draft with a non-Given/When/Then acceptance criterion is emitted as a final artifact

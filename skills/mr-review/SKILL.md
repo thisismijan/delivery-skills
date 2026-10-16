@@ -1,25 +1,22 @@
 ---
 name: mr-review
 description: Second-pass merge-request review. Runs after code-review-max, judges whether the author chose the right approach, merges both passes into one set of findings, and publishes them through the forge provider. Use when the user types /mr-review, asks whether an MR took the right approach, or asks to post review findings.
-disable-model-invocation: true
-effort: max
-argument-hint: [MR iid]
-allowed-tools: Bash(gl-mr:*) Bash(git *) Read Grep Glob
 ---
 
 # Second-pass MR review
 
-Target MR: `$ARGUMENTS`
+Target MR: the skill arguments (`<mr-iid>`)
 
 This skill runs inline, not in a forked subagent, because it has to read the
-correctness findings out of this conversation. `gl-note` is deliberately absent
-from `allowed-tools`: every publish must raise its own permission prompt.
+correctness findings out of this conversation. The note publisher is
+deliberately not a default tool: every publish must raise its own permission
+prompt.
 
 ## Phase 0 — Preconditions
 
 Stop and say so, without doing any of the work below, if any of these fail:
 
-- `$ARGUMENTS` is empty or not a number. Ask for the MR iid.
+- The skill arguments are empty or not a number. Ask for the MR iid.
 - `gl-mr <iid> meta` fails. Report the error verbatim and stop.
 - No accepted correctness pass for this same MR and current head SHA is in this
   conversation or at `.review/mr-<iid>/<full-head-sha>/max.md`. Accept

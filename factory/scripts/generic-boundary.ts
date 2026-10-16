@@ -10,12 +10,19 @@ export const CORE_BOUNDARY_ROOTS = [
 	"factory/CONVENTIONS.md",
 ] as const;
 
-export const EXCLUDED_PREFIXES = ["adapters/", "openspec/"] as const;
+export const EXCLUDED_PREFIXES = [
+	"adapters/",
+	"openspec/",
+	"providers/",
+] as const;
 
 export const PROVIDER_SPECIFIC_FILES = [
 	"skills/mr-review/gl-mr",
 	"skills/mr-review/gl-note",
 	"skills/mr-review/cloud-setup.sh",
+	"providers/gitlab/gl-mr",
+	"providers/gitlab/gl-note",
+	"providers/gitlab/cloud-setup.sh",
 ] as const;
 
 export type ForbiddenCategory =
@@ -82,10 +89,12 @@ export const FORBIDDEN_TOKENS: readonly ForbiddenToken[] = [
 export type BoundaryHit = {
 	path: string;
 	line: number;
-	category: ForbiddenCategory;
+	category: ForbiddenCategory | "conflict";
 	id: string;
 	excerpt: string;
 };
+
+export const CONFLICT_MARKER = /^(<{7}|={7}|>{7})/;
 
 const TEXT_EXTENSIONS = new Set([
 	".md",
@@ -138,6 +147,15 @@ export function scanText(text: string, relativePath: string): BoundaryHit[] {
 	const hits: BoundaryHit[] = [];
 	const lines = text.split(/\r?\n/);
 	for (const [index, line] of lines.entries()) {
+		if (CONFLICT_MARKER.test(line)) {
+			hits.push({
+				path: relativePath,
+				line: index + 1,
+				category: "conflict",
+				id: "conflict-marker",
+				excerpt: line.trim().slice(0, 200),
+			});
+		}
 		for (const token of FORBIDDEN_TOKENS) {
 			if (!token.pattern.test(line)) continue;
 			token.pattern.lastIndex = 0;

@@ -1,13 +1,11 @@
 ---
 name: delivery
 description: One command for the whole delivery lifecycle — discovery, bug intake, groom, draft, execute, review, address comments, release readiness, archive, post-merge verification, retro, and approval-gated self-improvement — plus `auto`, which runs it end to end and stops only for the operator's decisions. A thin conductor over the factory skills, the review commands, and OpenSpec, with a run ledger so work resumes from artifacts. Use when the user types /delivery.
-disable-model-invocation: true
-argument-hint: "[auto [idea|KEY|iid] | discover <idea> | triage <KEY> | groom <idea> | draft <KEY> | execute <KEY> | review <iid> | address <KEY> | ship <iid> | archive <KEY> | verify <iid> | retro <KEY> | improve [KEY|all|status|apply ID|reject ID|rollback VERSION] | status [KEY] | help | KEY | iid | idea]"
 ---
 
 # Delivery conductor
 
-Argument: `$ARGUMENTS`
+Argument: the skill arguments
 
 You are a **thin conductor**. You do not reimplement groom, draft, execute,
 holdout, `/code-review-max`, or `/mr-review`. You
@@ -48,7 +46,7 @@ the one for the stage you are about to run.
 
 ## Phase 0 — Entry detection
 
-Classify `$ARGUMENTS` (trim whitespace). Rows are checked top to bottom and the
+Classify the skill arguments (trim whitespace). Rows are checked top to bottom and the
 first match wins, so the verb rows never collide with the bare-key and bare-iid
 rows.
 

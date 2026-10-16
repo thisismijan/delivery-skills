@@ -7,8 +7,11 @@ export interface ChangeMatch {
 	candidates: string[];
 }
 
-export function findChange(jiraKey: string, entries: string[]): ChangeMatch {
-	const key = normalizeTicketKey(jiraKey).toLowerCase();
+export function findChange(
+	workItemKey: string,
+	entries: string[],
+): ChangeMatch {
+	const key = normalizeTicketKey(workItemKey).toLowerCase();
 	const candidates = entries.filter((entry) => {
 		const normalized = entry.toLowerCase();
 		return (
@@ -26,7 +29,7 @@ if (import.meta.main) {
 	const key = process.argv[2];
 	const changesDir = process.argv[3];
 	if (!key || !changesDir) {
-		console.error("usage: find-change <JIRA-KEY> <changesDir>");
+		console.error("usage: find-change <work-item-key> <changesDir>");
 		process.exit(2);
 	}
 	let entries: string[] = [];

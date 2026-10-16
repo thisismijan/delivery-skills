@@ -1,13 +1,11 @@
 ---
 name: code-review-max
 description: Deep first-pass correctness review of a merge request. Pins the MR head, fans out independent read-only review lenses, verifies every candidate against the code, and leaves stamped findings for mr-review. Use when the user types /code-review-max, asks for the maximum review pass, or /delivery review needs its correctness pass.
-disable-model-invocation: true
-argument-hint: "[!MR-iid | MR-iid]"
 ---
 
 # Code review max
 
-Target: `$ARGUMENTS`
+Target: the skill arguments (`<mr-iid>`)
 
 This is the correctness pass. It finds bugs, security issues, behavioural
 regressions, reliability failures, and missing tests. It does not judge whether
@@ -20,7 +18,7 @@ report to this conversation; they do not publish anything.
 
 Stop at the first failure:
 
-1. Parse `$ARGUMENTS` as an MR iid, accepting `840` or `!840` and nothing else.
+1. Parse the skill arguments as an MR iid, accepting `840` or `!840` and nothing else.
 2. `gl-mr <iid> meta`, `gl-mr <iid> refs`, `gl-mr <iid> changes`, and
    `gl-mr <iid> diff` all succeed. If `gl-mr` reports overflow or truncation,
    stop. Never review a partial diff.

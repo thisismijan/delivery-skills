@@ -1,8 +1,6 @@
 ---
 name: address-comments
 description: Resolve an existing MR's review comments with tests-first/holdout rigor — classify every comment, action/dispute/answer/skip per class, reply on every assessed thread, then gate the result on a single cumulative Opus holdout re-review. The factory never merges, closes, or resolves threads.
-argument-hint: <WORK-ITEM-KEY>
-disable-model-invocation: true
 ---
 
 Resolve this SKILL.md to its real path, then load the first existing runtime:
@@ -12,7 +10,7 @@ Export `FACTORY_ROOT` as that file describes. When a step names a subagent, read
 `$FACTORY_ROOT/agents/<name>.md` and follow it. Do not invent a cheaper substitute prompt.
 
 
-You are running **/address-comments** for work item **$ARGUMENTS**.
+You are running **/address-comments** for the work item named in the skill arguments (`<work-item-key>`).
 
 This command consumes the review comments on the **existing** MR for this ticket's spec branch and resolves them. There is already an MR (opened by `/execute` after a satisfied holdout review); this command does **not** create one. Follow the steps in order. Treat the deterministic scripts as ground truth — never substitute your own judgement for a gate's exit code or a script's verdict.
 
@@ -37,7 +35,7 @@ This command consumes the review comments on the **existing** MR for this ticket
 
 1. **Locate the change.** Run:
    ```
-   bun "${FACTORY_ROOT}/scripts/find-change.ts" $ARGUMENTS openspec/changes
+   bun "${FACTORY_ROOT}/scripts/find-change.ts" <work-item-key> openspec/changes
    ```
    Non-zero exit (no match, or `ambiguous` with more than one match) → **stop + escalate** (fail closed) without guessing. Otherwise use the printed `match` as `<changeName>` (the branch name; `openspec/changes/<changeName>` is `<changeDir>`).
 
