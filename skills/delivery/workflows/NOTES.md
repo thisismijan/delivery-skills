@@ -12,8 +12,8 @@ names, they do not redefine them.
 
 | Host | Role |
 |------|------|
-| **Claude Code** | Same delivery pack: factory skills, native `/code-review max` when present, `/mr-review`. |
-| **Cursor** | Same delivery pack: factory skills, `/code-review-max`, `/mr-review`, Cloud Agent fan-out. |
+| **Claude Code** | Same delivery pack: factory skills, native `/code-review max` when present, `/mr-review`. Mutation boundaries are **enforced** by the PreToolUse hook. |
+| **Cursor** | Same delivery pack: factory skills, `/code-review-max`, `/mr-review`, Cloud Agent fan-out. Mutation boundaries are **unenforced** until a real hook exists, so mutating stages stay blocked. |
 
 Claude Code's dynamic workflow runtime
 ([documentation](https://code.claude.com/docs/en/workflows)) is optional. It can
@@ -29,7 +29,7 @@ Neither host may put both sides of a human approval gate in one background run.
 | **Jira (Cursor)** | Atlassian MCP `plugin-atlassian-atlassian`. Informational only, not a capability-check result. Tools include `getJiraIssue`, `searchJiraIssuesUsingJql`, `createJiraIssue`, `editJiraIssue`, `addOrEditJiraIssueComment`, `transitionJiraIssue`, graph link helpers. | Capability exists. Delivery policy still defaults to human create/transition unless a workflow explicitly opts in (see backlog). |
 | **Jira (Claude)** | Atlassian MCP in the Claude session. | Factory: read + **comment only**. |
 | **GitLab (Cursor MCP)** | `plugin-gitlab-GitLab` — auth attempted; live discovery currently fails with `403 Forbidden - MCP server not enabled for any of your groups`. Enable the GitLab MCP feature for the relevant GitLab group(s), then reconnect. | Until fixed: do not rely on this MCP. |
-| **GitLab (CLI)** | `glab` (factory MR create/note/ready); `gl-mr` (read-only); `gl-note` (publish review notes) | Factory opens the merge request and posts notes. Humans merge and close. Stage 3 marks an MR ready after both review passes. `gl-mr` is GET-only by design. |
+| **GitLab (CLI)** | `glab` (factory MR create/note/ready); `gl-mr` (read-only); `gl-note` (publish review notes) | Factory opens the merge request and posts notes. Humans merge and close. Stage 3 marks an MR ready after both review passes. `gl-mr` is GET-only by design. Every note publisher runs `checkNotePublication` before any network call; bodies must resolve under `.review/` and must not look secret-bearing. |
 | **OpenSpec** | `openspec/` in the **target repo**; `/opsx:*` commands | Factory authors changes under `openspec/changes/`. Humans run `/openspec-archive` after merge. |
 
 Token for `gl-mr` / `gl-note`: `~/token` (or `GL_TOKEN_FILE`). Project inferred from `git remote get-url origin` unless `GL_PROJECT` / `GL_HOST` set.

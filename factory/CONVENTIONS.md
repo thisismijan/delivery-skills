@@ -13,10 +13,11 @@ Conventions for AI agents (and humans) working in the **ig-spec-driven** reposit
 - Commit frequently, one logical step per commit.
 - **Enforced at the tool boundary.** Claude Code can install the bundled
   `adapters/claude-code/settings.json` `PreToolUse` hook, backed by
-  `scripts/commit-guard.ts`. It blocks attribution plus merge/close,
-  force-push, hard reset, and Jira mutation commands. Cursor follows the same
-  explicit skill allowlists. Reads are never blocked. The matcher is pure and
-  unit-tested (`scripts/commit-guard.test.ts`).
+  `scripts/commit-guard.ts`. `decideCommand` blocks attribution plus merge/close,
+  force-push, hard reset, Jira mutation, and equivalent API calls. The hook
+  denies a payload with no command. Cursor is declared unenforced, so mutating
+  stages stay blocked until a real hook exists. Reads are never blocked. The
+  matcher is pure and unit-tested (`scripts/commit-guard.test.ts`).
 
 ---
 

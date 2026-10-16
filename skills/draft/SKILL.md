@@ -19,6 +19,11 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
 
 ## Hard rules
 
+- **Mutation boundary.** Detect the host (`cursor` or `claude-code`; otherwise `unknown`). Run `canStartStage` before any write:
+  ```
+  bun "${FACTORY_ROOT}/scripts/stage-gating.ts" draft <host>
+  ```
+  Non-zero exit → **stop**. Cursor is declared unenforced until a real mutation hook exists, so draft cannot start there.
 - The Atlassian MCP is **read-only** here. The only write is a single Jira **comment** on clarify/reject/escalate. **Never** transition Jira status — humans own that.
 - **No spec is authored on a weak or infeasible ticket.**
 - **No spec is authored for an oversized ticket.** One ticket must be a complete vertical outcome that can be understood, tested, implemented, and reviewed in one fresh small-context session. The assessor's `scopeFit` verdict is deterministic routing input, not advice.

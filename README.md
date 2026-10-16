@@ -54,8 +54,8 @@ In a Cloud Agent, add `GITLAB_TOKEN` as a secret and run
 Merge `adapters/claude-code/settings.json` into your Claude Code settings and
 set `DELIVERY_FACTORY_ROOT` to this clone's `factory/` directory. The hook blocks
 AI attribution, `glab mr merge`, `glab mr close`, force pushes, hard resets, and
-Jira mutations. Cursor has no equivalent hook, so the skills state the same
-rules as explicit allowlists.
+Jira mutations. Cursor is declared unenforced until a real hook exists, so mutating
+stages stay blocked there.
 
 ## Use
 

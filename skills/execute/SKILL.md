@@ -24,6 +24,11 @@ This command implements the approved change and, **only after the holdout review
 - **Review before the MR.** The holdout review runs against the **committed branch diff + gate results** — there is no MR yet. **An MR is opened only after the review returns `approve`.** Never open an MR for un-reviewed, changes-requested, rejected, or escalated work.
 - **Gated writes only:** the only writes are the branch commit/push, the MR (created post-approval), and comments (on the MR and Jira). **The factory NEVER merges or closes an MR, and never changes Jira status — humans own merge, close, and status.**
 - **Fail closed:** no matching spec, more than one match, a gate that didn't run, or a gate failure with attempts exhausted → stop + escalate. Never open an MR on un-green code.
+- **Mutation boundary.** Detect the host (`cursor` or `claude-code`; otherwise `unknown`). Run `canStartStage` before any write:
+  ```
+  bun "${FACTORY_ROOT}/scripts/stage-gating.ts" execute <host>
+  ```
+  Non-zero exit → **stop**. Cursor is declared unenforced until a real mutation hook exists, so execute cannot start there. Do not proceed on an unenforced or unknown host.
 
 ## Steps
 
@@ -143,7 +148,12 @@ and command it proved; stale or ambiguous evidence is not reusable.
       ```
       bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
       ```
-      Post that summary as an MR note **and** a Jira comment (via `scripts/audit.ts`) with the MR link, stating the review passed and that a human performs the merge. Post the MR note with the stable REST endpoint (not `glab mr note`, whose subcommand surface differs across `glab` versions): write the note body to a file and run `glab api projects/:fullpath/merge_requests/<iid>/notes --field body=@<file>` (`:fullpath` resolves from the git remote; `--field ...=@<file>` reads the body from the file — note that `--raw-field` does NOT expand `@<file>`). This posts an individual note that never counts as an unresolved thread blocking the human's merge. **STOP at APPROVED.** Do **not** run `glab mr merge`. Do **not** run `/openspec-archive` (it folds the spec into `openspec/specs/` and only makes sense after the human's merge — leave it to a post-merge step).
+      Post that summary as an MR note **and** a Jira comment (via `scripts/audit.ts`) with the MR link, stating the review passed and that a human performs the merge. Write the note body under `.review/`, then run the publication check and `gl-note` (do not bypass with `glab api` or `glab mr note`):
+      ```
+      bun "${FACTORY_ROOT}/scripts/note-publication.ts" check <file> <repoRoot>
+      gl-note <iid> --file <file>
+      ```
+      This posts an individual note that never counts as an unresolved thread blocking the human's merge. **STOP at APPROVED.** Do **not** run `glab mr merge`. Do **not** run `/openspec-archive` (it folds the spec into `openspec/specs/` and only makes sense after the human's merge — leave it to a post-merge step).
     - **`fix`** → dispatch the `implementer` subagent to address the verdict `findings`, re-run the **green gate** (step 8), increment `attempt`, and **go back to step 10** (re-review runs fresh — it does not see the fixer's reasoning). **No MR is created during the fix loop.** If two failed fixes share the same assumption, apply the premise checkpoint from step 8 before any third fix.
     - **`escalate`** → push the branch (`git push -u origin <changeName>`) so a human can inspect the work, post the `reason` (and any `findings`) as a Jira comment, and stop (NEEDS_HUMAN). **Do not open an MR** — the review did not pass; the human decides what happens next.
 

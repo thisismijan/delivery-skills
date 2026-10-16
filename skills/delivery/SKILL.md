@@ -103,6 +103,15 @@ State the chosen entry and what it runs in one line, then continue.
 4. Check the capabilities the next stage needs (below) by calling
    `checkCapabilities`. For `auto`, check only what that stage needs and
    check again when the next stage starts.
+   Before a mutating stage (`draft`, `execute`, `address-comments`, `archive`,
+   `auto`, `improve-apply`, `improve-rollback`), detect the host (`cursor` or
+   `claude-code`; otherwise `unknown`) and run `canStartStage`:
+   ```
+   bun "${FACTORY_ROOT}/scripts/stage-gating.ts" <stage> <host>
+   ```
+   Non-zero exit → stop with the printed reason. Cursor is declared unenforced,
+   so mutating stages stay blocked there until a real mutation hook exists.
+   Read-only stages still run.
 
 5. **Record the runtime model inventory.** Read the exact model identifiers the
    host advertises for subagents. On Cursor, use the session's supplied
