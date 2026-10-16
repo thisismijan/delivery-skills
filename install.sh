@@ -115,12 +115,14 @@ for host in "${hosts[@]}"; do
       # follow links outside itself. Keep the factory inside the synced skills
       # tree; /cursor/stores/user/factory is a different Cursor namespace.
       store="${CURSOR_AGENT_STORE:-/cursor/stores/user/skills}"
-      store_probe="${CURSOR_AGENT_STORE_PROBE:-$(
-        case "$store" in
-          /cursor/*) echo /cursor ;;
-          *) dirname "$store" ;;
-        esac
-      )}"
+      # macOS bash 3.2 cannot parse a case statement inside $( ... ).
+      if [[ -n "${CURSOR_AGENT_STORE_PROBE:-}" ]]; then
+        store_probe="$CURSOR_AGENT_STORE_PROBE"
+      elif [[ "$store" == /cursor/* ]]; then
+        store_probe=/cursor
+      else
+        store_probe="$(dirname "$store")"
+      fi
       if [[ ! -d "$store_probe" ]] || [[ ! -w "$store_probe" ]]; then
         echo "Agent store skipped (not writable here): $store"
         continue

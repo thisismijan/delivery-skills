@@ -148,3 +148,11 @@ test("--cursor replaces a stale real skill directory with a symlink", async () =
 		await rm(root, { recursive: true, force: true });
 	}
 });
+
+test("the installer avoids syntax macOS bash 3.2 cannot parse", async () => {
+	const script = await readFile(installer, "utf8");
+	const substitutions = script.match(/\$\([\s\S]*?\)\}?"/g) ?? [];
+	for (const body of substitutions) {
+		expect(body).not.toMatch(/\bcase\b[\s\S]*\besac\b/);
+	}
+});
