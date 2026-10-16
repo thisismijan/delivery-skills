@@ -315,8 +315,18 @@ describe("capabilities", () => {
     expect(rows.filter((r) => r[4].length < 10).map((r) => r[1])).toEqual([]);
   });
 
-  test("auto shows every capability before it starts", () => {
-    expect(section(SKILL, "## Phase 1 — Preconditions and ledger")).toContain("For `auto`, check them\n   all once and show the result as a table before starting.");
+  test("auto checks only the current stage and again at the next stage", () => {
+    const preconditions = section(SKILL, "## Phase 1 — Preconditions and ledger");
+    expect(preconditions).toContain("`checkCapabilities`");
+    expect(preconditions).toContain("check only");
+    expect(preconditions).toContain("what that stage needs");
+    expect(preconditions).toContain("check again when the next stage starts");
+    expect(preconditions).not.toContain("all once");
+    expect(AUTO).toContain("stage boundary");
+    expect(AUTO).toContain("`checkCapabilities`");
+    const jira = rows.find((r) => r[1] === "Jira") ?? [];
+    expect(jira[2]).toContain("real ticket read");
+    expect(jira[2].toLowerCase()).toMatch(/no ticket|failed/);
   });
 
   test("Cursor uses the stamped max skill and its lightweight review never stands in", () => {
