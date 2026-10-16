@@ -35,7 +35,11 @@ describe("unverified serious security findings keep blocking", () => {
 		const result = decideReadiness({
 			head: HEAD,
 			findings: [
-				{ id: "SEC-reproduced-critical", severity: "Critical", reproduced: true },
+				{
+					id: "SEC-reproduced-critical",
+					severity: "Critical",
+					reproduced: true,
+				},
 			],
 			acceptances: [],
 		});
