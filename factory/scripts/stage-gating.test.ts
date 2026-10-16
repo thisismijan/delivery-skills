@@ -45,12 +45,12 @@ describe("canStartStage", () => {
 		const execute = canStartStage({ stage: "execute", runtime: unenforced });
 		expect(execute.allowed).toBe(false);
 		expect(execute.reason).toMatch(/unenforced|mutation/i);
-		expect(canStartStage({ stage: "review", runtime: unenforced }).allowed).toBe(
-			true,
-		);
-		expect(canStartStage({ stage: "status", runtime: unenforced }).allowed).toBe(
-			true,
-		);
+		expect(
+			canStartStage({ stage: "review", runtime: unenforced }).allowed,
+		).toBe(true);
+		expect(
+			canStartStage({ stage: "status", runtime: unenforced }).allowed,
+		).toBe(true);
 	});
 
 	test("denies a mutating stage when mutation enforcement is unknown", () => {
@@ -76,9 +76,9 @@ describe("canStartStage", () => {
 	});
 
 	test("allows a mutating stage on an enforced runtime", () => {
-		expect(
-			canStartStage({ stage: "execute", runtime: enforced }).allowed,
-		).toBe(true);
+		expect(canStartStage({ stage: "execute", runtime: enforced }).allowed).toBe(
+			true,
+		);
 		expect(canStartStage({ stage: "draft", runtime: enforced }).allowed).toBe(
 			true,
 		);

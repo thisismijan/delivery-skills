@@ -2,9 +2,6 @@ import { join } from "node:path";
 import { z } from "zod";
 import type { ModelTier } from "./task-profile";
 
-export const ModelHost = z.enum(["cursor", "claudeCode"]);
-export type ModelHost = z.infer<typeof ModelHost>;
-
 export const ModelCandidate = z.object({
 	id: z.string().min(1),
 	availability: z.enum(["live", "evaluation-only"]),
@@ -12,13 +9,12 @@ export const ModelCandidate = z.object({
 export type ModelCandidate = z.infer<typeof ModelCandidate>;
 
 const TierModels = z.object({
-	cursor: z.array(ModelCandidate).min(1),
-	claudeCode: z.array(ModelCandidate).min(1),
+	candidates: z.array(ModelCandidate).min(1),
 	purpose: z.string().min(1),
 });
 
 export const ModelCatalogue = z.object({
-	version: z.literal(2),
+	version: z.literal(3),
 	tiers: z.object({
 		frontier: TierModels,
 		standard: TierModels,
@@ -29,15 +25,14 @@ export type ModelCatalogue = z.infer<typeof ModelCatalogue>;
 
 export const ModelInventory = z.object({
 	version: z.literal(1),
-	host: ModelHost,
 	recordedAt: z.string().min(1),
 	models: z.array(z.string().min(1)),
+	host: z.string().min(1).optional(),
 });
 export type ModelInventory = z.infer<typeof ModelInventory>;
 
 export interface ResolvedModel {
 	tier: ModelTier;
-	host: ModelHost;
 	model: string;
 	availability: ModelCandidate["availability"];
 }
@@ -54,12 +49,11 @@ export async function loadModelCatalogue(
 	return ModelCatalogue.parse(await Bun.file(path).json());
 }
 
-export function catalogueHostModels(
+export function catalogueModels(
 	catalogue: ModelCatalogue,
 	tier: ModelTier,
-	host: ModelHost,
 ): ModelCandidate[] {
-	return catalogue.tiers[tier][host];
+	return catalogue.tiers[tier].candidates;
 }
 
 export function resolveAvailableModel(
@@ -69,7 +63,7 @@ export function resolveAvailableModel(
 	options: { allowEvaluationOnly?: boolean } = {},
 ): ResolvedModel {
 	const advertised = new Set(inventory.models);
-	const candidates = catalogueHostModels(catalogue, tier, inventory.host);
+	const candidates = catalogueModels(catalogue, tier);
 	const selected = candidates.find(
 		(candidate) =>
 			advertised.has(candidate.id) &&
@@ -84,13 +78,10 @@ export function resolveAvailableModel(
 			availableCandidates.length > 0
 				? `matching models are evaluation-only: ${availableCandidates.join(", ")}`
 				: `advertised models do not include: ${candidates.map((candidate) => candidate.id).join(", ")}`;
-		throw new Error(
-			`no live ${tier} model is available for ${inventory.host}; ${detail}`,
-		);
+		throw new Error(`no live ${tier} model is available; ${detail}`);
 	}
 	return {
 		tier,
-		host: inventory.host,
 		model: selected.id,
 		availability: selected.availability,
 	};

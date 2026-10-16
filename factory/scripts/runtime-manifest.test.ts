@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-	loadModelCatalogue,
-	resolveAvailableModel,
-} from "./model-catalogue";
+import { loadModelCatalogue, resolveAvailableModel } from "./model-catalogue";
 import {
 	type RuntimeManifest,
 	advertisedModels,
@@ -171,16 +168,18 @@ describe("mutation enforcement", () => {
 		expect(canStartStage({ stage: "execute", runtime: unknown }).allowed).toBe(
 			false,
 		);
-		expect(canStartStage({ stage: "review", runtime: unenforced }).allowed).toBe(
-			true,
-		);
+		expect(
+			canStartStage({ stage: "review", runtime: unenforced }).allowed,
+		).toBe(true);
 	});
 
 	test("allows a mutating stage only when the guard is enforceable", () => {
 		const runtime = manifest({ "mutation.guard": mutation("enforced") });
 		expect(canStartStage({ stage: "execute", runtime }).allowed).toBe(true);
 		expect(canStartStage({ stage: "draft", runtime }).allowed).toBe(true);
-		expect(canStartStage({ stage: "not-a-stage", runtime }).allowed).toBe(false);
+		expect(canStartStage({ stage: "not-a-stage", runtime }).allowed).toBe(
+			false,
+		);
 	});
 });
 

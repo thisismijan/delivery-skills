@@ -35,12 +35,12 @@ test("stage preflight stops on a missing required capability", () => {
 	const runtime = parseRuntimeManifest({ version: 1, capabilities: {} });
 	const results = capabilityPreflight("execute", runtime);
 	expect(summarize(results).allRequiredPassed).toBe(false);
-	expect(results.some((result) => result.name === "mutation.guard" && !result.ok)).toBe(
-		true,
-	);
-	expect(results.find((result) => result.name === "mutation.guard")?.detail).toMatch(
-		/runtime manifest/i,
-	);
+	expect(
+		results.some((result) => result.name === "mutation.guard" && !result.ok),
+	).toBe(true);
+	expect(
+		results.find((result) => result.name === "mutation.guard")?.detail,
+	).toMatch(/runtime manifest/i);
 });
 
 test("stage preflight passes when required capabilities are advertised", () => {
@@ -57,7 +57,7 @@ test("stage preflight passes when required capabilities are advertised", () => {
 	});
 	const results = capabilityPreflight("execute", runtime);
 	expect(summarize(results).allRequiredPassed).toBe(true);
-	expect(capabilityPreflight("review", runtime).every((result) => result.ok)).toBe(
-		true,
-	);
+	expect(
+		capabilityPreflight("review", runtime).every((result) => result.ok),
+	).toBe(true);
 });

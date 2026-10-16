@@ -268,11 +268,9 @@ export function applyFastPromotion(
 ): ModelCatalogue {
 	const next = structuredClone(catalogue);
 	if (verdict.availability !== "live") return next;
-	for (const host of ["cursor", "claudeCode"] as const) {
-		for (const candidate of next.tiers.fast[host]) {
-			if (candidate.id === verdict.candidateModel) {
-				candidate.availability = "live";
-			}
+	for (const candidate of next.tiers.fast.candidates) {
+		if (candidate.id === verdict.candidateModel) {
+			candidate.availability = "live";
 		}
 	}
 	return next;

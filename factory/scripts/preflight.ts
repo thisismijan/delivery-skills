@@ -1,5 +1,10 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import {
+	type RuntimeManifest,
+	capabilityResult,
+	requiredCapabilitiesForStage,
+} from "./runtime-manifest";
 
 export interface CheckResult {
 	name: string;
@@ -33,6 +38,21 @@ async function run(argv: string[]): Promise<{ code: number; out: string }> {
 
 export function redactRemote(value: string): string {
 	return value.replace(/(https?:\/\/)[^/@\s]+@/gi, "$1[redacted]@");
+}
+
+export function capabilityPreflight(
+	stage: string,
+	runtime: RuntimeManifest,
+): CheckResult[] {
+	return requiredCapabilitiesForStage(stage).map((id) => {
+		const result = capabilityResult(runtime, id);
+		return {
+			name: id,
+			ok: result.ok,
+			required: true,
+			detail: result.ok ? (result.invocation ?? "ok") : (result.reason ?? ""),
+		};
+	});
 }
 
 async function runChecks(): Promise<CheckResult[]> {
