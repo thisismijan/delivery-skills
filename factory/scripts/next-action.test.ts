@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { ExecuteRecoveryEvidence } from "./execute-recovery";
 import { classifyEntry, selectNextAction } from "./next-action";
 
 function recordingWriter(): {
@@ -154,5 +155,226 @@ describe("selectNextAction stop without writing", () => {
 		);
 		expect(result.kind).toBe("stop");
 		expect(calls).toEqual([]);
+	});
+
+	test("a confirmed failed stop is never retried as execute", () => {
+		const result = selectNextAction({
+			args: "execute MDF-1234",
+			status: "[stopped: gate failed]",
+		});
+		expect(result.kind).toBe("stop");
+		if (result.kind !== "stop") return;
+		expect(result.reason).not.toMatch(/retry/i);
+	});
+});
+
+const KEY = "MDF-1234";
+
+function recovery(
+	overrides: Partial<ExecuteRecoveryEvidence> = {},
+): ExecuteRecoveryEvidence {
+	return {
+		key: KEY,
+		owner: { status: "none" },
+		mergeRequest: { status: "none" },
+		...overrides,
+	};
+}
+
+describe("selectNextAction executing recovery", () => {
+	test("a matching open merge request records the iid and selects review", () => {
+		const { writer, calls } = recordingWriter();
+		const result = selectNextAction(
+			{
+				args: KEY,
+				status: "[executing]",
+				recovery: recovery({
+					mergeRequest: { status: "matching", iid: 740 },
+				}),
+			},
+			writer,
+		);
+		expect(result).toMatchObject({
+			kind: "run",
+			verb: "review",
+			singleStep: true,
+			iid: 740,
+		});
+		expect(calls).toEqual([]);
+	});
+
+	test("a matching merge request still proceeds to review when the owner is gone", () => {
+		const { writer, calls } = recordingWriter();
+		const result = selectNextAction(
+			{
+				args: KEY,
+				status: "[executing]",
+				recovery: recovery({
+					owner: { status: "inactive" },
+					mergeRequest: { status: "matching", iid: 12 },
+				}),
+			},
+			writer,
+		);
+		expect(result).toMatchObject({
+			kind: "run",
+			verb: "review",
+			singleStep: true,
+			iid: 12,
+		});
+		expect(calls).toEqual([]);
+	});
+
+	test("no active owner and no merge request stops and offers the execute-resume command", () => {
+		const { writer, calls } = recordingWriter();
+		const result = selectNextAction(
+			{
+				args: KEY,
+				status: "[executing]",
+				recovery: recovery({ owner: { status: "none" } }),
+			},
+			writer,
+		);
+		expect(result.kind).toBe("stop");
+		if (result.kind !== "stop") return;
+		expect(result.nextCommand).toBe("/delivery execute MDF-1234");
+		expect(result.reason).toMatch(/interrupt/i);
+		expect(calls).toEqual([]);
+	});
+
+	test("a bare key does not run execute for an interrupted execute", () => {
+		const result = selectNextAction({
+			args: KEY,
+			status: "[executing]",
+			recovery: recovery(),
+		});
+		expect(result.kind).toBe("stop");
+		if (result.kind === "run") {
+			expect(result.verb).not.toBe("execute");
+		}
+	});
+
+	test("explicit execute at an interrupted executing status runs only execute", () => {
+		const { writer, calls } = recordingWriter();
+		const result = selectNextAction(
+			{
+				args: "execute MDF-1234",
+				status: "[executing]",
+				recovery: recovery({ owner: { status: "inactive" } }),
+			},
+			writer,
+		);
+		expect(result).toMatchObject({
+			kind: "run",
+			verb: "execute",
+			singleStep: true,
+		});
+		expect(calls).toEqual([]);
+	});
+
+	test("unattributable dirty worktree escalates and does not discard or guess", () => {
+		const { writer, calls } = recordingWriter();
+		const result = selectNextAction(
+			{
+				args: KEY,
+				status: "[executing]",
+				recovery: recovery({
+					dirtyWorktree: { present: true, attributed: false },
+				}),
+			},
+			writer,
+		);
+		expect(result.kind).toBe("escalate");
+		if (result.kind !== "escalate") return;
+		expect(result.reason).toMatch(/working tree|dirty/i);
+		expect(calls).toEqual([]);
+	});
+
+	test("unattributable branch evidence escalates", () => {
+		const result = selectNextAction({
+			args: KEY,
+			status: "[executing]",
+			recovery: recovery({
+				branch: { present: true, attributed: false },
+			}),
+		});
+		expect(result.kind).toBe("escalate");
+	});
+
+	test("unattributable gate evidence escalates", () => {
+		const result = selectNextAction({
+			args: KEY,
+			status: "[executing]",
+			recovery: recovery({
+				gate: { present: true, attributed: false },
+			}),
+		});
+		expect(result.kind).toBe("escalate");
+	});
+
+	test("unattributable evidence escalates even when a matching merge request exists", () => {
+		const result = selectNextAction({
+			args: KEY,
+			status: "[executing]",
+			recovery: recovery({
+				mergeRequest: { status: "matching", iid: 740 },
+				dirtyWorktree: { present: true, attributed: false },
+			}),
+		});
+		expect(result.kind).toBe("escalate");
+		if (result.kind === "run") {
+			expect(result.verb).not.toBe("review");
+		}
+	});
+
+	test("an active owner with no merge request waits and does not run execute", () => {
+		const { writer, calls } = recordingWriter();
+		const result = selectNextAction(
+			{
+				args: KEY,
+				status: "[executing]",
+				recovery: recovery({ owner: { status: "active" } }),
+			},
+			writer,
+		);
+		expect(result.kind).toBe("wait");
+		if (result.kind !== "wait") return;
+		expect(result.reason).not.toMatch(/interrupt/i);
+		expect(calls).toEqual([]);
+	});
+
+	test("explicit execute while a live owner still builds does not start a second run", () => {
+		const result = selectNextAction({
+			args: "execute MDF-1234",
+			status: "[executing]",
+			recovery: recovery({ owner: { status: "active" } }),
+		});
+		expect(result.kind).toBe("wait");
+		if (result.kind === "run") {
+			expect(result.verb).not.toBe("execute");
+		}
+	});
+
+	test("an unknown owner with no merge request escalates rather than waiting or restarting", () => {
+		const { writer, calls } = recordingWriter();
+		const result = selectNextAction(
+			{
+				args: KEY,
+				status: "[executing]",
+				recovery: recovery({ owner: { status: "unknown" } }),
+			},
+			writer,
+		);
+		expect(result.kind).toBe("escalate");
+		expect(calls).toEqual([]);
+	});
+
+	test("missing recovery evidence at executing does not guess review or wait from the table", () => {
+		const result = selectNextAction({
+			args: KEY,
+			status: "[executing]",
+		});
+		expect(result.kind).not.toBe("run");
+		expect(result.kind).not.toBe("wait");
 	});
 });

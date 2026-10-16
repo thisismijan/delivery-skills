@@ -56,7 +56,7 @@ Between steps, do not ask whether to continue. Continue.
 | `[triage: duplicate <KEY>]` | Nothing | Nothing; the key is done |
 | `[groomed]` | Draft, once every blocker is `[merged !N]` or later | Nothing |
 | `[drafted]` | Execute | The draft, unless `build-without-asking: yes` |
-| `[executing]` | Review once the MR exists; while the build runs, wait | Nothing |
+| `[executing]` | Recover: review once a matching merge request exists; wait while a live owner still builds; interrupted stop with `/delivery execute <KEY>` when there is no owner and no merge request | Nothing |
 | `[reviewed-blocked !N]` | Address comments, then review the new head | Nothing |
 | `[addressed !N]` | Review the new head | Nothing |
 | `[ready !N]` | Release readiness | Nothing |
@@ -166,6 +166,7 @@ merges, stops, and accepted retro proposals.
 | Review rounds | Three review rounds without a ready verdict on !<iid> | `/delivery review <iid>` after deciding |
 | Every key blocked | Every remaining key waits on a blocker that is not merged | `/delivery status <EPIC>` |
 | A stage stopped | Whatever that stage's stop says | Its next command |
+| Interrupted execute | Execute stopped before a merge request existed | `/delivery execute <KEY>` |
 
 ## Never
 

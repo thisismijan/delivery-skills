@@ -1,5 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+	type ExecuteRecovery,
+	type ExecuteRecoveryEvidence,
+	recoverExecuting,
+} from "./execute-recovery";
 
 // biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
 export const NEXT_ACTION_INVOCATION = "scripts/next-action.ts <args> <status|->";
@@ -15,8 +20,16 @@ export type ClassifiedEntry =
 	| { kind: "other"; args: string };
 
 export type NextAction =
-	| { kind: "run"; verb: string; singleStep: true }
-	| { kind: "stop"; reason: string };
+	| { kind: "run"; verb: string; singleStep: true; iid?: number }
+	| { kind: "stop"; reason: string; nextCommand?: string }
+	| { kind: "wait"; reason: string }
+	| { kind: "escalate"; reason: string };
+
+export type NextActionInput = {
+	args: string;
+	status: string | null;
+	recovery?: ExecuteRecoveryEvidence;
+};
 
 const TICKET_KEY = /^[A-Z][A-Z0-9]+-\d+$/;
 const IID = /^\d+$/;
@@ -187,18 +200,79 @@ export function classifyEntry(args: string): ClassifiedEntry {
 	return { kind: "other", args: trimmed };
 }
 
-function stopped(reason: string): NextAction {
-	return { kind: "stop", reason };
+function stopped(reason: string, nextCommand?: string): NextAction {
+	return nextCommand
+		? { kind: "stop", reason, nextCommand }
+		: { kind: "stop", reason };
+}
+
+function isExecuting(status: string | null): boolean {
+	if (status === null || status.trim() === "") return false;
+	const actual = status.trim().startsWith("[")
+		? status.trim()
+		: `[${status.trim()}]`;
+	return statusMatches(actual, "[executing]");
+}
+
+function fromExecutingRecovery(
+	recovery: ExecuteRecovery,
+	entry: ClassifiedEntry,
+): NextAction {
+	if (recovery.kind === "review") {
+		if (
+			entry.kind === "explicit-verb" &&
+			entry.verb !== "review" &&
+			!ALWAYS_ALLOWED.has(entry.verb)
+		) {
+			return stopped(
+				`${prettyVerb(entry.verb)} is not the next step for this ticket.`,
+			);
+		}
+		return {
+			kind: "run",
+			verb: "review",
+			singleStep: true,
+			iid: recovery.iid,
+		};
+	}
+	if (recovery.kind === "wait") {
+		return { kind: "wait", reason: recovery.reason };
+	}
+	if (recovery.kind === "escalate") {
+		return { kind: "escalate", reason: recovery.reason };
+	}
+	if (entry.kind === "explicit-verb" && entry.verb === "execute") {
+		return { kind: "run", verb: "execute", singleStep: true };
+	}
+	if (entry.kind === "explicit-verb" && !ALWAYS_ALLOWED.has(entry.verb)) {
+		return stopped(
+			`${prettyVerb(entry.verb)} is not the next step for this ticket.`,
+		);
+	}
+	return stopped(recovery.reason, recovery.nextCommand);
 }
 
 export function selectNextAction(
-	input: { args: string; status: string | null },
+	input: NextActionInput,
 	writer?: LedgerWriter,
 ): NextAction {
 	void writer;
 	const entry = classifyEntry(input.args);
 	if (entry.kind === "unknown" || entry.kind === "other") {
 		return stopped("That is not a known delivery command.");
+	}
+
+	if (entry.kind === "explicit-verb" && ALWAYS_ALLOWED.has(entry.verb)) {
+		return { kind: "run", verb: entry.verb, singleStep: true };
+	}
+
+	if (isExecuting(input.status)) {
+		if (!input.recovery) {
+			return stopped(
+				"Delivery cannot tell a live execute run from a crash until the merge request and whether execute is still running have been checked.",
+			);
+		}
+		return fromExecutingRecovery(recoverExecuting(input.recovery), entry);
 	}
 
 	const next = nextVerbForStatus(input.status);
@@ -210,9 +284,6 @@ export function selectNextAction(
 		return { kind: "run", verb: next, singleStep: true };
 	}
 
-	if (ALWAYS_ALLOWED.has(entry.verb)) {
-		return { kind: "run", verb: entry.verb, singleStep: true };
-	}
 	if (!next) {
 		return stopped("There is no next delivery step for this ticket.");
 	}
@@ -230,5 +301,5 @@ if (import.meta.main) {
 	const status = !statusArg || statusArg === "-" ? null : statusArg;
 	const result = selectNextAction({ args, status });
 	console.log(JSON.stringify(result));
-	process.exit(result.kind === "stop" ? 1 : 0);
+	process.exit(result.kind === "run" ? 0 : 1);
 }

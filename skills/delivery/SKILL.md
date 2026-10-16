@@ -101,6 +101,8 @@ bun "${FACTORY_ROOT}/scripts/next-action.ts" <args> <status|->
 
 Pass `-` when there is no ledger. An illegal or unknown stop does not write the ledger. An explicit verb that is allowed still runs only that step.
 
+When the reconciled status is `[executing]`, recover before selecting from the table. Pass the owner, matching or conflicting merge request, and whether branch, gate, or dirty-worktree evidence can be attributed. A matching open merge request records the iid and proceeds to review. No active owner and no merge request is an interrupted stop that offers `/delivery execute <KEY>`; a bare key does not run execute. Typing execute remains the approval to build. A live owner with no merge request waits. Evidence that cannot be attributed escalates; never discard it and never guess.
+
 State the chosen entry and what it runs in one line, then continue.
 
 ## Phase 1 — Preconditions and ledger
@@ -201,6 +203,7 @@ terminal stop.
   status `[groomed]`. Add the epic key to the ledger's `Ids:` line.
 - **After draft**: `[drafted]` once the OpenSpec change exists.
 - **After execute starts**: `[executing]`, and the MR iid once it is reported.
+<<<<<<< HEAD
 - **After review**: run `scripts/stage3-readiness.ts <iid> <head> <max-pass|-> <approach-pass|->`
   on the pinned max-pass and approach-pass artifacts for the live head. Status
   `[ready !N]` and undraft only when that helper returns ready. Write one
@@ -211,6 +214,16 @@ terminal stop.
   stays draft.
 - **After address comments**: `[addressed !N]`. Keep the MR draft. Do not write
   a ready review row from holdout.
+=======
+  On resume, a matching open merge request records that iid before review.
+  An interrupted execute with no active owner and no merge request is a
+  Stops line with `/delivery execute <KEY>`.
+- **After review**: one `review` verdict row with head, base, and patch-id,
+  computed as `delivery-ledger.md` says. Status `[ready !N]` when it ends ready,
+  or `[reviewed-blocked !N]` when blocking findings remain. Mark the MR ready
+  only for the former; keep the latter draft.
+  Release readiness refuses to run without this row.
+>>>>>>> 69bb2f1 (feat(delivery): recover interrupted execute runs (HDLV-12))
 - **After archive**: a Decision `archived <change-name>`.
 - **Every terminal stop**: a Stops line with the next command, and status
   `[stopped: <reason>]`.
@@ -283,13 +296,22 @@ tree, say they need committing; do not commit them.
 
 ### Entry B — Resume
 
-1. Reconcile the ledger as Phase 1 says. Select the next action with
+1. Reconcile the ledger as Phase 1 says. When the status is `[executing]`,
+   recover the owner, the merge request, and branch, gate, or dirty-worktree
+   evidence before selecting. Select the next action with
    `scripts/next-action.ts <args> <status|->` (`-` when there is no ledger).
-2. If it stops, tell the operator why and do not write the ledger.
-3. If it returns a step, run only that selected step as the matching Single
+2. If it stops, tell the operator why and do not write the ledger. An
+   interrupted execute with no active owner and no merge request offers
+   `/delivery execute <KEY>` and does not run execute in this resume step.
+   Typing execute remains the approval to build.
+3. If `[executing]` has a matching open merge request, record the iid and
+   proceed to review as the selected step.
+4. If it returns a wait, end the turn. If it escalates because evidence
+   cannot be attributed, stop; never discard that evidence and never guess.
+5. If it returns a step, run only that selected step as the matching Single
    steps row (or auto, when that is the selected verb). Then print Next from
    the auto next-step table for the new status.
-4. On terminal factory stop: record it in the ledger, brief, and end. No
+6. On terminal factory stop: record it in the ledger, brief, and end. No
    same-session poll/retry.
 
 ### Entry C — Review only

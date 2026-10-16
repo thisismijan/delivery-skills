@@ -901,4 +901,38 @@ describe("stage 3 readiness", () => {
   });
 });
 
+describe("interrupted execute recovery", () => {
+  test("auto recovers executing instead of only waiting while the build runs", () => {
+    const executing = AUTO.split("\n").find((line) =>
+      line.startsWith("| `[executing]`"),
+    );
+    expect(executing).toBeTruthy();
+    expect(executing).toMatch(/matching.*merge request|matching open MR/i);
+    expect(executing).toMatch(/review/i);
+    expect(executing).toMatch(/interrupt/i);
+    expect(executing).toContain("/delivery execute");
+    expect(executing).toMatch(/live owner|still builds|still running/i);
+  });
+
+  test("resume records a matching merge request iid and proceeds to review", () => {
+    const entryB = section(SKILL, "### Entry B — Resume");
+    expect(entryB).toMatch(/\[executing\]/);
+    expect(entryB).toMatch(/matching.*merge request|matching open MR/i);
+    expect(entryB).toMatch(/record.*iid|records the iid/i);
+    expect(entryB).toMatch(/review/i);
+  });
+
+  test("an interrupted execute stop offers the execute-resume command", () => {
+    expect(`${SKILL}\n${AUTO}`).toContain("/delivery execute <KEY>");
+    expect(SKILL).toMatch(/interrupt/i);
+    expect(section(SKILL, "### Entry B — Resume")).toMatch(
+      /does not run execute|must not start execute|not start execute/i,
+    );
+  });
+
+  test("typing execute remains the approval to build after an interrupted stop", () => {
+    expect(SKILL).toMatch(/Typing this verb is the approval to build/);
+    expect(AUTO).toMatch(/Never retry a failed stage/);
+  });
+});
 
