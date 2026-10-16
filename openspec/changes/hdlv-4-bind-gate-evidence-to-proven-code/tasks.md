@@ -13,4 +13,4 @@
 - [x] 2.2 Replace the substring check with exact normalized path token matching.
 - [x] 2.3 Add the evidence record and `verifyGateEvidence`, and a CLI mode that reads the commit and hashes the test files.
 - [x] 2.4 Update `skills/execute/SKILL.md` and `skills/address-comments/SKILL.md` to verify evidence before reuse.
-- [ ] 2.5 Run the factory test suite, lint, and typecheck.
+- [x] 2.5 Run the factory test suite, lint, and typecheck.
