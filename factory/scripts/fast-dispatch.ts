@@ -10,6 +10,7 @@ export const MIN_EVALUATED_FAST_SAMPLES = 5;
 
 export interface FastDispatchVerdict {
 	allowed: boolean;
+	candidateModel: string | null;
 	sampleSize: number;
 	relativeUtility: number | null;
 	criticalMisses: number;
@@ -24,10 +25,12 @@ function mean(values: number[]): number {
 export function evaluateFastDispatch(
 	entries: CorpusEntryType[],
 	profile?: FastEligibleFields,
+	candidateModel?: string,
 ): FastDispatchVerdict {
 	if (profile && !isFastEligible(profile)) {
 		return {
 			allowed: false,
+			candidateModel: candidateModel ?? null,
 			sampleSize: 0,
 			relativeUtility: null,
 			criticalMisses: 0,
@@ -35,8 +38,20 @@ export function evaluateFastDispatch(
 				"this task is not reversible, local, and strongly verified mechanical work",
 		};
 	}
+	if (!candidateModel) {
+		return {
+			allowed: false,
+			candidateModel: null,
+			sampleSize: 0,
+			relativeUtility: null,
+			criticalMisses: 0,
+			reason:
+				"an exact candidate model is required; scores cannot be pooled across models",
+		};
+	}
 	const evaluated = entries.filter((entry) => {
 		if (!entry.evaluation) return false;
+		if (entry.evaluation.candidateModel !== candidateModel) return false;
 		if (!isFastEligible(entry.observation.profile)) return false;
 		if (profile && entry.workType !== profile.workType) return false;
 		return true;
@@ -48,6 +63,7 @@ export function evaluateFastDispatch(
 	if (evaluated.length < MIN_EVALUATED_FAST_SAMPLES) {
 		return {
 			allowed: false,
+			candidateModel,
 			sampleSize: evaluated.length,
 			relativeUtility: null,
 			criticalMisses,
@@ -60,6 +76,7 @@ export function evaluateFastDispatch(
 	if (criticalMisses > 0) {
 		return {
 			allowed: false,
+			candidateModel,
 			sampleSize: evaluated.length,
 			relativeUtility,
 			criticalMisses,
@@ -69,6 +86,7 @@ export function evaluateFastDispatch(
 	if (relativeUtility < FAST_RELATIVE_UTILITY_THRESHOLD) {
 		return {
 			allowed: false,
+			candidateModel,
 			sampleSize: evaluated.length,
 			relativeUtility,
 			criticalMisses,
@@ -77,6 +95,7 @@ export function evaluateFastDispatch(
 	}
 	return {
 		allowed: true,
+		candidateModel,
 		sampleSize: evaluated.length,
 		relativeUtility,
 		criticalMisses: 0,
@@ -90,13 +109,18 @@ export function parseCorpusEntries(input: unknown): CorpusEntryType[] {
 
 if (import.meta.main) {
 	const corpusFile = process.argv[2];
-	if (!corpusFile) {
-		console.error("usage: fast-dispatch <corpus-entries.json>");
+	const candidateModel = process.argv[3];
+	if (!corpusFile || !candidateModel) {
+		console.error(
+			"usage: fast-dispatch <corpus-entries.json> <candidate-model>",
+		);
 		process.exit(2);
 	}
 	try {
 		const verdict = evaluateFastDispatch(
 			parseCorpusEntries(await Bun.file(corpusFile).json()),
+			undefined,
+			candidateModel,
 		);
 		console.log(JSON.stringify(verdict));
 	} catch (error) {

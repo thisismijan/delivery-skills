@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildCorpus } from "./evaluation-corpus";
 import {
-	evaluateFastDispatch,
 	FAST_RELATIVE_UTILITY_THRESHOLD,
 	MIN_EVALUATED_FAST_SAMPLES,
+	evaluateFastDispatch,
 } from "./fast-dispatch";
 import {
 	buildObservation,
@@ -41,7 +41,9 @@ const search: TaskProfileInput = {
 
 test("the controller profile parser accepts TaskProfileInput and rejects extra keys by later routing", () => {
 	expect(parseTaskProfileInput(search).taskId).toBe("search");
-	expect(() => parseTaskProfileInput({ ...search, selectedTier: "fast" })).toThrow();
+	expect(() =>
+		parseTaskProfileInput({ ...search, selectedTier: "fast" }),
+	).toThrow();
 });
 
 test("an observation records gates, repairs, escalations, and usage when present", () => {
@@ -59,8 +61,13 @@ test("an observation records gates, repairs, escalations, and usage when present
 			terminal: "approve",
 		},
 		usage: { source: "tokens", inputTokens: 10, outputTokens: 4 },
+		controllerModel: "muse-wonder-1.0-high",
+		currentModelId: "claude-sonnet-5-5-medium",
 	});
 	expect(observation.controller.agent).toBe("task-profile-controller");
+	expect(observation.controller.kind).toBe("frontier-readonly");
+	expect(observation.controller.model).toBe("muse-wonder-1.0-high");
+	expect(observation.currentModelId).toBe("claude-sonnet-5-5-medium");
 	expect(observation.shadowTier).toBe("fast");
 	expect(observation.currentTier).toBe("standard");
 	expect(observation.executed).toBe("current");
@@ -87,7 +94,9 @@ test("observations persist under .delivery/routing and reload", async () => {
 			},
 		});
 		const path = await persistObservation(root, observation);
-		expect(path).toContain(`${join(".delivery", "routing", "run-1", "search.json")}`);
+		expect(path).toContain(
+			`${join(".delivery", "routing", "run-1", "search.json")}`,
+		);
 		const loaded = await loadObservations(root);
 		expect(loaded).toHaveLength(1);
 		expect(loaded[0]?.profile.taskId).toBe("search");
@@ -126,9 +135,11 @@ test("search on sonnet is a cheaper shadow; holdout stays frontier", () => {
 test("the evaluation corpus is built from representative deliveries", () => {
 	const corpus = buildCorpus(representativeObservations());
 	expect(corpus).toHaveLength(7);
-	expect(corpus.every((entry) => entry.observation.controller.kind === "opus-readonly")).toBe(
-		true,
-	);
+	expect(
+		corpus.every(
+			(entry) => entry.observation.controller.kind === "opus-readonly",
+		),
+	).toBe(true);
 	expect(corpus.some((entry) => entry.workType === "search")).toBe(true);
 	expect(corpus.some((entry) => entry.workType === "implement")).toBe(true);
 	expect(corpus.every((entry) => entry.evaluation === undefined)).toBe(true);
@@ -139,12 +150,15 @@ test("fast models stay off until scored reversible work clears 90 percent", () =
 	expect(evaluateFastDispatch(fromRuns).allowed).toBe(false);
 	expect(evaluateFastDispatch(fromRuns).sampleSize).toBe(0);
 
+	const candidateModel = "muse-spark-1.3-medium";
+	const baseline = fromRuns[0];
+	if (!baseline) throw new Error("representative corpus has no search task");
 	const scored = Array.from({ length: MIN_EVALUATED_FAST_SAMPLES }, (_, i) => ({
-		...fromRuns[0]!,
+		...baseline,
 		taskId: `search-${i}`,
-		evaluation: { relativeUtility: 0.91, criticalMisses: 0 },
+		evaluation: { candidateModel, relativeUtility: 0.91, criticalMisses: 0 },
 	}));
-	const ready = evaluateFastDispatch(scored, search);
+	const ready = evaluateFastDispatch(scored, search, candidateModel);
 	expect(ready.allowed).toBe(true);
 	expect(ready.relativeUtility).toBeGreaterThanOrEqual(
 		FAST_RELATIVE_UTILITY_THRESHOLD,
@@ -152,16 +166,30 @@ test("fast models stay off until scored reversible work clears 90 percent", () =
 
 	const miss = scored.map((entry, i) =>
 		i === 0
-			? { ...entry, evaluation: { relativeUtility: 0.91, criticalMisses: 1 } }
+			? {
+					...entry,
+					evaluation: {
+						candidateModel,
+						relativeUtility: 0.91,
+						criticalMisses: 1,
+					},
+				}
 			: entry,
 	);
-	expect(evaluateFastDispatch(miss, search).allowed).toBe(false);
+	expect(evaluateFastDispatch(miss, search, candidateModel).allowed).toBe(
+		false,
+	);
 
 	const weak = scored.map((entry) => ({
 		...entry,
-		evaluation: { relativeUtility: 0.8, criticalMisses: 0 },
+		evaluation: { candidateModel, relativeUtility: 0.8, criticalMisses: 0 },
 	}));
-	expect(evaluateFastDispatch(weak, search).allowed).toBe(false);
+	expect(evaluateFastDispatch(weak, search, candidateModel).allowed).toBe(
+		false,
+	);
+	expect(evaluateFastDispatch(scored, search, "composer-1").allowed).toBe(
+		false,
+	);
 });
 
 test("representative deliveries seed routing files, a report, and a corpus", async () => {
@@ -169,11 +197,7 @@ test("representative deliveries seed routing files, a report, and a corpus", asy
 	try {
 		const root = join(dir, ".delivery", "routing");
 		const seed = Bun.spawn(
-			[
-				"bun",
-				join(import.meta.dir, "representative-routing-runs.ts"),
-				root,
-			],
+			["bun", join(import.meta.dir, "representative-routing-runs.ts"), root],
 			{ stdout: "pipe", stderr: "pipe" },
 		);
 		expect(await seed.exited).toBe(0);
@@ -187,12 +211,7 @@ test("representative deliveries seed routing files, a report, and a corpus", asy
 		expect(reportOut.text).toContain("cheaper model");
 		const corpusDir = join(root, "corpus");
 		const corpus = Bun.spawn(
-			[
-				"bun",
-				join(import.meta.dir, "evaluation-corpus.ts"),
-				root,
-				corpusDir,
-			],
+			["bun", join(import.meta.dir, "evaluation-corpus.ts"), root, corpusDir],
 			{ stdout: "pipe", stderr: "pipe" },
 		);
 		expect(await corpus.exited).toBe(0);
@@ -210,7 +229,12 @@ test("representative deliveries seed routing files, a report, and a corpus", asy
 		const entriesPath = join(dir, "entries.json");
 		await Bun.write(entriesPath, JSON.stringify(entries));
 		const gate = Bun.spawn(
-			["bun", join(import.meta.dir, "fast-dispatch.ts"), entriesPath],
+			[
+				"bun",
+				join(import.meta.dir, "fast-dispatch.ts"),
+				entriesPath,
+				"muse-spark-1.3-medium",
+			],
 			{ stdout: "pipe", stderr: "pipe" },
 		);
 		const stdout = await new Response(gate.stdout).text();

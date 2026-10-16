@@ -113,7 +113,8 @@ if (import.meta.main) {
 		const text = formatRoutingReport(report);
 		const out = process.argv[3];
 		const payload = { report, text };
-		if (out) await Bun.write(join(out), `${JSON.stringify(payload, null, 2)}\n`);
+		if (out)
+			await Bun.write(join(out), `${JSON.stringify(payload, null, 2)}\n`);
 		await Bun.write(join(root, "report.md"), `${text}\n`);
 		await Bun.write(
 			join(root, "report.json"),

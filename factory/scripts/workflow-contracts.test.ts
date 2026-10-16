@@ -15,6 +15,7 @@ const draft = read("../skills/draft/SKILL.md");
 const execute = read("../skills/execute/SKILL.md");
 const addressComments = read("../skills/address-comments/SKILL.md");
 const groom = read("../skills/groom/SKILL.md");
+const runtime = read("RUNTIME.md");
 
 describe("test epistemology", () => {
 	test("writer and holdout require public behaviour and independent expectations", () => {
@@ -138,20 +139,35 @@ describe("bounded recovery and replay safety", () => {
 		expect(execute).toContain("record-routing.ts");
 		expect(execute).toContain(".delivery/routing/");
 		expect(execute).toContain("90 percent");
-		expect(execute).toContain("Dispatch still uses the live");
-		expect(execute).toContain("never this run's worker");
+		expect(execute).toContain("Dispatch still uses the live `select-model.ts`");
+		expect(execute).toContain("model-catalogue.ts");
+		expect(plain(execute)).toContain("never this run's worker");
 		expect(draft).toContain("do not change the model used to author");
 		expect(draft).toContain("task-profile-controller");
-		expect(addressComments).toContain("Classification still ran on Sonnet");
+		expect(addressComments).toContain("semantic standard route");
 		expect(addressComments).toContain("task-profile-controller");
 	});
 
-	test("the profile controller is Opus-level and read-only", () => {
+	test("the profile controller is frontier-level and read-only", () => {
 		const controller = read("agents/task-profile-controller.md");
-		expect(controller).toMatch(/^---[\s\S]*model: opus[\s\S]*tools: Read, Grep, Glob/);
+		expect(controller).toMatch(
+			/^---[\s\S]*model: opus[\s\S]*tools: Read, Grep, Glob/,
+		);
+		expect(controller).toContain("frontier controller");
+		expect(controller).toContain("portable fallback");
 		expect(controller).toContain("You do not implement");
 		expect(controller).toContain("TaskProfileInput");
 		expect(controller).toContain("**no** `Bash`");
+	});
+
+	test("factory dispatch resolves exact models from the runtime inventory", () => {
+		expect(runtime).toContain("Runtime model inventory");
+		expect(runtime).toContain("model-inventory.json");
+		expect(runtime).toContain("Muse Wonder");
+		expect(runtime).toContain("evaluation-only");
+		expect(execute).toContain("exact available model");
+		expect(draft).toContain("exact available model");
+		expect(addressComments).toContain("exact available model");
 	});
 
 	test("pressure cannot bypass deterministic or human gates", () => {
