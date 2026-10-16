@@ -1,6 +1,6 @@
 ---
 name: code-review-max
-description: Deep first-pass correctness review of a GitLab merge request. Pins the MR head, fans out independent read-only review lenses, verifies every candidate against the code, and leaves stamped findings for mr-review. Use when the user types /code-review-max, asks for the maximum review pass, or /delivery review needs its correctness pass in Cursor.
+description: Deep first-pass correctness review of a merge request. Pins the MR head, fans out independent read-only review lenses, verifies every candidate against the code, and leaves stamped findings for mr-review. Use when the user types /code-review-max, asks for the maximum review pass, or /delivery review needs its correctness pass.
 disable-model-invocation: true
 argument-hint: "[!MR-iid | MR-iid]"
 ---
@@ -49,8 +49,7 @@ MR description is a claim to verify.
 
 Persist the brief at `.review/mr-<iid>/<full-head-sha>/brief.md`. Reuse it only
 when its iid and full head SHA still match live `gl-mr` metadata; otherwise
-rebuild it. This worktree-local artifact lets the second pass run in a fresh
-Cursor or Claude Code conversation.
+rebuild it. This worktree-local artifact lets the second pass run in a fresh conversation on any conforming runtime.
 
 ## Parallel review
 
@@ -150,7 +149,7 @@ Write this complete output to
 the final line. `mr-review` accepts either this pinned artifact or the same
 output in the conversation, but verifies iid and SHA against live metadata.
 
-Do not publish findings to GitLab. `mr-review` consolidates both passes and owns
+Do not publish findings through the forge provider. `mr-review` consolidates both passes and owns
 the publish checkpoint.
 
 ## Never
@@ -160,4 +159,4 @@ the publish checkpoint.
 - Treat reviewer consensus as proof.
 - Manufacture findings to look thorough.
 - Make code changes.
-- Post notes, approve, merge, or change Jira.
+- Post notes, approve, merge, or change tracker items.

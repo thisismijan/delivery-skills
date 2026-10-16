@@ -31,40 +31,36 @@ Use the first match:
    (`<skills-dir>/<skill>` beside `<skills-dir>/_factory`).
 3. From the same real skill directory, `../../factory`. This is the clone
    layout before installation.
-4. `$CLAUDE_PLUGIN_ROOT` when it contains `scripts/find-change.ts`. This is a
-   compatibility alias for existing factory scripts.
+4. `$FACTORY_ROOT` when it is already exported and contains `scripts/find-change.ts`.
 
 Stop if none match: clone this pack and run
 `./install.sh --skills-dir <path>`.
 
-Export both for the rest of the run:
+Export for the rest of the run:
 
 ```bash
 export FACTORY_ROOT='<resolved>'
-export CLAUDE_PLUGIN_ROOT="$FACTORY_ROOT"
 ```
 
-Gate scripts still read `CLAUDE_PLUGIN_ROOT` and otherwise default to the parent
-of `scripts/`, which is this directory. Prefer `$DELIVERY_FACTORY_ROOT` in new
-invocations.
+Gate scripts resolve this directory from `FACTORY_ROOT` or default to the parent
+of `scripts/`.
 
 ## Subagents
 
-Hosts do not auto-load `agents/*.md`. Every factory skill must `Read`
-`$FACTORY_ROOT/agents/<name>.md` and give that prompt to the subagent. Do not
-invent a cheaper substitute prompt.
+Every factory skill loads `$FACTORY_ROOT/agents/<name>.md` and gives that
+prompt to the runtime's `agent.dispatch` capability. Do not invent a cheaper
+substitute prompt.
 
-## Host adapters
+## Providers
 
-Factory commands (`/groom`, `/draft`, `/execute`, `/address-comments`) are
-identical on every capable host. Native review commands, hooks, forge wrappers,
-and tracker setup live in optional `adapters/` packages and are selected with
-`./install.sh --skills-dir <path> --adapter <name>`.
+Stage invocations are identical on every conforming runtime. Native review
+commands, hooks, forge wrappers, tracker setup, and spec tooling live in
+optional adapters or providers selected during installation.
 
 ## Runtime model inventory
 
-The current runtime, not this repository, is the source of truth for which
-models the session may use. At the start of a factory run:
+The runtime, not this repository, is the source of truth for which models the
+current session may use. At the start of a factory run:
 
 1. Read the exact model identifiers advertised by the current runtime. Never
    probe by repeatedly dispatching invalid names and never invent a model that
@@ -75,7 +71,7 @@ models the session may use. At the start of a factory run:
    `bun "$FACTORY_ROOT/scripts/model-catalogue.ts" resolve <tier> <inventory>`.
    Dispatch the returned exact model identifier, overriding an agent prompt's
    static `model:` value. That frontmatter is a portable fallback only when the
-   host cannot override models.
+   runtime cannot override models.
 4. A missing model for the required tier is a terminal capability failure. Do
    not silently choose a model from another tier.
 5. `fast` candidates are `evaluation-only`. Availability does not approve

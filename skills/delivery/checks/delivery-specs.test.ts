@@ -79,8 +79,8 @@ describe("entry detection", () => {
     ["MDF-1234", "Resume"],
     ["SMAI-740", "Resume"],
     ["740", "Review only"],
-    ["740 MDF-12", "Review only with Jira key"],
-    ["MDF-12 740", "Review only with Jira key"],
+    ["740 MDF-12", "Review only with work-item key"],
+    ["MDF-12 740", "Review only with work-item key"],
     ["discover a cost dashboard for job runs", "Discovery"],
     ["discover discover-2026-10-13-cost-dashboard", "Discovery"],
     ["triage MDF-2100", "Bug intake"],
@@ -161,7 +161,6 @@ describe("one command to remember", () => {
     "/draft",
     "/execute",
     "/code-review-max !<iid>",
-    "/code-review max !<iid>",
     "/mr-review <iid>",
     "/address-comments",
     "/openspec-archive",
@@ -450,7 +449,7 @@ describe("capabilities", () => {
     .map(cells);
 
   test("every capability the workflow depends on is checked", () => {
-    expect(rows.map((r) => r[1])).toEqual(["Stage specs", "Factory", "Review commands", "GitLab", "Jira", "OpenSpec", "Deployed environment", "Skill evaluation"]);
+    expect(rows.map((r) => r[1])).toEqual(["Stage specs", "Factory", "Review commands", "Forge", "Tracker", "OpenSpec", "Deployed environment", "Skill evaluation"]);
   });
 
   test("every stage a capability blocks is a real /delivery verb", () => {
@@ -477,15 +476,15 @@ describe("capabilities", () => {
     expect(preconditions).not.toContain("all once");
     expect(AUTO).toContain("stage boundary");
     expect(AUTO).toContain("`checkCapabilities`");
-    const jira = rows.find((r) => r[1] === "Jira") ?? [];
-    expect(jira[2]).toContain("real ticket read");
-    expect(jira[2].toLowerCase()).toMatch(/no ticket|failed/);
+    const tracker = rows.find((r) => r[1] === "Tracker") ?? [];
+    expect(tracker[2]).toContain("real work-item read");
+    expect(tracker[2].toLowerCase()).toMatch(/no key|failed/);
   });
 
-  test("Cursor uses the stamped max skill and its lightweight review never stands in", () => {
+  test("the stamped max skill is required and a lightweight review never stands in", () => {
     const review = rows.find((r) => r[1] === "Review commands") ?? [];
     expect(review[2]).toContain("`/code-review-max` and `/mr-review` are available");
-    expect(review[2]).toContain("Cursor's lightweight `/code-review` does not count");
+    expect(review[2]).toContain("A lightweight built-in review does not count");
   });
 
   test("a merged-results pipeline counts for the head it merged", () => {
@@ -514,8 +513,8 @@ describe("capabilities", () => {
 
   test("auto waits on the MR's own pipeline, not the branch's", () => {
     const waiting = section(AUTO, "## Waiting");
-    expect(waiting).toMatch(/read\s+`head_pipeline` from `glab mr view <iid> --output json`, not the branch's\s+pipeline/);
-    expect(waiting).not.toContain("glab ci status --branch <branch>");
+    expect(waiting).toMatch(/read\s+`head_pipeline` from the forge change view for `<iid>`, not the branch's\s+pipeline/);
+    expect(waiting).not.toContain("the branch pipeline of the forge provider");
   });
 
   test("a cloud run never opens a second merge request", () => {
@@ -525,12 +524,12 @@ describe("capabilities", () => {
 
 describe("hard rules survive", () => {
   const rules = [
-    "Never `glab mr merge`",
-    "never create Jira issues",
-    "never transition Jira status",
+    "Never merge via the forge provider",
+    "never create work items",
+    "never transition tracker status",
     "never auto-spawn worktrees or agents",
     "Never substitute another review skill",
-    "Cursor's lightweight `/code-review` is **out of this chain**",
+    "A lightweight built-in review is **out of this chain**",
     "Fail closed with the stage's failure modes",
     "The delivery skill changes only through `improve.md`",
     "`/openspec-archive` runs only through `/delivery archive` or auto's archive\n  question, after the MR is merged, with the operator's yes for that change.",
@@ -699,9 +698,9 @@ describe("portable dynamic orchestration", () => {
     expect(policy).toContain("workflow agents cannot take mid-run operator input");
   });
 
-  test("Claude workflows are optional and Cursor keeps a native path", () => {
-    expect(policy).toContain("Cursor uses its native subagents.");
-    expect(policy).toContain("must not depend on a Claude-only workflow");
+  test("runtime-specific helpers are optional and cannot define the outcome", () => {
+    expect(policy).toContain("A runtime-specific workflow helper may replace a large homogeneous read-only");
+    expect(policy).toContain("must not depend on a helper that only one host provides");
   });
 
   test("fan-out is bounded, structured, durable, and fail-closed", () => {
@@ -780,14 +779,13 @@ describe("portable factory pack", () => {
     expect(existsSync(join(packRoot, "factory", "scripts", "find-change.ts"))).toBe(true);
   });
 
-  test("the conductor invokes pack skills, not the ig-spec plugin", () => {
+  test("the conductor invokes pack skills, not a source-framework plugin", () => {
     expect(section(SKILL, "### Single steps")).not.toContain("/ig-spec:");
-    expect(SKILL).toContain("never `/ig-spec:*`");
-    expect(SKILL).toContain("Do not load the ig-spec Claude plugin in the same session");
+    expect(SKILL).toContain("Do not load a second factory pack in the same session");
   });
 });
 
-describe("Cursor max review contract", () => {
+describe("max review contract", () => {
   test("the skill is manually invoked and pins both refs", () => {
     expect(CODE_REVIEW_MAX).toContain("name: code-review-max");
     expect(CODE_REVIEW_MAX).toContain("disable-model-invocation: true");
@@ -814,16 +812,15 @@ describe("Cursor max review contract", () => {
     expect(MR_REVIEW).toContain("must exactly match `gl-mr <iid> meta`");
   });
 
-  test("mr-review accepts both max passes but rejects lightweight Cursor review", () => {
-    expect(MR_REVIEW).toContain("Cursor `/code-review-max !<iid>` output");
-    expect(MR_REVIEW).toContain("Claude Code's native `/code-review max !<iid>` output");
-    expect(MR_REVIEW).toContain("Reject Cursor's lightweight `/code-review` output");
+  test("mr-review accepts the stamped max pass but rejects a lightweight built-in review", () => {
+    expect(MR_REVIEW).toContain("`/code-review-max !<iid>` output");
+    expect(MR_REVIEW).toContain("Reject a lightweight built-in review");
   });
 
   test("the correctness pass cannot publish or change code", () => {
-    expect(CODE_REVIEW_MAX).toContain("Do not publish findings to GitLab.");
+    expect(CODE_REVIEW_MAX).toContain("Do not publish findings through the forge provider.");
     expect(CODE_REVIEW_MAX).toContain("- Make code changes.");
-    expect(CODE_REVIEW_MAX).toContain("- Post notes, approve, merge, or change Jira.");
+    expect(CODE_REVIEW_MAX).toContain("- Post notes, approve, merge, or change tracker items.");
   });
 });
 

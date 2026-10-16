@@ -1,37 +1,37 @@
 # Workflow: epic-to-backlog
 
-Turn an epic-sized idea into groomed, draft-ready Jira stories the human creates
+Turn an epic-sized idea into groomed, draft-ready the tracker stories the human creates
 by hand. Compose `/groom`; do not reimplement grooming.
 
 Terms: see [`NOTES.md`](../NOTES.md).
 
 ## Loop
 
-Recurring: a Jira epic, HLD, PRD, or raw idea needs breaking into individually
+Recurring: a the tracker epic, HLD, PRD, or raw idea needs breaking into individually
 deployable stories before any `/draft`.
 
 ## Trigger
 
-**Event:** operator starts a Claude Code session in the **target repo** and
+**Event:** operator starts a runtime session in the **target repo** and
 invokes this workflow with one of:
 
 1. A file path to an idea / HLD / PRD (`.md` or `.txt`)
 2. Inline text (pasted epic description, acceptance notes, constraints)
 3. Conversation context already containing that material
 
-If a Jira epic key is the starting point, the operator exports or pastes the
+If a the tracker epic key is the starting point, the operator exports or pastes the
 epic summary/description (and any child list they care about) into (1) or (2).
-This workflow never calls Jira MCP.
+This workflow never calls the tracker MCP.
 
 If there is no usable input, stop and ask for a file path or description. Do
 not guess.
 
 ## Preconditions
 
-- Cursor or Claude Code opened with cwd = **target repo**
+- the runtime or the runtime opened with cwd = **target repo**
 - `/groom` available from this pack (`factory/RUNTIME.md` resolves)
 - Target repo has been explored enough for groom (read-only); OpenSpec init is
-  **not** required for groom (groom writes only under `.ig-spec/grooming/`)
+  **not** required for groom (groom writes only under the grooming output directory)
 - Bun available (groom path/verify scripts)
 
 ## Steps
@@ -47,7 +47,7 @@ Invoke:
 Follow the `/groom` skill. Non-negotiables this
 workflow must not weaken:
 
-- No MCP, git, or Jira from groom
+- No MCP, git, or tracker from groom
 - One grilling question per turn, each with a recommended answer
 - Write nothing before the operator explicitly approves the slice breakdown
 - Every final draft passes `verify-ticket.ts`
@@ -101,12 +101,12 @@ into one ticket.
 ### 2. Wait for groom completion
 
 Groom ends with a closing summary: output directory
-`.ig-spec/grooming/<slug>/`, list of draft files, optional `prd.md`.
+the directory printed by `groom-paths.ts`, list of draft files, optional `prd.md`.
 
 If the operator abandons mid-grill or rejects the breakdown without approval,
-stop. No drafts, no brief, no Jira.
+stop. No drafts, no brief, no tracker.
 
-### 3. Checkpoint — create Jira stories (push right)
+### 3. Checkpoint — create the tracker stories (push right)
 
 Present a **brief** only (not the full draft bodies in the chat dump):
 
@@ -126,36 +126,36 @@ Present a **brief** only (not the full draft bodies in the chat dump):
   ```
 
 - Numbered list under each wave: draft filename, title, blocked-by
-- One-line reminder: each draft = one Jira ticket = later one `/draft`
+- One-line reminder: each draft = one work item = later one `/draft`
   or `/delivery <KEY>`; each parallel-wave ticket gets **one worktree** (start
   immediately if blocked-by is empty; otherwise after blockers are merged);
   each ticket sized for **~25% of a session context window**
 - Link/path to optional `prd.md` if present
-- Explicit ask: create the Jira tickets (copy draft content), set epic/parent
-  links and Jira "blocked by" / link types to match the wave graph, then reply
-  with the map `slice-number → JIRA-KEY` (or confirm done and paste keys)
+- Explicit ask: create the work items (copy draft content), set epic/parent
+  links and the tracker "blocked by" / link types to match the wave graph, then reply
+  with the map `slice-number → WORK-ITEM-KEY` (or confirm done and paste keys)
 
-Do not create Jira issues. Do not transition status. Do not open MRs.
+Do not create work items. Do not transition status. Do not open MRs.
 
 ### 4. Done
 
 Workflow is done when:
 
-- Drafts exist under `.ig-spec/grooming/<slug>/` and passed verify
-- Operator has confirmed Jira tickets exist and supplied keys (or stated they
+- Drafts exist under the directory printed by `groom-paths.ts` and passed verify
+- Operator has confirmed work items exist and supplied keys (or stated they
   will create them later and is ending the run)
 
 If the operator will create tickets later, record in the brief that
 `ticket-to-mr` starts only once a key exists. Ending without keys is a valid
-stop; do not poll Jira.
+stop; do not poll the tracker.
 
 ## Handoff
 
 | Artifact | Consumer |
 |----------|----------|
-| `.ig-spec/grooming/<slug>/*.md` drafts | Human → Jira ticket bodies |
+| `the directory printed by groom-paths.ts*.md` drafts | Human → work item bodies |
 | Optional `prd.md` | Human / later context |
-| `slice → JIRA-KEY` map (if provided) | [`ticket-to-mr`](ticket-to-mr.md) triggers |
+| `slice → WORK-ITEM-KEY` map (if provided) | [`ticket-to-mr`](ticket-to-mr.md) triggers |
 
 Next workflow: [`ticket-to-mr`](ticket-to-mr.md) / [`delivery-orchestrator`](delivery-orchestrator.md)
 per the dependency graph:
@@ -172,22 +172,22 @@ per the dependency graph:
 | No input | Ask once; stop |
 | Operator never approves slices | Stop; zero files written |
 | Draft fails `verify-ticket.ts` and cannot be fixed in groom's loop | Stay inside groom's fail-closed fix loop; do not invent tickets |
-| Operator wants auto-created Jira issues | Refuse; point to NOTES non-goals |
+| Operator wants auto-created work items | Refuse; point to NOTES non-goals |
 
 ## Out of scope
 
 - `/draft`, execute, MR, review
-- Jira API create/link/transition
+- the tracker API create/link/transition
 - Scheduling / inbox polling for new epics
 
 ## Implementer notes
 
 An implementer building automation for this workflow should:
 
-1. Shell into target-repo Claude Code with ig-spec loaded, or document the
+1. Shell into target-repo the runtime with this delivery pack loaded, or document the
    exact operator slash-command sequence above.
 2. Treat groom as a black box; wrap only trigger resolution + the post-groom
    brief + collection of the key map.
 3. Persist the key map wherever the operator wants (chat reply is enough for
-   v1; optional file under `.ig-spec/grooming/<slug>/jira-keys.md` only if a
+   v1; optional file under `the directory printed by groom-paths.tstracker-keys.md` only if a
    later build phase adds it — not required by this spec).

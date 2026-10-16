@@ -14,7 +14,7 @@ The single-step verbs use the same table to tell the operator what to type next.
 | none | The run already in this conversation. If there is none, ask once for an idea, a key, or an MR iid |
 | an idea, a file, or a link | A new run. Discovery if the idea names no destination (ask once), otherwise groom |
 | an epic key | Every key in the epic's ledger |
-| a ticket key | That key. If it has no ledger and its Jira type is Bug, intake (ask once) |
+| a ticket key | That key. If it has no ledger and its work-item type is Bug, intake (ask once) |
 | an MR iid | Review for that MR |
 
 ## Start
@@ -121,7 +121,7 @@ step.
 ## Waiting
 
 - **For a pipeline, a build, or a deploy.** Observe it once. For an MR, read
-  `head_pipeline` from `glab mr view <iid> --output json`, not the branch's
+  `head_pipeline` from the forge change view for `<iid>`, not the branch's
   pipeline. If it is still running, set `[waiting: <what>]`, end the turn, and
   give the resume command. Do not sleep or poll in the same turn.
 - **For a person** (a merge, a reporter, an answer): do not poll. Set
@@ -171,7 +171,7 @@ merges, stops, and accepted retro proposals.
 ## Never
 
 - Merge, or set an MR to merge when its pipeline succeeds.
-- Create, transition, label, or close Jira issues.
+- Create, transition, label, or close work items.
 - Spawn worktrees or agents. Fan-out is a brief the operator acts on.
 - Archive without a yes for that change.
 - Retry a failed stage.

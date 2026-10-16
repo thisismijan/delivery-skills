@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 export const PACK_ROOT = join(import.meta.dir, "..", "..");
@@ -10,10 +10,7 @@ export const CORE_BOUNDARY_ROOTS = [
 	"factory/CONVENTIONS.md",
 ] as const;
 
-export const EXCLUDED_PREFIXES = [
-	"adapters/",
-	"openspec/",
-] as const;
+export const EXCLUDED_PREFIXES = ["adapters/", "openspec/"] as const;
 
 export const PROVIDER_SPECIFIC_FILES = [
 	"skills/mr-review/gl-mr",
@@ -137,10 +134,7 @@ export function isInGenericBoundary(relativePath: string): boolean {
 	return false;
 }
 
-export function scanText(
-	text: string,
-	relativePath: string,
-): BoundaryHit[] {
+export function scanText(text: string, relativePath: string): BoundaryHit[] {
 	const hits: BoundaryHit[] = [];
 	const lines = text.split(/\r?\n/);
 	for (const [index, line] of lines.entries()) {
@@ -191,7 +185,7 @@ export function listGenericBoundaryFiles(root = PACK_ROOT): string[] {
 			}
 			if (stat.isDirectory()) walk(full, files);
 		} catch {
-			continue;
+			// Missing optional root is skipped.
 		}
 	}
 	return files

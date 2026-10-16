@@ -1,9 +1,9 @@
 # Workflow: mr-review-to-ready
 
-Second-line review of a ready GitLab MR: correctness pass, then approach pass,
+Second-line review of a ready merge request: correctness pass, then approach pass,
 optional publish, then optional factory comment-fix loop until the human is
-ready to merge. In Cursor compose `/code-review-max` and `/mr-review`; in
-Claude Code compose native `/code-review max` and `/mr-review`. When fixing,
+ready to merge. In the runtime compose `/code-review-max` and `/mr-review`; in
+the runtime compose native `/code-review max` and `/mr-review`. When fixing,
 compose `/address-comments`. Do not reimplement their phases.
 
 Terms: see [`NOTES.md`](../NOTES.md).
@@ -15,11 +15,11 @@ a human merges.
 
 ## Trigger
 
-**Event:** operator supplies a GitLab MR **iid** (integer, e.g. `740`) in a
-Cursor or Claude Code session with cwd = **target repo** (so `gl-mr` resolves
+**Event:** operator supplies a merge request **iid** (integer, e.g. `740`) in a
+the runtime or the runtime session with cwd = **target repo** (so `gl-mr` resolves
 the project from `origin`).
 
-Optional: Jira key for the same change, needed only if `/address-comments`
+Optional: work-item key for the same change, needed only if `/address-comments`
 will run.
 
 ## Preconditions
@@ -27,8 +27,8 @@ will run.
 - `gl-mr` and `gl-note` on `PATH` (`~/.local/bin`); token at `~/token` (or
   `GL_TOKEN_FILE`)
 - MR is open and fetchable: `gl-mr <iid> meta` succeeds
-- For the address-comments path: ig-spec loaded, open MR on the spec branch,
-  Jira key known
+- For the address-comments path: this delivery pack loaded, open MR on the spec branch,
+  work-item key known
 - **Same conversation** must hold both review passes: `/mr-review` reads the
   stamped correctness findings from this thread and will not substitute its
   own correctness pass
@@ -37,19 +37,19 @@ will run.
 
 ### 1. Correctness pass
 
-Cursor:
+the runtime:
 
 ```
 /code-review-max !<iid>
 ```
 
-Claude Code:
+the runtime:
 
 ```
 /code-review max !<iid>
 ```
 
-Example in Cursor: `/code-review-max !740`.
+Example in this runtime: `/code-review-max !740`.
 
 Persist findings at `.review/mr-<iid>/<full-head-sha>/max.md`. Do not skip ahead
 to `/mr-review` unless this exact iid and head has a validated max artifact.
@@ -91,18 +91,18 @@ After findings exist (posted or kept local), brief the operator:
 
 - Verdict line from mr-review
 - Count of `[bug]` / `[approach]` / `[nit]`, how many blocking
-- Choices: (a) run `/address-comments <JIRA-KEY>` when the MR was
-  factory-built and comments are on GitLab, (b) author fixes manually, (c) merge
+- Choices: (a) run `/address-comments <WORK-ITEM-KEY>` when the MR was
+  factory-built and comments are on the forge, (b) author fixes manually, (c) merge
   as-is, (d) abandon / escalate to humans
 
-Do not merge. Do not resolve GitLab threads.
+Do not merge. Do not resolve the forge threads.
 
 ### 5. Optional — address comments
 
-If (a) and Jira key present:
+If (a) and work-item key present:
 
 ```
-/address-comments <JIRA-KEY>
+/address-comments <WORK-ITEM-KEY>
 ```
 
 Factory: classify → action/dispute/answer/skip → reply once per thread →
@@ -119,9 +119,9 @@ fresh conversation valid; a new SHA always requires a new max pass.
 Workflow is done when the operator states they are ready to merge (or abandon).
 **Merge and `/openspec-archive` are human exits**, not steps this workflow runs:
 
-1. Human merges the MR in GitLab
+1. Human merges the MR in the forge
 2. Human runs `/openspec-archive <change-name>` in the target repo
-3. Human updates Jira status if their team process requires it
+3. Human updates tracker status if their team process requires it
 
 ## Handoff
 
@@ -136,8 +136,8 @@ Workflow is done when the operator states they are ready to merge (or abandon).
 | Condition | Action |
 |-----------|--------|
 | Empty / non-numeric iid | Ask for iid; stop |
-| No current max-pass findings in conversation | Tell operator to run `/code-review-max !<iid>` in Cursor or native `/code-review max !<iid>` in Claude Code; stop |
-| Only Cursor `/code-review` findings exist | Reject them: the lightweight command has no max fan-out or freshness stamp |
+| No current max-pass findings in conversation | Tell operator to run `/code-review-max !<iid>` in this runtime or native `/code-review max !<iid>` in the runtime; stop |
+| Only the runtime `/code-review` findings exist | Reject them: the lightweight command has no max fan-out or freshness stamp |
 | Correctness marker names another iid or head SHA | Treat it as stale and restart at step 1 |
 | `gl-mr` meta/diff failure or overflow | Report verbatim; stop |
 | address-comments: no open MR / escalate | Stop with factory reason; no fake ready |
@@ -146,12 +146,12 @@ Workflow is done when the operator states they are ready to merge (or abandon).
 ## Out of scope
 
 - Creating the MR (see [`ticket-to-mr`](ticket-to-mr.md))
-- Auto-merge, auto-archive, Jira transitions
+- Auto-merge, auto-archive, the tracker transitions
 - Substituting a lightweight review for the max correctness pass or `/mr-review`
 
 ## Implementer notes
 
-1. Enforce same-conversation ordering: code-review-max → mr-review in Cursor,
-   or native code-review max → mr-review in Claude Code.
+1. Enforce same-conversation ordering: code-review-max → mr-review in this runtime,
+   or native code-review max → mr-review in the runtime.
 2. Do not batch `gl-note` to skip permission prompts; mr-review requires per-note prompts.
-3. Wire address-comments only when Jira key is known; otherwise stop after review with a brief that asks for the key or manual fix.
+3. Wire address-comments only when work-item key is known; otherwise stop after review with a brief that asks for the key or manual fix.

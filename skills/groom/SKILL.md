@@ -1,6 +1,6 @@
 ---
 name: groom
-description: Grooming — turn raw input (idea, HLD, or PRD) into small, individually deployable ticket drafts ready for /draft. Writes only to .ig-spec/grooming/. No MCP, no git, no Jira.
+description: Grooming — turn raw input (idea, HLD, or PRD) into small, individually deployable ticket drafts ready for /draft. Writes only to the grooming output directory. No MCP, no git, no tracker.
 argument-hint: "[file-path | inline-text]"
 tools: Read, Grep, Glob, Task, Bash
 disable-model-invocation: true
@@ -9,9 +9,8 @@ disable-model-invocation: true
 Resolve this SKILL.md to its real path, then load the first existing runtime:
 `../_factory/RUNTIME.md` (Cloud store), `../../factory/RUNTIME.md` (clone), or
 `$DELIVERY_FACTORY_ROOT/RUNTIME.md`. Follow its `FACTORY_ROOT` procedure and
-export `CLAUDE_PLUGIN_ROOT="$FACTORY_ROOT"` so existing gate scripts keep
-working. Cursor has no plugin agent loader: when a step names a subagent, read
-`$FACTORY_ROOT/agents/<name>.md` and follow it.
+Export `FACTORY_ROOT` as that file describes. When a step names a subagent, read
+`$FACTORY_ROOT/agents/<name>.md` and follow it. Do not invent a cheaper substitute prompt.
 
 
 You are running **/groom**.
@@ -20,7 +19,7 @@ This command turns whatever the operator provides (a file path, inline text, or 
 
 ## Hard rules
 
-- **No MCP, git, or Jira tools.** This command and both its subagents (`groom-explorer`, `groom-writer`) carry no MCP, git, or Jira tools. `Bash` is present on this command ONLY to run the local deterministic Bun scripts (`groom-paths.ts`, `verify-ticket.ts`, `human-text.ts`) and to make the idempotent `.gitignore` edit. Never invoke `git`, `glab`, or any Jira/MCP call from it. A run produces zero commits and zero Jira activity. All writes land only under `.ig-spec/grooming/` (plus the single `.gitignore` line).
+- **No MCP, git, or tracker tools.** This command and both its subagents (`groom-explorer`, `groom-writer`) carry no MCP, git, or tracker tools. `Bash` is present on this command ONLY to run the local deterministic Bun scripts (`groom-paths.ts`, `verify-ticket.ts`, `human-text.ts`) and to make the idempotent `.gitignore` edit. Never invoke `git`, a forge CLI, or any tracker call from it. A run produces zero commits and zero tracker activity. All writes land only under the grooming output directory (plus the single `.gitignore` line).
 - **One question per turn.** The grilling loop emits exactly one question per turn, always with a recommended answer. Never batch two or more questions into a single turn.
 - **Atomic and complete.** Every ticket is one useful vertical outcome that can be understood, tested, implemented, and reviewed in one fresh small-context session. Prefer another ticket over another independent outcome.
 - **Write nothing before approval.** No draft file is written until the operator explicitly approves the ticket or the slice breakdown.
@@ -46,7 +45,7 @@ Run the deterministic path helper to get the output directory. Use the first mea
 bun "${FACTORY_ROOT}/scripts/groom-paths.ts" "<title>"
 ```
 
-Use the printed `dir` value (e.g. `.ig-spec/grooming/<slug>/`) as the output directory for this run. The same title always yields the same directory, so a re-run lands in the same place.
+Use the printed `dir` value (e.g. the directory printed by `groom-paths.ts`) as the output directory for this run. The same title always yields the same directory, so a re-run lands in the same place.
 
 ### Step 3 — Read-only codebase grounding (before any grilling question)
 
@@ -148,12 +147,12 @@ On explicit operator approval of the ticket (single-ticket path) or the slice br
 
 3. Write the PRD (`prd.md`) into the output directory if one was synthesized.
 
-### Step 9 — Ensure .ig-spec/grooming/ is in .gitignore (idempotent)
+### Step 9 — Ensure the grooming output directory is in .gitignore (idempotent)
 
-Check whether `.ig-spec/grooming/` already appears in `.gitignore`. If it does not, append it:
+Check whether the grooming output parent printed by `groom-paths.ts` already appears in `.gitignore`. If it does not, append that printed ignore path:
 
 ```
-.ig-spec/grooming/
+<grooming-output-parent>/
 ```
 
 If it is already present, do nothing. Never add a duplicate entry.
@@ -164,18 +163,18 @@ All human-facing output from this step passes through `sanitizeHumanText` (impor
 
 Print a closing summary that includes:
 
-1. **Output directory:** the `.ig-spec/grooming/<slug>/` path.
+1. **Output directory:** the directory printed by `groom-paths.ts`.
 2. **Files written:** the list of draft filenames (and `prd.md` if written).
 3. **Next steps:**
    - Review the drafts in the output directory.
-   - Create Jira tickets from each approved draft (copy the content into Jira manually).
-   - Run `/draft <JIRA-KEY>` for each ticket to begin the build phase.
+   - Create work items from each approved draft (copy the content into the tracker manually).
+   - Run `/draft <WORK-ITEM-KEY>` for each ticket to begin the build phase.
 
 ### Step 11 — Invariants (asserted by this command)
 
-- This command and its subagents (`groom-explorer`, `groom-writer`) hold **no** MCP, git, or Jira tools.
-- A run of `/groom` makes **no commits** and **no Jira activity**.
-- All generated artifacts (PRD and ticket drafts) land only under `.ig-spec/grooming/` — never elsewhere in the repo. The sole exception is the single idempotent `.gitignore` line added in Step 9.
+- This command and its subagents (`groom-explorer`, `groom-writer`) hold **no** MCP, git, or tracker tools.
+- A run of `/groom` makes **no commits** and **no tracker activity**.
+- All generated artifacts (PRD and ticket drafts) land only under the grooming output directory — never elsewhere in the repo. The sole exception is the single idempotent `.gitignore` line added in Step 9.
 - No draft with zero acceptance criteria is ever written as a final artifact.
 - No draft with more than three acceptance criteria is ever written as a final artifact.
 - No draft with a non-Given/When/Then acceptance criterion is ever written as a final artifact.

@@ -5,9 +5,9 @@ import { join } from "node:path";
 import {
 	CORE_BOUNDARY_ROOTS,
 	FORBIDDEN_TOKENS,
+	PACK_ROOT,
 	isInGenericBoundary,
 	listGenericBoundaryFiles,
-	PACK_ROOT,
 	scanGenericBoundary,
 	scanText,
 } from "./generic-boundary";
@@ -44,9 +44,9 @@ describe("generic boundary", () => {
 		expect(
 			isInGenericBoundary("openspec/changes/generic-delivery-core/design.md"),
 		).toBe(false);
-		expect(isInGenericBoundary("factory/scripts/generic-boundary.test.ts")).toBe(
-			false,
-		);
+		expect(
+			isInGenericBoundary("factory/scripts/generic-boundary.test.ts"),
+		).toBe(false);
 		expect(
 			isInGenericBoundary("skills/delivery/checks/delivery-specs.test.ts"),
 		).toBe(false);
@@ -110,13 +110,19 @@ describe("generic boundary", () => {
 		mkdirSync(join(root, "skills", "delivery"), { recursive: true });
 		mkdirSync(join(root, "factory", "agents"), { recursive: true });
 		mkdirSync(join(root, "adapters", "cursor"), { recursive: true });
-		writeFileSync(join(root, "skills", "delivery", "SKILL.md"), "Use Cursor.\n");
+		writeFileSync(
+			join(root, "skills", "delivery", "SKILL.md"),
+			"Use Cursor.\n",
+		);
 		writeFileSync(join(root, "factory", "RUNTIME.md"), "Factory runtime\n");
 		writeFileSync(
 			join(root, "factory", "CONVENTIONS.md"),
 			"Delivery conventions\n",
 		);
-		writeFileSync(join(root, "adapters", "cursor", "README.md"), "Cursor host\n");
+		writeFileSync(
+			join(root, "adapters", "cursor", "README.md"),
+			"Cursor host\n",
+		);
 		const hits = scanGenericBoundary(root);
 		expect(hits.some((hit) => hit.path === "skills/delivery/SKILL.md")).toBe(
 			true,

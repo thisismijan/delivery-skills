@@ -8,10 +8,10 @@
 
 ## 2. Delivery-native workflow
 
-- [ ] 2.1 Add a generic-boundary contract test that rejects source-framework, LLM-vendor, agent-host, forge, and tracker product names plus unresolved conflict markers in core skills, prompts, and runtime docs; verify it fails on the current tree
-- [ ] 2.2 Replace source-framework attribution, host branches, native review commands, and hard-coded integration instructions with delivery-native stages and capability descriptors; verify the neutrality contract passes
-- [ ] 2.3 Convert forge, tracker, review, subprocess, and subagent operations to normalized provider inputs and fail-closed missing-provider results; verify workflow contract tests cover absent and fake providers
-- [ ] 2.4 Update model routing to use capability traits and runtime-advertised identifiers without named host or vendor examples in core; verify routing tests preserve safety floors and promotion gates
+- [x] 2.1 Add a generic-boundary contract test that rejects source-framework, LLM-vendor, agent-host, forge, and tracker product names plus unresolved conflict markers in core skills, prompts, and runtime docs; verify it fails on the current tree
+- [x] 2.2 Replace source-framework attribution, host branches, native review commands, and hard-coded integration instructions with delivery-native stages and capability descriptors; verify the neutrality contract passes
+- [x] 2.3 Convert forge, tracker, review, subprocess, and subagent operations to normalized provider inputs and fail-closed missing-provider results; verify workflow contract tests cover absent and fake providers
+- [x] 2.4 Update model routing to use capability traits and runtime-advertised identifiers without named host or vendor examples in core; verify routing tests preserve safety floors and promotion gates
 - [ ] 2.5 Resolve the live conductor conflict by preserving both Stage 3 dual-review readiness and interrupted-execute recovery; verify both existing behavior suites pass together
 - [ ] 2.6 Replace source-framework state names and comment identity with `.delivery/grooming/`, delivery-owned change metadata, and a delivery-owned audit marker; verify legacy reads live only in an optional migration adapter
 - [ ] 2.7 Restrict generic skill frontmatter to portable skill fields and move native argument placeholders, tool allowlists, effort, and model hints into adapters; verify every generic skill passes the portable metadata test

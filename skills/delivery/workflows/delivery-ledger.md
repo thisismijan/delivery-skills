@@ -81,7 +81,7 @@ empty.
 - **Verdicts, Decisions, Approvals, Stops, Lessons** are append-only. Never edit
   or delete an entry. Correct one by appending a new entry that says what it
   supersedes.
-- Link artifacts; never copy them in. An MR, an OpenSpec change, a Jira ticket,
+- Link artifacts; never copy them in. An MR, an OpenSpec change, a work item,
   or a brief is a link.
 - Never write a secret, token, or credential into the ledger.
 - Dates are UTC `yyyy-mm-dd`. SHAs and patch-ids are written in full, so a later
@@ -107,7 +107,7 @@ On opening a ledger, before acting:
 1. For every key with an MR, read the MR's state. `merged` or `closed` wins over
    whatever the ledger says; update the Keys row and append a Decision line
    `reconciled: <old status> → <new status>`.
-2. For every key without an MR, read the Jira status. Do not change Jira; only
+2. For every key without an MR, read the tracker status. Do not change the tracker; only
    record what it says if it disagrees with the ledger.
 3. If the target repo's default branch has moved past a recorded verdict's base,
    that alone does not void the verdict. Freshness is decided only by the

@@ -92,7 +92,7 @@ function neededForStage(neededBy: string, stage: string): boolean {
 
 function probeOk(name: string, result: ProbeResult | undefined, called: boolean): boolean {
   if (!called || result === undefined) return false;
-  if (name === "Jira") {
+  if (name === "Tracker") {
     const key = result.ticket?.key?.trim() ?? "";
     return result.ok === true && key.length > 0;
   }
