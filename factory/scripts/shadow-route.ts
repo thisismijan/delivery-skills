@@ -19,8 +19,13 @@ const RANK: Record<ModelTier, number> = {
 };
 
 const FAST_WORK = new Set(["search", "classify", "summarise"]);
-const HOLD_OUT_STAGES = new Set(["execute", "address", "review", "ship"]);
-const ALWAYS_FRONTIER_DOMAINS = new Set([
+export const HOLD_OUT_STAGES = new Set([
+	"execute",
+	"address",
+	"review",
+	"ship",
+]);
+export const ALWAYS_FRONTIER_DOMAINS = new Set([
 	"auth",
 	"migration",
 	"concurrency",

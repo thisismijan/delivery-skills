@@ -62,7 +62,14 @@ the current account may use. At the start of a factory run:
 5. `fast` candidates are `evaluation-only`. Availability does not approve
    them. They may be resolved with `--evaluation` for corpus benchmarking, but
    live delivery cannot use them until `fast-dispatch.ts` passes the exact
-   candidate and task class. `record-routing.ts persist` requires an explicit outcome
+   candidate and task class on representative-run scores. Live scores are never
+   mixed into that sample. Fewer than five cases, a mean below the 90 percent
+   bar, or any critical miss keeps the model evaluation-only. Named safety
+   floors block auth, migration, concurrency, distributed-state,
+   weak-verification, and holdout work even after the bar clears. Passing
+   evidence does not change live availability without an exact operator
+   promotion approval naming that candidate. Public rankings and unscored
+   fixtures never promote. `record-routing.ts persist` requires an explicit outcome
    file validated against the outcome schema. A missing or invalid outcome is
    refused and writes nothing; it is never stored as a successful result. Scored
    corpus entries record utility and critical misses for one exact candidate and

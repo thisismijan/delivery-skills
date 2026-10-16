@@ -116,8 +116,12 @@ re-run the gate. Do not reuse it.
    The usage file records token or character counts when available, otherwise
    `{ "source": "unavailable" }`. Persist both exact resolved model identifiers.
    Do not dispatch a catalogue fast model unless `fast-dispatch.ts` later
-   reports that the exact candidate on reversible, strongly verified work has
-   cleared the 90 percent bar.
+   reports that the exact candidate on representative-run reversible, strongly
+   verified work has cleared the 90 percent bar. Named safety floors still
+   block auth, migration, concurrency, distributed-state, weak-verification,
+   and holdout tasks. Do not treat a cleared bar, a public ranking, or an
+   unscored fixture as live availability. That change needs an exact operator
+   promotion approval naming the candidate.
 
 7. **Implement to green.** Dispatch the `implementer` subagent using the exact
    runtime model resolved in step 6. Override the prompt's static model. If the

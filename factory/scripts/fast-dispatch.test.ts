@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { buildCorpus, scoreCandidate } from "./evaluation-corpus";
 import {
 	FAST_RELATIVE_UTILITY_THRESHOLD,
+	type FastSafetyFloor,
 	MIN_EVALUATED_FAST_SAMPLES,
 	applyFastPromotion,
 	evaluateFastDispatch,
@@ -199,7 +200,7 @@ function floorProfile(
 const floorCases: Array<{
 	name: string;
 	profile: TaskProfileInput;
-	floor: string;
+	floor: FastSafetyFloor;
 }> = [
 	{
 		name: "auth",

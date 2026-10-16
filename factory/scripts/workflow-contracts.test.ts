@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { FAST_SAFETY_FLOORS } from "./fast-dispatch";
 
 const ROOT = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
@@ -172,6 +173,19 @@ describe("bounded recovery and replay safety", () => {
 		expect(execute).toContain("exact available model");
 		expect(draft).toContain("exact available model");
 		expect(addressComments).toContain("exact available model");
+	});
+
+	test("fast-model graduation needs representative evidence, named floors, and approval", () => {
+		for (const text of [runtime, execute, delivery]) {
+			expect(text).toContain("representative-run");
+			expect(text).toContain("promotion approval");
+			for (const floor of FAST_SAFETY_FLOORS) {
+				expect(text).toContain(floor);
+			}
+		}
+		expect(runtime).toContain("Public rankings");
+		expect(execute).toContain("unscored fixture");
+		expect(delivery).toContain("Public rankings never promote");
 	});
 
 	test("record-routing persist always supplies an explicit outcome file", () => {
