@@ -37,7 +37,7 @@ Embedding shell snippets directly in skills was rejected because prose cannot pr
 
 ### 3. Install generically by destination
 
-`install.sh --skills-dir <path>` is the primary interface. It installs generic skills plus a local runtime directory and writes a managed manifest. Optional `--adapter <name>` applies setup from `adapters/<name>/` only when explicitly requested. Existing named flags are removed or retained only in adapter-owned compatibility wrappers.
+`install.sh --skills-dir <path>` is the primary interface, with `.agents/skills/` as the documented repository-local convention when the host supports it. It installs generic skills plus a local runtime directory and writes a managed manifest. Optional `--adapter <name>` and `--provider <name>` apply setup only when explicitly requested. Existing named flags are removed or retained only in adapter-owned compatibility wrappers.
 
 Automatic host detection was rejected because it is ambiguous in containers and multi-agent workstations.
 
@@ -55,6 +55,10 @@ Generalizing all providers into a lowest-common-denominator workflow was rejecte
 
 Define the generic boundary explicitly and scan it for forbidden source-framework, host, model-vendor, forge, and tracker names. Validate the runtime manifest and test one fake adapter end to end. Adapter directories and historical archived changes are outside the scan boundary.
 
+### 7. Use delivery-owned state and portable skill metadata
+
+Generic skill frontmatter contains only portable skill fields. Host argument placeholders, tool allowlists, effort controls, and model hints are overlays supplied by adapters. New grooming state lives under `.delivery/grooming/`, change metadata uses a delivery-owned filename, and factory comments use a delivery-owned marker. Compatibility reads for old names live in an optional migration adapter so the generic core never teaches the old source framework.
+
 ## Risks / Trade-offs
 
 - **Large migration surface** → land the manifest, installer, and terminology together behind contract tests; keep existing integrations as adapters.
@@ -68,7 +72,9 @@ Define the generic boundary explicitly and scan it for forbidden source-framewor
 1. Add manifest schemas, normalized capability results, and fake-runtime tests.
 2. Convert conductor and stage skills to capability descriptors and delivery-native terminology.
 3. Move current host, forge, and tracker setup into optional adapters.
-4. Replace the installer default with `--skills-dir`; add migration wrappers in adapters.
-5. Rewrite README and core runtime documentation around prerequisites and the generic protocol.
-6. Run neutrality scans, factory tests, delivery contract tests, and adapter contract tests.
-7. Existing installations may keep their current adapter while migrating; rollback restores the previous release because target-repository state formats remain compatible.
+4. Move spec-tool setup into an optional provider while retaining file-based plan and evidence contracts in core.
+5. Replace source-owned state names and frontmatter with delivery-owned portable equivalents; keep legacy reads in the migration adapter.
+6. Replace the installer default with `--skills-dir`; add migration wrappers in adapters.
+7. Rewrite README and core runtime documentation around prerequisites and the generic protocol.
+8. Run neutrality scans, factory tests, delivery contract tests, and adapter contract tests.
+9. Existing installations may keep their current adapter while migrating; rollback restores the previous release because target-repository state formats remain readable through the migration adapter.
