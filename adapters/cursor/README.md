@@ -23,6 +23,7 @@ Cursor-only behaviour:
 - Parallel work uses Cursor subagents, not Claude dynamic workflows.
 - `gl-mr` / `gl-note` are installed into `~/.local/bin` by `install.sh`. Ensure
   that directory is on `PATH`.
-- Cursor does not consume Claude hooks. Keep mutation-capable tools out of
-  subagents and follow the explicit allowlists in the skills: no MR merge/close,
-  force push, hard reset, or Jira mutation.
+- Cursor is declared **unenforced**. It has no executable hook that can deny a
+  tool call, so mutating stages stay blocked until a real enforcement hook
+  exists and this declaration is changed with a test. Read-only stages still
+  run. Do not merge, close, force-push, hard-reset, or mutate Jira.

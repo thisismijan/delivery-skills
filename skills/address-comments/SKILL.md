@@ -28,6 +28,11 @@ This command consumes the review comments on the **existing** MR for this ticket
 - **Subagents only judge/edit; YOU do all I/O.** The `comment-assessor` and `holdout-reviewer` are read-only by construction (tools: `Read, Grep, Glob` — no `Bash`, no MCP). Their entire contribution is one JSON verdict; treat it as raw input to a parser that **fails closed**. Never accept a subagent's prose ("I replied / classified / resolved the thread") as having happened — its tools cannot do those things. Every `glab`, `git`, and Jira action is performed by **this command**.
 - **Fail closed:** no MR, ambiguous change match, malformed classification verdict, malformed/non-approve re-review verdict, or exhausted fix attempts → stop + escalate, leaving the MR unblessed and posting no "passed" Jira comment.
 - **The factory NEVER runs `glab mr merge` or `glab mr close`, and NEVER transitions Jira status.** Its only Jira write is the single summary comment at the end.
+- **Mutation boundary.** Detect the host (`cursor` or `claude-code`; otherwise `unknown`). Run `canStartStage` before any write:
+  ```
+  bun "${FACTORY_ROOT}/scripts/stage-gating.ts" address-comments <host>
+  ```
+  Non-zero exit → **stop**. Cursor is declared unenforced until a real mutation hook exists, so address-comments cannot start there.
 
 ## Steps
 
@@ -106,7 +111,12 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    bun "${FACTORY_ROOT}/scripts/audit.ts" address-comments "<reply body>"
    ```
-   Post the reply with the stable REST endpoint, targeting the comment's `discussionId` from step 4 (not `glab mr note`, whose subcommand surface differs across `glab` versions): write the wrapped body to a file and run `glab api "projects/:fullpath/merge_requests/<mr>/discussions/<discussionId>/notes" --field body=@<file>` (`--field ...=@<file>` reads the body from the file; `--raw-field` does NOT expand `@<file>`).
+   Write the wrapped body under `.review/`, run the publication check, then post to the comment's `discussionId` from step 4 (not `glab mr note`):
+   ```
+   bun "${FACTORY_ROOT}/scripts/note-publication.ts" check <file> <repoRoot>
+   glab api "projects/:fullpath/merge_requests/<mr>/discussions/<discussionId>/notes" --field body=@<file>
+   ```
+   (`--field ...=@<file>` reads the body from the file; `--raw-field` does NOT expand `@<file>`).
    - actioned (`bug`/`non-functional`, and `question` that required a change): state what changed and include the **commit SHA**.
    - answered (`question` with no change): give the answer.
    - disputed (`nitpick`/`false-positive`): give the reasoned rationale and "disputed — human decides".

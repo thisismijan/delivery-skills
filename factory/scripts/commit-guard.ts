@@ -9,13 +9,9 @@ export interface GuardResult {
 	reason?: string;
 }
 
-// Commands that can persist an attribution trailer into history or a human-read
-// description. We only inspect these so reads (git log, grep) are never blocked.
 const WRITE_COMMAND =
 	/\bgit\s+commit\b|\bgit\s+merge\b|\b(?:glab\s+mr|gh\s+pr)\b/i;
 
-// The attribution we forbid. Case-insensitive; matches the trailer wherever it
-// appears in the command string (inline -m, heredoc, --description, etc.).
 const ATTRIBUTION_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
 	{ pattern: /co-authored-by:/i, label: "a Co-Authored-By trailer" },
 	{
@@ -41,66 +37,136 @@ export function isAttributionViolation(command: string): GuardResult {
 	return { blocked: false };
 }
 
-const FORBIDDEN_MUTATIONS: Array<{ pattern: RegExp; reason: string }> = [
+const MERGE_CLOSE_REASON = "Merge and close are human-owned actions.";
+const JIRA_REASON =
+	"Jira status and destructive changes are human-owned actions.";
+const FORCE_REASON = "Force-pushing is not permitted.";
+const RESET_REASON = "Destructive hard resets are not permitted.";
+
+const MUTATING_METHOD =
+	/(?:--method|-X|--request)\s*(POST|PUT|PATCH|DELETE)\b/i;
+
+function hasMutatingMethod(command: string): boolean {
+	return MUTATING_METHOD.test(command);
+}
+
+function isMergeCloseApi(command: string): boolean {
+	if (!/\b(?:glab|gh)\s+api\b/i.test(command)) return false;
+	if (!hasMutatingMethod(command)) return false;
+	if (/merge_requests\/[^\s/?]+\/merge(?:\b|\/|\?|"|$)/i.test(command)) {
+		return true;
+	}
+	if (/pulls\/[^\s/?]+\/merge(?:\b|\/|\?|"|$)/i.test(command)) return true;
+	if (
+		/merge_requests\//i.test(command) &&
+		/(?:state_event=close|\bclose\b)/i.test(command)
+	) {
+		return true;
+	}
+	if (/pulls\//i.test(command) && /(?:state=closed|\bclose\b)/i.test(command)) {
+		return true;
+	}
+	return false;
+}
+
+function isJiraMutationApi(command: string): boolean {
+	if (!hasMutatingMethod(command)) return false;
+	return /\/rest\/api\/\d+\/issues?(?:\/|\?|$)/i.test(command);
+}
+
+const COMMAND_DENY_LIST: Array<{ pattern: RegExp; reason: string }> = [
 	{
 		pattern: /\bglab\s+mr\s+(?:merge|close)\b/i,
-		reason: "Merge and close are human-owned actions.",
+		reason: MERGE_CLOSE_REASON,
 	},
 	{
-		pattern: /\bgit\s+push\b[^\n]*(?:--force(?:-with-lease)?|-f)\b/i,
-		reason: "Force-pushing is not permitted.",
+		pattern: /\bgh\s+pr\s+(?:merge|close)\b/i,
+		reason: MERGE_CLOSE_REASON,
+	},
+	{
+		pattern:
+			/\bgit\s+push\b[^\n]*(?:--force(?:-with-lease|-if-includes)?|-f)\b/i,
+		reason: FORCE_REASON,
+	},
+	{
+		pattern: /\bgit\s+push\b[^\n]*\s\+[^\s]/,
+		reason: FORCE_REASON,
 	},
 	{
 		pattern: /\bgit\s+reset\s+--hard\b/i,
-		reason: "Destructive hard resets are not permitted.",
+		reason: RESET_REASON,
 	},
 	{
 		pattern:
 			/\b(?:transitionJiraIssue|createJiraIssue|editJiraIssue|executeDestructive)\b/i,
-		reason: "Jira status and destructive changes are human-owned actions.",
+		reason: JIRA_REASON,
 	},
 ];
 
-export function isForbiddenMutation(command: string): GuardResult {
-	for (const rule of FORBIDDEN_MUTATIONS) {
+export function decideCommand(command: string): GuardResult {
+	for (const rule of COMMAND_DENY_LIST) {
 		if (rule.pattern.test(command)) {
 			return { blocked: true, reason: rule.reason };
 		}
 	}
+	if (isMergeCloseApi(command)) {
+		return { blocked: true, reason: MERGE_CLOSE_REASON };
+	}
+	if (isJiraMutationApi(command)) {
+		return { blocked: true, reason: JIRA_REASON };
+	}
 	return { blocked: false };
+}
+
+export function isForbiddenMutation(command: string): GuardResult {
+	return decideCommand(command);
+}
+
+function denyOutput(reason: string): string {
+	return JSON.stringify({
+		hookSpecificOutput: {
+			hookEventName: "PreToolUse",
+			permissionDecision: "deny",
+			permissionDecisionReason: reason,
+		},
+	});
+}
+
+function commandFromPayload(
+	raw: string,
+): { ok: true; command: string } | { ok: false; reason: string } {
+	try {
+		const parsed = JSON.parse(raw) as {
+			tool_input?: { command?: unknown };
+		};
+		const command = parsed?.tool_input?.command;
+		if (typeof command !== "string" || command.length === 0) {
+			return {
+				ok: false,
+				reason: "Guard payload has no command; refusing to fail open.",
+			};
+		}
+		return { ok: true, command };
+	} catch {
+		return {
+			ok: false,
+			reason: "Malformed guard payload; refusing to fail open.",
+		};
+	}
 }
 
 if (import.meta.main) {
 	const raw = await new Response(Bun.stdin.stream()).text();
-	let command = "";
-	try {
-		command = JSON.parse(raw)?.tool_input?.command ?? "";
-	} catch {
-		console.log(
-			JSON.stringify({
-				hookSpecificOutput: {
-					hookEventName: "PreToolUse",
-					permissionDecision: "deny",
-					permissionDecisionReason:
-						"Malformed guard payload; refusing to fail open.",
-				},
-			}),
-		);
+	const parsed = commandFromPayload(raw);
+	if (!parsed.ok) {
+		console.log(denyOutput(parsed.reason));
 		process.exit(0);
 	}
-	const result = isForbiddenMutation(command).blocked
-		? isForbiddenMutation(command)
-		: isAttributionViolation(command);
+	const result = decideCommand(parsed.command).blocked
+		? decideCommand(parsed.command)
+		: isAttributionViolation(parsed.command);
 	if (result.blocked) {
-		console.log(
-			JSON.stringify({
-				hookSpecificOutput: {
-					hookEventName: "PreToolUse",
-					permissionDecision: "deny",
-					permissionDecisionReason: result.reason,
-				},
-			}),
-		);
+		console.log(denyOutput(result.reason ?? "Command refused."));
 	}
 	process.exit(0);
 }

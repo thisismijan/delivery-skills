@@ -69,17 +69,35 @@ done
 [ -s "$body_file" ] || die "body file '${body_file}' is empty"
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-note_root="${GL_NOTE_ROOT:-${repo_root}/.review}"
+
+resolve_factory_root() {
+  if [ -n "${DELIVERY_FACTORY_ROOT:-}" ] && [ -f "${DELIVERY_FACTORY_ROOT}/scripts/note-publication.ts" ]; then
+    printf '%s\n' "$DELIVERY_FACTORY_ROOT"
+    return 0
+  fi
+  if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/scripts/note-publication.ts" ]; then
+    printf '%s\n' "$CLAUDE_PLUGIN_ROOT"
+    return 0
+  fi
+  local here
+  here="$(cd "$(dirname "$0")" && pwd)"
+  if [ -f "$here/../../factory/scripts/note-publication.ts" ]; then
+    (cd "$here/../../factory" && pwd)
+    return 0
+  fi
+  if [ -f "$here/../_factory/scripts/note-publication.ts" ]; then
+    (cd "$here/../_factory" && pwd)
+    return 0
+  fi
+  return 1
+}
+
+factory_root="$(resolve_factory_root)" \
+  || die "cannot resolve factory root for the note publication check"
+command -v bun >/dev/null 2>&1 || die "bun is required for the note publication check"
+bun "$factory_root/scripts/note-publication.ts" check "$body_file" "$repo_root" \
+  || die "note publication refused"
 canonical_file="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$body_file")"
-canonical_root="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$note_root")"
-case "$canonical_file" in
-  "$canonical_root"/*) ;;
-  *) die "body file must be inside ${canonical_root}" ;;
-esac
-case "$(basename "$canonical_file")" in
-  .env|.env.*|token|*token*|id_rsa|id_ed25519|*.pem|*.key)
-    die "refusing sensitive body filename" ;;
-esac
 body_file="$canonical_file"
 
 command -v curl  >/dev/null 2>&1 || die "curl not found"

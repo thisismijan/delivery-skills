@@ -15,7 +15,11 @@ const draft = read("../skills/draft/SKILL.md");
 const execute = read("../skills/execute/SKILL.md");
 const addressComments = read("../skills/address-comments/SKILL.md");
 const groom = read("../skills/groom/SKILL.md");
+const delivery = read("../skills/delivery/SKILL.md");
 const runtime = read("RUNTIME.md");
+const cursorAdapter = read("../adapters/cursor/README.md");
+const claudeAdapter = read("../adapters/claude-code/README.md");
+const claudeSettings = read("../adapters/claude-code/settings.json");
 
 describe("test epistemology", () => {
 	test("writer and holdout require public behaviour and independent expectations", () => {
@@ -192,5 +196,29 @@ describe("bounded recovery and replay safety", () => {
 		expect(draft).toMatch(/failed readiness.*proceed/i);
 		expect(addressComments).toMatch(/sunk cost|nitpick/i);
 		expect(addressComments).toMatch(/never.*silently/i);
+	});
+});
+
+describe("portable mutation boundaries", () => {
+	test("mutating stage skills reference the stage gate", () => {
+		for (const skill of [execute, delivery, addressComments, draft]) {
+			expect(skill).toContain("canStartStage");
+			expect(skill).toContain("stage-gating.ts");
+		}
+	});
+
+	test("Claude Code settings hook targets the real commit-guard script", () => {
+		const settings = JSON.parse(claudeSettings) as {
+			hooks: { PreToolUse: Array<{ hooks: Array<{ command: string }> }> };
+		};
+		expect(settings.hooks.PreToolUse[0]?.hooks[0]?.command).toBe(
+			'bun "$DELIVERY_FACTORY_ROOT/scripts/commit-guard.ts"',
+		);
+		expect(claudeAdapter).toMatch(/enforced/i);
+	});
+
+	test("Cursor is declared unenforced until a real hook exists", () => {
+		expect(cursorAdapter).toMatch(/unenforced/i);
+		expect(cursorAdapter).toMatch(/mutating stages? (stay |remain )?blocked/i);
 	});
 });
