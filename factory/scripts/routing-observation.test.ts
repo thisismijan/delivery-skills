@@ -315,8 +315,8 @@ test("persisting with no outcome fails and writes nothing", async () => {
 			currentModel: "sonnet",
 			outcome: continuing,
 		});
-		const withoutOutcome = { ...valid };
-		delete (withoutOutcome as { currentOutcome?: unknown }).currentOutcome;
+		const { currentOutcome: _omitted, ...withoutOutcome } = valid;
+		void _omitted;
 		await expect(
 			persistObservation(root, withoutOutcome as RoutingObservation),
 		).rejects.toThrow();

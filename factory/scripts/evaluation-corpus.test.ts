@@ -28,7 +28,7 @@ const search: TaskProfileInput = {
 
 function observation(overrides?: {
 	source?: RoutingObservation["source"];
-	workType?: string;
+	workType?: TaskProfileInput["workType"];
 	taskId?: string;
 }): RoutingObservation {
 	return buildObservation({
@@ -192,9 +192,7 @@ test("entries without a score are not counted as evidence", () => {
 		relativeUtility: 0.91,
 		criticalMisses: 0,
 	});
-	const unscored = corpusEntryFrom(
-		observation({ taskId: "search-unscored" }),
-	);
+	const unscored = corpusEntryFrom(observation({ taskId: "search-unscored" }));
 	const report = buildPromotionReport([unscored, scored]);
 	expect(report.groups).toEqual([
 		{
@@ -234,7 +232,9 @@ test("different candidates and task classes are not combined", () => {
 	]);
 	expect(
 		report.groups
-			.map((group) => `${group.candidateModel}:${group.taskClass}:${group.source}`)
+			.map(
+				(group) => `${group.candidateModel}:${group.taskClass}:${group.source}`,
+			)
 			.sort(),
 	).toEqual([
 		"composer-1:search:live",
