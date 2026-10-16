@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildCorpus } from "./evaluation-corpus";
@@ -14,6 +14,7 @@ import {
 	persistObservation,
 } from "./record-routing";
 import { representativeObservations } from "./representative-routing-runs";
+import type { RoutingObservation } from "./routing-observation";
 import {
 	formatRoutingReport,
 	summariseObservations,
@@ -278,6 +279,158 @@ test("CLI persists an observation without printing dispatch", async () => {
 		expect(await proc.exited).toBe(0);
 		expect(stdout).not.toContain("dispatch");
 		expect(JSON.parse(stdout).shadowTier).toBe("fast");
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+async function jsonFilesUnder(root: string): Promise<string[]> {
+	const runs = await readdir(root, { withFileTypes: true }).catch(() => []);
+	const files: string[] = [];
+	for (const run of runs) {
+		if (!run.isDirectory()) continue;
+		const names = await readdir(join(root, run.name));
+		for (const name of names) {
+			if (name.endsWith(".json")) files.push(join(root, run.name, name));
+		}
+	}
+	return files;
+}
+
+const continuing = {
+	gates: [] as { name: string; passed: boolean }[],
+	gatesPassed: true,
+	repairs: 0,
+	escalations: 0,
+	terminal: "continue" as const,
+};
+
+test("persisting with no outcome fails and writes nothing", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "routing-no-outcome-"));
+	try {
+		const root = join(dir, ".delivery", "routing");
+		const valid = buildObservation({
+			runId: "run-1",
+			profile: search,
+			currentModel: "sonnet",
+			outcome: continuing,
+		});
+		const withoutOutcome = { ...valid };
+		delete (withoutOutcome as { currentOutcome?: unknown }).currentOutcome;
+		await expect(
+			persistObservation(root, withoutOutcome as RoutingObservation),
+		).rejects.toThrow();
+		expect(() =>
+			buildObservation({
+				runId: "run-1",
+				profile: search,
+				currentModel: "sonnet",
+			} as unknown as Parameters<typeof buildObservation>[0]),
+		).toThrow();
+		expect(await jsonFilesUnder(root)).toEqual([]);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+test("persisting an invalid outcome fails and writes nothing", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "routing-bad-outcome-"));
+	try {
+		const root = join(dir, ".delivery", "routing");
+		const valid = buildObservation({
+			runId: "run-1",
+			profile: search,
+			currentModel: "sonnet",
+			outcome: continuing,
+		});
+		await expect(
+			persistObservation(root, {
+				...valid,
+				currentOutcome: { gatesPassed: true },
+			} as unknown as RoutingObservation),
+		).rejects.toThrow();
+		expect(await jsonFilesUnder(root)).toEqual([]);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+test("an explicit failing outcome is stored unchanged", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "routing-fail-outcome-"));
+	try {
+		const root = join(dir, ".delivery", "routing");
+		const failing = {
+			gates: [{ name: "green", passed: false, attempt: 2 }],
+			gatesPassed: false,
+			repairs: 2,
+			escalations: 1,
+			terminal: "escalate" as const,
+		};
+		const path = await persistObservation(
+			root,
+			buildObservation({
+				runId: "run-fail",
+				profile: search,
+				currentModel: "sonnet",
+				source: "live",
+				recordedAt: "2026-10-15T10:00:00.000Z",
+				outcome: failing,
+			}),
+		);
+		expect((await Bun.file(path).json()).currentOutcome).toEqual(failing);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+test("record-routing persist without an outcome file exits nonzero and writes nothing", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "record-routing-no-outcome-"));
+	try {
+		const profilePath = join(dir, "profile.json");
+		const root = join(dir, ".delivery", "routing");
+		await Bun.write(profilePath, JSON.stringify(search));
+		const proc = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "record-routing.ts"),
+				"persist",
+				root,
+				"run-cli",
+				profilePath,
+				"sonnet",
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await proc.exited).not.toBe(0);
+		expect(await jsonFilesUnder(root)).toEqual([]);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+test("record-routing persist with an invalid outcome exits nonzero and writes nothing", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "record-routing-bad-outcome-"));
+	try {
+		const profilePath = join(dir, "profile.json");
+		const outcomePath = join(dir, "outcome.json");
+		const root = join(dir, ".delivery", "routing");
+		await Bun.write(profilePath, JSON.stringify(search));
+		await Bun.write(outcomePath, JSON.stringify({ gatesPassed: true }));
+		const proc = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "record-routing.ts"),
+				"persist",
+				root,
+				"run-cli",
+				profilePath,
+				"sonnet",
+				outcomePath,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await proc.exited).not.toBe(0);
+		expect(await jsonFilesUnder(root)).toEqual([]);
 	} finally {
 		await rm(dir, { recursive: true, force: true });
 	}
