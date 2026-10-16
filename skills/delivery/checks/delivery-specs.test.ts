@@ -75,8 +75,8 @@ function classify(arg: string): string {
 
 describe("entry detection", () => {
   const cases: [string, string][] = [
-    ["MDF-1234", "Single ticket"],
-    ["SMAI-740", "Single ticket"],
+    ["MDF-1234", "Resume"],
+    ["SMAI-740", "Resume"],
     ["740", "Review only"],
     ["740 MDF-12", "Review only with Jira key"],
     ["MDF-12 740", "Review only with Jira key"],
@@ -95,7 +95,7 @@ describe("entry detection", () => {
     ["improve rollback 20261015-abc123", "Improvement decision"],
     ["status", "Catch-up"],
     ["status MDF-2000", "Catch-up"],
-    ["  MDF-1234  ", "Single ticket"],
+    ["  MDF-1234  ", "Resume"],
     ["Add per-job cost limits to the factory", "Full epic"],
     ["status of the cost work", "Full epic"],
     ["docs/stories/F5-4-port-igspec-gates.md", "Full epic"],
@@ -129,11 +129,11 @@ describe("entry detection", () => {
 
   test("every verb row is listed before the bare key and bare iid rows", () => {
     const entries = entryTable().map((r) => r.entry);
-    const bare = Math.min(entries.indexOf("Single ticket"), entries.indexOf("Review only"));
+    const bare = Math.min(entries.indexOf("Resume"), entries.indexOf("Review only"));
     const verbs = entries.slice(0, bare);
     expect(verbs).toContain("Auto");
     expect(verbs).toContain("Archive");
-    expect(entries.slice(bare).every((e) => e.startsWith("Single ticket") || e.startsWith("Review only"))).toBe(true);
+    expect(entries.slice(bare).every((e) => e.startsWith("Resume") || e.startsWith("Review only"))).toBe(true);
   });
 });
 
@@ -811,3 +811,45 @@ describe("Cursor max review contract", () => {
     expect(CODE_REVIEW_MAX).toContain("- Post notes, approve, merge, or change Jira.");
   });
 });
+
+describe("ledger resume", () => {
+  const phase0 = section(SKILL, "## Phase 0 — Entry detection");
+
+  function invocation(name: string): string {
+    const STORE = readFileSync(
+      join(SKILLS_ROOT, "..", "factory", "scripts", "next-action.ts"),
+      "utf8",
+    );
+    const match = STORE.match(
+      new RegExp(`export const ${name} = "([^"]+)"`),
+    );
+    expect(match?.[1]).toBeTruthy();
+    return match?.[1] ?? "";
+  }
+
+  test("Phase 0 routes a bare key to Resume, not a ticket span", () => {
+    expect(classify("MDF-1234")).toBe("Resume");
+    expect(phase0).not.toMatch(/Single ticket\s*\|\s*Stages 2 to 4/);
+  });
+
+  test("Phase 0 names the next-action helper from the script export", () => {
+    const command = invocation("NEXT_ACTION_INVOCATION");
+    expect(command).toContain("next-action.ts");
+    expect(phase0).toContain(command);
+  });
+
+  test("an illegal or unknown stop does not write the ledger", () => {
+    expect(phase0).toMatch(/illegal|unknown/i);
+    expect(phase0).toMatch(/does not write the ledger|without writing the ledger|without changing the ledger/i);
+  });
+
+  test("Entry B resumes from the helper instead of walking Stages 2 to 4", () => {
+    const entryB = section(SKILL, "### Entry B — Resume");
+    const command = invocation("NEXT_ACTION_INVOCATION");
+    expect(entryB).toContain(command);
+    expect(entryB).not.toMatch(/Follow `ticket-to-mr\.md` for the key/);
+    expect(entryB).toMatch(/only that step|selected (action|step)/i);
+  });
+});
+
+

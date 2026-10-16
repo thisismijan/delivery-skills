@@ -71,7 +71,7 @@ rows.
 | `^improve\s+(apply\|reject\|rollback)\s+[a-z0-9][a-z0-9-]+$` | Improvement decision | Improvement loop |
 | `^improve(?:\s+(?:[A-Z][A-Z0-9]+-\d+\|all\|status))?$` | Improvement | Improvement loop |
 | `^status(\s+[A-Z][A-Z0-9]+-\d+)?$` | Catch-up | Status (read-only) |
-| `^[A-Z][A-Z0-9]+-\d+$` (e.g. `MDF-1234`) | Single ticket | Stages 2 to 4 |
+| `^[A-Z][A-Z0-9]+-\d+$` (e.g. `MDF-1234`) | Resume | Next legal action from the ledger |
 | `^\d+$` (e.g. `740`) | Review only | Stages 3 to 4 |
 | `^\d+\s+[A-Z][A-Z0-9]+-\d+$` or `^[A-Z][A-Z0-9]+-\d+\s+\d+$` | Review only with Jira key | Stages 3 to 4 (pass both) |
 | Non-empty otherwise (path, prose, pasted epic) | Full epic | Stages 1 to 4 |
@@ -87,6 +87,19 @@ Two routing checks before you start a bare-key or prose entry:
 
 If ambiguous (e.g. "740" meaning a ticket in a numeric-only project), ask once.
 Recommended default: pure digits = MR iid.
+
+A first token that is a command word, is not a known verb, and is followed by
+nothing, a ticket key, or an MR iid, is unknown. After Phase 1 reconciles the
+ledger, select the next action for Resume, for an explicit lifecycle verb that
+names a key, and for an unknown command:
+
+`scripts/next-action.ts <args> <status|->`
+
+```
+bun "${FACTORY_ROOT}/scripts/next-action.ts" <args> <status|->
+```
+
+Pass `-` when there is no ledger. An illegal or unknown stop does not write the ledger. An explicit verb that is allowed still runs only that step.
 
 State the chosen entry and what it runs in one line, then continue.
 
@@ -263,12 +276,14 @@ tree, say they need committing; do not commit them.
    recommendation to run `/delivery retro <EPIC>`; human owns leftover
    merge/archive/Jira status.
 
-### Entry B — Single ticket
+### Entry B — Resume
 
-1. Follow `ticket-to-mr.md` for the key.
-2. If a ready MR iid exists, follow `mr-review-to-ready.md`, then record the
-   review verdict.
-3. If review ends ready, follow `release-readiness.md`.
+1. Reconcile the ledger as Phase 1 says. Select the next action with
+   `scripts/next-action.ts <args> <status|->` (`-` when there is no ledger).
+2. If it stops, tell the operator why and do not write the ledger.
+3. If it returns a step, run only that selected step as the matching Single
+   steps row (or auto, when that is the selected verb). Then print Next from
+   the auto next-step table for the new status.
 4. On terminal factory stop: record it in the ledger, brief, and end. No
    same-session poll/retry.
 
@@ -427,7 +442,8 @@ Run in the **target repo** cwd with ig-spec loaded. This is everything:
 /delivery improve reject <ID>        # reject this exact candidate
 /delivery improve rollback <VERSION> # approve restoring this exact version
 
-/delivery <KEY> | <iid> | <idea>     # the original entries, unchanged
+/delivery <KEY>                      # resume from the ledger; next legal step only
+/delivery <iid> | <idea>             # review-only, or a full epic
 /delivery help                       # this list
 ```
 
