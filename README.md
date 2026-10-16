@@ -171,17 +171,16 @@ ambiguous match stops the run instead of guessing.
   stale write instead of overwriting another session's update.
 - **Waiting never polls.** A running pipeline or deploy ends the turn with the
   command to resume.
-- **Model routing is shadow-only.** A frontier-level read-only controller
-  writes each task profile. The host's advertised model identifiers are
-  recorded, and the catalogue resolves each required capability to an
-  available model. Muse Wonder is a frontier candidate. Stages record the
-  cheaper recommended tier, gate
-  outcomes, repairs, escalations, and token or character counts under
-  `.delivery/routing/`, then emit a comparison report. They still dispatch
-  today's Sonnet/Opus selection. Fast models stay off until scored reversible
-  work clears the 90 percent bar. Safety floors keep auth, migrations,
-  concurrency, holdout review, and irreversible work on the frontier
-  recommendation.
+- **Model routing reads the host, then the catalogue.** Each run records the
+  exact subagent models the current Cursor or Claude Code account advertises
+  into `.delivery/routing/model-inventory.json`. The workflow still names the
+  required capability (standard or frontier). The catalogue then picks an
+  exact advertised identifier for that capability. Muse Wonder can cover
+  frontier work when the host lists it. A cheaper shadow recommendation is
+  recorded, never dispatched. Fast catalogue models stay evaluation-only until
+  scored reversible, strongly verified work for that exact candidate clears
+  the 90 percent bar. Safety floors keep auth, migrations, concurrency,
+  holdout review, and irreversible work on the frontier recommendation.
 - **Retro teaches the engineering journey.** It writes a chronological
   postmortem covering the problem, attempted models, counterexamples, design
   evolution, final invariants, DSA complexity, and system-design trade-offs. It
@@ -194,7 +193,7 @@ All live state belongs to the target repository and is gitignored:
 | Path | Holds |
 |------|-------|
 | `.delivery/runs/` | Run ledgers, discovery evidence, and engineering postmortems |
-| `.delivery/routing/` | Task profiles, shadow decisions, outcomes, comparison report, evaluation corpus |
+| `.delivery/routing/` | Advertised model inventory, task profiles, shadow decisions, outcomes, comparison report, evaluation corpus |
 | `.delivery/candidates/`, `.delivery/versions/` | Improvement candidates and rollback copies |
 | `.review/<change>/` | Gate commands, append-only gate results, diffs, verdicts |
 | `.review/mr-<iid>/<head-sha>/` | Review brief, max-pass findings, and draft notes |
@@ -205,9 +204,10 @@ chat after `/code-review-max`. A new head always needs a new max pass.
 ## Layout
 
 ```text
-skills/           # what both hosts load
-factory/          # gate scripts and subagent prompts
-adapters/         # host notes and the Claude Code guard hook
+skills/                    # what both hosts load
+factory/                   # gate scripts and subagent prompts
+factory/model-catalogue.json  # capability tiers to exact advertised models
+adapters/                  # host notes and the Claude Code guard hook
 ```
 
 Self-improvement (`/delivery improve`) edits `skills/delivery` only, after
