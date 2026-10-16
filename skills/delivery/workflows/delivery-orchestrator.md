@@ -24,14 +24,14 @@ merge-ready, without remembering the slash-command order.
 
 ## Trigger
 
-**Event:** operator invokes the conductor in Claude Code (target-repo cwd) with
+**Event:** operator invokes the conductor in the runtime (target-repo cwd) with
 one of:
 
 | Entry | Argument | Starts at |
 |-------|----------|-----------|
 | Full epic | file path, inline text, or pasted epic | Stage 1 |
-| Single ticket | `JIRA-KEY` | Stage 2 |
-| Review only | MR `iid` (and optional `JIRA-KEY`) | Stage 3 |
+| Single ticket | `WORK-ITEM-KEY` | Stage 2 |
+| Review only | MR `iid` (and optional `WORK-ITEM-KEY`) | Stage 3 |
 
 If the argument is ambiguous (looks like both a path and a key), ask once which
 entry they mean; recommended: treat `^[A-Z]+-\d+$` as ticket, pure digits as MR
@@ -46,7 +46,7 @@ Union of the stage preconditions for the entry point chosen. Do not start stage
 
 ### A. Full epic entry
 
-1. Run [`epic-to-backlog`](epic-to-backlog.md) to completion (including Jira key
+1. Run [`epic-to-backlog`](epic-to-backlog.md) to completion (including work-item key
    map checkpoint and **wave view**).
 2. **Ready-now set:** tickets whose blocked-by is empty (or already merged).
    If that set has more than one key — the common case when the epic is all
@@ -61,14 +61,14 @@ Union of the stage preconditions for the entry point chosen. Do not start stage
 4. **Further waves:** when the operator reports merges (or skips), recompute
    the ready-now set and either fan out again or run remaining blockers.
 5. Epic-level closing brief when nothing remains: keys, MR iids / merges,
-   stops; human owns leftover merge/archive/Jira status.
+   stops; human owns leftover merge/archive/tracker status.
 
 Fan-out brief shape:
 
 ```
 Ready for parallel worktrees (no unmerged blockers):
   git worktree add ../wt-<key> -b <branch-from-main>
-  cd ../wt-<key> && claude … → /delivery <KEY>
+  cd ../wt-<key> && <runtime> … → /delivery <KEY>
 Keys: KEY-1, KEY-2, KEY-3, …
 ```
 
@@ -89,26 +89,26 @@ Keys: KEY-1, KEY-2, KEY-3, …
 - When multiple tickets are ready-now: one fan-out brief (default). Serial
   only if the operator asks, or a ticket is a true blocker for others.
 - Dependents wait on **merged** blockers, not merely ready MRs.
-- Never auto-merge, never auto-archive, never create Jira issues, never
+- Never auto-merge, never auto-archive, never create work items, never
   auto-create worktrees unless a later build explicitly adds that.
 
 ## Done
 
 Conductor done when the chosen entry's stages have stopped and the operator has
-the final brief (artifacts + human exits: merge, `/openspec-archive`, Jira status).
+the final brief (artifacts + human exits: merge, `/openspec-archive`, tracker status).
 
 ## Out of scope
 
 - Reimplementing groom, draft, execute, holdout, code-review, or mr-review
-- Cursor runtime port
-- Auto-spawning worktrees or parallel Claude sessions (brief only; operator fans out)
+- the runtime runtime port
+- Auto-spawning worktrees or parallel the runtime sessions (brief only; operator fans out)
 
 ## Implementer notes
 
-1. Preferred v1 shape: a Claude Code skill or slash command that only routes to
+1. Preferred v1 shape: a runtime skill or slash command that only routes to
    the three workflows (or prints the exact slash commands for the operator to
    run). Smallest useful build: a skill that documents the route table and
    enforces entry detection + between-ticket briefs.
-2. Do not fork ig-spec agents into the conductor.
+2. Do not fork source-framework agents into the conductor.
 3. Live stage behaviour is in `../SKILL.md`, `auto.md`, and the current stage
    specs. If this record disagrees with them, ignore this file.

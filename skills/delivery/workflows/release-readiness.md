@@ -12,7 +12,7 @@ what merging and rolling out the change will do.
 ## Inputs
 
 - MR iid (required).
-- Jira key: from the ledger, else from the MR's source branch or title. If
+- work-item key: from the ledger, else from the MR's source branch or title. If
   neither has one, continue without it and say so in the brief.
 
 ## Preconditions
@@ -21,7 +21,7 @@ Check these in order. The first one that fails is a terminal stop.
 
 1. **Ledger.** Find it by key or iid (`delivery-ledger.md`). If none exists,
    create one for the key and record that readiness started without one.
-2. **MR is open.** Read it: `glab mr view <iid> --output json`. Use `state`,
+2. **MR is open.** Read it: the forge change view for `<iid>`. Use `state`,
    `draft`, `sha`, `source_branch`, `target_branch`, `has_conflicts`,
    `detailed_merge_status`, and `head_pipeline`.
    - `merged` → stop: "already merged; run `/delivery verify <iid>` after
@@ -49,7 +49,7 @@ Check these in order. The first one that fails is a terminal stop.
      Projects with merged-results pipelines run the MR's pipeline on
      `refs/merge-requests/<iid>/merge`, a commit merging the head into the
      target, so its sha is never the head itself. Read the parents with
-     `glab api projects/<project>/repository/commits/<head_pipeline.sha>`.
+     the forge provider's commit lookup for `<head_pipeline.sha>`.
 
    A pipeline that belongs to an older head does not count. Its status must be
    `success`.
@@ -68,7 +68,7 @@ Collect the inputs the lenses need. Link them in the ledger; do not copy them.
 - The MR description and diff (`git diff <base> <head>` using the ledger's
   recorded base).
 - The OpenSpec change on the source branch: `proposal.md`, `design.md`, `tasks.md`.
-- The Jira ticket.
+- The work item.
 - Stage 3's findings: what was fixed, what was dismissed, and why.
 - ADRs the change adds, supersedes, or contradicts.
 - How the target repo deploys: its CI deploy jobs, deploy manifests, and
@@ -256,6 +256,6 @@ The brief is the checkpoint. What the operator says next decides what happens:
 
 - Merge, approve, or set the MR to merge when the pipeline succeeds.
 - Deploy, change a flag, or run a migration.
-- Transition Jira or create Jira issues.
+- Transition the tracker or create work items.
 - Re-review code quality. That is Stage 3's job.
 - Present a default number as if it came from the repo.

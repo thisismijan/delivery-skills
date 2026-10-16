@@ -1,22 +1,22 @@
 # Workflow: ticket-to-mr
 
-Take one Jira ticket through OpenSpec draft, human spec approval, and execute
-until a ready GitLab MR exists. Compose `/draft` and `/execute`;
+Take one work item through OpenSpec draft, human spec approval, and execute
+until a ready merge request exists. Compose `/draft` and `/execute`;
 do not reimplement assessors, gates, or holdout.
 
 Terms: see [`NOTES.md`](../NOTES.md).
 
 ## Loop
 
-Recurring: a draft-ready Jira story needs a reviewed, ready-to-merge MR without
+Recurring: a draft-ready the tracker story needs a reviewed, ready-to-merge MR without
 the factory merging it.
 
 ## Trigger
 
-**Event:** operator (or conductor) supplies a single Jira key `PROJ-123` in a
-Cursor or Claude Code session with cwd = **target repo** and this pack installed.
+**Event:** operator (or conductor) supplies a single work-item key `PROJ-123` in a
+the runtime or the runtime session with cwd = **target repo** and this pack installed.
 
-One ticket per run (one cwd / worktree / Claude session). For an epic's
+One ticket per run (one cwd / worktree / the runtime session). For an epic's
 children, see [`epic-to-backlog`](epic-to-backlog.md) and
 [`delivery-orchestrator`](delivery-orchestrator.md): every ready-now key gets
 its own worktree run; true blockers merge before their dependents start. Do
@@ -26,8 +26,8 @@ not share one dirty worktree across parallel tickets.
 
 - Target repo has `openspec/` initialized (expanded profile) — required before
   draft can author a change
-- Atlassian MCP authorized; `jira_base_url` configured on the plugin
-- `glab` authenticated (`glab auth login`)
+- tracker provider authorized; `tracker_base_url` configured on the plugin
+- the forge provider authenticated
 - Bun available for gate scripts
 - Ticket body is expected to be draft-ready (from groom or equivalent); weak
   tickets are handled by draft's terminal clarify/reject, not by this workflow
@@ -44,23 +44,23 @@ not share one dirty worktree across parallel tickets.
 ### 1. Draft
 
 ```
-/draft <JIRA-KEY>
+/draft <WORK-ITEM-KEY>
 ```
 
 Outcomes (terminal for this step — do not poll):
 
 | Outcome | Meaning | Next |
 |---------|---------|------|
-| Spec linked (`SPEC_LINKED`) | Change under `openspec/changes/<name>/`, committed on branch, Jira comment with link | Checkpoint 2 |
-| split required | Ticket exceeds the small-context atomicity contract; Jira comment proposes vertical tickets | Stop. Human creates the smaller tickets; run draft once per key |
-| clarify / reject | Jira comment posted with gaps | Stop. Human edits ticket; re-invoke draft in a **new** session |
-| escalate (feasibility / malformed verdict) | Jira comment posted | Stop. Human changes scope; new session |
+| Spec linked (`SPEC_LINKED`) | Change under `openspec/changes/<name>/`, committed on branch, tracker comment with link | Checkpoint 2 |
+| split required | Ticket exceeds the small-context atomicity contract; tracker comment proposes vertical tickets | Stop. Human creates the smaller tickets; run draft once per key |
+| clarify / reject | tracker comment posted with gaps | Stop. Human edits ticket; re-invoke draft in a **new** session |
+| escalate (feasibility / malformed verdict) | tracker comment posted | Stop. Human changes scope; new session |
 
 ### 2. Checkpoint — approve the spec (push right)
 
 Present a **brief**:
 
-- Jira key + link
+- work-item key + link
 - Change name / branch name
 - Paths: `proposal.md`, `tasks.md`, `specs/` under the change dir
 - One-line what the change claims to do (from proposal, not a paste of the whole file)
@@ -79,7 +79,7 @@ Rules:
 On explicit approval:
 
 ```
-/execute <JIRA-KEY>
+/execute <WORK-ITEM-KEY>
 ```
 
 Factory behavior this workflow must not override:
@@ -88,7 +88,7 @@ Factory behavior this workflow must not override:
 - Draft MR opened **only** on holdout `approve`; Stage 3 marks it ready
 - On changes-requested: bounded fix loop, still no MR until approve
 - On reject / exhausted attempts: push branch, escalate, **no** MR
-- Never merge, never Jira status transition
+- Never merge, never tracker status transition
 
 ### 4. Done
 
@@ -102,7 +102,7 @@ Workflow is done when either:
 | Artifact | Consumer |
 |----------|----------|
 | Draft MR iid + URL | [`mr-review-to-ready`](mr-review-to-ready.md) |
-| Jira key | address-comments later if needed |
+| work-item key | address-comments later if needed |
 | Change name / branch | `/openspec-archive` after human merge (outside this workflow) |
 
 ## Failure modes
@@ -119,7 +119,7 @@ Workflow is done when either:
 
 - Groom / epic breakdown
 - The host's max correctness pass, `/mr-review`, `/address-comments`
-- Merge, archive, Jira status
+- Merge, archive, tracker status
 - Multi-ticket batches inside one execute
 
 ## Implementer notes

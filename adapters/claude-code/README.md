@@ -5,7 +5,11 @@ Claude Code loads personal skills from `~/.claude/skills/<name>/SKILL.md`.
 From the clone:
 
 ```bash
-./install.sh --claude
+./install.sh --skills-dir "${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}" --adapter claude-code
+# compatibility wrapper:
+bash adapters/claude-code/install.sh
+# or the named-host wrapper:
+bash adapters/compat.sh --claude
 ```
 
 This pack replaces the ig-spec Claude plugin. Do not also

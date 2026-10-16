@@ -1,33 +1,27 @@
 {
-	"version": 2,
+	"version": 3,
 	"tiers": {
 		"frontier": {
-			"cursor": [
+			"candidates": [
 				{ "id": "muse-wonder-1.0-high", "availability": "live" },
 				{ "id": "claude-opus-5-5-high", "availability": "live" },
-				{ "id": "claude-opus-4-8-thinking-high", "availability": "live" }
-			],
-			"claudeCode": [
+				{ "id": "claude-opus-4-8-thinking-high", "availability": "live" },
 				{ "id": "opus", "availability": "live" }
 			],
 			"purpose": "routing, architecture, high-risk reasoning, and adjudication"
 		},
 		"standard": {
-			"cursor": [
+			"candidates": [
 				{ "id": "claude-sonnet-5-5-medium", "availability": "live" },
-				{ "id": "gemini-4-argon-medium", "availability": "live" }
-			],
-			"claudeCode": [
+				{ "id": "gemini-4-argon-medium", "availability": "live" },
 				{ "id": "sonnet", "availability": "live" }
 			],
 			"purpose": "ordinary implementation and bounded reasoning"
 		},
 		"fast": {
-			"cursor": [
+			"candidates": [
 				{ "id": "muse-spark-1.3-medium", "availability": "evaluation-only" },
-				{ "id": "composer-1", "availability": "evaluation-only" }
-			],
-			"claudeCode": [
+				{ "id": "composer-1", "availability": "evaluation-only" },
 				{ "id": "haiku", "availability": "evaluation-only" }
 			],
 			"purpose": "mechanical and strongly verified work"

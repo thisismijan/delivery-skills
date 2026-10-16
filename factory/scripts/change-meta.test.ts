@@ -14,22 +14,22 @@ import {
 test("parse round-trips a valid meta", () => {
 	const meta = parseChangeMeta(
 		JSON.stringify({
-			jiraKey: "SMAI-123",
+			workItemKey: "SMAI-123",
 			complexitySignal: "high",
-			opusJustification: "intricate locking",
+			frontierJustification: "intricate locking",
 		}),
 	);
-	expect(meta.jiraKey).toBe("SMAI-123");
+	expect(meta.workItemKey).toBe("SMAI-123");
 	expect(meta.complexitySignal).toBe("high");
-	expect(meta.opusJustification).toBe("intricate locking");
+	expect(meta.frontierJustification).toBe("intricate locking");
 });
 
-test("opusJustification is optional", () => {
+test("frontierJustification is optional", () => {
 	const meta = parseChangeMeta(
-		JSON.stringify({ jiraKey: "SMAI-1", complexitySignal: "low" }),
+		JSON.stringify({ workItemKey: "SMAI-1", complexitySignal: "low" }),
 	);
 	expect(meta.complexitySignal).toBe("low");
-	expect(meta.opusJustification).toBeUndefined();
+	expect(meta.frontierJustification).toBeUndefined();
 });
 
 test("fail closed on invalid JSON", () => {
@@ -38,18 +38,23 @@ test("fail closed on invalid JSON", () => {
 
 test("fail closed on a bad complexitySignal", () => {
 	expect(() =>
-		parseChangeMeta(JSON.stringify({ jiraKey: "X", complexitySignal: "huge" })),
+		parseChangeMeta(
+			JSON.stringify({ workItemKey: "X", complexitySignal: "huge" }),
+		),
 	).toThrow();
 });
 
-test("fail closed on a missing jiraKey", () => {
+test("fail closed on a missing workItemKey", () => {
 	expect(() =>
 		parseChangeMeta(JSON.stringify({ complexitySignal: "low" })),
 	).toThrow();
 });
 
 test("serialize then parse is stable", () => {
-	const input = { jiraKey: "SMAI-9", complexitySignal: "medium" as const };
+	const input = {
+		workItemKey: "SMAI-9",
+		complexitySignal: "medium" as const,
+	};
 	expect(parseChangeMeta(serializeChangeMeta(input))).toEqual(input);
 });
 
@@ -63,14 +68,14 @@ test("write then read round-trips through the change dir", async () => {
 	const dir = await mkdtemp(join(tmpdir(), "change-meta-"));
 	try {
 		await writeChangeMeta(dir, {
-			jiraKey: "SMAI-42",
+			workItemKey: "SMAI-42",
 			complexitySignal: "high",
-			opusJustification: "cross-cutting refactor",
+			frontierJustification: "cross-cutting refactor",
 		});
 		const meta = await readChangeMeta(dir);
-		expect(meta.jiraKey).toBe("SMAI-42");
+		expect(meta.workItemKey).toBe("SMAI-42");
 		expect(meta.complexitySignal).toBe("high");
-		expect(meta.opusJustification).toBe("cross-cutting refactor");
+		expect(meta.frontierJustification).toBe("cross-cutting refactor");
 	} finally {
 		await rm(dir, { recursive: true, force: true });
 	}

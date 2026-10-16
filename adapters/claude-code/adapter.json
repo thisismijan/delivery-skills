@@ -1,0 +1,13 @@
+{
+  "name": "claude-code",
+  "version": 1,
+  "capabilities": [
+    { "id": "process.run", "available": true, "mode": "native" },
+    { "id": "agent.dispatch", "available": true, "mode": "native" },
+    { "id": "model.inventory", "available": true, "mode": "native" },
+    { "id": "forge.change", "available": true, "mode": "provider", "invocation": "gl-mr" },
+    { "id": "tracker.item", "available": false, "mode": "unavailable" },
+    { "id": "review.publish", "available": true, "mode": "provider", "invocation": "gl-note" },
+    { "id": "mutation.guard", "available": true, "mode": "native", "invocation": "adapters/claude-code/settings.json" }
+  ]
+}

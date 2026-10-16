@@ -2,6 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FAST_SAFETY_FLOORS } from "./fast-dispatch";
+import {
+	invokeProvider,
+	missingProvider,
+	readForgeChange,
+	readTrackerItem,
+} from "./providers";
 
 const ROOT = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
@@ -174,7 +180,7 @@ describe("bounded recovery and replay safety", () => {
 	test("factory dispatch resolves exact models from the runtime inventory", () => {
 		expect(runtime).toContain("Runtime model inventory");
 		expect(runtime).toContain("model-inventory.json");
-		expect(runtime).toContain("Muse Wonder");
+		expect(runtime).toContain("exact model identifiers");
 		expect(runtime).toContain("evaluation-only");
 		expect(execute).toContain("exact available model");
 		expect(draft).toContain("exact available model");
@@ -232,6 +238,8 @@ describe("portable mutation boundaries", () => {
 		for (const skill of [execute, delivery, addressComments, draft]) {
 			expect(skill).toContain("canStartStage");
 			expect(skill).toContain("stage-gating.ts");
+			expect(skill).toContain("<runtime-manifest.json>");
+			expect(skill).not.toContain("<runtime-id>");
 		}
 	});
 
@@ -248,5 +256,37 @@ describe("portable mutation boundaries", () => {
 	test("Cursor is declared unenforced until a real hook exists", () => {
 		expect(cursorAdapter).toMatch(/unenforced/i);
 		expect(cursorAdapter).toMatch(/mutating stages? (stay |remain )?blocked/i);
+	});
+});
+
+describe("normalized provider contracts", () => {
+	test("an absent forge or tracker provider fails closed", () => {
+		expect(readForgeChange({ kind: "forge", mode: "absent" }).reason).toBe(
+			"missing-provider",
+		);
+		expect(readTrackerItem({ kind: "tracker", mode: "absent" })).toEqual(
+			missingProvider("tracker"),
+		);
+		expect(
+			invokeProvider({ kind: "review", mode: "absent" }, () => ({
+				ok: true,
+				value: true,
+			})).ok,
+		).toBe(false);
+	});
+
+	test("a fake forge and tracker return normalized results", () => {
+		expect(
+			readForgeChange(
+				{ kind: "forge", mode: "available", invocation: "fake.forge" },
+				() => ({ ok: true, change: { id: "12" } }),
+			).value,
+		).toEqual({ id: "12" });
+		expect(
+			readTrackerItem(
+				{ kind: "tracker", mode: "available", invocation: "fake.tracker" },
+				() => ({ ok: true, item: { key: "WORK-1" } }),
+			).value,
+		).toEqual({ key: "WORK-1" });
 	});
 });

@@ -1,61 +1,99 @@
-# Delivery skills
+# Delivery
 
-One SDLC conductor for **Cursor** and **Claude Code**. Clone this repository,
-install once per host, and run `/delivery`.
+A portable software-delivery skill pack for any LLM or agent runtime that can
+load skills and satisfy a small capability contract. The workflow and safety
+rules are runtime-independent; native commands, hooks, models, forges, trackers,
+and spec tools are optional adapters or providers.
+
+This pack does not run in a text-only chat. Deterministic gates need subprocess
+execution. Mutating stages need an enforceable mutation boundary. Forge,
+tracker, and review publication run only when those providers are present.
 
 The pack includes:
 
 - `/delivery` — thin conductor, ledger, auto, retro, approval-gated improvement
-- `/groom` `/draft` `/execute` `/address-comments` — portable factory (vendored from ig-spec, no Claude plugin required)
-- `/code-review-max` `/mr-review` — dual-pass GitLab review
-- `/openspec-archive` — post-merge OpenSpec archive
+- `/groom` `/draft` `/execute` `/address-comments` — portable factory stages
+- `/code-review-max` `/mr-review` — dual-pass change review
+- an archive stage supplied by the selected spec provider
 
 ## Install
 
 ```bash
 git clone https://gitlab.com/Sheikh.Ahmed1/delivery-skills.git
 cd delivery-skills
-./install.sh                 # Cursor + Claude Code
-# ./install.sh --all         # also copies the Cloud Agent store when writable
-# ./install.sh --cursor
-# ./install.sh --claude
-# ./install.sh --store       # Cursor Cloud Agent skill store
+./install.sh --skills-dir .agents/skills
+# ./install.sh --skills-dir /path/to/skills --adapter <name>
+# ./install.sh --skills-dir /path/to/skills --provider <name>
 ```
 
-`--all` installs Cursor and Claude Code, then copies the Cloud Agent store if
-that path is writable. On a Mac it skips `/cursor` instead of failing after
-the desktop hosts are already linked.
+`--skills-dir` is required. The installer never infers a host. Optional
+`--adapter <name>` applies setup from `adapters/<name>/` after the generic pack
+is in place. Optional `--provider <name>` selects a forge, tracker, or spec-tool
+provider from `providers/<name>/`. Generic install includes none of those unless
+selected. Named-host wrappers live with those adapters, not in the generic
+interface.
 
 What the installer does:
 
 - Runs `bun install --frozen-lockfile` in `factory/`, so every machine uses the
   same pinned dependencies.
-- Links each skill into `~/.cursor/skills` and `~/.claude/skills`, replacing
-  stale copied directories with symlinks.
-- Installs `gl-mr` and `gl-note` into `${DELIVERY_BIN_DIR:-~/.local/bin}`.
-  Make sure that directory is on `PATH`.
-- For the Cloud Agent store, copies the factory to `skills/_factory/` so it syncs
-  with the skills, without `node_modules` or review scratch files.
+- Copies each skill and the runtime into the destination, writing a managed
+  manifest. Reinstalls replace only managed files.
+- Installs the generic runtime beside the skills at `_factory/`, without
+  `node_modules` or review scratch files.
+- Leaves unmanaged files and delivery state (`runs`, `candidates`, `versions`)
+  untouched.
+- Fails without replacing an existing install when the destination cannot be
+  written.
 
-Open a **new** chat on each host so the skills reload.
+Reload the host session so the installed skills are picked up.
 
-### GitLab access
+## Quick start
 
-`gl-mr` and `gl-note` read `GITLAB_TOKEN` first, then the file named by
-`GL_TOKEN_FILE` (default `~/token`). The token is passed to curl through a
-private temporary config file, never on the command line. The GitLab host and
-project come from the `origin` remote, including credentialed HTTPS remotes.
+1. Install the generic pack into a skills directory your runtime loads.
+2. Configure a version-1 runtime manifest. Capability invocations are opaque
+   references interpreted by the runtime or selected adapter:
 
-In a Cloud Agent, add `GITLAB_TOKEN` as a secret and run
-`bash skills/mr-review/cloud-setup.sh` once if the wrappers are not on `PATH`.
+   ```json
+   {
+     "version": 1,
+     "capabilities": {
+       "process.run": {
+         "available": true,
+         "mode": "native",
+         "invocation": "subprocess"
+       },
+       "mutation.guard": {
+         "available": false,
+         "mode": "unavailable",
+         "enforcement": "unknown"
+       }
+     }
+   }
+   ```
 
-### Claude Code guard hook
+3. In a target repository, invoke the `delivery` skill with `help` or `status`.
+   If the runtime exposes slash skills, the equivalent forms are `/delivery
+   help` and `/delivery status`.
 
-Merge `adapters/claude-code/settings.json` into your Claude Code settings and
-set `DELIVERY_FACTORY_ROOT` to this clone's `factory/` directory. The hook blocks
-AI attribution, `glab mr merge`, `glab mr close`, force pushes, hard resets, and
-Jira mutations. Cursor is declared unenforced until a real hook exists, so mutating
-stages stay blocked there.
+Read-only stages can run with a smaller capability set. Mutating stages require
+`mutation.guard` with `enforcement: "enforced"`. A missing capability produces a
+configuration remedy instead of a guessed fallback.
+
+### Capability prerequisites
+
+A host can run this pack when it can:
+
+- Load skills from the installed directory.
+- Read and write the target repository, including `.delivery/` and `.review/`.
+- Run subprocesses for deterministic gates (tests, verdicts, ledgers).
+- Enforce a mutation boundary before any mutating stage. Without that, read-only
+  stages still run and mutating stages stop closed.
+- Provide forge, tracker, or review-publish capabilities when a stage needs
+  them. Missing providers stop at that boundary and keep completed artifacts.
+
+Portability means any host that satisfies those capabilities. It does not mean
+the pack invents tools a host does not expose.
 
 ## Use
 
@@ -66,20 +104,19 @@ In the target repository:
 /delivery help
 ```
 
-`/delivery` invokes `/groom`, `/draft`, `/execute`, `/address-comments`,
-`/code-review-max` or native `/code-review max`, `/mr-review`, and
-`/openspec-archive`. It does not call `/ig-spec:*`.
+`/delivery` invokes the stage skills through delivery descriptors. Slash names
+are packaging sugar for hosts that load skills that way.
 
 ## SDLC
 
 `/delivery` is the only command to remember. It routes into the stage skills
 below, records state in the target repository's `.delivery/runs/`, and stops for
-operator-owned decisions. Humans own merge, archive, Jira status, and any
+operator-owned decisions. Humans own merge, archive, tracker status, and any
 live-skill install.
 
 ```mermaid
 flowchart TD
-  start["/delivery"] --> detect["Detect host and entry"]
+  start["/delivery"] --> detect["Detect entry"]
   detect --> ledger["Reconcile ledger in .delivery/runs/"]
 
   ledger --> discover["discover"]
@@ -103,8 +140,8 @@ flowchart TD
   assess -->|"too large"| split["Split required; human creates tickets"]
   assess --> feasible["Feasibility"]
   feasible --> seams["Test-seam checkpoint"]
-  seams -->|"operator yes"| openspec["Author OpenSpec, tests-first"]
-  openspec --> drafted["Spec linked; wait for execute"]
+  seams -->|"operator yes"| spec["Author change contract, tests-first"]
+  spec --> drafted["Contract linked; wait for execute"]
 
   drafted -->|"typing execute is the build approval"| execute
   execute --> resume["Reconcile MR, tests, gates, dirty tree"]
@@ -116,8 +153,8 @@ flowchart TD
   premise -->|"no third fix until then"| holdout
 
   mr --> review
-  review --> maxPass["code-review-max or native code-review max"]
-  maxPass -->|"pinned to MR head"| mrReview["mr-review"]
+  review --> maxPass["correctness review pass"]
+  maxPass -->|"pinned to change head"| mrReview["mr-review"]
   mrReview -->|"ready"| ship
   mrReview -->|"blocked"| address
   address -->|"cumulative gates and holdout"| review
@@ -157,34 +194,33 @@ ambiguous match stops the run instead of guessing.
 - **Approval needs every dimension.** The holdout review approves only when the
   change is faithful to the spec, the tests are meaningful, the code matches the
   spec, and it is ready for main.
-- **Execute opens a draft MR.** It is marked ready only after both review
-  passes. Release readiness refuses a draft MR or a missing review verdict; an
-  operator cannot stand in for a review.
+- **Execute opens a draft change request.** It is marked ready only after both
+  review passes. Release readiness refuses a draft change or a missing review
+  verdict; an operator cannot stand in for a review.
 - **Comments are handled once.** Every in-scope comment must be classified,
   with no missing, extra, or duplicate ids. Only replies from the factory's own
   account mark a thread handled, and a human follow-up brings it back into scope.
   If a run stops after replying, the next run still performs the holdout review.
-- **Published notes are jailed.** `gl-note` posts only files under the target
-  repository's `.review/` directory and refuses symlink escapes and secret-like
-  filenames.
+- **Published notes are jailed.** The review publisher posts only files under
+  the target repository's `.review/` directory and refuses symlink escapes and
+  secret-like filenames.
 - **Run state is shared safely.** Ledgers use a generation number and refuse a
   stale write instead of overwriting another session's update.
 - **Waiting never polls.** A running pipeline or deploy ends the turn with the
   command to resume.
-- **Model routing reads the host, then the catalogue.** Each run records the
-  exact subagent models the current Cursor or Claude Code account advertises
-  into `.delivery/routing/model-inventory.json`. The workflow still names the
+- **Model routing reads the runtime, then the catalogue.** Each run records the
+  exact model identifiers the current runtime advertises into
+  `.delivery/routing/model-inventory.json`. The workflow still names the
   required capability (standard or frontier). The catalogue then picks an
-  exact advertised identifier for that capability. Muse Wonder can cover
-  frontier work when the host lists it. A cheaper shadow recommendation is
-  recorded, never dispatched. Fast catalogue models stay evaluation-only until
-  representative-run scores for that exact candidate clear the 90 percent bar
-  with at least five reversible cases and no critical misses. Live evidence is
-  not mixed into that sample. Safety floors keep auth, migration, concurrency,
-  distributed-state, weak-verification, holdout review, and irreversible work
-  on the frontier recommendation. Live availability stays unchanged without an
-  exact operator promotion approval naming the candidate. Public rankings and
-  unscored fixtures never promote.
+  exact advertised identifier for that capability. A cheaper shadow
+  recommendation is recorded, never dispatched. Fast catalogue models stay
+  evaluation-only until representative-run scores for that exact candidate
+  clear the 90 percent bar with at least five reversible cases and no critical
+  misses. Live evidence is not mixed into that sample. Safety floors keep auth,
+  migration, concurrency, distributed-state, weak-verification, holdout review,
+  and irreversible work on the frontier recommendation. Live availability stays
+  unchanged without an exact operator promotion approval naming the candidate.
+  Public rankings and unscored fixtures never promote.
 - **Retro teaches the engineering journey.** It writes a chronological
   postmortem covering the problem, attempted models, counterexamples, design
   evolution, final invariants, DSA complexity, and system-design trade-offs. It
@@ -200,18 +236,19 @@ All live state belongs to the target repository and is gitignored:
 | `.delivery/routing/` | Advertised model inventory, task profiles, shadow decisions, outcomes, comparison report, evaluation corpus |
 | `.delivery/candidates/`, `.delivery/versions/` | Improvement candidates and rollback copies |
 | `.review/<change>/` | Gate commands, append-only gate results, diffs, verdicts |
-| `.review/mr-<iid>/<head-sha>/` | Review brief, max-pass findings, and draft notes |
+| `.review/<change-id>/<head-sha>/` | Review brief, max-pass findings, and draft notes |
 
-Review artifacts are keyed by the MR head, so `/mr-review` can run in a fresh
-chat after `/code-review-max`. A new head always needs a new max pass.
+Review artifacts are keyed by the reviewed head, so `/mr-review` can run in a
+fresh session after `/code-review-max`. A new head always needs a new max pass.
 
 ## Layout
 
 ```text
-skills/                    # what both hosts load
+skills/                    # generic skills any capable host can load
 factory/                   # gate scripts and subagent prompts
 factory/model-catalogue.json  # capability tiers to exact advertised models
-adapters/                  # host notes and the Claude Code guard hook
+adapters/                  # optional runtime integrations and compatibility
+providers/                 # optional forge, tracker, review, and spec tools
 ```
 
 Self-improvement (`/delivery improve`) edits `skills/delivery` only, after
@@ -225,5 +262,5 @@ bun install --frozen-lockfile
 bun run check
 bun test
 cd ..
-BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks/delivery-specs.test.ts
+BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks
 ```

@@ -67,15 +67,15 @@ test("slugify a title with leading and trailing spaces works", () => {
 // groomOutputDir — path shape
 // ---------------------------------------------------------------------------
 
-test("groomOutputDir returns a path under .ig-spec/grooming/<slug>/", () => {
+test("groomOutputDir returns a path under .delivery/grooming/<slug>/", () => {
 	const dir = groomOutputDir("Add export button");
 	const slug = slugify("Add export button");
-	expect(dir).toBe(`.ig-spec/grooming/${slug}/`);
+	expect(dir).toBe(`.delivery/grooming/${slug}/`);
 });
 
-test("groomOutputDir starts with .ig-spec/grooming/", () => {
+test("groomOutputDir starts with .delivery/grooming/", () => {
 	const dir = groomOutputDir("Any Title Here");
-	expect(dir.startsWith(".ig-spec/grooming/")).toBe(true);
+	expect(dir.startsWith(".delivery/grooming/")).toBe(true);
 });
 
 test("groomOutputDir ends with a trailing slash", () => {
@@ -108,17 +108,17 @@ test("groomOutputDir path does not contain path-traversal sequences", () => {
 
 test("assertGroomPath rejects traversal, absolute paths, and symlink escapes", async () => {
 	const root = await mkdtemp(join(tmpdir(), "groom-paths-"));
-	await mkdir(join(root, ".ig-spec", "grooming"), { recursive: true });
-	await symlink(tmpdir(), join(root, ".ig-spec", "grooming", "escape"));
+	await mkdir(join(root, ".delivery", "grooming"), { recursive: true });
+	await symlink(tmpdir(), join(root, ".delivery", "grooming", "escape"));
 	try {
 		await expect(assertGroomPath(root, "../outside.md")).rejects.toThrow();
 		await expect(assertGroomPath(root, "/tmp/outside.md")).rejects.toThrow();
 		await expect(
-			assertGroomPath(root, ".ig-spec/grooming/escape/out.md"),
+			assertGroomPath(root, ".delivery/grooming/escape/out.md"),
 		).rejects.toThrow("symlink");
 		await expect(
-			assertGroomPath(root, ".ig-spec/grooming/safe/draft.md"),
-		).resolves.toContain(".ig-spec/grooming/safe/draft.md");
+			assertGroomPath(root, ".delivery/grooming/safe/draft.md"),
+		).resolves.toContain(".delivery/grooming/safe/draft.md");
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

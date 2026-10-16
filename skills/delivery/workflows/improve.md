@@ -6,8 +6,8 @@ against the current skill, and installs it only after the operator approves that
 exact candidate.
 
 This workflow may change only the delivery skill, its bundled workflows, and its
-contract tests. Improvements to ig-spec, factory skills, target repositories,
-review skills, CI, or Jira remain ordinary tickets or merge requests.
+contract tests. Improvements to this delivery pack, factory skills, target repositories,
+review skills, CI, or the tracker remain ordinary tickets or merge requests.
 
 ## Inputs
 
@@ -136,9 +136,9 @@ gate, or reduce an approval requirement.
 
 ### 4. Adversarial evaluation
 
-Use a bounded, read-only evaluation phase. In Cursor, run three fresh subagents
-in parallel. In Claude Code, a dynamic workflow may run the equivalent phase
-when that runtime is enabled. The candidate must not depend on Claude Code:
+Use a bounded, read-only evaluation phase. In the runtime, run three fresh subagents
+in parallel. In the runtime, a dynamic workflow may run the equivalent phase
+when that runtime is enabled. The candidate must not depend on the runtime:
 subagents remain the portable path.
 
 Give every evaluator the same immutable brief: evidence, baseline hash,
@@ -261,8 +261,8 @@ Retro acceptance is not installation approval.
 - Learn from generated summaries when primary evidence exists.
 - Copy secrets, personal data, transcripts, or product source into the skill.
 - Weaken or delete a test, gate, review requirement, approval, or safety rule.
-- Modify ig-spec, review skills, factory skills, target repositories, CI, Jira,
-  or GitLab.
+- Modify this delivery pack, review skills, factory skills, target repositories, CI, the tracker,
+  or the forge.
 - Continue using newly installed instructions in the conversation that
   installed them.
 - Apply or rollback a leftover copy found beside the installed skill.

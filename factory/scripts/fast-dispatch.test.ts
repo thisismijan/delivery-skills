@@ -288,7 +288,7 @@ test("passing evidence without approval leaves availability unchanged", async ()
 	const next = applyFastPromotion(catalogue, verdict);
 	expect(next).toEqual(before);
 	expect(
-		next.tiers.fast.cursor.find((candidate) => candidate.id === SPARK)
+		next.tiers.fast.candidates.find((candidate) => candidate.id === SPARK)
 			?.availability,
 	).toBe("evaluation-only");
 	expect(catalogue).toEqual(before);
@@ -315,7 +315,7 @@ test("public rankings do not promote", async () => {
 	expect(verdict.availability).toBe("evaluation-only");
 	expect(verdict.evidenceCleared).toBe(false);
 	expect(
-		applyFastPromotion(catalogue, verdict).tiers.fast.cursor.find(
+		applyFastPromotion(catalogue, verdict).tiers.fast.candidates.find(
 			(candidate) => candidate.id === SPARK,
 		)?.availability,
 	).toBe("evaluation-only");
@@ -331,15 +331,15 @@ test("exact operator promotion approval can mark only that candidate live", asyn
 	expect(verdict.availability).toBe("live");
 	const next = applyFastPromotion(catalogue, verdict);
 	expect(
-		next.tiers.fast.cursor.find((candidate) => candidate.id === SPARK)
+		next.tiers.fast.candidates.find((candidate) => candidate.id === SPARK)
 			?.availability,
 	).toBe("live");
 	expect(
-		next.tiers.fast.cursor.find((candidate) => candidate.id === COMPOSER)
+		next.tiers.fast.candidates.find((candidate) => candidate.id === COMPOSER)
 			?.availability,
 	).toBe("evaluation-only");
 	expect(
-		next.tiers.fast.claudeCode.find((candidate) => candidate.id === "haiku")
+		next.tiers.fast.candidates.find((candidate) => candidate.id === "haiku")
 			?.availability,
 	).toBe("evaluation-only");
 	expect(catalogue).toEqual(before);

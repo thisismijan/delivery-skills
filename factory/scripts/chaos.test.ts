@@ -229,7 +229,7 @@ test("re-review: verdict with invalid 'satisfied' enum never yields approve — 
 // 1. A draft with zero acceptance criteria must never verify as a writable
 //    final artifact (verifyTicket returns ok false).
 // 2. Any resolved output path from groomOutputDir must stay within
-//    .ig-spec/grooming/ — even for adversarial titles containing ../, /, etc.
+//    .delivery/grooming/ — even for adversarial titles containing ../, /, etc.
 // ---------------------------------------------------------------------------
 
 test("groom chaos: draft with zero acceptance criteria is never a valid final artifact", async () => {
@@ -370,42 +370,42 @@ Nothing.
 	expect((await verifyTicket(oversizedCriterionSet)).ok).toBe(false);
 });
 
-test("groom chaos: groomOutputDir always stays within .ig-spec/grooming/ for a normal title", () => {
+test("groom chaos: groomOutputDir always stays within .delivery/grooming/ for a normal title", () => {
 	const dir = groomOutputDir("normal grooming title");
-	expect(dir.startsWith(".ig-spec/grooming/")).toBe(true);
+	expect(dir.startsWith(".delivery/grooming/")).toBe(true);
 });
 
-test("groom chaos: adversarial title with ../ never escapes .ig-spec/grooming/", () => {
+test("groom chaos: adversarial title with ../ never escapes .delivery/grooming/", () => {
 	const adversarial = "../../../etc/passwd";
 	const dir = groomOutputDir(adversarial);
 	// The resolved path must still start under the grooming root
-	expect(dir.startsWith(".ig-spec/grooming/")).toBe(true);
+	expect(dir.startsWith(".delivery/grooming/")).toBe(true);
 	// It must not contain a path-traversal sequence
 	expect(dir).not.toContain("../");
 	expect(dir).not.toContain("..");
 });
 
-test("groom chaos: adversarial title with leading slash never escapes .ig-spec/grooming/", () => {
+test("groom chaos: adversarial title with leading slash never escapes .delivery/grooming/", () => {
 	const adversarial = "/absolute/path/injection";
 	const dir = groomOutputDir(adversarial);
-	expect(dir.startsWith(".ig-spec/grooming/")).toBe(true);
+	expect(dir.startsWith(".delivery/grooming/")).toBe(true);
 });
 
-test("groom chaos: adversarial title with backslash never escapes .ig-spec/grooming/", () => {
+test("groom chaos: adversarial title with backslash never escapes .delivery/grooming/", () => {
 	const adversarial = "..\\..\\windows\\system32";
 	const dir = groomOutputDir(adversarial);
-	expect(dir.startsWith(".ig-spec/grooming/")).toBe(true);
+	expect(dir.startsWith(".delivery/grooming/")).toBe(true);
 	expect(dir).not.toContain("\\");
 });
 
-test("groom chaos: adversarial title mixing path separators never escapes .ig-spec/grooming/", () => {
+test("groom chaos: adversarial title mixing path separators never escapes .delivery/grooming/", () => {
 	const adversarial = "../foo/../../bar";
 	const dir = groomOutputDir(adversarial);
-	expect(dir.startsWith(".ig-spec/grooming/")).toBe(true);
+	expect(dir.startsWith(".delivery/grooming/")).toBe(true);
 	expect(dir).not.toContain("../");
 });
 
-test("groom chaos: groomOutputDir output never equals or escapes the parent of .ig-spec/grooming/", () => {
+test("groom chaos: groomOutputDir output never equals or escapes the parent of .delivery/grooming/", () => {
 	const titles = [
 		"../../../root",
 		"/etc/passwd",
@@ -417,6 +417,6 @@ test("groom chaos: groomOutputDir output never equals or escapes the parent of .
 	];
 	for (const title of titles) {
 		const dir = groomOutputDir(title);
-		expect(dir.startsWith(".ig-spec/grooming/")).toBe(true);
+		expect(dir.startsWith(".delivery/grooming/")).toBe(true);
 	}
 });

@@ -1,7 +1,9 @@
 import { sanitizeHumanText } from "./human-text";
 
+export const AUDIT_PREFIX = "**delivery** ·";
+
 export function auditComment(event: string, body: string): string {
-	return `**ig-spec** · ${event}\n\n${sanitizeHumanText(body)}`;
+	return `${AUDIT_PREFIX} ${event}\n\n${sanitizeHumanText(body)}`;
 }
 
 if (import.meta.main) {

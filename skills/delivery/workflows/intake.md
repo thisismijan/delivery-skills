@@ -5,15 +5,15 @@ the loop wrote and decides whether it is ready for Stage 2. Tickets groom
 created do not go through intake; groom already shaped them.
 
 It ends with a recommended state and, for a real bug, a brief that draft can
-work from. It never fixes the bug, and it changes nothing in Jira.
+work from. It never fixes the bug, and it changes nothing in the tracker.
 
 ## Inputs
 
-- A Jira key.
+- A work-item key.
 
 ## Preconditions
 
-1. Jira can be read. If not, stop: "cannot read <KEY>".
+1. the tracker can be read. If not, stop: "cannot read <KEY>".
 2. cwd is the target repo.
 3. Open or create the ledger for the key (`delivery-ledger.md`).
 
@@ -26,7 +26,7 @@ the environment, and the version it was seen in.
 
 ### 2. Is it already handled?
 
-- **Duplicates.** Search Jira, open and closed, for the same symptom by its
+- **Duplicates.** Search the tracker, open and closed, for the same symptom by its
   domain terms, not the reporter's wording.
 - **Already fixed.** Search merged MRs and recent commits for the symptom or
   the key.
@@ -37,7 +37,7 @@ the environment, and the version it was seen in.
 
 ### 3. Was it rejected before?
 
-Check the target repo's `.out-of-scope/` directory if it has one, and Jira
+Check the target repo's `.out-of-scope/` directory if it has one, and the tracker
 won't-fix resolutions on the same concept. A match is a recommendation, not a
 decision. Report it with its reason.
 
@@ -135,13 +135,13 @@ The operator confirms the state.
 
 | Stop | Message | Next command |
 |------|---------|--------------|
-| Cannot read Jira | Cannot read <KEY> | None |
+| Cannot read the tracker | Cannot read <KEY> | None |
 | Fix in progress | !<iid> already addresses this; verified: <yes/no> | `/delivery <iid>` |
 | Not a bug | <KEY> is an enhancement or a support question | `/delivery discover …` or none |
 
 ## Never
 
 - Fix the bug in this stage.
-- Transition, label, assign, close, or create Jira issues.
+- Transition, label, assign, close, or create work items.
 - Post anything on the ticket without the operator's go-ahead.
 - Put file paths or line numbers in the brief.

@@ -5,12 +5,12 @@ import { z } from "zod";
 // spec branch. Draft records the honest complexity signal here so that
 // /execute selects the implementation model from the recorded decision,
 // never from a fresh (and possibly wrong) LLM guess.
-export const META_FILENAME = ".ig-spec.json";
+export const META_FILENAME = ".delivery.json";
 
 export const ChangeMeta = z.object({
-	jiraKey: z.string().min(1),
+	workItemKey: z.string().min(1),
 	complexitySignal: z.enum(["low", "medium", "high"]),
-	opusJustification: z.string().min(1).optional(),
+	frontierJustification: z.string().min(1).optional(),
 });
 export type ChangeMeta = z.infer<typeof ChangeMeta>;
 
@@ -52,18 +52,25 @@ export async function readChangeMeta(changeDir: string): Promise<ChangeMeta> {
 if (import.meta.main) {
 	const mode = process.argv[2];
 	if (mode === "write") {
-		const [, , , changeDir, jiraKey, complexitySignal, opusJustification] =
-			process.argv;
-		if (!changeDir || !jiraKey || !complexitySignal) {
+		const [
+			,
+			,
+			,
+			changeDir,
+			workItemKey,
+			complexitySignal,
+			frontierJustification,
+		] = process.argv;
+		if (!changeDir || !workItemKey || !complexitySignal) {
 			console.error(
-				"usage: change-meta write <changeDir> <jiraKey> <low|medium|high> [opusJustification]",
+				"usage: change-meta write <changeDir> <workItemKey> <low|medium|high> [frontierJustification]",
 			);
 			process.exit(2);
 		}
 		const meta = ChangeMeta.parse({
-			jiraKey,
+			workItemKey,
 			complexitySignal,
-			...(opusJustification ? { opusJustification } : {}),
+			...(frontierJustification ? { frontierJustification } : {}),
 		});
 		await writeChangeMeta(changeDir, meta);
 		console.log(JSON.stringify(meta));

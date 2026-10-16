@@ -17,7 +17,7 @@ the separate approval-gated `/delivery improve` workflow.
 
 ## Inputs
 
-- A Jira key. A ticket key scopes the retro to that ticket. An epic key scopes it
+- A work-item key. A ticket key scopes the retro to that ticket. An epic key scopes it
   to every key in the epic's ledger.
 
 ## Preconditions
@@ -40,7 +40,7 @@ read is recorded as a gap.
 - The MR: review threads, which findings were acted on and which were dismissed,
   address-comments rounds, and commits pushed after the first review.
 - The readiness brief and the post-merge verify result.
-- The Jira ticket's comments.
+- The work item's comments.
 - Transcripts of the delivery sessions, if the operator points to them.
 - Earlier retros: the Lessons section of every ledger in the ledger directory
   (`delivery-ledger.md`).
@@ -192,7 +192,7 @@ A proposal is only credible if it would have caught a real past case. For each:
 - The correction it would have caught, linked.
 - How to prove that: the check fails on that past commit or diff, or the review
   rule flags that past finding.
-- Where it goes: ig-spec groom, draft, or execute; a factory gate; review
+- Where it goes: delivery groom, draft, or execute; a factory gate; review
   standards; the conductor or a workflow spec; or the target repo.
 - What it costs: runtime per job, false-positive risk, maintenance.
 
@@ -220,7 +220,7 @@ occurrences, the fix level, the proof, the target, and the cost. Then ask the
 operator to accept, reject, or backlog each one.
 
 For each accepted proposal, write the ticket text: a title and description the
-operator can paste into Jira. The text follows the human-facing output rules.
+operator can paste into the tracker. The text follows the human-facing output rules.
 For an accepted proposal whose target is the delivery skill or a bundled
 workflow, write instead:
 
@@ -252,9 +252,9 @@ Accepting a proposal approves investigation, not a patch and not installation.
 
 ## Never
 
-- Edit ig-spec, the factory, review standards, contributor rules, or the
+- Edit delivery, the factory, review standards, contributor rules, or the
   conductor in this session.
 - Treat acceptance of a retro proposal as approval to install an improvement.
-- Create Jira issues. Write the text; the operator creates them.
+- Create work items. Write the text; the operator creates them.
 - Attribute a mistake to a person. Classes describe the environment.
 - Propose a check you cannot show would have failed on a real past case.

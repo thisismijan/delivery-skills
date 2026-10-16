@@ -9,17 +9,17 @@ const CAPABILITIES = [
   "Stage specs",
   "Factory",
   "Review commands",
-  "GitLab",
-  "Jira",
+  "Forge",
+  "Tracker",
   "OpenSpec",
   "Deployed environment",
   "Skill evaluation",
 ] as const;
 
-const JIRA_TICKET = { key: "MDF-2101" };
+const TRACKER_ITEM = { key: "MDF-2101" };
 
 function passingResult(name: string): ProbeResult {
-  if (name === "Jira") return { ok: true, ticket: JIRA_TICKET };
+  if (name === "Tracker") return { ok: true, ticket: TRACKER_ITEM };
   return { ok: true };
 }
 
@@ -60,13 +60,13 @@ describe("checkCapabilities", () => {
 
   test("a failed capability the stage needs stops it and names capability, stages, and fix", () => {
     const { probes } = recordingProbes({
-      GitLab: () => ({ ok: false }),
+      Forge: () => ({ ok: false }),
     });
 
     const result = checkCapabilities("draft", probes);
 
     expect(result.stop).toEqual({
-      capability: "GitLab",
+      capability: "Forge",
       blockedStages: [
         "draft",
         "execute",
@@ -77,19 +77,19 @@ describe("checkCapabilities", () => {
         "verify",
         "auto",
       ],
-      fix: "Cloud: add a `GITLAB_TOKEN` secret. Mac: `glab auth login`",
+      fix: "Configure the forge provider advertised by the runtime",
     });
   });
 
-  test("a failed Jira read stops a stage that needs Jira", () => {
+  test("a failed tracker read stops a stage that needs the tracker", () => {
     const { probes } = recordingProbes({
-      Jira: () => ({ ok: false }),
+      Tracker: () => ({ ok: false }),
     });
 
     const result = checkCapabilities("draft", probes);
 
     expect(result.stop).not.toBeNull();
-    expect(result.stop?.capability).toBe("Jira");
+    expect(result.stop?.capability).toBe("Tracker");
     expect(result.stop?.blockedStages).toEqual([
       "triage",
       "draft",
@@ -97,29 +97,29 @@ describe("checkCapabilities", () => {
       "retro",
     ]);
     expect(result.stop?.fix).toBe(
-      "Reconnect Atlassian under Cursor's Integrations",
+      "Configure the tracker provider advertised by the runtime",
     );
   });
 
-  test("a Jira probe that returns no ticket stops instead of reporting success", () => {
+  test("a tracker probe that returns no work item stops instead of reporting success", () => {
     const { probes, calls } = recordingProbes({
-      Jira: () => ({ ok: true }),
+      Tracker: () => ({ ok: true }),
     });
 
     const result = checkCapabilities("draft", probes);
 
-    expect(calls.Jira).toBe(1);
+    expect(calls.Tracker).toBe(1);
     expect(result.stop).not.toBeNull();
-    expect(result.stop?.capability).toBe("Jira");
+    expect(result.stop?.capability).toBe("Tracker");
   });
 
-  test("the Jira probe is called exactly once when the stage needs Jira", () => {
+  test("the tracker probe is called exactly once when the stage needs the tracker", () => {
     const { probes, calls } = recordingProbes();
 
     const result = checkCapabilities("draft", probes);
 
     expect(result.stop).toBeNull();
-    expect(calls.Jira).toBe(1);
+    expect(calls.Tracker).toBe(1);
   });
 
   test("a recording runner checks again at each stage boundary", () => {
@@ -127,18 +127,18 @@ describe("checkCapabilities", () => {
 
     const draft = checkCapabilities("draft", probes);
     expect(draft.stop).toBeNull();
-    expect(calls.GitLab).toBe(1);
-    expect(calls.Jira).toBe(1);
+    expect(calls.Forge).toBe(1);
+    expect(calls.Tracker).toBe(1);
     expect(calls["Deployed environment"] ?? 0).toBe(0);
 
     const verify = checkCapabilities("verify", probes);
     expect(verify.stop).toBeNull();
-    expect(calls.GitLab).toBe(2);
-    expect(calls.Jira).toBe(1);
+    expect(calls.Forge).toBe(2);
+    expect(calls.Tracker).toBe(1);
     expect(calls["Deployed environment"]).toBe(1);
     expect(verify.results.map((row) => row.capability)).toContain(
       "Deployed environment",
     );
-    expect(verify.results.map((row) => row.capability)).not.toContain("Jira");
+    expect(verify.results.map((row) => row.capability)).not.toContain("Tracker");
   });
 });

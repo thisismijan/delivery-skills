@@ -18,7 +18,7 @@ or changes a flag.
 1. **Ledger.** Find it (`delivery-ledger.md`). If the ledger has no readiness
    brief for this iid, continue and say in the result that there was no watch
    list to check against.
-2. **MR is merged.** `glab mr view <iid> --output json`: `state` is `merged`.
+2. **MR is merged.** the forge change view for `<iid>`: `state` is `merged`.
    Otherwise stop: "!<iid> is not merged".
 3. **The merge is deployed.** Find the merge commit (`merge_commit_sha`, or
    `squash_commit_sha` for a squash merge) and confirm that the environment runs
@@ -31,7 +31,7 @@ or changes a flag.
 
 ### 1. Drive the change
 
-If the target repo has a verification skill (`.cursor/skills/verify-<app>/`),
+If the target repo has a verification skill (`verify-<app>` in its skills directory),
 use it to exercise every feature the change touched against the environment.
 Capture its evidence.
 

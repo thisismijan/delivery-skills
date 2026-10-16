@@ -1,5 +1,9 @@
-// Pure parsing/filtering helpers for MR comments gathered via `glab api`.
-// No process is spawned here; the command pipes glab's JSON output in.
+import { AUDIT_PREFIX } from "./audit";
+
+export { AUDIT_PREFIX };
+
+// Pure parsing/filtering helpers for merge-request comments.
+// No process is spawned here; the command pipes JSON input in.
 // Fail-closed: unparseable / non-array input throws.
 
 export interface MrComment {
@@ -8,10 +12,6 @@ export interface MrComment {
 	author: string; // display name or username of the author
 	body: string; // full comment body text
 }
-
-// The audit prefix produced by auditComment(event, body) in scripts/audit.ts:
-// `**ig-spec** · ${event}\n\n...`. Exclusion matches the leading marker only.
-export const AUDIT_PREFIX = "**ig-spec** ·";
 
 interface RawGlabNote {
 	id?: string | number;
@@ -129,7 +129,7 @@ export function excludeHoldoutNote(comments: MrComment[]): MrComment[] {
 // note would be classified and answered again on every invocation.
 export function excludeHandledThreads(
 	comments: MrComment[],
-	factoryAuthors: ReadonlySet<string> = new Set(["factory", "ig-spec-bot"]),
+	factoryAuthors: ReadonlySet<string> = new Set(["factory", "delivery-bot"]),
 ): MrComment[] {
 	const lastAuthenticatedReply = new Map<string, number>();
 	comments.forEach((comment, index) => {
@@ -151,7 +151,7 @@ if (import.meta.main) {
 	const input = await new Response(Bun.stdin.stream()).text();
 	try {
 		const authors = new Set(
-			(process.env.DELIVERY_FACTORY_AUTHORS ?? "factory,ig-spec-bot")
+			(process.env.DELIVERY_FACTORY_AUTHORS ?? "factory,delivery-bot")
 				.split(",")
 				.map((author) => author.trim())
 				.filter(Boolean),

@@ -1,38 +1,34 @@
 ---
 name: mr-review
-description: Second-pass MR review for GitLab. Runs after code-review-max or Claude Code's native /code-review max, judges whether the author chose the right approach, merges both passes into one set of findings, and publishes them to the merge request. Use when the user types /mr-review, asks whether an MR took the right approach, or asks to post review findings to GitLab.
-disable-model-invocation: true
-effort: max
-argument-hint: [MR iid]
-allowed-tools: Bash(gl-mr:*) Bash(git *) Read Grep Glob
+description: Second-pass merge-request review. Runs after code-review-max, judges whether the author chose the right approach, merges both passes into one set of findings, and publishes them through the forge provider. Use when the user types /mr-review, asks whether an MR took the right approach, or asks to post review findings.
 ---
 
 # Second-pass MR review
 
-Target MR: `$ARGUMENTS`
+Target MR: the skill arguments (`<mr-iid>`)
 
 This skill runs inline, not in a forked subagent, because it has to read the
-correctness findings out of this conversation. `gl-note` is deliberately absent
-from `allowed-tools`: every publish must raise its own permission prompt.
+correctness findings out of this conversation. The note publisher is
+deliberately not a default tool: every publish must raise its own permission
+prompt.
 
 ## Phase 0 — Preconditions
 
 Stop and say so, without doing any of the work below, if any of these fail:
 
-- `$ARGUMENTS` is empty or not a number. Ask for the MR iid.
+- The skill arguments are empty or not a number. Ask for the MR iid.
 - `gl-mr <iid> meta` fails. Report the error verbatim and stop.
 - No accepted correctness pass for this same MR and current head SHA is in this
-  conversation or at `.review/mr-<iid>/<full-head-sha>/max.md`. Accept either:
-  - Cursor `/code-review-max !<iid>` output ending in
-    `<!-- code-review-max:mr=<iid> head=<full-head-sha> -->`; the iid and SHA
-    must exactly match `gl-mr <iid> meta`.
-  - Claude Code's native `/code-review max !<iid>` output when it identifies
-    this iid and the same full head SHA.
-  Validate the artifact's final marker against live metadata before reading its
-  findings. Reject Cursor's lightweight `/code-review` output: it is not the max pass and
-  has no freshness stamp. Reject a marker for another iid or an older head.
-  Tell the user to run `/code-review-max !<iid>` in Cursor (or
-  `/code-review max !<iid>` in Claude Code) and stop.
+  conversation or at `.review/mr-<iid>/<full-head-sha>/max.md`. Accept
+  `/code-review-max !<iid>` output ending in
+  `<!-- code-review-max:mr=<iid> head=<full-head-sha> -->`; the iid and SHA
+  must exactly match `gl-mr <iid> meta`. A review provider may map that same
+  stamped max pass from an equivalent invocation, but the marker, iid, and head
+  SHA still have to match. Validate the artifact's final marker against live
+  metadata before reading its findings. Reject a lightweight built-in review
+  output: it is not the max pass and has no freshness stamp. Reject a marker for
+  another iid or an older head. Tell the user to run `/code-review-max !<iid>`
+  and stop.
   Do not substitute your own correctness pass for it.
 
 ## Phase 1 — Intent and prior art (no diff yet)

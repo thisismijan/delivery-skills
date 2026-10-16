@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { type CheckResult, summarize } from "./preflight";
+import { type CheckResult, capabilityPreflight, summarize } from "./preflight";
+import { parseRuntimeManifest } from "./runtime-manifest";
 
 test("all required checks passing -> ready (optional failures ignored)", () => {
 	const results: CheckResult[] = [
@@ -19,13 +20,44 @@ test("a failing required check -> not ready", () => {
 test("formats one line per check including the detail", () => {
 	const s = summarize([
 		{
-			name: "glab authenticated",
+			name: "subprocess runtime",
 			ok: false,
 			required: true,
-			detail: "run 'glab auth login'",
+			detail: "configure process.run in the runtime manifest",
 		},
 	]);
 	expect(s.lines).toHaveLength(1);
-	expect(s.lines[0]).toContain("glab authenticated");
-	expect(s.lines[0]).toContain("run 'glab auth login'");
+	expect(s.lines[0]).toContain("subprocess runtime");
+	expect(s.lines[0]).toContain("configure process.run in the runtime manifest");
+});
+
+test("stage preflight stops on a missing required capability", () => {
+	const runtime = parseRuntimeManifest({ version: 1, capabilities: {} });
+	const results = capabilityPreflight("execute", runtime);
+	expect(summarize(results).allRequiredPassed).toBe(false);
+	expect(
+		results.some((result) => result.name === "mutation.guard" && !result.ok),
+	).toBe(true);
+	expect(
+		results.find((result) => result.name === "mutation.guard")?.detail,
+	).toMatch(/runtime manifest/i);
+});
+
+test("stage preflight passes when required capabilities are advertised", () => {
+	const runtime = parseRuntimeManifest({
+		version: 1,
+		capabilities: {
+			"mutation.guard": {
+				available: true,
+				mode: "native",
+				invocation: "hook.pre-mutation",
+				enforcement: "enforced",
+			},
+		},
+	});
+	const results = capabilityPreflight("execute", runtime);
+	expect(summarize(results).allRequiredPassed).toBe(true);
+	expect(
+		capabilityPreflight("review", runtime).every((result) => result.ok),
+	).toBe(true);
 });

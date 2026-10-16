@@ -13,7 +13,7 @@ export type Step =
 export interface ModelSelectionInput {
 	step: Step;
 	complexitySignal?: "low" | "medium" | "high";
-	opusJustification?: string;
+	frontierJustification?: string;
 }
 
 // PRD §9: Sonnet by default; review always Opus; implementation may use Opus
@@ -23,7 +23,7 @@ export function selectModel(input: ModelSelectionInput): Model {
 	if (
 		input.step === "implement" &&
 		input.complexitySignal === "high" &&
-		(input.opusJustification?.trim().length ?? 0) > 0
+		(input.frontierJustification?.trim().length ?? 0) > 0
 	) {
 		return "opus";
 	}
@@ -37,12 +37,12 @@ if (import.meta.main) {
 		| "medium"
 		| "high"
 		| undefined;
-	const opusJustification = process.argv[4];
+	const frontierJustification = process.argv[4];
 	if (!step) {
 		console.error(
 			"usage: select-model <step> [complexitySignal] [justification]",
 		);
 		process.exit(2);
 	}
-	console.log(selectModel({ step, complexitySignal, opusJustification }));
+	console.log(selectModel({ step, complexitySignal, frontierJustification }));
 }

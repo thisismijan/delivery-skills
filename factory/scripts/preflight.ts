@@ -1,5 +1,10 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import {
+	type RuntimeManifest,
+	capabilityResult,
+	requiredCapabilitiesForStage,
+} from "./runtime-manifest";
 
 export interface CheckResult {
 	name: string;
@@ -35,10 +40,24 @@ export function redactRemote(value: string): string {
 	return value.replace(/(https?:\/\/)[^/@\s]+@/gi, "$1[redacted]@");
 }
 
+export function capabilityPreflight(
+	stage: string,
+	runtime: RuntimeManifest,
+): CheckResult[] {
+	return requiredCapabilitiesForStage(stage).map((id) => {
+		const result = capabilityResult(runtime, id);
+		return {
+			name: id,
+			ok: result.ok,
+			required: true,
+			detail: result.ok ? (result.invocation ?? "ok") : (result.reason ?? ""),
+		};
+	});
+}
+
 async function runChecks(): Promise<CheckResult[]> {
 	const pluginRoot =
-		process.env.CLAUDE_PLUGIN_ROOT ?? join(import.meta.dir, "..");
-	const cwd = process.cwd(); // the target repo
+		process.env.DELIVERY_FACTORY_ROOT ?? join(import.meta.dir, "..");
 	const results: CheckResult[] = [];
 
 	results.push({
@@ -56,45 +75,12 @@ async function runChecks(): Promise<CheckResult[]> {
 		detail: depsOk ? "ok" : `run 'bun install' in ${pluginRoot}`,
 	});
 
-	const glab = await run(["glab", "auth", "status"]);
-	results.push({
-		name: "glab authenticated",
-		ok: glab.code === 0,
-		required: true,
-		detail: glab.code === 0 ? "ok" : "install glab and run 'glab auth login'",
-	});
-
-	const osp = await run(["which", "openspec"]);
-	results.push({
-		name: "openspec installed",
-		ok: osp.code === 0,
-		required: true,
-		detail:
-			osp.code === 0 ? osp.out : "install OpenSpec (e.g. npm i -g openspec)",
-	});
-
-	const ospInit = existsSync(join(cwd, "openspec"));
-	results.push({
-		name: "openspec/ initialized in target repo",
-		ok: ospInit,
-		required: true,
-		detail: ospInit ? cwd : "run 'openspec init' in the target repo",
-	});
-
 	const rem = await run(["git", "remote", "-v"]);
 	results.push({
-		name: "git remote present (GitLab)",
+		name: "git remote present",
 		ok: rem.code === 0 && rem.out.length > 0,
-		required: true,
-		detail: redactRemote(rem.out.split("\n")[0] || "no git remote configured"),
-	});
-
-	results.push({
-		name: "Atlassian (Jira) MCP",
-		ok: true,
 		required: false,
-		detail:
-			"OAuths inside the Claude Code session; verify the SSE URL in .mcp.json",
+		detail: redactRemote(rem.out.split("\n")[0] || "no git remote configured"),
 	});
 
 	return results;

@@ -16,7 +16,7 @@ test("implement uses opus only with high complexity AND a justification", () => 
 		selectModel({
 			step: "implement",
 			complexitySignal: "high",
-			opusJustification: "intricate locking",
+			frontierJustification: "intricate locking",
 		}),
 	).toBe("opus");
 	expect(selectModel({ step: "implement", complexitySignal: "high" })).toBe(
@@ -26,14 +26,14 @@ test("implement uses opus only with high complexity AND a justification", () => 
 		selectModel({
 			step: "implement",
 			complexitySignal: "high",
-			opusJustification: "   ",
+			frontierJustification: "   ",
 		}),
 	).toBe("sonnet"); // blank
 	expect(
 		selectModel({
 			step: "implement",
 			complexitySignal: "low",
-			opusJustification: "x",
+			frontierJustification: "x",
 		}),
 	).toBe("sonnet"); // not high
 });
@@ -45,7 +45,7 @@ test("live selection never returns a fast catalogue model", () => {
 		selectModel({
 			step: "implement",
 			complexitySignal: "high",
-			opusJustification: "intricate locking",
+			frontierJustification: "intricate locking",
 		}),
 		selectModel({ step: "review" }),
 	];

@@ -1,21 +1,84 @@
 #!/usr/bin/env bash
-# Install delivery skills for Cursor and Claude Code from this clone.
+# Install generic delivery skills and runtime into an explicit skills directory.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-hosts=()
+adapters_root="${DELIVERY_ADAPTERS_DIR:-$root/adapters}"
+providers_root="${DELIVERY_PROVIDERS_DIR:-$root/providers}"
+skills_dir=""
+adapter=""
+providers=()
+
+usage() {
+  echo "usage: $0 --skills-dir <path> [--adapter <name>] [--provider <name>]" >&2
+  exit 2
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --cursor) hosts+=(cursor) ;;
-    --claude) hosts+=(claude) ;;
-    --store) hosts+=(store) ;;
-    --all) hosts+=(cursor claude store) ;;
-    *) echo "usage: $0 [--cursor] [--claude] [--store] [--all]" >&2; exit 2 ;;
+    --skills-dir)
+      [[ $# -ge 2 ]] || usage
+      skills_dir="$2"
+      shift 2
+      ;;
+    --adapter)
+      [[ $# -ge 2 ]] || usage
+      adapter="$2"
+      shift 2
+      ;;
+    --provider)
+      [[ $# -ge 2 ]] || usage
+      providers+=("$2")
+      shift 2
+      ;;
+    --cursor|--claude|--store|--all)
+      echo "named host flags live in adapters/compat.sh; pass --skills-dir" >&2
+      usage
+      ;;
+    *)
+      usage
+      ;;
   esac
-  shift
 done
-if [[ ${#hosts[@]} -eq 0 ]]; then
-  hosts=(cursor claude)
+
+[[ -n "$skills_dir" ]] || usage
+if [[ -n "$adapter" && ! -d "$adapters_root/$adapter" ]]; then
+  echo "unknown adapter: $adapter" >&2
+  exit 2
+fi
+for provider in "${providers[@]+"${providers[@]}"}"; do
+  if [[ ! -d "$providers_root/$provider" ]]; then
+    echo "unknown provider: $provider" >&2
+    exit 2
+  fi
+done
+
+if [[ "$skills_dir" != /* ]]; then
+  skills_dir="$(pwd)/$skills_dir"
+fi
+skills_dir="${skills_dir%/}"
+parent="$(dirname -- "$skills_dir")"
+
+if [[ -e "$skills_dir" ]]; then
+  if [[ ! -d "$skills_dir" ]]; then
+    echo "destination is not writable: $skills_dir" >&2
+    exit 1
+  fi
+  if [[ ! -w "$skills_dir" ]] || ! touch "$skills_dir/.delivery-write-probe" 2>/dev/null; then
+    echo "destination is not writable: $skills_dir" >&2
+    exit 1
+  fi
+  rm -f -- "$skills_dir/.delivery-write-probe"
+else
+  if [[ ! -d "$parent" ]]; then
+    if ! mkdir -p "$parent" 2>/dev/null; then
+      echo "destination is not writable: $skills_dir" >&2
+      exit 1
+    fi
+  elif [[ ! -w "$parent" ]]; then
+    echo "destination is not writable: $skills_dir" >&2
+    exit 1
+  fi
 fi
 
 if [[ -n "${DELIVERY_INSTALL_SKIP_BUN:-}" ]]; then
@@ -26,127 +89,116 @@ else
   echo "bun is not on PATH; factory gate scripts will fail until it is installed" >&2
 fi
 
-link_dir() {
-  local dest="$1"
-  mkdir -p "$dest"
-  local skill
-  for skill in "$root/skills"/*; do
-    local name
-    name="$(basename "$skill")"
-    if [[ -e "$dest/$name" || -L "$dest/$name" ]]; then
-      if [[ -L "$dest/$name" && "$(readlink "$dest/$name")" == "$skill" ]]; then
-        continue
-      fi
-      rm -rf -- "$dest/$name"
-    fi
-    ln -s "$skill" "$dest/$name"
-  done
-}
-
-install_review_tools() {
-  local review_skill="$1"
-  local bin_dir="${DELIVERY_BIN_DIR:-$HOME/.local/bin}"
-  mkdir -p "$bin_dir"
-  local tool
-  for tool in gl-mr gl-note; do
-    cat >"$bin_dir/$tool" <<EOF
-#!/usr/bin/env bash
-exec bash "$review_skill/$tool" "\$@"
-EOF
-    chmod 0755 "$bin_dir/$tool"
-  done
-  echo "Review tools -> $bin_dir"
-}
-
-copy_delivery_skill() {
-  local source="$1" dest="$2"
-  mkdir -p "$dest"
-  local manifest="$dest/.delivery-managed"
-  if [[ -f "$manifest" ]]; then
-    while IFS= read -r name; do
-      case "$name" in runs|candidates|versions|"") continue ;; esac
-      rm -rf -- "$dest/$name"
-    done <"$manifest"
-  fi
-  : >"$manifest"
+copy_unmanaged() {
+  local src="$1" dest="$2"
+  local old_manifest="$src/.delivery-managed"
   local item name
-  for item in "$source"/*; do
+  [[ -d "$src" ]] || return 0
+  for item in "$src"/*; do
+    [[ -e "$item" ]] || continue
     name="$(basename "$item")"
-    rm -rf -- "$dest/$name"
+    if [[ -e "$dest/$name" || -L "$dest/$name" ]]; then
+      continue
+    fi
+    if [[ -f "$old_manifest" ]] && grep -Fxq "$name" "$old_manifest"; then
+      continue
+    fi
     cp -R "$item" "$dest/$name"
-    printf '%s\n' "$name" >>"$manifest"
+  done
+}
+
+preserve_state() {
+  local src="$1" dest="$2"
+  local state
+  for state in runs candidates versions; do
+    if [[ -e "$src/$state" ]]; then
+      rm -rf -- "$dest/$state"
+      cp -R "$src/$state" "$dest/$state"
+    fi
   done
 }
 
 copy_factory() {
   local dest="$1"
   mkdir -p "$dest"
-  local manifest="$dest/.delivery-managed"
-  if [[ -f "$manifest" ]]; then
-    while IFS= read -r name; do
-      [[ -n "$name" ]] && rm -rf -- "$dest/$name"
-    done <"$manifest"
-  fi
-  : >"$manifest"
   local item name
-  for item in "$root/factory"/*; do
+  for item in "$root/factory"/* "$root/factory"/.[!.]*; do
+    [[ -e "$item" ]] || continue
     name="$(basename "$item")"
-    case "$name" in node_modules|.review) continue ;; esac
+    case "$name" in node_modules|.review|.|..) continue ;; esac
     rm -rf -- "$dest/$name"
     cp -R "$item" "$dest/$name"
-    printf '%s\n' "$name" >>"$manifest"
   done
 }
 
-for host in "${hosts[@]}"; do
-  case "$host" in
-    cursor)
-      link_dir "${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}"
-      install_review_tools "$root/skills/mr-review"
-      echo "Cursor skills -> ${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}"
-      ;;
-    claude)
-      link_dir "${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
-      install_review_tools "$root/skills/mr-review"
-      echo "Claude Code skills -> ${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
-      ;;
-    store)
-      # Cloud Agent personal store. Copy, do not symlink: the store may not
-      # follow links outside itself. Keep the factory inside the synced skills
-      # tree; /cursor/stores/user/factory is a different Cursor namespace.
-      store="${CURSOR_AGENT_STORE:-/cursor/stores/user/skills}"
-      # macOS bash 3.2 cannot parse a case statement inside $( ... ).
-      if [[ -n "${CURSOR_AGENT_STORE_PROBE:-}" ]]; then
-        store_probe="$CURSOR_AGENT_STORE_PROBE"
-      elif [[ "$store" == /cursor/* ]]; then
-        store_probe=/cursor
-      else
-        store_probe="$(dirname "$store")"
-      fi
-      if [[ ! -d "$store_probe" ]] || [[ ! -w "$store_probe" ]]; then
-        echo "Agent store skipped (not writable here): $store"
-        continue
-      fi
-      if ! mkdir -p "$store" 2>/dev/null; then
-        echo "Agent store skipped (not writable here): $store"
-        continue
-      fi
-      for skill in "$root/skills"/*; do
-        name="$(basename "$skill")"
-        if [[ "$name" == "delivery" ]]; then
-          copy_delivery_skill "$skill" "$store/$name"
-        else
-          rm -rf -- "$store/$name"
-          cp -R "$skill" "$store/$name"
-        fi
-      done
-      copy_factory "$store/_factory"
-      install_review_tools "$store/mr-review"
-      echo "Agent store -> $store"
-      echo "Factory -> $store/_factory"
-      ;;
-  esac
+staging=""
+backup=""
+cleanup() {
+  if [[ -n "$staging" && -d "$staging" ]]; then
+    rm -rf -- "$staging"
+  fi
+  if [[ -n "$backup" && -e "$backup" && ! -e "$skills_dir" ]]; then
+    mv "$backup" "$skills_dir" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+
+staging="$(mktemp -d "$parent/.delivery-install.XXXXXX")"
+managed="$staging/.delivery-managed"
+: >"$managed"
+
+for skill in "$root/skills"/*; do
+  [[ -e "$skill" ]] || continue
+  name="$(basename "$skill")"
+  cp -R "$skill" "$staging/$name"
+  : >"$staging/$name/.delivery-managed"
+  for item in "$skill"/*; do
+    [[ -e "$item" ]] || continue
+    printf '%s\n' "$(basename "$item")" >>"$staging/$name/.delivery-managed"
+  done
+  if [[ -d "$skills_dir/$name" ]]; then
+    preserve_state "$skills_dir/$name" "$staging/$name"
+    copy_unmanaged "$skills_dir/$name" "$staging/$name"
+  fi
+  printf '%s\n' "$name" >>"$managed"
 done
 
-echo "Next: open a new Cursor chat and a new Claude Code session so /delivery reloads."
-echo "Factory root: $root/factory"
+copy_factory "$staging/_factory"
+printf '%s\n' "_factory" >>"$managed"
+copy_unmanaged "$skills_dir" "$staging"
+
+if [[ -e "$skills_dir" ]]; then
+  backup="$(mktemp -d "$parent/.delivery-backup.XXXXXX")"
+  rm -rf -- "$backup"
+  mv "$skills_dir" "$backup"
+fi
+mv "$staging" "$skills_dir"
+staging=""
+if [[ -n "$backup" ]]; then
+  rm -rf -- "$backup"
+  backup=""
+fi
+trap - EXIT
+
+if [[ -n "$adapter" || ${#providers[@]} -gt 0 ]]; then
+  export DELIVERY_SKILLS_DIR="$skills_dir"
+  export DELIVERY_FACTORY_ROOT="$skills_dir/_factory"
+  export DELIVERY_PACK_ROOT="$root"
+fi
+if [[ -n "$adapter" ]]; then
+  if [[ -f "$adapters_root/$adapter/setup.sh" ]]; then
+    bash "$adapters_root/$adapter/setup.sh"
+  fi
+  echo "Adapter $adapter applied"
+fi
+for provider in "${providers[@]+"${providers[@]}"}"; do
+  if [[ -f "$providers_root/$provider/setup.sh" ]]; then
+    bash "$providers_root/$provider/setup.sh"
+  fi
+  echo "Provider $provider applied"
+done
+
+echo "Skills -> $skills_dir"
+echo "Runtime -> $skills_dir/_factory"
+echo "Reload the host session so the installed skills are picked up."
+echo "Factory root: $skills_dir/_factory"

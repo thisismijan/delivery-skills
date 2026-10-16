@@ -16,8 +16,8 @@ const glNote = join(
 	import.meta.dir,
 	"..",
 	"..",
-	"skills",
-	"mr-review",
+	"providers",
+	"gitlab",
 	"gl-note",
 );
 const factoryRoot = join(import.meta.dir, "..");
