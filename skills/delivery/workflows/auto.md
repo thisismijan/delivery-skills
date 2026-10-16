@@ -58,6 +58,7 @@ Between steps, do not ask whether to continue. Continue.
 | `[drafted]` | Execute | The draft, unless `build-without-asking: yes` |
 | `[executing]` | Review once the MR exists; while the build runs, wait | Nothing |
 | `[reviewed-blocked !N]` | Address comments, then review the new head | Nothing |
+| `[addressed !N]` | Review the new head | Nothing |
 | `[ready !N]` | Release readiness | Nothing |
 | `[no-go !N]` | Classify the readiness blockers: address code/comment blockers then run ship again; wait on pipeline/conflicts; ask only for operator-owned risk acceptance | Whether to accept an operator-owned risk |
 | `[go !N]` | The operator merges | The merge |

@@ -106,7 +106,9 @@ If (a) and Jira key present:
 ```
 
 Factory: classify → action/dispute/answer/skip → reply once per thread →
-cumulative Opus holdout → re-mark ready or escalate. Never merges.
+cumulative Opus holdout → leave the MR draft under `[addressed !N]` or
+escalate. Never merges. Never undrafts. A new head still needs the dual
+Stage 3 pass before it may leave draft.
 
 If the branch moves (new head SHA) and the operator wants another review pass,
 restart from step 1 in this or a fresh conversation. Pinned artifacts make a

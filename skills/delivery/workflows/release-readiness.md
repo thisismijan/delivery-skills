@@ -28,14 +28,20 @@ Check these in order. The first one that fails is a terminal stop.
      deploy".
    - `closed` → stop: "MR is closed".
    - `draft: true` → stop: "MR is still draft; run `/delivery review <iid>`".
-3. **Review verdict exists and is fresh.** The ledger's Verdicts table needs a
-   `review` row for this iid with verdict `ready`. Recompute the patch-id
-   (`delivery-ledger.md`, Verdict freshness).
-   - No review row → stop: "no review verdict; run `/delivery review <iid>`".
-     Operator approval can accept a named release risk, but can never synthesize
-     a code-review verdict.
+3. **Dual Stage 3 review is current.** Run
+   `scripts/stage3-readiness.ts <iid> <head> <max-pass|-> <approach-pass|->`
+   against the pinned max-pass and approach-pass artifacts for this iid and
+   the live head. Stay-draft (missing, stale, malformed, or blocking
+   artifacts) is a terminal stop: "dual review is missing or stale; run
+   `/delivery review <iid>`". A conductor-written review row alone is not
+   enough and cannot stand in for those artifacts. Operator approval can
+   accept a named release risk, but can never synthesize a code-review
+   verdict. Recompute the patch-id (`delivery-ledger.md`, Verdict freshness)
+   after the helper returns ready.
+   - Helper stay-draft → stop: "dual review is missing or stale; run
+     `/delivery review <iid>`".
    - Patch-id differs → stop: "the change moved since review at <short head>;
-     run `/delivery <iid>` again".
+     run `/delivery review <iid>` again".
 4. **Pipeline is finished at the current head.** `head_pipeline` belongs to the
    current head `sha` when either:
    - `head_pipeline.sha` equals `sha` (a branch or detached pipeline), or
@@ -240,7 +246,7 @@ The brief is the checkpoint. What the operator says next decides what happens:
 | MR merged | Already merged | `/delivery verify <iid>` |
 | MR closed | MR is closed | None |
 | MR draft | MR is still draft | `/delivery review <iid>` |
-| No review | No review verdict for this MR | `/delivery review <iid>` |
+| No review | Dual Stage 3 review is missing or stale | `/delivery review <iid>` |
 | Stale review | The change moved since it was reviewed | `/delivery review <iid>` |
 | Pipeline running | Pipeline still running at <sha> | `/delivery ship <iid>` later |
 | Empty diff | The MR changes nothing | None |

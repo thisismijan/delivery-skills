@@ -197,6 +197,14 @@ describe("bounded recovery and replay safety", () => {
 		expect(runtime).toMatch(/explicit outcome/);
 	});
 
+	test("address-comments holdout approve leaves the merge request draft", () => {
+		expect(addressComments).toContain("[addressed !N]");
+		expect(addressComments).not.toMatch(
+			/`approve`[\s\S]{0,800}glab mr update <mr> --ready/,
+		);
+		expect(plain(addressComments)).toMatch(/approve[\s\S]{0,400}draft/i);
+	});
+
 	test("execute and address-comments verify gate evidence before reuse", () => {
 		for (const skill of [execute, addressComments]) {
 			expect(skill).toContain("verifyGateEvidence");

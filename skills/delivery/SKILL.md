@@ -201,11 +201,16 @@ terminal stop.
   status `[groomed]`. Add the epic key to the ledger's `Ids:` line.
 - **After draft**: `[drafted]` once the OpenSpec change exists.
 - **After execute starts**: `[executing]`, and the MR iid once it is reported.
-- **After review**: one `review` verdict row with head, base, and patch-id,
-  computed as `delivery-ledger.md` says. Status `[ready !N]` when it ends ready,
-  or `[reviewed-blocked !N]` when blocking findings remain. Mark the MR ready
-  only for the former; keep the latter draft.
-  Release readiness refuses to run without this row.
+- **After review**: run `scripts/stage3-readiness.ts <iid> <head> <max-pass|-> <approach-pass|->`
+  on the pinned max-pass and approach-pass artifacts for the live head. Status
+  `[ready !N]` and undraft only when that helper returns ready. Write one
+  `review` verdict row with head, base, and patch-id after a ready decision,
+  computed as `delivery-ledger.md` says. The row records the decision; it is
+  not the authority. Status `[reviewed-blocked !N]` when blocking findings
+  remain; keep the MR draft. Release readiness refuses to run when the helper
+  stays draft.
+- **After address comments**: `[addressed !N]`. Keep the MR draft. Do not write
+  a ready review row from holdout.
 - **After archive**: a Decision `archived <change-name>`.
 - **Every terminal stop**: a Stops line with the next command, and status
   `[stopped: <reason>]`.

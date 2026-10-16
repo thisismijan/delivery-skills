@@ -172,6 +172,7 @@ The Keys table's Status column uses only these tags.
 | `[drafted]` | Stage 2 | OpenSpec change exists |
 | `[executing]` | Stage 2 | Factory run dispatched |
 | `[reviewed-blocked !N]` | Stage 3 | Review found blockers at a recorded head |
+| `[addressed !N]` | Stage 3, address-comments | Comments addressed at a recorded head; dual review not yet passed |
 | `[ready !N]` | Stage 3 | Review passed at a recorded head |
 | `[go !N]` | Stage 4 | Readiness GO at a recorded head |
 | `[no-go !N]` | Stage 4 | Readiness NO-GO; blockers in the brief |
