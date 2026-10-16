@@ -5,10 +5,8 @@ import { dirname, join } from "node:path";
 const ID = /^[a-z0-9][a-z0-9-]*$/i;
 const OWNER_FILE = "owner.json";
 
-export const LEDGER_WRITE_INVOCATION =
-	"scripts/ledger-store.ts <root> <id> <expected-generation|-1> <input.md>";
-export const LEDGER_RECOVER_INVOCATION =
-	"scripts/ledger-store.ts recover <root> <id>";
+export const LEDGER_WRITE_INVOCATION = "scripts/ledger-store.ts <root> <id> <expected-generation|-1> <input.md>";
+export const LEDGER_RECOVER_INVOCATION = "scripts/ledger-store.ts recover <root> <id>";
 export const CONCURRENCY_CONFLICT_EXIT_CODE = 4;
 
 export class ConcurrencyConflict extends Error {

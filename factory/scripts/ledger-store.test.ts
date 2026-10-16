@@ -234,7 +234,8 @@ test("recovery leaves a live owner, a foreign host, and an unreadable owner reco
 test("a concurrency conflict uses a distinct command-line exit code", async () => {
 	await withRoot(async (root) => {
 		const input = join(root, "input.md");
-		await writeLedger(root, "mdf-1", -1, markdown(0, "\nfirst\n"));
+		await writeLedger(root, "mdf-1", -1, markdown(0));
+		await writeLedger(root, "mdf-1", 0, markdown(1, "\nfirst\n"));
 		await writeFile(input, markdown(1, "\nstale\n"));
 		const script = join(import.meta.dir, "ledger-store.ts");
 		const proc = Bun.spawn(["bun", script, root, "mdf-1", "0", input], {
