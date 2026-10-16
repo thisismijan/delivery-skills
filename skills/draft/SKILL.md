@@ -116,7 +116,7 @@ approval.
    ```
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/author-profile.json" sonnet "<reviewDir>/author-outcome.json" "<reviewDir>/author-usage.json" <controller-model>
    ```
-   `author-outcome.json` records whether verification passed, any repairs, and any escalation. Include token counts when the host exposes them; otherwise omit them or record character counts as a labelled stand-in.
+   `author-outcome.json` records whether verification passed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Include token counts when the host exposes them; otherwise omit them or record character counts as a labelled stand-in.
 
 8. **Verify artifacts (fail closed).** Run:
    ```

@@ -170,6 +170,15 @@ describe("bounded recovery and replay safety", () => {
 		expect(addressComments).toContain("exact available model");
 	});
 
+	test("record-routing persist always supplies an explicit outcome file", () => {
+		expect(draft).toContain("author-outcome.json");
+		expect(execute).toContain("implement-outcome.json");
+		expect(execute).toContain("review-outcome.json");
+		expect(addressComments).toContain("classify-outcome.json");
+		expect(addressComments).toContain("review-outcome.json");
+		expect(runtime).toMatch(/explicit outcome/);
+	});
+
 	test("pressure cannot bypass deterministic or human gates", () => {
 		expect(execute).toMatch(/time pressure.*never.*skip.*red gate/i);
 		expect(draft).toMatch(/sponsor|authority/i);
