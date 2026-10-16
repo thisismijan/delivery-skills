@@ -27,7 +27,7 @@ This command consumes the review comments on the **existing** MR for this ticket
 - **The factory NEVER merges or closes a merge request via the forge provider, and NEVER transitions tracker status.** Its only tracker write is the single summary comment at the end.
 - **Mutation boundary.** Run `canStartStage` before any write, using the runtime's mutation-guard identifier:
   ```
-  bun "${FACTORY_ROOT}/scripts/stage-gating.ts" address-comments <runtime-id>
+  bun "${FACTORY_ROOT}/scripts/stage-gating.ts" address-comments <runtime-manifest.json>
   ```
   Non-zero exit → **stop**. A runtime that does not declare an enforceable mutation boundary cannot start this mutating stage.
 

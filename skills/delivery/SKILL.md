@@ -121,9 +121,9 @@ State the chosen entry and what it runs in one line, then continue.
    `checkCapabilities`. For `auto`, check only what that stage needs and
    check again when the next stage starts.
    Before a mutating stage (`draft`, `execute`, `address-comments`, `archive`,
-   `auto`, `improve-apply`, `improve-rollback`), run `canStartStage` with the runtime's mutation-guard identifier:
+   `auto`, `improve-apply`, `improve-rollback`), run `canStartStage` with the runtime manifest:
    ```
-   bun "${FACTORY_ROOT}/scripts/stage-gating.ts" <stage> <runtime-id>
+   bun "${FACTORY_ROOT}/scripts/stage-gating.ts" <stage> <runtime-manifest.json>
    ```
    Non-zero exit → stop with the printed reason. A runtime that does not declare an enforceable mutation boundary cannot start mutating stages.
    Read-only stages still run.

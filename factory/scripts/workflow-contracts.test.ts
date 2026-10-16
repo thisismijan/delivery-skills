@@ -238,6 +238,8 @@ describe("portable mutation boundaries", () => {
 		for (const skill of [execute, delivery, addressComments, draft]) {
 			expect(skill).toContain("canStartStage");
 			expect(skill).toContain("stage-gating.ts");
+			expect(skill).toContain("<runtime-manifest.json>");
+			expect(skill).not.toContain("<runtime-id>");
 		}
 	});
 

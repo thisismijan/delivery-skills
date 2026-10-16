@@ -1,8 +1,9 @@
-# Delivery skills
+# Delivery
 
-A portable SDLC conductor for any LLM or agent host that can load skills and
-satisfy the declared runtime capabilities. Clone this repository, install into
-an explicit skills directory, and run `/delivery`.
+A portable software-delivery skill pack for any LLM or agent runtime that can
+load skills and satisfy a small capability contract. The workflow and safety
+rules are runtime-independent; native commands, hooks, models, forges, trackers,
+and spec tools are optional adapters or providers.
 
 This pack does not run in a text-only chat. Deterministic gates need subprocess
 execution. Mutating stages need an enforceable mutation boundary. Forge,
@@ -13,14 +14,14 @@ The pack includes:
 - `/delivery` — thin conductor, ledger, auto, retro, approval-gated improvement
 - `/groom` `/draft` `/execute` `/address-comments` — portable factory stages
 - `/code-review-max` `/mr-review` — dual-pass change review
-- `/openspec-archive` — post-merge archive
+- an archive stage supplied by the selected spec provider
 
 ## Install
 
 ```bash
 git clone https://gitlab.com/Sheikh.Ahmed1/delivery-skills.git
 cd delivery-skills
-./install.sh --skills-dir /path/to/skills
+./install.sh --skills-dir .agents/skills
 # ./install.sh --skills-dir /path/to/skills --adapter <name>
 # ./install.sh --skills-dir /path/to/skills --provider <name>
 ```
@@ -46,6 +47,38 @@ What the installer does:
   written.
 
 Reload the host session so the installed skills are picked up.
+
+## Quick start
+
+1. Install the generic pack into a skills directory your runtime loads.
+2. Configure a version-1 runtime manifest. Capability invocations are opaque
+   references interpreted by the runtime or selected adapter:
+
+   ```json
+   {
+     "version": 1,
+     "capabilities": {
+       "process.run": {
+         "available": true,
+         "mode": "native",
+         "invocation": "subprocess"
+       },
+       "mutation.guard": {
+         "available": false,
+         "mode": "unavailable",
+         "enforcement": "unknown"
+       }
+     }
+   }
+   ```
+
+3. In a target repository, invoke the `delivery` skill with `help` or `status`.
+   If the runtime exposes slash skills, the equivalent forms are `/delivery
+   help` and `/delivery status`.
+
+Read-only stages can run with a smaller capability set. Mutating stages require
+`mutation.guard` with `enforcement: "enforced"`. A missing capability produces a
+configuration remedy instead of a guessed fallback.
 
 ### Capability prerequisites
 
@@ -107,8 +140,8 @@ flowchart TD
   assess -->|"too large"| split["Split required; human creates tickets"]
   assess --> feasible["Feasibility"]
   feasible --> seams["Test-seam checkpoint"]
-  seams -->|"operator yes"| openspec["Author OpenSpec, tests-first"]
-  openspec --> drafted["Spec linked; wait for execute"]
+  seams -->|"operator yes"| spec["Author change contract, tests-first"]
+  spec --> drafted["Contract linked; wait for execute"]
 
   drafted -->|"typing execute is the build approval"| execute
   execute --> resume["Reconcile MR, tests, gates, dirty tree"]
@@ -214,7 +247,8 @@ fresh session after `/code-review-max`. A new head always needs a new max pass.
 skills/                    # generic skills any capable host can load
 factory/                   # gate scripts and subagent prompts
 factory/model-catalogue.json  # capability tiers to exact advertised models
-adapters/                  # optional host, forge, and tracker adapters
+adapters/                  # optional runtime integrations and compatibility
+providers/                 # optional forge, tracker, review, and spec tools
 ```
 
 Self-improvement (`/delivery improve`) edits `skills/delivery` only, after
@@ -228,5 +262,5 @@ bun install --frozen-lockfile
 bun run check
 bun test
 cd ..
-BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks/delivery-specs.test.ts
+BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks
 ```

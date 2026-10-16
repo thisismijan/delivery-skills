@@ -18,7 +18,7 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
 
 - **Mutation boundary.** Run `canStartStage` before any write, using the runtime's mutation-guard identifier:
   ```
-  bun "${FACTORY_ROOT}/scripts/stage-gating.ts" draft <runtime-id>
+  bun "${FACTORY_ROOT}/scripts/stage-gating.ts" draft <runtime-manifest.json>
   ```
   Non-zero exit → **stop**. A runtime that does not declare an enforceable mutation boundary cannot start this mutating stage.
 - The tracker provider is **read-only** here. The only write is a single tracker **comment** on clarify/reject/escalate. **Never** transition tracker status — humans own that.
