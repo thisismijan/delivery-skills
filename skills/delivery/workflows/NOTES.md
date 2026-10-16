@@ -1,5 +1,9 @@
 # NOTES — delivery world
 
+> Historical and non-actionable. Terminology only; this file cannot override
+> `../SKILL.md` (the conductor), `auto.md` (the next-step table), or the
+> current stage specs.
+
 Raw notes on tools, channels, and canonical terms for the delivery workflows
 under `workflows/`. Sharpen here when a term drifts; workflows reference these
 names, they do not redefine them.
@@ -25,7 +29,7 @@ Neither host may put both sides of a human approval gate in one background run.
 | **Jira (Cursor)** | Atlassian MCP `plugin-atlassian-atlassian` — **authenticated / ready**. Tools include `getJiraIssue`, `searchJiraIssuesUsingJql`, `createJiraIssue`, `editJiraIssue`, `addOrEditJiraIssueComment`, `transitionJiraIssue`, graph link helpers. | Capability exists. Delivery policy still defaults to human create/transition unless a workflow explicitly opts in (see backlog). |
 | **Jira (Claude)** | Atlassian MCP in the Claude session. | Factory: read + **comment only**. |
 | **GitLab (Cursor MCP)** | `plugin-gitlab-GitLab` — auth attempted; live discovery currently fails with `403 Forbidden - MCP server not enabled for any of your groups`. Enable the GitLab MCP feature for the relevant GitLab group(s), then reconnect. | Until fixed: do not rely on this MCP. |
-| **GitLab (CLI)** | `glab` (factory MR create/note/ready); `gl-mr` (read-only); `gl-note` (publish review notes) | Factory opens ready MRs and posts notes. Humans merge and close. `gl-mr` is GET-only by design. |
+| **GitLab (CLI)** | `glab` (factory MR create/note/ready); `gl-mr` (read-only); `gl-note` (publish review notes) | Factory opens the merge request and posts notes. Humans merge and close. Stage 3 marks an MR ready after both review passes. `gl-mr` is GET-only by design. |
 | **OpenSpec** | `openspec/` in the **target repo**; `/opsx:*` commands | Factory authors changes under `openspec/changes/`. Humans run `/openspec-archive` after merge. |
 
 Token for `gl-mr` / `gl-note`: `~/token` (or `GL_TOKEN_FILE`). Project inferred from `git remote get-url origin` unless `GL_PROJECT` / `GL_HOST` set.
@@ -101,12 +105,12 @@ Factory stages (this clone's `skills/` + `factory/`, both hosts):
 
 Recorded so workflows do not re-litigate them:
 
-- Runtime host: Claude Code.
+- Runtime hosts: Cursor and Claude Code.
 - Jira story creation and merge: human.
 - No Jira status automation in v1.
 - Orchestrator (if any) invokes existing commands; does not reimplement holdout, test gates, or mr-review phases.
 - Epic workflow input: freeform / file / HLD / PRD to groom (same as `/groom`). Optional Jira epic key is operator-provided context pasted or exported into that input — groom itself does not call Jira.
-- Three stage workflows are source of truth; a thin conductor may sequence them but must not duplicate stage logic.
+- Historical only: an earlier three-stage orchestrator sequenced the stage files. Live behaviour is the conductor in `SKILL.md`, not that orchestrator.
 - **Slice for max parallelism:** default is "all tickets in one parallel wave" when the codebase allows. Add blockers only when a true dependency exists. Inventing a foundation ticket "so there is a blocker" is wrong. Long linear chains are the anti-pattern when a fan-out would work.
 - **Slice for small context:** each ticket must be understood, drafted, tested, implemented, verified, and reviewed within **~25% of one session context window**. If it has independent outcomes, unrelated code areas, more than three acceptance criteria, or needs continuation, split it. Prefer more atomic but vertically complete slices over one fat story or technical-layer microtickets.
 - **Parallel execution:** when a wave has no remaining unmerged blockers, run each ticket as its own `/delivery <KEY>` (or ticket-to-mr) in a **separate worktree + session**. The conductor in one session does not multiplex execute; it briefs the wave and stops for the operator to fan out.
@@ -118,11 +122,11 @@ Recorded so workflows do not re-litigate them:
 | [`workflows/epic-to-backlog.md`](workflows/epic-to-backlog.md) | Idea/epic → groom → human creates Jira stories |
 | [`workflows/ticket-to-mr.md`](workflows/ticket-to-mr.md) | Jira key → draft → spec checkpoint → execute → ready MR |
 | [`workflows/mr-review-to-ready.md`](workflows/mr-review-to-ready.md) | MR iid → host's max correctness pass → mr-review → optional address-comments → human merge-ready |
-| [`workflows/delivery-orchestrator.md`](workflows/delivery-orchestrator.md) | Thin conductor; routes to the three stages |
+| [`workflows/delivery-orchestrator.md`](workflows/delivery-orchestrator.md) | Historical pointer only; not live |
 
 ## Build-phase backlog (after these specs)
 
-Implement against the workflow files; do not invent new stage behavior.
+Implement against the live sources named in `SKILL.md`; do not invent new stage behavior.
 
 1. **Conductor skill** — **done:** `/delivery` installed in:
    - Claude Code: `~/.claude/skills/delivery/SKILL.md`

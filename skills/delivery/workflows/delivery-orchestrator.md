@@ -1,9 +1,9 @@
 # Workflow: delivery-orchestrator
 
-> Historical pointer only. Do not execute the three-stage flow below.
-> `../SKILL.md` is the conductor and `auto.md` is its complete lifecycle state
-> machine. They include discovery, intake, readiness, archive, verify, retro,
-> and approval-gated improvement for both Cursor and Claude Code.
+> Historical and non-actionable. Do not execute the three-stage flow below.
+> This file cannot override `../SKILL.md` (the conductor), `auto.md` (the
+> next-step table), or the current stage specs. Keep it as a record of the
+> retired three-stage conductor only.
 
 Thin conductor: sequence the three stage workflows with push-right briefs. No
 duplicate stage logic — every build/review behavior lives in the stage specs
@@ -110,5 +110,5 @@ the final brief (artifacts + human exits: merge, `/openspec-archive`, Jira statu
    run). Smallest useful build: a skill that documents the route table and
    enforces entry detection + between-ticket briefs.
 2. Do not fork ig-spec agents into the conductor.
-3. Source of truth for stage behavior remains the three stage files; if they
-   disagree with this conductor, fix this file.
+3. Live stage behaviour is in `../SKILL.md`, `auto.md`, and the current stage
+   specs. If this record disagrees with them, ignore this file.
