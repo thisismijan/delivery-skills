@@ -100,8 +100,9 @@ State the chosen entry and what it runs in one line, then continue.
 3. Never infer an approval from chat history. An approval counts only when the
    ledger records it.
 
-4. Check the capabilities the next stage needs (below). For `auto`, check them
-   all once and show the result as a table before starting.
+4. Check the capabilities the next stage needs (below) by calling
+   `checkCapabilities`. For `auto`, check only what that stage needs and
+   check again when the next stage starts.
 
 5. **Record the runtime model inventory.** Read the exact model identifiers the
    host advertises for subagents. On Cursor, use the session's supplied
@@ -125,8 +126,10 @@ preconditions; fail when a stage command fails.
 
 The same skill runs on the operator's Mac, on a self-hosted worker, and in a
 cloud agent, and each has a different set of tools. Check by trying, not by
-guessing where you are. A stage whose capability is missing does not run; stop
-with the capability, the stages it blocks, and its fix.
+guessing where you are. Call `checkCapabilities` with the stage about to run;
+only the capabilities that stage needs can block it. A stage whose capability
+is missing does not run; stop with the capability, the stages it blocks, and
+its fix.
 
 | Capability | Check | Needed by | Fix when missing |
 |------------|-------|-----------|------------------|
@@ -134,7 +137,7 @@ with the capability, the stages it blocks, and its fix.
 | Factory | `/groom`, `/draft`, `/execute`, `/address-comments` resolve, and `factory/RUNTIME.md` finds `scripts/find-change.ts` | groom, draft, execute, address | Clone delivery-skills and run `./install.sh`. Do not load the ig-spec Claude plugin in the same session |
 | Review commands | `/code-review-max` and `/mr-review` are available. On Claude Code, native `/code-review max` may stand in for the correctness pass. `gl-mr` and `gl-note` are on PATH. Cursor's lightweight `/code-review` does not count | review | Run `./install.sh`. For `gl-mr` and `gl-note` in a cloud agent, run `bash skills/mr-review/cloud-setup.sh` once |
 | GitLab | `glab auth status` succeeds. A `GITLAB_TOKEN` environment variable is enough | draft, execute, address, review, ship, archive, verify, auto | Cloud: add a `GITLAB_TOKEN` secret. Mac: `glab auth login` |
-| Jira | Reading the ticket succeeds through the Atlassian connection | triage, draft, discover, retro | Reconnect Atlassian under Cursor's Integrations |
+| Jira | A real ticket read through the Atlassian connection returns the ticket. A failed read, or a result with no ticket, stops the stage | triage, draft, discover, retro | Reconnect Atlassian under Cursor's Integrations |
 | OpenSpec | `openspec --version` succeeds | draft, execute, archive | Install `@fission-ai/openspec` |
 | Deployed environment | The environment's hostnames resolve and answer | verify | Run verify on a machine on the internal network, such as the operator's self-hosted worker |
 | Skill evaluation | The pinned Bun version runs `checks/delivery-specs.test.ts`, and the skill store is writable | improve | Use the Bun version from the target repository and a Cursor account whose personal skill store is writable |
