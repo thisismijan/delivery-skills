@@ -308,6 +308,39 @@ if (!HISTORICAL_INDEPENDENCE) {
   });
 }
 
+describe("durable ledger writer", () => {
+  const STORE = readFileSync(
+    join(SKILLS_ROOT, "..", "factory", "scripts", "ledger-store.ts"),
+    "utf8",
+  );
+
+  function invocation(name: string): string {
+    const match = STORE.match(
+      new RegExp(`export const ${name} = "([^"]+)"`),
+    );
+    expect(match?.[1]).toBeTruthy();
+    return match?.[1] ?? "";
+  }
+
+  test("workflows name the writer and recovery commands from the store, and call a conflict a terminal stop", () => {
+    const writeCommand = invocation("LEDGER_WRITE_INVOCATION");
+    const recoverCommand = invocation("LEDGER_RECOVER_INVOCATION");
+    expect(writeCommand).toContain("ledger-store.ts");
+    expect(recoverCommand).toContain("ledger-store.ts recover");
+    for (const [name, doc] of [
+      ["delivery-ledger.md", LEDGER],
+      ["SKILL.md", SKILL],
+    ] as const) {
+      expect([name, doc.includes(writeCommand)]).toEqual([name, true]);
+      expect([name, doc.includes(recoverCommand)]).toEqual([name, true]);
+    }
+    expect(LEDGER.toLowerCase()).toContain("concurrency conflict");
+    expect(LEDGER).toMatch(/terminal stop/i);
+    expect(SKILL.toLowerCase()).toContain("concurrency conflict");
+    expect(SKILL).toMatch(/terminal stop/i);
+  });
+});
+
 function normaliseTag(tag: string): string {
   return tag
     .replace(/!(N|<iid>|\d+)/g, "!N")
