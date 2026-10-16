@@ -35,8 +35,11 @@ Repeat until every key is done, stopped, or waiting on a person:
 
 1. Reconcile the ledger with the real state.
 2. Pick the key to work on (Choosing a key, below).
-3. Look up its next step in the table and run it.
-4. Write the ledger, then go back to 1.
+3. Check the capabilities that stage needs with `checkCapabilities`. Re-check
+   at each stage boundary so a later capability is checked when that stage
+   begins.
+4. Look up its next step in the table and run it.
+5. Write the ledger, then go back to 1.
 
 Between steps, do not ask whether to continue. Continue.
 

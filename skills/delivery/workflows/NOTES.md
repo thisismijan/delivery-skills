@@ -22,7 +22,7 @@ Neither host may put both sides of a human approval gate in one background run.
 
 | Channel | How we touch it | Writes allowed |
 |---------|-----------------|----------------|
-| **Jira (Cursor)** | Atlassian MCP `plugin-atlassian-atlassian` — **authenticated / ready**. Tools include `getJiraIssue`, `searchJiraIssuesUsingJql`, `createJiraIssue`, `editJiraIssue`, `addOrEditJiraIssueComment`, `transitionJiraIssue`, graph link helpers. | Capability exists. Delivery policy still defaults to human create/transition unless a workflow explicitly opts in (see backlog). |
+| **Jira (Cursor)** | Atlassian MCP `plugin-atlassian-atlassian`. Informational only, not a capability-check result. Tools include `getJiraIssue`, `searchJiraIssuesUsingJql`, `createJiraIssue`, `editJiraIssue`, `addOrEditJiraIssueComment`, `transitionJiraIssue`, graph link helpers. | Capability exists. Delivery policy still defaults to human create/transition unless a workflow explicitly opts in (see backlog). |
 | **Jira (Claude)** | Atlassian MCP in the Claude session. | Factory: read + **comment only**. |
 | **GitLab (Cursor MCP)** | `plugin-gitlab-GitLab` — auth attempted; live discovery currently fails with `403 Forbidden - MCP server not enabled for any of your groups`. Enable the GitLab MCP feature for the relevant GitLab group(s), then reconnect. | Until fixed: do not rely on this MCP. |
 | **GitLab (CLI)** | `glab` (factory MR create/note/ready); `gl-mr` (read-only); `gl-note` (publish review notes) | Factory opens ready MRs and posts notes. Humans merge and close. `gl-mr` is GET-only by design. |
