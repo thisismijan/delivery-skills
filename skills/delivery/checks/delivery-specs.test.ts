@@ -1,9 +1,13 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { describe, expect, setDefaultTimeout, test } from "bun:test";
+import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+
+setDefaultTimeout(60_000);
 
 const ROOT = process.env.DELIVERY_SKILL_ROOT ?? join(import.meta.dir, "..");
 const SKILLS_ROOT = process.env.DELIVERY_SKILLS_ROOT ?? join(import.meta.dir, "..", "..");
+const HISTORICAL_INDEPENDENCE = process.env.DELIVERY_HISTORICAL_INDEPENDENCE === "1";
 const SKILL_PATH = existsSync(join(ROOT, "SKILL.md")) ? join(ROOT, "SKILL.md") : join(ROOT, "delivery-SKILL.proposed.md");
 const SKILL = readFileSync(SKILL_PATH, "utf8");
 const WORKFLOWS = join(ROOT, "workflows");
@@ -16,6 +20,7 @@ const SPECS = Object.fromEntries(
     .filter((f) => f.endsWith(".md"))
     .map((f) => [f, readFileSync(join(WORKFLOWS, f), "utf8")]),
 );
+const HISTORICAL_FILES = new Set(["NOTES.md", "delivery-orchestrator.md"]);
 const LEGACY_SECTION_EXEMPT = new Set([
 	"delivery-orchestrator.md",
 	"epic-to-backlog.md",
@@ -188,6 +193,119 @@ describe("source of truth", () => {
     expect(SKILL).toContain("\ndisable-model-invocation: true\n");
   });
 });
+
+describe("workflow authority", () => {
+  test("Source of truth names live files and marks historical files non-actionable", () => {
+    const src = section(SKILL, "## Source of truth");
+    expect(src).toContain("no machine-specific fallbacks");
+    expect(src).toContain("`.delivery/`");
+    expect(src).toContain("routing/");
+    expect(src).toContain("`workflows/auto.md`");
+    expect(src).toContain("`workflows/delivery-ledger.md`");
+    expect(src).toContain("`workflows/NOTES.md`");
+    expect(src).toContain("`workflows/delivery-orchestrator.md`");
+    expect(src).toMatch(/non-actionable/i);
+    expect(src).toMatch(/cannot override/i);
+    expect(src).toMatch(/conductor/i);
+    expect(src).toMatch(/next-step table|auto\.md/i);
+    expect(src).toMatch(/stage specs/i);
+  });
+
+  test("historical files carry the non-actionable marker and make no source-of-truth claim", () => {
+    if (HISTORICAL_INDEPENDENCE) return;
+    for (const name of HISTORICAL_FILES) {
+      const doc = SPECS[name];
+      const head = doc.split("\n").slice(0, 8).join("\n");
+      expect([name, /non-actionable/i.test(head)]).toEqual([name, true]);
+      expect(head).toContain("SKILL.md");
+      expect(head).toMatch(/cannot override/i);
+      expect([name, /are source of truth/i.test(doc)]).toEqual([name, false]);
+      expect(doc).not.toMatch(/Source of truth for stage behavior remains/i);
+      expect(doc).not.toContain("Factory opens ready MRs");
+      expect(doc).not.toMatch(/Runtime host: Claude Code/);
+      expect(doc).not.toContain("Three stage workflows are source of truth");
+    }
+  });
+
+  test("live files do not defer to historical files for a rule", () => {
+    const live: [string, string][] = [
+      ["SKILL.md", SKILL],
+      ...Object.entries(SPECS).filter(([name]) => !HISTORICAL_FILES.has(name)),
+    ];
+    for (const [name, doc] of live) {
+      expect([name, /Three stage workflows are source of truth/.test(doc)]).toEqual([name, false]);
+      expect(doc).not.toMatch(/Source of truth for stage behavior remains the three stage files/i);
+      for (const hist of HISTORICAL_FILES) {
+        const escaped = hist.replace(".", "\\.");
+        const defer = new RegExp(
+          `(?:follow|load|run|obey|source of truth)[^.\n]{0,80}${escaped}|${escaped}[^.\n]{0,80}(?:source of truth|is actionable)`,
+          "i",
+        );
+        expect([name, hist, defer.test(doc)]).toEqual([name, hist, false]);
+      }
+    }
+  });
+});
+
+const CONTRADICTED_NOTES = `# NOTES — contradicted historical file
+
+Three stage workflows are source of truth.
+Factory opens ready MRs.
+Runtime host: Claude Code.
+Tickets may consume ~50% of a session context.
+Invalid ledger tag: \`[ready bogus]\`.
+`;
+
+const CONTRADICTED_ORCHESTRATOR = `# Workflow: delivery-orchestrator
+
+Source of truth for stage behavior remains the three stage files; if they
+disagree with this conductor, fix this file.
+Invalid ledger tag: \`[stopped:contradicted]\`.
+`;
+
+if (!HISTORICAL_INDEPENDENCE) {
+  describe("live contracts independent of historical wording", () => {
+    test("the suite passes when historical files contradict live rules", async () => {
+      const dest = mkdtempSync(join(tmpdir(), "delivery-authority-"));
+      try {
+        const packRoot = join(import.meta.dir, "..", "..", "..");
+        for (const name of ["README.md", "install.sh", "NOTICE.md"]) {
+          cpSync(join(packRoot, name), join(dest, name));
+        }
+        cpSync(join(packRoot, "skills"), join(dest, "skills"), { recursive: true });
+        cpSync(join(packRoot, "factory"), join(dest, "factory"), { recursive: true });
+        writeFileSync(join(dest, "skills", "delivery", "workflows", "NOTES.md"), CONTRADICTED_NOTES);
+        writeFileSync(
+          join(dest, "skills", "delivery", "workflows", "delivery-orchestrator.md"),
+          CONTRADICTED_ORCHESTRATOR,
+        );
+        const proc = Bun.spawn(
+          [process.execPath, "test", join(import.meta.dir, "delivery-specs.test.ts")],
+          {
+            cwd: packRoot,
+            env: {
+              ...process.env,
+              DELIVERY_SKILL_ROOT: join(dest, "skills", "delivery"),
+              DELIVERY_SKILLS_ROOT: join(dest, "skills"),
+              DELIVERY_HISTORICAL_INDEPENDENCE: "1",
+              BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0",
+            },
+            stdout: "pipe",
+            stderr: "pipe",
+          },
+        );
+        const [stdout, stderr, exitCode] = await Promise.all([
+          new Response(proc.stdout).text(),
+          new Response(proc.stderr).text(),
+          proc.exited,
+        ]);
+        expect(exitCode, `${stdout}\n${stderr}`).toBe(0);
+      } finally {
+        rmSync(dest, { recursive: true, force: true });
+      }
+    });
+  });
+}
 
 function normaliseTag(tag: string): string {
   return tag
