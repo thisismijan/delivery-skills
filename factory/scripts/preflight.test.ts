@@ -20,15 +20,15 @@ test("a failing required check -> not ready", () => {
 test("formats one line per check including the detail", () => {
 	const s = summarize([
 		{
-			name: "glab authenticated",
+			name: "subprocess runtime",
 			ok: false,
 			required: true,
-			detail: "run 'glab auth login'",
+			detail: "configure process.run in the runtime manifest",
 		},
 	]);
 	expect(s.lines).toHaveLength(1);
-	expect(s.lines[0]).toContain("glab authenticated");
-	expect(s.lines[0]).toContain("run 'glab auth login'");
+	expect(s.lines[0]).toContain("subprocess runtime");
+	expect(s.lines[0]).toContain("configure process.run in the runtime manifest");
 });
 
 test("stage preflight stops on a missing required capability", () => {

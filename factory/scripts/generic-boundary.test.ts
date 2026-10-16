@@ -47,6 +47,7 @@ describe("generic boundary", () => {
 		expect(
 			isInGenericBoundary("factory/scripts/generic-boundary.test.ts"),
 		).toBe(false);
+		expect(isInGenericBoundary("providers/openspec/README.md")).toBe(false);
 		expect(
 			isInGenericBoundary("skills/delivery/checks/delivery-specs.test.ts"),
 		).toBe(false);
@@ -56,6 +57,11 @@ describe("generic boundary", () => {
 		expect(isInGenericBoundary("skills/mr-review/gl-mr")).toBe(false);
 		expect(isInGenericBoundary("skills/mr-review/gl-note")).toBe(false);
 		expect(isInGenericBoundary("skills/mr-review/cloud-setup.sh")).toBe(false);
+		expect(isInGenericBoundary("providers/gitlab/gl-mr")).toBe(false);
+		expect(isInGenericBoundary("providers/gitlab/gl-note")).toBe(false);
+		expect(isInGenericBoundary("adapters/migration/legacy-state.ts")).toBe(
+			false,
+		);
 		expect(isInGenericBoundary("README.md")).toBe(false);
 		expect(isInGenericBoundary("install.sh")).toBe(false);
 		expect(isInGenericBoundary("factory/scripts/stage-gating.ts")).toBe(false);
@@ -142,6 +148,39 @@ describe("generic boundary", () => {
 
 	test("generic core files contain no source-framework, host, vendor, forge, or tracker product names", () => {
 		const hits = scanGenericBoundary(PACK_ROOT);
+		expect(hits).toEqual([]);
+	});
+
+	test("unresolved conflict markers in a planted pack are reported", () => {
+		const root = mkdtempSync(join(tmpdir(), "generic-conflict-"));
+		mkdirSync(join(root, "skills", "delivery"), { recursive: true });
+		mkdirSync(join(root, "factory", "agents"), { recursive: true });
+		writeFileSync(
+			join(root, "skills", "delivery", "SKILL.md"),
+			["<<<<<<< HEAD", "ours", "=======", "theirs", ">>>>>>> other"].join(
+				"\n",
+			) + "\n",
+		);
+		writeFileSync(join(root, "factory", "RUNTIME.md"), "Factory runtime\n");
+		writeFileSync(
+			join(root, "factory", "CONVENTIONS.md"),
+			"Delivery conventions\n",
+		);
+		const hits = scanGenericBoundary(root);
+		expect(
+			hits.some(
+				(hit) =>
+					hit.id === "conflict-marker" ||
+					hit.excerpt.includes("<<<<<<<") ||
+					hit.excerpt.includes(">>>>>>>"),
+			),
+		).toBe(true);
+	});
+
+	test("the live generic boundary contains no unresolved conflict markers", () => {
+		const hits = scanGenericBoundary(PACK_ROOT).filter(
+			(hit) => hit.id === "conflict-marker",
+		);
 		expect(hits).toEqual([]);
 	});
 });

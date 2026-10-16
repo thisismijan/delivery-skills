@@ -106,6 +106,12 @@ test("--skills-dir installs generic skills and runtime beside them", async () =>
 			false,
 		);
 		expect(await pathExists(join(root, "bin", "gl-mr"))).toBe(false);
+		expect(await pathExists(join(dest, "mr-review", "gl-mr"))).toBe(false);
+		expect(await pathExists(join(dest, "mr-review", "gl-note"))).toBe(false);
+		expect(await pathExists(join(dest, "mr-review", "cloud-setup.sh"))).toBe(
+			false,
+		);
+		expect(await pathExists(join(dest, "providers"))).toBe(false);
 		const managed = (await readFile(join(dest, ".delivery-managed"), "utf8"))
 			.trim()
 			.split("\n");
@@ -247,9 +253,41 @@ test("shipped cursor adapter installs review wrappers for an explicit destinatio
 	});
 });
 
+test("explicit --provider installs that provider and generic install includes none", async () => {
+	await withInstallRoot(async (root) => {
+		const dest = join(root, "skills");
+		const bin = join(root, "bin");
+		const generic = await runInstaller(["--skills-dir", dest], {
+			DELIVERY_BIN_DIR: bin,
+		});
+		expect(generic.exitCode).toBe(0);
+		expect(await pathExists(join(bin, "gl-mr"))).toBe(false);
+		expect(await pathExists(join(dest, "mr-review", "gl-mr"))).toBe(false);
+
+		const missing = await runInstaller(
+			["--skills-dir", dest, "--provider", "missing-provider"],
+			{ DELIVERY_BIN_DIR: bin },
+		);
+		expect(missing.exitCode).not.toBe(0);
+		expect(`${missing.stdout}\n${missing.stderr}`).toMatch(
+			/unknown provider|provider not found/i,
+		);
+
+		const selected = await runInstaller(
+			["--skills-dir", dest, "--provider", "gitlab"],
+			{ DELIVERY_BIN_DIR: bin },
+		);
+		expect(selected.exitCode).toBe(0);
+		expect(selected.stdout).toMatch(/Provider gitlab/i);
+		expect(await pathExists(join(bin, "gl-mr"))).toBe(true);
+		expect(await pathExists(join(bin, "gl-note"))).toBe(true);
+	});
+});
+
 test("README documents --skills-dir and optional --adapter without named hosts", () => {
 	expect(readme).toContain("./install.sh --skills-dir");
 	expect(readme).toContain("--adapter");
+	expect(readme).toContain("--provider");
 	expect(readme).not.toMatch(/\bCursor\b/);
 	expect(readme).not.toMatch(/\bClaude\b/);
 	expect(readme).not.toMatch(/ig-spec/);

@@ -29,11 +29,11 @@ import {
 //
 //   export function excludeHoldoutNote(comments: MrComment[]): MrComment[]
 //     -- Filters OUT any comment whose body starts with the audit prefix
-//        "**ig-spec** ·" (the prefix produced by scripts/audit.ts auditComment).
+//        "**delivery** ·" (the prefix produced by scripts/audit.ts auditComment).
 //     -- Returns a new array; does not mutate the input.
 // ---------------------------------------------------------------------------
 
-const AUDIT_PREFIX = "**ig-spec** ·";
+const AUDIT_PREFIX = "**delivery** ·";
 
 // A realistic discussions payload: a multi-note thread, two individual notes,
 // one GitLab system note (must be dropped), and the factory's own audit note.
@@ -86,7 +86,7 @@ const sampleDiscussionsPayload = JSON.stringify([
 		notes: [
 			{
 				id: 105,
-				author: { name: "ig-spec-bot", username: "ig-spec-bot" },
+				author: { name: "delivery-bot", username: "delivery-bot" },
 				body: `${AUDIT_PREFIX} review\n\nHoldout review complete. Satisfied: yes.`,
 				system: false,
 			},
@@ -258,7 +258,7 @@ test("parseMrComments: fail closed — throws when top-level value is a plain st
 // ---------------------------------------------------------------------------
 // excludeHoldoutNote — filtering
 //
-// Spec: any comment whose body STARTS WITH the audit prefix "**ig-spec** ·"
+// Spec: any comment whose body STARTS WITH the audit prefix "**delivery** ·"
 // is the factory's own note and must be excluded. All other comments
 // (human, bot, etc.) are kept.
 // ---------------------------------------------------------------------------
@@ -329,13 +329,13 @@ test("excludeHoldoutNote: prefix match is exact — a close-but-different prefix
 			id: 20,
 			discussionId: "a",
 			author: "bot",
-			body: "**ig-spec**: different separator",
+			body: "**delivery**: different separator",
 		},
 		{
 			id: 21,
 			discussionId: "b",
 			author: "bot",
-			body: "ig-spec · no bold markers",
+			body: "delivery · no bold markers",
 		},
 	];
 	expect(excludeHoldoutNote(notExact).length).toBe(2);

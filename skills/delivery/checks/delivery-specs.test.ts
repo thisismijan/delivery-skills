@@ -191,7 +191,9 @@ describe("source of truth", () => {
 
   test("the skill keeps its frontmatter", () => {
     expect(SKILL.startsWith("---\nname: delivery\n")).toBe(true);
-    expect(SKILL).toContain("\ndisable-model-invocation: true\n");
+    expect(SKILL).not.toContain("disable-model-invocation");
+    expect(SKILL).not.toContain("argument-hint");
+    expect(SKILL).not.toContain("$ARGUMENTS");
   });
 });
 
@@ -788,7 +790,7 @@ describe("portable factory pack", () => {
 describe("max review contract", () => {
   test("the skill is manually invoked and pins both refs", () => {
     expect(CODE_REVIEW_MAX).toContain("name: code-review-max");
-    expect(CODE_REVIEW_MAX).toContain("disable-model-invocation: true");
+    expect(CODE_REVIEW_MAX).not.toContain("disable-model-invocation");
     expect(CODE_REVIEW_MAX).toContain("full base SHA, full head SHA");
     expect(CODE_REVIEW_MAX).toContain("The current branch is irrelevant.");
   });
