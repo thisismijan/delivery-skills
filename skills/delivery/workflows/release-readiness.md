@@ -114,8 +114,8 @@ location, what happens, evidence.
   `design.md`). Walk each trust boundary the change crosses: spoofing,
   tampering, repudiation, information disclosure, denial of service, elevation
   of privilege. Check the diff for secrets. Check new dependencies for known
-  vulnerabilities with the repo's scanner if it has one. A Critical or High
-  finding needs a proof of concept or it is downgraded to Important.
+  vulnerabilities with the repo's scanner if it has one. An incompletely
+  reproduced Critical or High finding keeps its severity and is marked unverified.
 - **Operability** (always on unless the small change rule applied). Take the
   on-call questions from `design.md`. If there are none, write two: "how would
   we know this is broken?" and "how would we know it is slower?". For each, name
@@ -160,7 +160,7 @@ Write the plan from how the target repo actually deploys (step 1).
 
 **NO-GO** if any of these is true:
 
-- A Critical finding that the operator has not accepted.
+- Unaccepted Critical and High findings, unverified ones included.
 - The pipeline failed at the current head.
 - The MR has conflicts.
 - A one-way door with no rollback procedure, unless the operator has accepted
@@ -169,8 +169,8 @@ Write the plan from how the target repo actually deploys (step 1).
 Otherwise **GO**. A GO always carries a rollback plan. A one-way door's rollback
 plan says what cannot be undone and how the damage is limited instead.
 
-Only the operator can move a Critical finding to accepted. Record it in the
-ledger's Approvals, scoped to this iid at this head, with their words.
+Only the operator can move a Critical or High finding to accepted. Record it in
+the ledger's Approvals, scoped to this iid at this head, with their words.
 
 ### 7. Write the brief
 
@@ -185,13 +185,13 @@ AI or tool attribution.
 verdict unless the change itself stays the same.
 
 ### Must fix before merging
-- <finding: what happens, where, evidence>
+- <finding: what happens, where, evidence> <unverified>
 
 ### Should fix
 - <finding>
 
 ### Risks accepted
-- <risk> — accepted by <who> on <date>
+- <risk> — accepted by <who> on <date> at head <short head>
 
 ### Merge danger
 <One-way | Two-way> door: <why>. Blast radius: <what else this can affect>.

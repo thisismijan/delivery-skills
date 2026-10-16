@@ -450,6 +450,23 @@ describe("capabilities", () => {
     expect(readiness).toContain("A pipeline that belongs to an older head does not count.");
   });
 
+  test("the readiness workflow states the fail-closed rule", () => {
+    const readiness = SPECS["release-readiness.md"];
+    const lenses = section(readiness, "### 3. Run the lenses");
+    const decide = section(readiness, "### 6. Decide");
+    const brief = section(readiness, "### 7. Write the brief");
+    expect(lenses).not.toMatch(/proof of concept or it is downgraded/i);
+    expect(lenses).toMatch(/keeps its severity/);
+    expect(lenses).toMatch(/marked unverified/);
+    expect(decide).toMatch(/Critical and High/);
+    expect(decide).toMatch(/unverified/);
+    expect(decide).toContain("Only the operator");
+    expect(decide).toContain("this iid at this head");
+    expect(decide).toMatch(/Critical (?:or|and) High/);
+    expect(brief).toMatch(/unverified/i);
+    expect(brief).toMatch(/Risks accepted[\s\S]*head/i);
+  });
+
   test("auto waits on the MR's own pipeline, not the branch's", () => {
     const waiting = section(AUTO, "## Waiting");
     expect(waiting).toMatch(/read\s+`head_pipeline` from `glab mr view <iid> --output json`, not the branch's\s+pipeline/);
