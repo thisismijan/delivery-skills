@@ -35,6 +35,8 @@ relative to that state root. Nothing is written beside the installed skill.
   manifest.md
   patch.diff
   scorecard.md
+  paired-evidence.json
+  paired-result.json
   skill/               # complete candidate delivery skill
 <state root>/versions/<utc>-<baseline-hash>/
   skill/               # complete rollback copy
@@ -171,6 +173,24 @@ run, or smaller diff is diagnostic evidence only and never compensates for a
 quality or safety failure. Persist the paired inputs, outputs, metrics, and
 check evidence under the candidate directory and summarize them in
 `scorecard.md`.
+
+Write the evidence to
+`<state root>/candidates/<id>/paired-evidence.json`, then run the deterministic
+evaluator:
+
+```bash
+bun "${FACTORY_ROOT}/scripts/paired-evaluation.ts" \
+  "<state root>/candidates/<id>/paired-evidence.json" \
+  "<state root>/candidates/<id>/paired-result.json"
+```
+
+The evidence schema requires identical controls, comparable usage units, the
+same named checks and visibility, a green baseline, and distinct managed-tree
+hashes. For a routing change it also requires both selected worker models.
+Malformed or unpaired evidence exits non-zero. A well-formed candidate that
+misses the utility, Critical-miss, required-check, or mutation gate writes its
+result and also exits non-zero. Either outcome marks the candidate `failed`;
+do not calculate or override the decision in prose.
 
 ### 4. Adversarial evaluation
 
