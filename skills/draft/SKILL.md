@@ -65,23 +65,30 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
    - `decision: "escalate"` → post the `reason` as a tracker comment (too complex, too risky, or otherwise not safe to spec), then **HARD STOP this run** (see "Terminal stop" below). A human must change the scope and re-invoke `/draft` **in a new session**; this run never re-fetches the ticket, re-runs feasibility, or waits for an update.
    - `decision: "proceed"` → continue.
 
-5a. **Test seam checkpoint (approval required).** Before authoring any OpenSpec
-artifact, present the proposed test seam or seams to the operator. Prefer an
+5a. **Test seam decision.** Before authoring any OpenSpec artifact, derive the
+proposed test seam or seams. Prefer an
 **existing** seam over a new one, the **highest** stable public seam that proves
 the behaviour, and the **fewest** seams needed for complete scenario coverage.
 For each seam, state **what each seam catches and misses**, and identify any
 system boundary that needs a controlled fake.
 
-Require **explicit operator approval** of the seams. A feasibility `proceed`
-verdict is not approval. If the operator rejects or changes them, revise and
-ask again; if approval is absent, stop without authoring. Persist the approved
-seams and their coverage limits in `design.md`, and map every scenario's test
-task to one in `tasks.md`.
+In a single-step `/draft`, require **explicit operator approval** of the seams.
+A feasibility `proceed` verdict is not approval. If the operator rejects or
+changes them, revise and ask again; if approval is absent, stop without
+authoring.
+
+When the shared run ledger records `continuous-delivery: yes`, the approved
+groomed plan is standing authorization for this implementation decision. Do
+not ask again. Persist the selected seams, why they are the smallest complete
+proof, and their coverage limits in `design.md`; map every scenario's test task
+to one in `tasks.md`. A missing stable seam, a seam that cannot cover an
+acceptance criterion, or contradictory feasibility evidence is a stop, not a
+reason to guess or ask for routine progression approval.
 
 When `complexitySignal` is `high`, the checkpoint must also show a small
 **usage sketch**, a **type or signature sketch**, and at least one **rejected
 alternative** with the reason it loses. Persist these in `design.md` after
-approval.
+selection.
 
 6. **Derive the change name.** Run:
    ```

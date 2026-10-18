@@ -1,7 +1,9 @@
 # Workflow: epic-to-backlog
 
-Turn an epic-sized idea into groomed, draft-ready the tracker stories the human creates
-by hand. Compose `/groom`; do not reimplement grooming.
+Turn an epic-sized idea into groomed, draft-ready tracker stories. Compose
+`/groom`; do not reimplement grooming. In continuous mode the conductor creates
+the approved stories through the tracker provider. A single-step groom leaves
+the verified drafts for the operator.
 
 Terms: see [`NOTES.md`](../NOTES.md).
 
@@ -19,9 +21,10 @@ invokes this workflow with one of:
 2. Inline text (pasted epic description, acceptance notes, constraints)
 3. Conversation context already containing that material
 
-If a the tracker epic key is the starting point, the operator exports or pastes the
-epic summary/description (and any child list they care about) into (1) or (2).
-This workflow never calls the tracker MCP.
+If a tracker epic key is the starting point, read its summary and description
+through the tracker provider when available. Otherwise the operator may export
+or paste them into (1) or (2). The `/groom` skill itself never calls the
+tracker; only the conductor may create approved stories afterward.
 
 If there is no usable input, stop and ask for a file path or description. Do
 not guess.
@@ -106,7 +109,7 @@ the directory printed by `groom-paths.ts`, list of draft files, optional `prd.md
 If the operator abandons mid-grill or rejects the breakdown without approval,
 stop. No drafts, no brief, no tracker.
 
-### 3. Checkpoint — create the tracker stories (push right)
+### 3. Materialize the approved tracker stories
 
 Present a **brief** only (not the full draft bodies in the chat dump):
 
@@ -131,19 +134,27 @@ Present a **brief** only (not the full draft bodies in the chat dump):
   immediately if blocked-by is empty; otherwise after blockers are merged);
   each ticket sized for **~25% of a session context window**
 - Link/path to optional `prd.md` if present
-- Explicit ask: create the work items (copy draft content), set epic/parent
-  links and the tracker "blocked by" / link types to match the wave graph, then reply
-  with the map `slice-number → WORK-ITEM-KEY` (or confirm done and paste keys)
+- In continuous mode, use the tracker provider to create exactly one work item
+  from each approved, verified draft. Preserve the title and body, set the
+  epic/parent links, and create only the "blocked by" links in the approved
+  graph. Record `slice-number → WORK-ITEM-KEY` in the ledger. Creation is
+  idempotent: before each write, search the target epic for the audit marker
+  containing the run id and slice number; reuse that exact item if it exists,
+  and stop on multiple matches. Never create an unapproved slice and never
+  transition status.
+- In explicit single-step groom mode, print the brief and ask the operator to
+  create the work items or invoke `/delivery auto` with the approved grooming
+  output to materialize them.
 
-Do not create work items. Do not transition status. Do not open MRs.
+Do not open MRs in this stage.
 
 ### 4. Done
 
 Workflow is done when:
 
 - Drafts exist under the directory printed by `groom-paths.ts` and passed verify
-- Operator has confirmed work items exist and supplied keys (or stated they
-  will create them later and is ending the run)
+- Continuous mode has recorded every created or idempotently reused key; or the
+  single-step operator has supplied keys or ended the run
 
 If the operator will create tickets later, record in the brief that
 `ticket-to-mr` starts only once a key exists. Ending without keys is a valid
@@ -153,7 +164,7 @@ stop; do not poll the tracker.
 
 | Artifact | Consumer |
 |----------|----------|
-| `the directory printed by groom-paths.ts*.md` drafts | Human → work item bodies |
+| `the directory printed by groom-paths.ts*.md` drafts | Conductor or human → work item bodies |
 | Optional `prd.md` | Human / later context |
 | `slice → WORK-ITEM-KEY` map (if provided) | [`ticket-to-mr`](ticket-to-mr.md) triggers |
 
@@ -172,12 +183,12 @@ per the dependency graph:
 | No input | Ask once; stop |
 | Operator never approves slices | Stop; zero files written |
 | Draft fails `verify-ticket.ts` and cannot be fixed in groom's loop | Stay inside groom's fail-closed fix loop; do not invent tickets |
-| Operator wants auto-created work items | Refuse; point to NOTES non-goals |
+| Tracker cannot create or link items in continuous mode | Stop with the missing capability; keep every approved draft |
 
 ## Out of scope
 
 - `/draft`, execute, MR, review
-- the tracker API create/link/transition
+- tracker status transitions
 - Scheduling / inbox polling for new epics
 
 ## Implementer notes

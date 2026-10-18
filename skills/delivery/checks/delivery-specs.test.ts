@@ -405,10 +405,52 @@ describe("auto", () => {
     expect(tagsWithANextStep.filter((t) => !vocabulary.has(t))).toEqual([]);
   });
 
-  test("the operator is asked for the merge and the archive", () => {
+  test("continuous delivery asks for merge but not routine post-merge progression", () => {
     const asks = (tag: string) => cells(rows.find((l) => l.startsWith(`| \`${tag}\``)) ?? "")[3];
     expect(asks("[go !N]")).toBe("The merge");
-    expect(asks("[merged !N]")).toBe("The archive");
+    expect(asks("[merged !N]")).toBe("Nothing");
+  });
+
+  test("one plan approval authorizes routine stages but not human-owned decisions", () => {
+    const start = section(AUTO, "## Start");
+    const whenToAsk = section(AUTO, "## When to ask");
+    expect(start).toContain("`continuous-delivery: yes`");
+    expect(start).not.toContain("build-without-asking");
+    for (const routine of [
+      "test-seam",
+      "review-publication",
+      "archive",
+      "retro",
+      "improvement-preparation",
+    ]) {
+      expect(start).toContain(routine);
+    }
+    for (const human of ["merge", "risk", "Installing"]) {
+      expect(whenToAsk).toMatch(new RegExp(human, "i"));
+    }
+  });
+
+  test("ready waves dispatch concurrently in isolated worktrees", () => {
+    const choosing = section(AUTO, "### Choosing a key");
+    expect(choosing).toContain("automatically fan out the entire ready wave");
+    expect(choosing).toContain("one detached git worktree per key");
+    expect(choosing).toContain("Start all workers before awaiting any one");
+    expect(choosing).toContain("DELIVERY_WORKER_JOURNAL");
+    expect(choosing).toContain("coordinator remains the only writer");
+    expect(choosing).toMatch(/Do not silently run[\s\S]*sequentially/);
+  });
+
+  test("continuous groom materializes only approved verified stories", () => {
+    const epic = SPECS["epic-to-backlog.md"];
+    expect(epic).toMatch(
+      /continuous mode[\s\S]*create exactly one work item[\s\S]*approved, verified draft/i,
+    );
+    expect(epic).toContain("run id and slice number");
+    expect(epic).toMatch(/reuse that exact item if it exists/i);
+    expect(epic).toMatch(/Never create an unapproved slice/i);
+    expect(SKILL).toContain(
+      "Create work items only from approved, verified groom drafts",
+    );
   });
 
   test("a failed stage is never retried", () => {
@@ -527,14 +569,13 @@ describe("capabilities", () => {
 describe("hard rules survive", () => {
   const rules = [
     "Never merge via the forge provider",
-    "never create work items",
     "never transition tracker status",
-    "never auto-spawn worktrees or agents",
+    "Create work items only from approved, verified groom drafts",
     "Never substitute another review skill",
     "A lightweight built-in review is **out of this chain**",
     "Fail closed with the stage's failure modes",
     "The delivery skill changes only through `improve.md`",
-    "`/openspec-archive` runs only through `/delivery archive` or auto's archive\n  question, after the MR is merged, with the operator's yes for that change.",
+    "`/openspec-archive` runs only after the product MR is merged",
   ];
   for (const rule of rules) {
     test(`the skill keeps: ${rule.split("\n")[0]}`, () => {
@@ -544,7 +585,7 @@ describe("hard rules survive", () => {
 
   test("auto forbids what the conductor forbids", () => {
     const never = section(AUTO, "## Never");
-    for (const phrase of ["Merge", "Create, transition", "Spawn worktrees or agents", "Archive without a yes", "Retry a failed stage", "Skip a stage's own gate", "Install or rollback"]) {
+    for (const phrase of ["Merge", "Create work items outside", "transition", "permission to merge", "Retry a failed stage", "Skip a correctness", "Install or rollback"]) {
       expect(never).toContain(phrase);
     }
   });
@@ -639,9 +680,11 @@ describe("approval-gated self-improvement", () => {
   });
 
   test("retro acceptance cannot install a candidate", () => {
-    expect(retro).toContain("Accepting a proposal approves investigation, not a patch and not installation.");
+    expect(retro).toMatch(
+      /Accepting a proposal approves investigation, not a patch\s+and not installation\./,
+    );
     expect(improve).toContain("Retro acceptance is not installation approval.");
-    expect(AUTO).toContain("`/delivery auto` never answers\nthat checkpoint.");
+    expect(AUTO).toMatch(/`\/delivery auto` never answers\s+that checkpoint\./);
   });
 
   test("apply is bound to an exact candidate and unchanged baseline", () => {
@@ -736,9 +779,11 @@ describe("shadow model routing", () => {
 describe("portable dynamic orchestration", () => {
   const policy = section(SKILL, "## Orchestration policy");
 
-  test("human gates split background runs", () => {
-    expect(policy).toContain("Never put two sides of a human gate into one background");
-    expect(policy).toContain("workflow agents cannot take mid-run operator input");
+  test("isolated workers stop at decisions not covered by plan approval", () => {
+    expect(policy).toContain("mutating isolated");
+    for (const stop of ["merge", "risk acceptance", "failed or ambiguous gate", "candidate installation"]) {
+      expect(policy).toContain(stop);
+    }
   });
 
   test("runtime-specific helpers are optional and cannot define the outcome", () => {
@@ -783,8 +828,10 @@ describe("portable factory pack", () => {
     expect(readme).toContain("flowchart TD");
     for (const node of [
       "groom",
+      "one plan approval",
+      "Parallel isolated worktrees",
       "draft",
-      "Test-seam checkpoint",
+      "Select the smallest complete test seams",
       "execute",
       "Reconcile MR, tests, gates, dirty tree",
       "correctness review pass",
@@ -797,7 +844,8 @@ describe("portable factory pack", () => {
     ]) {
       expect(readme).toContain(node);
     }
-    expect(readme).toContain("Typing `/delivery execute` is the approval to build.");
+    expect(readme).toContain("Approval of the final groomed plan authorizes routine");
+    expect(readme).toContain("Independent tickets run concurrently");
   });
 
   test("the README describes runtime model inventory and shadow routing", () => {

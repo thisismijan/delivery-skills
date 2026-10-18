@@ -216,8 +216,14 @@ the dismissals as evidence.
 
 List proposals most severe first: production regressions first, then by how
 many corrections each would have prevented. For each, give the class, its
-occurrences, the fix level, the proof, the target, and the cost. Then ask the
-operator to accept, reject, or backlog each one.
+occurrences, the fix level, the proof, the target, and the cost.
+
+For a single-step retro, ask the operator to accept, reject, or backlog each
+one. When the ledger records `continuous-delivery: yes`, do not add another
+checkpoint: accept evidence-backed delivery-skill proposals for investigation
+and record all other proposals as backlog. This disposition prepares evidence
+or ticket text only. It never changes product code, creates a work item, or
+installs a skill candidate.
 
 For each accepted proposal, write the ticket text: a title and description the
 operator can paste into the tracker. The text follows the human-facing output rules.
@@ -233,8 +239,10 @@ Retro never drafts or installs the candidate.
 
 ## Checkpoint
 
-The operator decides each proposal. Nothing is applied in this session.
-Accepting a proposal approves investigation, not a patch and not installation.
+In a single-step retro, the operator decides each proposal. In continuous mode,
+the standing run authorization applies the safe dispositions above. Nothing is
+applied in either mode. Accepting a proposal approves investigation, not a patch
+and not installation.
 
 ## Ledger writes
 

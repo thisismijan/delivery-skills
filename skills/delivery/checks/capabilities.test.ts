@@ -94,7 +94,9 @@ describe("checkCapabilities", () => {
       "triage",
       "draft",
       "discover",
+      "groom",
       "retro",
+      "auto",
     ]);
     expect(result.stop?.fix).toBe(
       "Configure the tracker provider advertised by the runtime",

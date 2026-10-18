@@ -51,6 +51,14 @@ Every factory skill loads `$FACTORY_ROOT/agents/<name>.md` and gives that
 prompt to the runtime's `agent.dispatch` capability. Do not invent a cheaper
 substitute prompt.
 
+For a continuous-delivery wave, `agent.dispatch` must support isolated mutating
+workers with an explicit cwd and environment. The conductor creates one git
+worktree per independent ticket and starts every worker before awaiting one.
+Each worker receives `DELIVERY_WORKER_JOURNAL` and writes only that journal;
+the parent coordinator alone updates the run ledger. A runtime that cannot
+provide this isolation reports the missing capability and runnable worktree
+commands. It must not silently execute an independent wave sequentially.
+
 ## Providers
 
 Stage invocations are identical on every conforming runtime. Native review

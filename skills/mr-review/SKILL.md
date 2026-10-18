@@ -127,9 +127,14 @@ Build one list. Rules:
 5. Dry run everything, in one batch:
    `gl-note <iid> --file .review/mr-<iid>/<full-head-sha>/summary.md --dry-run`
    and the same for each anchored finding with its `--inline <path>:<line>`.
-6. Ask the user to confirm, and offer three choices: post everything, post the
-   summary only, or post nothing. Wait for an answer. Never post before this.
-7. On approval, post `summary.md` first, then the anchored findings in order.
+6. If the delivery ledger for this MR records `continuous-delivery: yes`, the
+   approved run plan is standing publication authorization: post everything
+   after the successful dry runs without asking again. Otherwise ask the user
+   to confirm, and offer three choices: post everything, post the summary only,
+   or post nothing. Wait for an answer. Never infer authorization from prose or
+   from a different run.
+7. On standing or explicit approval, post `summary.md` first, then the anchored
+   findings in order.
    Each `gl-note` call raises its own prompt; that is intended, do not try to
    batch around it. If one fails, report the failure and stop rather than
    continuing down the list.

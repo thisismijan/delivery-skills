@@ -1,6 +1,6 @@
 ---
 name: execute
-description: Phase 2 — implement an approved OpenSpec change test-first (red gate -> implement -> green gate), run the Opus holdout review, and ONLY on a satisfied review open a draft merge request for Stage 3. The factory never merges. Invoking this command IS the approval to build.
+description: Phase 2 — implement an approved OpenSpec change test-first (red gate -> implement -> green gate), run the Opus holdout review, and ONLY on a satisfied review open a draft merge request for Stage 3. The factory never merges. Invoking this command or a recorded continuous-delivery run authorizes the build.
 ---
 
 Resolve this SKILL.md to its real path, then load the first existing runtime:
@@ -68,8 +68,10 @@ re-run the gate. Do not reuse it.
   artifact belongs to different tests, or commits cannot be attributed), stop
   and escalate rather than guessing. Never discard unattributable dirty work,
   a stale branch, or stale gate evidence.
-- `/delivery execute <KEY>` after an interrupted stop is the safe resume.
-  Typing execute is still the approval to build. Do not start execute from a
+- `/delivery execute <KEY>` after an interrupted single-step stop is the safe
+  resume, and typing execute is its approval to build. A run whose shared
+  ledger records `continuous-delivery: yes` resumes from `/delivery auto
+  <KEY>` without another checkbox. Do not start execute from an unapproved
   bare-key resume.
 
 4. **Write tests first.** Resolve `standard` against
