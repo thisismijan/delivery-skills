@@ -6,10 +6,15 @@ export type ModelTier = z.infer<typeof ModelTier>;
 export const LiveModel = z.enum(["sonnet", "opus"]);
 export type LiveModel = z.infer<typeof LiveModel>;
 
+export const SAFE_PATH_SEGMENT = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+export const SafePathSegment = z
+	.string()
+	.regex(SAFE_PATH_SEGMENT, "expected a simple file-safe name");
+
 export const TaskProfileInput = z
 	.object({
 		version: z.literal(1),
-		taskId: z.string().min(1),
+		taskId: SafePathSegment,
 		stage: z.enum([
 			"discover",
 			"groom",

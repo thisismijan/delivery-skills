@@ -3,6 +3,7 @@ import { sanitizeHumanText } from "./human-text";
 import { loadObservations } from "./record-routing";
 import type { RoutingObservation } from "./routing-observation";
 import { tierRelation } from "./routing-report";
+import { SafePathSegment } from "./task-profile";
 
 export interface RunRoutingScorecard {
 	runId: string;
@@ -44,14 +45,15 @@ export function buildRunRoutingScorecard(
 	observations: RoutingObservation[],
 	runId: string,
 ): RunRoutingScorecard {
-	const run = observations.filter((item) => item.runId === runId);
+	const safeRunId = SafePathSegment.parse(runId);
+	const run = observations.filter((item) => item.runId === safeRunId);
 	if (run.length === 0)
-		throw new Error(`no routing observations found for run ${runId}`);
+		throw new Error(`no routing observations found for run ${safeRunId}`);
 	const relations = run.map((item) =>
 		tierRelation(item.currentTier, item.shadowTier),
 	);
 	return {
-		runId,
+		runId: safeRunId,
 		taskCount: run.length,
 		actual: {
 			gatesPassed: run.filter((item) => item.currentOutcome.gatesPassed).length,
@@ -109,7 +111,7 @@ if (import.meta.main) {
 			runId,
 		);
 		const text = formatRunRoutingScorecard(scorecard);
-		const runRoot = join(root, runId);
+		const runRoot = join(root, scorecard.runId);
 		await Bun.write(
 			join(runRoot, "scorecard.json"),
 			`${JSON.stringify(scorecard, null, 2)}\n`,

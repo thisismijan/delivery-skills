@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { lstat, readFile, readdir } from "node:fs/promises";
-import { dirname, relative, resolve } from "node:path";
+import { lstat, readFile, readdir, realpath } from "node:fs/promises";
+import { dirname, isAbsolute, relative, resolve, win32 } from "node:path";
 import { z } from "zod";
 import { PairedEvaluationEvidence } from "./paired-evaluation";
 import { Usage } from "./routing-observation";
@@ -12,7 +12,7 @@ const Check = z.object({
 });
 
 const RunResult = z.object({
-	utility: z.number().positive(),
+	utility: z.number().finite().positive(),
 	criticalMisses: z.number().int().nonnegative(),
 	repairAttempts: z.number().int().nonnegative(),
 	checks: z.array(Check).min(1),
@@ -93,8 +93,42 @@ export async function hashArtifacts(paths: string[]): Promise<string> {
 	return hash.digest("hex");
 }
 
-function resolvePaths(base: string, paths: string[]): string[] {
-	return paths.map((path) => resolve(base, path));
+function assertRelativeArtifactPath(path: string): void {
+	if (
+		isAbsolute(path) ||
+		win32.isAbsolute(path) ||
+		path.split(/[\\/]/).includes("..")
+	) {
+		throw new Error(
+			`artifact path must stay below the plan directory: ${path}`,
+		);
+	}
+}
+
+async function resolvePaths(base: string, paths: string[]): Promise<string[]> {
+	const baseReal = await realpath(base);
+	return Promise.all(
+		paths.map(async (path) => {
+			assertRelativeArtifactPath(path);
+			const unresolved = resolve(baseReal, path);
+			if ((await lstat(unresolved)).isSymbolicLink()) {
+				throw new Error(`refusing symlink artifact: ${unresolved}`);
+			}
+			const candidate = await realpath(unresolved);
+			const fromBase = relative(baseReal, candidate);
+			if (
+				fromBase.length === 0 ||
+				fromBase === ".." ||
+				fromBase.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) ||
+				isAbsolute(fromBase)
+			) {
+				throw new Error(
+					`artifact path must stay below the plan directory: ${path}`,
+				);
+			}
+			return candidate;
+		}),
+	);
 }
 
 function comparableUsage(input: z.infer<typeof Usage>) {
@@ -144,46 +178,48 @@ export async function generatePairedEvidence(
 	const fixed = plan.fixed;
 	const controls = {
 		taskFixtureHash: await hashArtifacts(
-			resolvePaths(base, [fixed.taskFixture]),
+			await resolvePaths(base, [fixed.taskFixture]),
 		),
 		model: plan.model,
 		environmentHash: await hashArtifacts(
-			resolvePaths(base, [fixed.environment]),
+			await resolvePaths(base, [fixed.environment]),
 		),
 		allowedContextHash: await hashArtifacts(
-			resolvePaths(base, fixed.allowedContext),
+			await resolvePaths(base, fixed.allowedContext),
 		),
-		toolsHash: await hashArtifacts(resolvePaths(base, [fixed.tools])),
+		toolsHash: await hashArtifacts(await resolvePaths(base, [fixed.tools])),
 		outputContractHash: await hashArtifacts(
-			resolvePaths(base, [fixed.outputContract]),
+			await resolvePaths(base, [fixed.outputContract]),
 		),
 		timeoutMs: plan.timeoutMs,
 		...(plan.controllerModel ? { controllerModel: plan.controllerModel } : {}),
 		...(fixed.modelInventory
 			? {
 					modelInventoryHash: await hashArtifacts(
-						resolvePaths(base, [fixed.modelInventory]),
+						await resolvePaths(base, [fixed.modelInventory]),
 					),
 				}
 			: {}),
 	};
 
 	const buildRun = async (artifacts: z.infer<typeof RunArtifacts>) => {
-		const usage = Usage.parse(
-			JSON.parse(await readFile(resolve(base, artifacts.usage), "utf8")),
-		);
+		const [usagePath] = await resolvePaths(base, [artifacts.usage]);
+		const [resultPath] = await resolvePaths(base, [artifacts.result]);
+		const [managedTreePath] = await resolvePaths(base, [artifacts.managedTree]);
+		if (!usagePath || !resultPath || !managedTreePath) {
+			throw new Error("run artifacts are incomplete");
+		}
+		const usage = Usage.parse(JSON.parse(await readFile(usagePath, "utf8")));
 		if (usage.wallTimeMs === undefined) {
 			throw new Error("captured usage must include wall time");
 		}
 		const result = RunResult.parse(
-			JSON.parse(await readFile(resolve(base, artifacts.result), "utf8")),
+			JSON.parse(await readFile(resultPath, "utf8")),
 		);
-		const outputs = resolvePaths(base, artifacts.outputs);
+		const outputs = await resolvePaths(base, artifacts.outputs);
 		return {
 			controls,
-			managedTreeHash: await hashArtifacts([
-				resolve(base, artifacts.managedTree),
-			]),
+			managedTreeHash: await hashArtifacts([managedTreePath]),
 			...(result.selectedWorkerModel
 				? { selectedWorkerModel: result.selectedWorkerModel }
 				: {}),

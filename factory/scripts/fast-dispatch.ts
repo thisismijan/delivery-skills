@@ -9,7 +9,10 @@ import {
 	isFastEligible,
 } from "./shadow-route";
 import type { FastEligibleFields } from "./shadow-route";
-import type { TaskProfileInput } from "./task-profile";
+import {
+	type TaskProfileInput,
+	TaskProfileInput as TaskProfileInputSchema,
+} from "./task-profile";
 
 export const FAST_RELATIVE_UTILITY_THRESHOLD = 0.9;
 export const MIN_EVALUATED_FAST_SAMPLES = 5;
@@ -283,19 +286,24 @@ export function parseCorpusEntries(input: unknown): CorpusEntryType[] {
 if (import.meta.main) {
 	const corpusFile = process.argv[2];
 	const candidateModel = process.argv[3];
-	if (!corpusFile || !candidateModel) {
+	const profileFile = process.argv[4];
+	if (!corpusFile || !candidateModel || !profileFile) {
 		console.error(
-			"usage: fast-dispatch <corpus-entries.json> <candidate-model>",
+			"usage: fast-dispatch <corpus-entries.json> <candidate-model> <profile.json>",
 		);
 		process.exit(2);
 	}
 	try {
+		const profile = TaskProfileInputSchema.parse(
+			await Bun.file(profileFile).json(),
+		);
 		const verdict = evaluateFastDispatch(
 			parseCorpusEntries(await Bun.file(corpusFile).json()),
-			undefined,
+			profile,
 			candidateModel,
 		);
 		console.log(JSON.stringify(verdict));
+		if (!verdict.allowed) process.exit(1);
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));
 		process.exit(1);

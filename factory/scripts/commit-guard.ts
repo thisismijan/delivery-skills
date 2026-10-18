@@ -24,8 +24,18 @@ const ATTRIBUTION_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
 	},
 ];
 
+const OPAQUE_MESSAGE_FILE =
+	/\bgit\s+(?:commit|merge)\b[^\n]*(?:\s-F(?:\s|=)|\s--file(?:\s|=))|\bgh\s+pr\b[^\n]*\s--body-file(?:\s|=)|\bglab\s+mr\b[^\n]*\s--description-file(?:\s|=)/i;
+
 export function isAttributionViolation(command: string): GuardResult {
 	if (!command || !WRITE_COMMAND.test(command)) return { blocked: false };
+	if (OPAQUE_MESSAGE_FILE.test(command)) {
+		return {
+			blocked: true,
+			reason:
+				"This commit/MR command reads human-facing text from a file that the attribution guard cannot inspect. Pass the clean message or description inline.",
+		};
+	}
 	for (const { pattern, label } of ATTRIBUTION_PATTERNS) {
 		if (pattern.test(command)) {
 			return {

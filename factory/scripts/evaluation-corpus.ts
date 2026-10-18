@@ -8,8 +8,8 @@ import {
 } from "./routing-observation";
 
 export const CorpusEntry = z.object({
-	taskId: z.string().min(1),
-	runId: z.string().min(1),
+	taskId: RoutingObservationSchema.shape.profile.shape.taskId,
+	runId: RoutingObservationSchema.shape.runId,
 	stage: z.string().min(1),
 	workType: z.string().min(1),
 	allowedContext: z.object({
@@ -167,8 +167,9 @@ export async function writeCorpus(
 	outDir: string,
 	entries: CorpusEntry[],
 ): Promise<string> {
+	const validated = CorpusEntry.array().parse(entries);
 	await mkdir(outDir, { recursive: true });
-	const index = entries.map((entry) => ({
+	const index = validated.map((entry) => ({
 		runId: entry.runId,
 		taskId: entry.taskId,
 		workType: entry.workType,
@@ -179,7 +180,7 @@ export async function writeCorpus(
 		join(outDir, "index.json"),
 		`${JSON.stringify({ version: 1, entries: index }, null, 2)}\n`,
 	);
-	for (const entry of entries) {
+	for (const entry of validated) {
 		const name = `${entry.runId}-${entry.taskId}.json`;
 		await Bun.write(join(outDir, name), `${JSON.stringify(entry, null, 2)}\n`);
 	}

@@ -12,11 +12,10 @@ import { shadowRoute } from "./shadow-route";
 import type { LiveModel as LiveModelName } from "./task-profile";
 import {
 	LiveModel,
+	SAFE_PATH_SEGMENT,
 	type TaskProfileInput,
 	TaskProfileInput as TaskProfileInputSchema,
 } from "./task-profile";
-
-const SAFE_SEGMENT = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 
 export function routingRoot(repoRoot: string): string {
 	return join(repoRoot, ".delivery", "routing");
@@ -27,7 +26,7 @@ export function observationPath(
 	runId: string,
 	taskId: string,
 ): string {
-	if (!SAFE_SEGMENT.test(runId) || !SAFE_SEGMENT.test(taskId)) {
+	if (!SAFE_PATH_SEGMENT.test(runId) || !SAFE_PATH_SEGMENT.test(taskId)) {
 		throw new Error("run id and task id must be simple file-safe names");
 	}
 	return join(root, runId, `${taskId}.json`);
@@ -86,18 +85,33 @@ export async function loadObservations(
 	const found: RoutingObservation[] = [];
 	for (const run of runs) {
 		if (!run.isDirectory() || run.name === "corpus") continue;
-		const files = await readdir(join(root, run.name));
+		if (!SAFE_PATH_SEGMENT.test(run.name)) {
+			throw new Error(`unsafe routing run directory: ${run.name}`);
+		}
+		const runPath = join(root, run.name);
+		const files = await readdir(runPath, { withFileTypes: true });
 		for (const file of files) {
 			if (
-				!file.endsWith(".json") ||
-				file === "report.json" ||
-				file === "scorecard.json"
+				!file.isFile() ||
+				!file.name.endsWith(".json") ||
+				file.name === "report.json" ||
+				file.name === "scorecard.json"
 			)
 				continue;
+			const taskId = file.name.slice(0, -".json".length);
+			if (!SAFE_PATH_SEGMENT.test(taskId)) {
+				throw new Error(`unsafe routing observation file: ${file.name}`);
+			}
 			const raw = JSON.parse(
-				await readFile(join(root, run.name, file), "utf8"),
+				await readFile(join(runPath, file.name), "utf8"),
 			) as unknown;
-			found.push(parseRoutingObservation(raw));
+			const parsed = parseRoutingObservation(raw);
+			if (parsed.runId !== run.name || parsed.profile.taskId !== taskId) {
+				throw new Error(
+					`routing observation identity does not match its path: ${file.name}`,
+				);
+			}
+			found.push(parsed);
 		}
 	}
 	return found.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));

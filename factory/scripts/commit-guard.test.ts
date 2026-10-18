@@ -38,6 +38,18 @@ describe("commit-guard", () => {
 		expect(isAttributionViolation(cmd).blocked).toBe(false);
 	});
 
+	test.each([
+		"git commit -F message.txt",
+		"git commit --file=message.txt",
+		"git merge --file merge-message.txt topic",
+		"gh pr create --body-file description.md",
+		"glab mr create --description-file=description.md",
+	])("fails closed when human-facing text is loaded from a file: %s", (cmd) => {
+		const result = isAttributionViolation(cmd);
+		expect(result.blocked).toBe(true);
+		expect(result.reason).toContain("cannot inspect");
+	});
+
 	test("does not block reads that merely mention the trailer", () => {
 		// git log / grep are not write commands; never blocked even if the text appears.
 		expect(
