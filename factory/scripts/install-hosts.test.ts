@@ -55,6 +55,8 @@ test("--all skips an unwritable Cloud Agent store and still installs desktop hos
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain(`Cursor skills -> ${cursor}`);
 		expect(stdout).toContain(`Claude Code skills -> ${claude}`);
+		expect(stdout).toContain("Mutating stages remain blocked");
+		expect(stdout).toContain("Claude mutation hook");
 		expect(stdout).toContain(
 			`Agent store skipped (not writable here): ${store}`,
 		);

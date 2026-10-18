@@ -89,6 +89,10 @@ test("--skills-dir installs generic skills and runtime beside them", async () =>
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain(`Skills -> ${dest}`);
 		expect(stdout).toContain(`Runtime -> ${dest}/_factory`);
+		expect(stdout).toContain("Reload the host session");
+		expect(stdout).toContain(
+			`Then run: bun "${dest}/_factory/scripts/doctor.ts"`,
+		);
 		expect(stdout).not.toMatch(/Cursor|Claude|ig-spec/i);
 		expect(await readFile(join(dest, "groom", "SKILL.md"), "utf8")).toContain(
 			"name: groom",
@@ -466,7 +470,8 @@ test("explicit --provider installs that provider and generic install includes no
 			},
 		);
 		expect(selected.exitCode).toBe(0);
-		expect(selected.stdout).toMatch(/Provider gitlab/i);
+		expect(selected.stdout).toContain("Provider gitlab: ready");
+		expect(selected.stdout).not.toContain("test-token");
 		expect(await pathExists(join(bin, "gl-mr"))).toBe(true);
 		expect(await pathExists(join(bin, "gl-note"))).toBe(true);
 		for (const tool of ["gl-mr", "gl-note"]) {
