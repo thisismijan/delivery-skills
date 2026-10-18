@@ -848,6 +848,25 @@ describe("portable factory pack", () => {
     expect(readme).toContain("Independent tickets run concurrently");
   });
 
+  test("the README explains one-approval continuous delivery from live contracts", () => {
+    expect(readme).toContain("## Continuous delivery");
+    expect(readme).toContain("/delivery <idea-or-PRD>");
+    expect(readme).toContain(
+      "single routine delivery\nauthorization for the run",
+    );
+    expect(readme).toContain("one isolated git worktree and");
+    expect(readme).toContain("It does not ask whether to proceed");
+    for (const boundary of [
+      "merge",
+      "release-risk\nacceptance",
+      "bypassing a gate",
+      "installing a skill candidate",
+    ]) {
+      expect(readme).toContain(boundary);
+    }
+    expect(readme).toContain(".delivery/workers/<run>/<key>.md");
+  });
+
   test("the README describes runtime model inventory and shadow routing", () => {
     expect(readme).toContain("model-inventory.json");
     expect(readme).toContain("evaluation-only");

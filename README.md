@@ -51,8 +51,10 @@ Reload the host session so the installed skills are picked up.
 ## Quick start
 
 1. Install the generic pack into a skills directory your runtime loads.
-2. Configure a version-1 runtime manifest. Capability invocations are opaque
-   references interpreted by the runtime or selected adapter:
+2. Configure a version-1 runtime manifest. This minimal example supports
+   read-only work only; continuous delivery additionally needs the capabilities
+   listed below. Invocation values are opaque references interpreted by the
+   runtime or selected adapter:
 
    ```json
    {
@@ -89,8 +91,12 @@ A host can run this pack when it can:
 - Run subprocesses for deterministic gates (tests, verdicts, ledgers).
 - Enforce a mutation boundary before any mutating stage. Without that, read-only
   stages still run and mutating stages stop closed.
+- Dispatch isolated mutating agents with an explicit working directory and
+  environment. This is required to run independent tickets concurrently.
 - Provide forge, tracker, or review-publish capabilities when a stage needs
-  them. Missing providers stop at that boundary and keep completed artifacts.
+  them. Continuous groom needs tracker create and link support after plan
+  approval. Missing providers stop at that boundary and keep completed
+  artifacts.
 
 Portability means any host that satisfies those capabilities. It does not mean
 the pack invents tools a host does not expose.
@@ -100,12 +106,51 @@ the pack invents tools a host does not expose.
 In the target repository:
 
 ```text
-/delivery auto
+/delivery <idea, PRD path, or epic key>
+/delivery auto <existing run key>
 /delivery help
 ```
 
 `/delivery` invokes the stage skills through delivery descriptors. Slash names
 are packaging sugar for hosts that load skills that way.
+
+## Continuous delivery
+
+Use `/delivery <idea-or-PRD>` for new work or `/delivery auto <key>` to resume
+existing work. The skill grills the product decisions and presents the final
+atomic ticket plan. Your approval of that plan is the single routine delivery
+authorization for the run.
+
+After approval, it automatically:
+
+1. Creates or reuses exactly the approved tracker tickets and dependency links.
+2. Finds every ticket whose real blockers are already merged.
+3. Starts independent tickets concurrently, one isolated git worktree and
+   worker per ticket. True blockers remain ordered.
+4. Drafts the change contract, selects test seams, builds test-first, runs all
+   gates, performs both review passes, publishes review notes, and prepares each
+   merge request for human review.
+5. After you merge, archives the change, verifies the deployment, writes the
+   engineering retro, and prepares any evidence-backed delivery-skill
+   improvement candidate.
+
+It does not ask whether to proceed between those stages. It stops only when:
+
+- a product decision is still needed before the final plan;
+- a gate fails or evidence is missing or contradictory;
+- a release requires explicit risk acceptance;
+- a merge is ready for a human;
+- an evaluated skill candidate is ready for exact install or rollback approval.
+
+Plan approval never authorizes merge, tracker status transitions, release-risk
+acceptance, bypassing a gate, or installing a skill candidate.
+
+Parallel workers never race to edit the shared run ledger. Each writes a
+key-specific journal; the coordinator validates those journals against git and
+the forge, then records the completed wave in one compare-and-swap update. If
+the runtime cannot provide isolated mutating workers, delivery stops with
+runnable fan-out commands rather than silently processing independent tickets
+sequentially.
 
 ## SDLC
 
@@ -249,6 +294,7 @@ All live state belongs to the target repository and is gitignored:
 | Path | Holds |
 |------|-------|
 | `.delivery/runs/` | Run ledgers, discovery evidence, and engineering postmortems |
+| `.delivery/workers/<run>/<key>.md` | Isolated worker journals reconciled by the coordinator after a parallel wave |
 | `.delivery/routing/` | Advertised model inventory, task profiles, shadow decisions, outcomes, usage capture, per-run scorecards, comparison report, evaluation corpus |
 | `.delivery/candidates/`, `.delivery/versions/` | Improvement candidates, generated paired evidence, and rollback copies |
 | `.review/<change>/` | Gate commands, append-only gate results, diffs, verdicts |
