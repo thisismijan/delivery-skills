@@ -211,7 +211,7 @@ re-run the gate. Do not reuse it.
       ```
       bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
       ```
-      Post that summary as an MR note **and** one selected-provider note (via `scripts/audit.ts`) with the MR link, stating the review passed and that a human performs the merge. Write the forge note body under `.review/`, then run the publication check and `gl-note` (do not bypass with a raw forge API or a general note helper):
+      Post that summary as an MR note **and** one selected-provider note (via `scripts/audit.ts`) with the MR link, stating the review passed and that a human performs the merge. Publish the work-item note only through `work-item-provider.ts note <repoRoot> "${FACTORY_ROOT}/runtime-manifest.json" <note.json>`. Write the forge note body under `.review/`, then run the publication check and `gl-note` (do not bypass with a raw forge API or a general note helper):
       ```
       bun "${FACTORY_ROOT}/scripts/note-publication.ts" check <file> <repoRoot>
       gl-note <iid> --file <file>

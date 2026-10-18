@@ -481,7 +481,13 @@ describe("generic work-item selection", () => {
 		expect(groom).toMatch(/confirmed\s+work-item provider/i);
 		expect(groom).not.toMatch(/copy the content into the tracker manually/i);
 		expect(draft).toMatch(/confirmed provider/i);
-		expect(draft).toContain(".delivery/work-items/");
+		expect(draft).toContain("work-item-provider.ts");
+		expect(draft).toMatch(/Never read a provider file or call[\s\S]*directly/i);
+		expect(execute).toContain("work-item-provider.ts");
+		expect(addressComments).toContain("work-item-provider.ts");
+		expect(read("../skills/delivery/workflows/epic-to-backlog.md")).toContain(
+			"work-item-provider.ts",
+		);
 	});
 });
 

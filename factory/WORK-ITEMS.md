@@ -23,8 +23,22 @@ Changing an existing choice requires a second explicit confirmation and
 ## Local files
 
 `local-files` is always available. Approved items live under
-`.delivery/work-items/` and use normalized keys such as `LOCAL-1`. No network
-service or remote tracker capability is required.
+`.delivery/work-items/` as readable JSON and use allocated references such as
+`LOCAL-1`. The backend supports list, read, approved create, approved dependency
+links, and idempotent audit notes. Existing markdown items remain readable. No
+network service or remote tracker capability is required.
+
+All stages use one command:
+
+```bash
+bun "$FACTORY_ROOT/scripts/work-item-provider.ts" \
+  <list|read|create|link|note> \
+  "<repository-root>" "$FACTORY_ROOT/runtime-manifest.json" [input.json]
+```
+
+Create inputs require `approved: true` and a stable `auditId`; link inputs
+require `approved: true`. Notes use one `auditId`, so replay updates that note
+instead of adding duplicates.
 
 ## Jira and forge issues
 
@@ -34,9 +48,17 @@ the runtime advertises an available `tracker.item` capability with an exact
 issues. If a saved remote provider is unavailable in a later session, delivery
 stops rather than falling back to local files.
 
+An executable adapter invocation is `exec:/absolute/path/to/adapter`. The
+adapter receives the operation as its only argument and a version-1 JSON
+envelope on stdin, then writes one normalized work item (or an array for
+`list`) to stdout. Core launches the executable directly without a shell.
+Malformed JSON, non-zero exit, relative paths, and opaque invocations fail
+closed with no fallback. Until a remote adapter implements this protocol,
+delivery reports that exact missing bridge instead of inventing an API call.
+
 ## Custom providers
 
 A custom adapter uses a lowercase provider id and implements normalized
-work-item read, create, link, and note operations behind `tracker.item`.
+work-item list, read, create, link, and note operations behind `tracker.item`.
 Credentials stay in the host integration. Human-owned status transitions
 remain outside delivery regardless of provider.
