@@ -855,6 +855,34 @@ describe("portable factory pack", () => {
     expect(readme).toContain(".delivery/runs/<id>.run-contract.json");
   });
 
+  test("the README explains constitutional precedence and frozen scope", () => {
+    const constitution = readFileSync(
+      join(packRoot, "skills", "delivery", "sdlc-constitution.json"),
+      "utf8",
+    );
+    const policy = JSON.parse(constitution) as {
+      precedence: string[];
+      humanOwned: string[];
+    };
+    const sectionStart = readme.indexOf("## Constitution and run contracts");
+    const sectionEnd = readme.indexOf("\n## SDLC", sectionStart);
+    const docs = readme.slice(sectionStart, sectionEnd);
+    expect(sectionStart).toBeGreaterThan(-1);
+    expect(docs).toContain("sdlc-constitution.json");
+    expect(docs).toContain("highest precedence");
+    expect(docs).toContain("previous contract hash");
+    expect(docs).toContain("new explicit approval");
+    expect(docs).toContain("sdlc-constitution.ts\" preflight");
+    const normalizedDocs = docs
+      .toLowerCase()
+      .replaceAll("-", " ")
+      .replace(/\s+/g, " ");
+    for (const action of policy.humanOwned) {
+      expect(normalizedDocs).toContain(action.replaceAll("-", " "));
+    }
+    expect(policy.precedence[0]).toBe("constitution");
+  });
+
   test("the README explains one-approval continuous delivery from live contracts", () => {
     expect(readme).toContain("## Continuous delivery");
     expect(readme).toContain("/delivery <idea-or-PRD>");
