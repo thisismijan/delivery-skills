@@ -157,6 +157,61 @@ the runtime cannot provide isolated mutating workers, delivery stops with
 runnable fan-out commands rather than silently processing independent tickets
 sequentially.
 
+## Constitution and run contracts
+
+[`skills/delivery/SDLC-CONSTITUTION.md`](skills/delivery/SDLC-CONSTITUTION.md)
+is the short policy kernel for the whole lifecycle. Its machine-readable
+companion,
+[`sdlc-constitution.json`](skills/delivery/sdlc-constitution.json), maps each
+commandment to a schema, gate, state-machine transition, contract test, or
+explicit judgement boundary. Every stage loads the same version.
+
+The constitution has highest precedence. The remaining order is the delivery
+conductor, auto workflow, ledger contract, current stage spec, and stage skill.
+Historical workflow notes are non-actionable. A lower-precedence instruction
+cannot enlarge approved scope, claim a human-owned action, or override a
+failed deterministic gate.
+
+The kernel requires delivery to:
+
+- stay inside approved scope and prefer the smallest complete vertical change;
+- avoid speculative abstractions and adjacent cleanup;
+- discover facts before asking for genuine product decisions;
+- keep acceptance criteria and tests independent of implementation;
+- run every mutation through an enforceable, attributable boundary;
+- fail closed on missing, malformed, stale, or ambiguous evidence;
+- run independent work concurrently and order only real dependencies;
+- preserve security, validation, accessibility, recovery, and data protection;
+- resume from durable artifacts rather than conversational memory; and
+- record deviations with the affected invariant and a new approval.
+
+Humans always own merge, tracker status, release-risk acceptance, failed-gate
+override, and every live-skill install or rollback.
+
+### Frozen scope
+
+When the final groomed plan is approved, delivery writes
+`.delivery/runs/<id>.run-contract.json`. It hashes the constitution plus the
+approved goal, scope, non-goals, tickets, dependency graph, acceptance
+criteria, permitted writes, approval evidence, and human-owned boundaries.
+Draft, execute, review, and later stages verify that hash before acting.
+
+A constitution mismatch, changed contract body, unknown ticket, or unapproved
+write stops the run. To change scope, create a new plan version that names the
+previous contract hash, explains the reason and affected invariant, and records
+a new explicit approval. The previous contract remains durable evidence.
+
+Runtime and CI checks use one command:
+
+```bash
+bun "$FACTORY_ROOT/scripts/sdlc-constitution.ts" preflight
+```
+
+The same helper exposes `freeze`, `check`, and `report` for run-contract
+creation, stage-boundary validation, and conformance evidence. See the
+constitution itself for the canonical commandments; the README deliberately
+does not maintain a second numbered rule catalogue.
+
 ## SDLC
 
 `/delivery` is the only command to remember. It routes into the stage skills
@@ -164,11 +219,6 @@ below, records state in the target repository's `.delivery/runs/`, and stops for
 operator-owned decisions. Approval of the final groomed plan authorizes routine
 progression through delivery. Humans still own merge, tracker status, explicit
 risk acceptance, and any live-skill install.
-
-The SDLC constitution in `skills/delivery/SDLC-CONSTITUTION.md` is the policy
-kernel every stage loads. When instructions conflict, it wins. Each commandment
-maps to a schema, gate, ledger transition, or contract test. A failed
-deterministic gate cannot be overridden by prose.
 
 ```mermaid
 flowchart TD
