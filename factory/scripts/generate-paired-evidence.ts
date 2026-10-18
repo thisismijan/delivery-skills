@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { lstat, readdir, readFile } from "node:fs/promises";
+import { lstat, readFile, readdir } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { z } from "zod";
 import { PairedEvaluationEvidence } from "./paired-evaluation";
@@ -66,9 +66,11 @@ export type PairedEvidencePlan = z.infer<typeof PairedEvidencePlan>;
 
 async function filesUnder(path: string): Promise<string[]> {
 	const info = await lstat(path);
-	if (info.isSymbolicLink()) throw new Error(`refusing symlink artifact: ${path}`);
+	if (info.isSymbolicLink())
+		throw new Error(`refusing symlink artifact: ${path}`);
 	if (info.isFile()) return [path];
-	if (!info.isDirectory()) throw new Error(`artifact is not a file or directory: ${path}`);
+	if (!info.isDirectory())
+		throw new Error(`artifact is not a file or directory: ${path}`);
 	const entries = await readdir(path, { withFileTypes: true });
 	const nested: string[] = [];
 	for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
@@ -101,7 +103,11 @@ function comparableUsage(input: z.infer<typeof Usage>) {
 		input.inputTokens !== undefined &&
 		input.outputTokens !== undefined
 	) {
-		return { unit: "tokens" as const, input: input.inputTokens, output: input.outputTokens };
+		return {
+			unit: "tokens" as const,
+			input: input.inputTokens,
+			output: input.outputTokens,
+		};
 	}
 	if (
 		input.source === "characters" &&

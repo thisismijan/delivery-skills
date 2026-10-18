@@ -35,7 +35,9 @@ function sumOptional(
 	const values = observations
 		.map(read)
 		.filter((value): value is number => value !== undefined);
-	return values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0);
+	return values.length === 0
+		? null
+		: values.reduce((sum, value) => sum + value, 0);
 }
 
 export function buildRunRoutingScorecard(
@@ -43,7 +45,8 @@ export function buildRunRoutingScorecard(
 	runId: string,
 ): RunRoutingScorecard {
 	const run = observations.filter((item) => item.runId === runId);
-	if (run.length === 0) throw new Error(`no routing observations found for run ${runId}`);
+	if (run.length === 0)
+		throw new Error(`no routing observations found for run ${runId}`);
 	const relations = run.map((item) =>
 		tierRelation(item.currentTier, item.shadowTier),
 	);
@@ -52,11 +55,9 @@ export function buildRunRoutingScorecard(
 		taskCount: run.length,
 		actual: {
 			gatesPassed: run.filter((item) => item.currentOutcome.gatesPassed).length,
-			gatesFailed: run.filter((item) => !item.currentOutcome.gatesPassed).length,
-			repairs: run.reduce(
-				(sum, item) => sum + item.currentOutcome.repairs,
-				0,
-			),
+			gatesFailed: run.filter((item) => !item.currentOutcome.gatesPassed)
+				.length,
+			repairs: run.reduce((sum, item) => sum + item.currentOutcome.repairs, 0),
 			escalations: run.reduce(
 				(sum, item) => sum + item.currentOutcome.escalations,
 				0,

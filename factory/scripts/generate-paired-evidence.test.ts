@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { evaluatePairedEvidence } from "./paired-evaluation";
 import { generatePairedEvidence } from "./generate-paired-evidence";
+import { evaluatePairedEvidence } from "./paired-evaluation";
 
 async function fixture() {
 	const root = await mkdtemp(join(tmpdir(), "paired-generator-"));
@@ -143,8 +143,12 @@ test("the generator rejects symlinked benchmark artifacts", async () => {
 	const root = await fixture();
 	try {
 		await Bun.write(join(root, "outside.md"), "outside");
-		await Bun.spawn(["ln", "-s", "../outside.md", join(root, "baseline-skill", "link")])
-			.exited;
+		await Bun.spawn([
+			"ln",
+			"-s",
+			"../outside.md",
+			join(root, "baseline-skill", "link"),
+		]).exited;
 		await expect(generatePairedEvidence(plan(), root)).rejects.toThrow(
 			"refusing symlink artifact",
 		);

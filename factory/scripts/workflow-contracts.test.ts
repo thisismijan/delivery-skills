@@ -300,7 +300,9 @@ describe("bounded recovery and replay safety", () => {
 
 	test("run scorecards do not present shadow recommendations as measured savings", () => {
 		for (const skill of [draft, execute, addressComments]) {
-			expect(skill).toMatch(/shadow quality and savings[\s\S]{0,80}unevaluated/i);
+			expect(skill).toMatch(
+				/shadow quality and savings[\s\S]{0,80}unevaluated/i,
+			);
 			expect(skill).toContain("paired benchmark");
 		}
 	});
