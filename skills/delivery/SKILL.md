@@ -63,24 +63,24 @@ rows.
 | `^auto(\s+.+)?$` | Auto | `workflows/auto.md` |
 | `^help$` | Help | The cheat-sheet below |
 | `^discover\s+.+` | Discovery | Stage 0 |
-| `^triage\s+[A-Z][A-Z0-9]+-\d+$` | Bug intake | On-ramp |
+| `^triage\s+\S+$` | Bug intake | On-ramp |
 | `^groom\s+.+` | Groom | Stage 1, groom only |
-| `^draft\s+[A-Z][A-Z0-9]+-\d+$` | Draft | Stage 2, draft only |
-| `^(execute\|build)\s+[A-Z][A-Z0-9]+-\d+$` | Execute | Stage 2, execute only |
-| `^review\s+\d+(\s+[A-Z][A-Z0-9]+-\d+)?$` | Review | Stage 3 |
-| `^address\s+[A-Z][A-Z0-9]+-\d+$` | Address comments | Stage 3, address-comments only |
+| `^draft\s+\S+$` | Draft | Stage 2, draft only |
+| `^(execute\|build)\s+\S+$` | Execute | Stage 2, execute only |
+| `^review\s+\d+(\s+\S+)?$` | Review | Stage 3 |
+| `^address\s+\S+$` | Address comments | Stage 3, address-comments only |
 | `^ship\s+\d+$` | Release readiness | Stage 4 |
 | `^archive\s+[A-Za-z0-9-]+$` | Archive | Archive one OpenSpec change |
 | `^verify\s+\d+$` | Post-merge verify | Stage 5 |
-| `^retro\s+[A-Z][A-Z0-9]+-\d+$` | Retro (ticket or epic) | Stage 6 |
+| `^retro\s+\S+$` | Retro (work item or group) | Stage 6 |
 | `^improve\s+(apply\|reject\|rollback)\s+[a-z0-9][a-z0-9-]+$` | Improvement decision | Improvement loop |
 | `^improve(?:\s+(?:[A-Z][A-Z0-9]+-\d+\|all\|status))?$` | Improvement | Improvement loop |
-| `^status(\s+[A-Z][A-Z0-9]+-\d+)?$` | Catch-up | Status (read-only) |
+| `^status(\s+\S+)?$` | Catch-up | Status (read-only) |
 | `^[A-Z][A-Z0-9]+-\d+$` (e.g. `MDF-1234`) | Resume | Next legal action from the ledger |
 | `^\d+$` (e.g. `740`) | Review only | Stages 3 to 4 |
 | `^\d+\s+[A-Z][A-Z0-9]+-\d+$` or `^[A-Z][A-Z0-9]+-\d+\s+\d+$` | Review only with work-item key | Stages 3 to 4 (pass both) |
 | Non-empty otherwise (path, prose, pasted epic) | Full epic | Stages 1 to 4 |
-| Empty / absent | Help | Show the cheat-sheet, then ask once: idea, work-item key, MR iid, or `auto`? Recommended: if the conversation already has a clear key or iid, use that |
+| Empty / absent | Help | Show the cheat-sheet, then ask once: idea, work-item reference, MR iid, or `auto`? Recommended: if the conversation already has a clear reference or iid, use that |
 
 Two routing checks before you start a bare-key or prose entry:
 
@@ -127,11 +127,34 @@ State the chosen entry and what it runs in one line, then continue.
 1. Confirm cwd is a git repo the operator intends as the **target repo**. If
    `pwd` looks like this pack's own clone and the operator did not say
    that is intentional, warn once and ask to continue or cd.
-2. Check `DELIVERY_WORKER_JOURNAL` before opening run state. When it is set,
+2. Before any work-item-dependent entry other than Help, Doctor, or Initialize,
+   validate the repository's explicit provider choice:
+   ```
+   bun "${FACTORY_ROOT}/scripts/work-item-config.ts" check \
+     "$(git rev-parse --show-toplevel)" \
+     "${FACTORY_ROOT}/runtime-manifest.json"
+   ```
+   When no choice exists, list the substantiated options with
+   `work-item-config.ts options`. Always include `local-files`; include a
+   remote provider only when the runtime advertises that exact provider.
+   Present the alternatives with the **Human decision
+   brief**, including local durability/portability versus remote collaboration
+   and integration trade-offs, recommend based on the repository's needs, and
+   ask the operator to confirm one. Never infer from remotes, credentials, host,
+   environment, or reference shape. After explicit confirmation, configure the
+   exact id. Replacing an existing choice additionally requires `--replace`:
+   ```
+   bun "${FACTORY_ROOT}/scripts/work-item-config.ts" configure \
+     "$(git rev-parse --show-toplevel)" <provider-id> \
+     "${FACTORY_ROOT}/runtime-manifest.json" [--replace]
+   ```
+   A saved remote provider that is no longer available is a terminal setup or
+   explicit-reselection stop; never fall back silently to local files.
+3. Check `DELIVERY_WORKER_JOURNAL` before opening run state. When it is set,
    this is an isolated worker: all `ledger-store.ts` writes are redirected to
    that absolute journal path, and the worker must never search for or mutate
    the shared run ledger.
-3. Find or create the run ledger (or the worker journal selected above) and
+4. Find or create the run ledger (or the worker journal selected above) and
    reconcile it with the real state, as
    `delivery-ledger.md` says. The real state wins. Every mutation uses the
    durable writer. Never edit the ledger file directly:
@@ -139,7 +162,7 @@ State the chosen entry and what it runs in one line, then continue.
    If a lock is left behind, recover it before writing again:
    `bun "${FACTORY_ROOT}/scripts/ledger-store.ts" recover <root> <id>`
    A concurrency conflict is a terminal stop.
-4. Never infer an approval from chat history. An approval counts only when the
+5. Never infer an approval from chat history. An approval counts only when the
    ledger records it. `/delivery auto` itself authorizes continuous delivery
    for that run. In the full-epic path, explicit approval of the final groomed
    ticket or slice plan authorizes the same continuous mode. Keep those exact
@@ -148,7 +171,7 @@ State the chosen entry and what it runs in one line, then continue.
    publication, archive, verify, retro, and improvement preparation, but never
    merge, risk acceptance, failed-gate override, or improvement installation.
 
-5. Load the SDLC constitution and fail closed if it does not verify. After
+6. Load the SDLC constitution and fail closed if it does not verify. After
    the operator approves the groomed plan, freeze the run contract and record
    its path and hash in the ledger. Before every later mutating stage, check
    that frozen file. A missing contract on a `continuous-delivery: yes` run is
@@ -173,7 +196,7 @@ State the chosen entry and what it runs in one line, then continue.
    After a successful freeze, record `continuous-delivery: yes` with the exact
    authorizing words.
 
-6. Check the capabilities the next stage needs (below) by calling
+7. Check the capabilities the next stage needs (below) by calling
    `checkCapabilities`. For `auto`, check only what that stage needs and
    check again when the next stage starts.
    Before a mutating stage (`init`, `draft`, `execute`, `address-comments`, `archive`,
@@ -184,7 +207,7 @@ State the chosen entry and what it runs in one line, then continue.
    Non-zero exit → stop with the printed reason. A runtime that does not declare an enforceable mutation boundary cannot start mutating stages.
    Read-only stages still run.
 
-7. **Record the runtime model inventory.** Read the exact model identifiers the
+8. **Record the runtime model inventory.** Read the exact model identifiers the
    current runtime advertises for subagents. Write
    `.delivery/routing/model-inventory.json` with `version: 1`, the runtime id,
    `recordedAt`, and those exact identifiers. Do not infer names from the
@@ -217,7 +240,7 @@ its fix.
 | Factory | `/groom`, `/draft`, `/execute`, `/address-comments` resolve, and the runtime selected by `RUNTIME.md` finds `scripts/find-change.ts` | groom, draft, execute, address | Install delivery-skills with `./install.sh --skills-dir <path>`. Do not load a second factory pack in the same session |
 | Review commands | `/code-review-max` and `/mr-review` are available. The forge metadata and note helpers are on PATH. A lightweight built-in review does not count | review | Run `./install.sh`. For forge metadata and note helpers in a cloud agent, run the review-provider setup once |
 | Forge | The forge provider answers a read. A configured forge credential is enough | draft, execute, address, review, ship, archive, verify, auto | Configure the forge provider advertised by the runtime |
-| Tracker | A real work-item read through the tracker provider returns the item. Continuous delivery additionally probes create and link with no write before plan approval. A failed read, a result with no key, or a missing approved-write capability stops the stage | triage, draft, discover, retro, auto | Configure the tracker provider advertised by the runtime |
+| Work items | `work-item-config.ts check` validates the confirmed repository provider. Local files require no remote capability. A remote provider must pass a real work-item read; a failed read or result with no key stops. Continuous delivery additionally probes create and link with no write before plan approval | triage, draft, discover, retro, auto | Confirm `local-files` or configure and confirm the exact remote or custom provider advertised by the runtime |
 | Spec tool | The selected spec provider's version probe succeeds | draft, execute, archive | Install and configure the selected spec provider |
 | Deployed environment | The environment's hostnames resolve and answer | verify | Run verify on a machine on the internal network, such as the operator's self-hosted worker |
 | Skill evaluation | The pinned Bun version runs `checks/delivery-specs.test.ts`, and the skill store is writable | improve | Use the Bun version from the target repository and a skill store the runtime can write |
@@ -319,9 +342,13 @@ tree, say they need committing; do not commit them.
   `bun "${FACTORY_ROOT}/scripts/doctor.ts"` in the target repository and print
   its complete Ready now, Needs setup, Host limitation, and Human-owned report.
 - **Initialize** is an explicit local mutation. First gate `init` with
-  `${FACTORY_ROOT}/runtime-manifest.json`, then run
-  `bun "${FACTORY_ROOT}/scripts/delivery-init.ts"`. It may add only
-  `.delivery/` and `.review/` to `.gitignore`; it creates no remote resource.
+  `${FACTORY_ROOT}/runtime-manifest.json`. Run `work-item-config.ts options`,
+  explain the available choices with the **Human decision brief**, and wait for
+  explicit confirmation. Then run
+  `bun "${FACTORY_ROOT}/scripts/delivery-init.ts" --work-items <provider-id>`.
+  Use `--replace` only after explicit confirmation of a changed choice. Init may
+  add `.delivery/` and `.review/` to `.gitignore` and persist
+  `.delivery/work-items.json`; it creates no remote resource or work item.
 
 ### Entry 0 — Discovery
 
@@ -359,7 +386,7 @@ tree, say they need committing; do not commit them.
    first, then recompute ready-now from it.
 5. Epic-level closing brief when done: keys, MR iids/merges, stops, archive
    status, retro, and any prepared improvement candidate. Humans own merge,
-   tracker status, risk acceptance, and candidate installation.
+   work-item status, risk acceptance, and candidate installation.
 
 ### Entry B — Resume
 
@@ -443,7 +470,7 @@ SCOPE       what is in, what is explicitly out
 CONTEXT     links to the ledger, OpenSpec change, ADRs, blockers' MRs
 ACCEPTANCE  how the operator will know it is done
 VERIFY      the gates that must pass and where the evidence will be
-FORBIDDEN   merge, the tracker transitions, work outside SCOPE
+FORBIDDEN   merge, work-item transitions, work outside SCOPE
 START       git worktree add --detach <path> <full-base-sha> && cd <path> && /delivery <KEY>
 ```
 
@@ -583,7 +610,7 @@ hide uncertainty in a confident recommendation. Ask exactly one final question.
 - Dependents wait on **merged** blockers, not ready MRs.
 - A review or readiness verdict holds only for the head it was given on. A new
   head voids it unless the patch-id is unchanged.
-- Never merge via the forge provider and never transition tracker status.
+- Never merge via the forge provider and never transition work-item status.
   Create work items only from approved, verified groom drafts in continuous
   mode, with the run-and-slice audit marker and idempotency check.
 - `/openspec-archive` runs only after the product MR is merged. Its explicit

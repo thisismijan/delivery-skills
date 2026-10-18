@@ -21,6 +21,7 @@ export interface AdapterCapability {
 	available: boolean;
 	mode: string;
 	invocation?: string;
+	provider?: string;
 }
 
 export interface AdapterManifest {
@@ -37,6 +38,7 @@ export interface GeneratedRuntimeManifest {
 			available: boolean;
 			mode: "native" | "adapter" | "unavailable";
 			invocation?: string;
+			provider?: string;
 			enforcement?: "enforced" | "unenforced";
 		}
 	>;
@@ -89,6 +91,22 @@ export function validateAdapterManifest(
 		) {
 			errors.push(`capabilities[${index}].invocation must be a string`);
 		}
+		if (
+			entry.provider !== undefined &&
+			(typeof entry.provider !== "string" ||
+				!/^[a-z0-9][a-z0-9-]*$/.test(entry.provider))
+		) {
+			errors.push(`capabilities[${index}].provider is not a valid provider id`);
+		}
+		if (
+			entry.id === "tracker.item" &&
+			entry.available === true &&
+			entry.provider === undefined
+		) {
+			errors.push(
+				`capabilities[${index}].provider is required for an available work-item capability`,
+			);
+		}
 	}
 	for (const id of ADAPTER_CAPABILITY_IDS) {
 		if (!seen.has(id)) {
@@ -123,6 +141,7 @@ export function adapterRuntimeManifest(
 						invocation:
 							capability.invocation ??
 							`adapter:${manifest.name}:${capability.id}`,
+						...(capability.provider ? { provider: capability.provider } : {}),
 					}
 				: {}),
 			...(capability.id === "mutation.guard"

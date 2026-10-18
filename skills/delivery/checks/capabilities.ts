@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 export type ProbeResult = {
   ok: boolean;
-  ticket?: { key: string } | null;
+  workItem?: { key: string } | null;
 };
 
 export type CapabilityProbes = Record<string, () => ProbeResult>;
@@ -92,8 +92,8 @@ function neededForStage(neededBy: string, stage: string): boolean {
 
 function probeOk(name: string, result: ProbeResult | undefined, called: boolean): boolean {
   if (!called || result === undefined) return false;
-  if (name === "Tracker") {
-    const key = result.ticket?.key?.trim() ?? "";
+  if (name === "Work items") {
+    const key = result.workItem?.key?.trim() ?? "";
     return result.ok === true && key.length > 0;
   }
   return result.ok === true;

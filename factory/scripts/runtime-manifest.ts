@@ -30,6 +30,10 @@ export const CapabilityDescriptor = z
 		available: z.boolean(),
 		mode: CapabilityMode,
 		invocation: z.string().min(1).optional(),
+		provider: z
+			.string()
+			.regex(/^[a-z0-9][a-z0-9-]*$/)
+			.optional(),
 		enforcement: MutationEnforcement.optional(),
 		models: z.array(z.string().min(1)).optional(),
 	})
@@ -53,7 +57,17 @@ export const RuntimeManifest = z
 		version: z.literal(RUNTIME_MANIFEST_VERSION),
 		capabilities: z.record(CapabilityId, CapabilityDescriptor),
 	})
-	.strict();
+	.strict()
+	.superRefine((manifest, ctx) => {
+		const tracker = manifest.capabilities["tracker.item"];
+		if (tracker?.available && !tracker.provider) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["capabilities", "tracker.item", "provider"],
+				message: "an available remote work-item capability needs a provider id",
+			});
+		}
+	});
 export type RuntimeManifest = z.infer<typeof RuntimeManifest>;
 
 export function defaultRuntimeManifest(

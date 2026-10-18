@@ -2,8 +2,8 @@
 
 Selected with `./install.sh --skills-dir <path> --provider jira`.
 
-Generic delivery uses local work items unless a tracker provider is advertised
-in the runtime manifest. This provider remains unavailable until the host
-runtime supplies and probes a tracker invocation. Selecting it does not claim a
-working tracker or change core stage gates; doctor reports the host-runtime
-setup remedy.
+Jira appears as a repository work-item choice only after the host runtime
+supplies and probes a `tracker.item` invocation with `provider: "jira"`.
+Selecting this package alone does not claim working Jira access. Delivery never
+infers Jira from credentials, URLs, or Jira-shaped keys; the operator still
+confirms it on first use. Doctor reports the host-runtime setup remedy.

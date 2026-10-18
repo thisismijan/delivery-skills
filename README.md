@@ -2,12 +2,13 @@
 
 A portable software-delivery skill pack for any LLM or agent runtime that can
 load skills and satisfy a small capability contract. The workflow and safety
-rules are runtime-independent; native commands, hooks, models, forges, trackers,
-and spec tools are optional adapters or providers.
+rules are runtime-independent; native commands, hooks, models, forges,
+work-item systems, and spec tools are optional adapters or providers.
 
 This pack does not run in a text-only chat. Deterministic gates need subprocess
 execution. Mutating stages need an enforceable mutation boundary. Forge,
-tracker, and review publication run only when those providers are present.
+remote work-item, and review publication run only when those providers are
+present.
 
 The pack includes:
 
@@ -28,8 +29,8 @@ cd delivery-skills
 
 `--skills-dir` is required. The installer never infers a host. Optional
 `--adapter <name>` applies setup from `adapters/<name>/` after the generic pack
-is in place. Optional `--provider <name>` selects a forge, tracker, or spec-tool
-provider from `providers/<name>/`. Generic install includes none of those unless
+is in place. Optional `--provider <name>` selects a forge, remote work-item, or
+spec-tool provider from `providers/<name>/`. Generic install includes none unless
 selected. Named-host wrappers live with those adapters, not in the generic
 interface.
 
@@ -60,13 +61,19 @@ Reload the host session so the installed skills are picked up.
    ```bash
    export FACTORY_ROOT="/path/to/skills/_factory"
    bun "$FACTORY_ROOT/scripts/doctor.ts"
-   bun "$FACTORY_ROOT/scripts/delivery-init.ts"
+   bun "$FACTORY_ROOT/scripts/work-item-config.ts" options \
+     "$FACTORY_ROOT/runtime-manifest.json"
+   bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items local-files
    ```
 
    `doctor` separates what is ready, what needs setup, host limitations, and
    actions that always remain human-owned. It reports credential presence only;
-   it never prints credential values. `delivery-init.ts` idempotently adds
-   `.delivery/` and `.review/` to the target repository's `.gitignore`.
+   it never prints credential values. Confirm one listed work-item provider;
+   local files are always available, while Jira, forge issues, and custom
+   providers appear only when the runtime substantiates them. The choice is
+   stored in `.delivery/work-items.json` and is never inferred from remotes or
+   credentials. `delivery-init.ts` idempotently adds `.delivery/` and `.review/`
+   to the target repository's `.gitignore`.
 3. Invoke the `delivery` skill with `help`, `doctor`, `init`, or `status`. If the
    runtime exposes slash skills, use `/delivery help`, `/delivery doctor`,
    `/delivery init`, or `/delivery status`.
@@ -86,10 +93,10 @@ A host can run this pack when it can:
   stages still run and mutating stages stop closed.
 - Dispatch isolated mutating agents with an explicit working directory and
   environment. This is required to run independent tickets concurrently.
-- Provide forge, tracker, or review-publish capabilities when a stage needs
-  them. Continuous groom needs tracker create and link support after plan
-  approval. Missing providers stop at that boundary and keep completed
-  artifacts.
+- Confirm a repository work-item provider. Local files need no service.
+  Continuous groom needs create and link support from a selected remote
+  provider after plan approval. Missing providers stop at that boundary and
+  keep completed artifacts.
 
 Portability means any host that satisfies those capabilities. It does not mean
 the pack invents tools a host does not expose.
@@ -116,7 +123,8 @@ authorization for the run.
 
 After approval, it automatically:
 
-1. Creates or reuses exactly the approved tracker tickets and dependency links.
+1. Creates or reuses exactly the approved work items and dependency links
+   through the repository's confirmed provider.
 2. Finds every ticket whose real blockers are already merged.
 3. Starts independent tickets concurrently, one isolated git worktree and
    worker per ticket. True blockers remain ordered.
@@ -135,7 +143,7 @@ It does not ask whether to proceed between those stages. It stops only when:
 - a merge is ready for a human;
 - an evaluated skill candidate is ready for exact install or rollback approval.
 
-Plan approval never authorizes merge, tracker status transitions, release-risk
+Plan approval never authorizes merge, work-item status transitions, release-risk
 acceptance, bypassing a gate, or installing a skill candidate.
 
 That same approval freezes a hashed run contract at
@@ -178,8 +186,9 @@ The kernel requires delivery to:
 - resume from durable artifacts rather than conversational memory; and
 - record deviations with the affected invariant and a new approval.
 
-Humans always own merge, tracker status, release-risk acceptance, failed-gate
-override, and every live-skill install or rollback.
+Humans always own merge, work-item status (called tracker status in the
+version-1 constitution), release-risk acceptance, failed-gate override, and
+every live-skill install or rollback.
 
 ### Frozen scope
 
@@ -217,7 +226,7 @@ deliberately does not maintain a second numbered rule catalogue.
 `/delivery` is the only command to remember. It routes into the stage skills
 below, records state in the target repository's `.delivery/runs/`, and stops for
 operator-owned decisions. Approval of the final groomed plan authorizes routine
-progression through delivery. Humans still own merge, tracker status, explicit
+progression through delivery. Humans still own merge, work-item status, explicit
 risk acceptance, and any live-skill install.
 
 ```mermaid
@@ -371,7 +380,7 @@ skills/delivery/SDLC-CONSTITUTION.md  # policy kernel loaded by every stage
 factory/                   # gate scripts and subagent prompts
 factory/model-catalogue.json  # capability tiers to exact advertised models
 adapters/                  # optional runtime integrations and compatibility
-providers/                 # optional forge, tracker, review, and spec tools
+providers/                 # optional forge, work-item, review, and spec tools
 ```
 
 Self-improvement (`/delivery improve`) edits `skills/delivery` only, after

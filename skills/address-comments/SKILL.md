@@ -29,14 +29,17 @@ This command consumes the review comments on the **existing** MR for this ticket
 - **Reply on EVERY assessed thread** exactly once (actioned, answered, or disputed) using the `auditComment` prefix. **Never resolve a thread** — humans own resolution.
 - **Replay safe.** A thread that already has an `address-comments` audit reply is complete and must not be classified, changed, or replied to again.
 - Reviewer rank, sunk cost, or a "nitpick" label never permits silently fixing, discarding, or skipping a comment; route it and leave the human-visible reply required below.
-- **Subagents only judge/edit; YOU do all I/O.** The `comment-assessor` and `holdout-reviewer` are read-only by construction (tools: `Read, Grep, Glob` — no `Bash`, no MCP). Their entire contribution is one JSON verdict; treat it as raw input to a parser that **fails closed**. Never accept a subagent's prose ("I replied / classified / resolved the thread") as having happened — its tools cannot do those things. Every forge, git, and tracker action is performed by **this command**.
-- **Fail closed:** no MR, ambiguous change match, malformed classification verdict, malformed/non-approve re-review verdict, or exhausted fix attempts → stop + escalate, leaving the MR unblessed and posting no "passed" tracker comment.
-- **The factory NEVER merges or closes a merge request via the forge provider, and NEVER transitions tracker status.** Its only tracker write is the single summary comment at the end.
+- **Subagents only judge/edit; YOU do all I/O.** The `comment-assessor` and `holdout-reviewer` are read-only by construction (tools: `Read, Grep, Glob` — no `Bash`, no MCP). Their entire contribution is one JSON verdict; treat it as raw input to a parser that **fails closed**. Never accept a subagent's prose ("I replied / classified / resolved the thread") as having happened — its tools cannot do those things. Every forge, git, and work-item provider action is performed by **this command**.
+- **Fail closed:** no MR, ambiguous change match, malformed classification verdict, malformed/non-approve re-review verdict, or exhausted fix attempts → stop + escalate, leaving the MR unblessed and posting no "passed" work-item note.
+- **The factory NEVER merges or closes a merge request via the forge provider, and NEVER transitions work-item status.** Its only work-item write is the single summary note at the end.
 - **Mutation boundary.** Run `canStartStage` before any write, using the runtime's mutation-guard identifier:
   ```
   bun "${FACTORY_ROOT}/scripts/stage-gating.ts" address-comments "${FACTORY_ROOT}/runtime-manifest.json"
   ```
   Non-zero exit → **stop**. A runtime that does not declare an enforceable mutation boundary cannot start this mutating stage.
+- **Confirmed provider.** Before reading or writing the selected work item, run
+  `bun "${FACTORY_ROOT}/scripts/work-item-config.ts" check "$(git rev-parse --show-toplevel)" "${FACTORY_ROOT}/runtime-manifest.json"`.
+  Missing or stale selection stops with `/delivery init`; never infer one.
 
 ## Steps
 
@@ -156,14 +159,14 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    bun "${FACTORY_ROOT}/scripts/review-route.ts" "<reviewDir>/holdout-verdict.json" <attempt> <maxAttempts>
    ```
-   **Non-zero exit = malformed verdict → stop + escalate** (fail closed): MR not re-marked ready, no tracker "passed" comment. Then act on `action`:
+   **Non-zero exit = malformed verdict → stop + escalate** (fail closed): MR not re-marked ready, no work-item "passed" note. Then act on `action`:
 
    - **`approve`** → remove `re-review-pending.json`. Leave the MR **draft**. Do not undraft it. Status becomes `[addressed !N]` until Stage 3 dual review passes (never merge or close via the forge provider). Render the holdout outcome for humans with the summary helper (Rule 2 — never paste raw verdict fields):
      ```
      bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
      ```
-     Post **one** tracker summary comment (wrapped via `scripts/audit.ts`) with the MR link, that rendered holdout outcome, and the **actioned / disputed / skipped** counts written in plain language. **STOP.** A human performs the merge.
+     Post **one** provider summary note (wrapped via `scripts/audit.ts`) with the MR link, that rendered holdout outcome, and the **actioned / disputed / skipped** counts written in plain language. **STOP.** A human performs the merge.
    - **`fix`** → dispatch the `implementer` to address the verdict `findings`, re-run the green gate (+ lint/typecheck), increment `attempt`, and **go back to step 8** (the re-review runs fresh). Do **not** re-mark ready during the fix loop. If two failed fixes share the same assumption, apply the premise checkpoint from step 6 before any third fix.
-   - **`escalate`** (including `reject`, `shouldEscalate`, or exhausted attempts) → post the `reason`/`findings` as a tracker comment and stop (NEEDS_HUMAN). Leave the MR **unblessed** (not re-marked ready); post no "passed" comment.
+   - **`escalate`** (including `reject`, `shouldEscalate`, or exhausted attempts) → post the `reason`/`findings` as a provider note and stop (NEEDS_HUMAN). Leave the MR **unblessed** (not re-marked ready); post no "passed" note.
 
-9. **Invariants.** Holdout approve leaves the MR **draft** under `[addressed !N]`. Stage 3 dual review is the only authority that may undraft. The factory **never** merges, closes, archives, or resolves threads, and **never** transitions tracker status — humans own all of that. The reviewer never sees implementer/assessor reasoning. Every assessed thread received exactly one reply across all re-entries; the only tracker write is the single summary comment.
+9. **Invariants.** Holdout approve leaves the MR **draft** under `[addressed !N]`. Stage 3 dual review is the only authority that may undraft. The factory **never** merges, closes, archives, or resolves threads, and **never** transitions work-item status; humans own all of that. The reviewer never sees implementer/assessor reasoning. Every assessed thread received exactly one reply across all re-entries; the only work-item write is the single summary note.

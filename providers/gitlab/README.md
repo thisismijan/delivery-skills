@@ -15,3 +15,8 @@ bun "<skills-dir>/_factory/scripts/doctor.ts"
 ```
 
 Doctor reports whether a credential is present but never prints its value.
+
+This provider supplies merge-request metadata and review publication. It does
+not claim GitLab issue operations. GitLab issues become a selectable
+repository work-item provider only when an adapter separately advertises an
+available `tracker.item` capability with its exact provider id.

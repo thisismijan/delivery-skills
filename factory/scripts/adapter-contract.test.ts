@@ -24,6 +24,7 @@ const COMPLETE_CAPABILITIES = ADAPTER_CAPABILITY_IDS.map((id) => ({
 	id,
 	available: id !== "mutation.guard",
 	mode: id === "mutation.guard" ? "unenforced" : "native",
+	...(id === "tracker.item" ? { provider: "sample-work-items" } : {}),
 }));
 
 test("validateAdapterManifest accepts a complete portable document", () => {
@@ -67,6 +68,20 @@ test("static adapter declaration cannot claim mutation enforcement", () => {
 			mutationGuardVerified: true,
 		}).capabilities["mutation.guard"],
 	).toMatchObject({ available: true, enforcement: "enforced" });
+});
+
+test("available work-item adapters must declare their provider identity", () => {
+	const capabilities = COMPLETE_CAPABILITIES.map((capability) =>
+		capability.id === "tracker.item"
+			? { id: capability.id, available: true, mode: "provider" }
+			: capability,
+	);
+	expect(
+		validateAdapterManifest(
+			{ name: "sample", version: 1, capabilities },
+			"sample",
+		).join("\n"),
+	).toMatch(/provider is required/);
 });
 
 test("validateAdapterManifest rejects a host-named incomplete document", () => {

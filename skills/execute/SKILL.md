@@ -26,13 +26,16 @@ This command implements the approved change and, **only after the holdout review
 - **Tests first.** Write tests before implementation and prove they fail (red gate). Never modify tests to make them pass.
 - **No pressure bypass.** Time pressure never permits skipping the red gate, green gate, holdout review, or operator-owned action.
 - **Review before the MR.** The holdout review runs against the **committed branch diff + gate results** — there is no MR yet. **An MR is opened only after the review returns `approve`.** Never open an MR for un-reviewed, changes-requested, rejected, or escalated work.
-- **Gated writes only:** the only writes are the branch commit/push, the MR (created post-approval), and comments (on the MR and the tracker). **The factory NEVER merges or closes an MR, and never changes tracker status — humans own merge, close, and status.**
+- **Gated writes only:** the only writes are the branch commit/push, the MR (created post-approval), and notes (on the MR and the selected work item). **The factory NEVER merges or closes an MR, and never changes work-item status; humans own merge, close, and status.**
 - **Fail closed:** no matching spec, more than one match, a gate that didn't run, or a gate failure with attempts exhausted → stop + escalate. Never open an MR on un-green code.
 - **Mutation boundary.** Run `canStartStage` before any write, using the runtime's mutation-guard identifier:
   ```
   bun "${FACTORY_ROOT}/scripts/stage-gating.ts" execute "${FACTORY_ROOT}/runtime-manifest.json"
   ```
   Non-zero exit → **stop**. A runtime that does not declare an enforceable mutation boundary cannot start this mutating stage. Do not proceed when mutation boundaries are unenforced or unknown.
+- **Confirmed provider.** Before reading or writing a work-item note, run
+  `bun "${FACTORY_ROOT}/scripts/work-item-config.ts" check "$(git rev-parse --show-toplevel)" "${FACTORY_ROOT}/runtime-manifest.json"`.
+  Missing or stale selection stops with `/delivery init`; never infer one.
 
 ## Steps
 
@@ -208,13 +211,13 @@ re-run the gate. Do not reuse it.
       ```
       bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
       ```
-      Post that summary as an MR note **and** a tracker comment (via `scripts/audit.ts`) with the MR link, stating the review passed and that a human performs the merge. Write the note body under `.review/`, then run the publication check and `gl-note` (do not bypass with a raw forge API or a general note helper):
+      Post that summary as an MR note **and** one selected-provider note (via `scripts/audit.ts`) with the MR link, stating the review passed and that a human performs the merge. Write the forge note body under `.review/`, then run the publication check and `gl-note` (do not bypass with a raw forge API or a general note helper):
       ```
       bun "${FACTORY_ROOT}/scripts/note-publication.ts" check <file> <repoRoot>
       gl-note <iid> --file <file>
       ```
       This posts an individual note that never counts as an unresolved thread blocking the human's merge. **STOP at APPROVED.** Do **not** merge via the forge provider. Do **not** run `/openspec-archive` (it folds the spec into `openspec/specs/` and only makes sense after the human's merge — leave it to a post-merge step).
     - **`fix`** → dispatch the `implementer` subagent to address the verdict `findings`, re-run the **green gate** (step 8), increment `attempt`, and **go back to step 10** (re-review runs fresh — it does not see the fixer's reasoning). **No MR is created during the fix loop.** If two failed fixes share the same assumption, apply the premise checkpoint from step 8 before any third fix.
-    - **`escalate`** → push the branch (`git push -u origin <changeName>`) so a human can inspect the work, post the `reason` (and any `findings`) as a tracker comment, and stop (NEEDS_HUMAN). **Do not open an MR** — the review did not pass; the human decides what happens next.
+    - **`escalate`** → push the branch (`git push -u origin <changeName>`) so a human can inspect the work, post the `reason` (and any `findings`) as a selected-provider note, and stop (NEEDS_HUMAN). **Do not open an MR**; the review did not pass and the human decides what happens next.
 
-12. **Invariants.** An MR exists **only** for review-approved work. The factory **creates and approves MRs but NEVER merges, archives, or closes them** — humans own merge, close, and the post-merge archive. The reviewer never sees implementer reasoning; the factory never changes tracker status.
+12. **Invariants.** An MR exists **only** for review-approved work. The factory **creates and approves MRs but NEVER merges, archives, or closes them**; humans own merge, close, and the post-merge archive. The reviewer never sees implementer reasoning; the factory never changes work-item status.

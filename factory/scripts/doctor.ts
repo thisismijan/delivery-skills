@@ -3,6 +3,10 @@ import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type RuntimeManifest, loadRuntimeManifest } from "./runtime-manifest";
 import { loadConstitution } from "./sdlc-constitution";
+import {
+	type WorkItemSelectionStatus,
+	workItemSelectionStatus,
+} from "./work-item-config";
 
 // biome-ignore format: workflow contracts require one literal invocation
 export const DELIVERY_DOCTOR_INVOCATION = 'scripts/doctor.ts';
@@ -59,6 +63,17 @@ function limitation(name: string, detail: string): DoctorCheck {
 		required: false,
 		ok: false,
 	};
+}
+
+export function workItemDoctorCheck(
+	status: WorkItemSelectionStatus,
+): DoctorCheck {
+	return status.state === "ready"
+		? ready("Work-item provider", status.selection?.provider.id ?? "confirmed")
+		: setup(
+				"Work-item provider",
+				status.remedy ?? "confirm a provider with /delivery init",
+			);
 }
 
 export async function runDoctor(options: {
@@ -149,6 +164,19 @@ export async function runDoctor(options: {
 	} catch {
 		checks.push(setup("Target state", `${options.cwd} is not writable`, true));
 	}
+	if (runtime && inGit) {
+		try {
+			const selection = await workItemSelectionStatus(options.cwd, runtime);
+			checks.push(workItemDoctorCheck(selection));
+		} catch (error) {
+			checks.push(
+				setup(
+					"Work-item provider",
+					`repair .delivery/work-items.json; ${error instanceof Error ? error.message : String(error)}`,
+				),
+			);
+		}
+	}
 
 	const guard = runtime?.capabilities["mutation.guard"];
 	const evidence = existsSync(
@@ -202,7 +230,7 @@ export async function runDoctor(options: {
 
 	for (const name of [
 		"Merge or close a change",
-		"Tracker status",
+		"Work-item status",
 		"Release-risk acceptance",
 		"Failed-gate override",
 		"Skill install or rollback",

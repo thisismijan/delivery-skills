@@ -86,7 +86,7 @@ describe("entry detection", () => {
     ["triage MDF-2100", "Bug intake"],
     ["ship 740", "Release readiness"],
     ["verify 740", "Post-merge verify"],
-    ["retro MDF-2000", "Retro (ticket or epic)"],
+    ["retro MDF-2000", "Retro (work item or group)"],
     ["improve", "Improvement"],
     ["improve MDF-2000", "Improvement"],
     ["improve all", "Improvement"],
@@ -113,8 +113,11 @@ describe("entry detection", () => {
     ["groom Add a spend-by-repository panel to the costs page", "Groom"],
     ["groom docs/stories/F5-4-port-igspec-gates.md", "Groom"],
     ["draft MDF-2101", "Draft"],
+    ["draft #123", "Draft"],
+    ["draft owner/repo#123", "Draft"],
     ["draft a plan for the costs page", "Full epic"],
     ["execute MDF-2101", "Execute"],
+    ["execute LOCAL-1", "Execute"],
     ["build MDF-2101", "Execute"],
     ["build a costs panel", "Full epic"],
     ["review 740", "Review"],
@@ -597,7 +600,7 @@ describe("capabilities", () => {
     .map(cells);
 
   test("every capability the workflow depends on is checked", () => {
-    expect(rows.map((r) => r[1])).toEqual(["Stage specs", "Factory", "Review commands", "Forge", "Tracker", "Spec tool", "Deployed environment", "Skill evaluation"]);
+    expect(rows.map((r) => r[1])).toEqual(["Stage specs", "Factory", "Review commands", "Forge", "Work items", "Spec tool", "Deployed environment", "Skill evaluation"]);
   });
 
   test("every stage a capability blocks is a real /delivery verb", () => {
@@ -624,9 +627,9 @@ describe("capabilities", () => {
     expect(preconditions).not.toContain("all once");
     expect(AUTO).toContain("stage boundary");
     expect(AUTO).toContain("`checkCapabilities`");
-    const tracker = rows.find((r) => r[1] === "Tracker") ?? [];
-    expect(tracker[2]).toContain("real work-item read");
-    expect(tracker[2].toLowerCase()).toMatch(/no key|failed/);
+    const workItems = rows.find((r) => r[1] === "Work items") ?? [];
+    expect(workItems[2]).toContain("real work-item read");
+    expect(workItems[2].toLowerCase()).toMatch(/no key|failed/);
   });
 
   test("the stamped max skill is required and a lightweight review never stands in", () => {
@@ -674,7 +677,7 @@ describe("capabilities", () => {
 describe("hard rules survive", () => {
   const rules = [
     "Never merge via the forge provider",
-    "never transition tracker status",
+    "never transition work-item status",
     "Create work items only from approved, verified groom drafts",
     "Never substitute another review skill",
     "A lightweight built-in review is **out of this chain**",

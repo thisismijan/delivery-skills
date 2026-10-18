@@ -6,6 +6,7 @@ import {
 	initializeTargetRepository,
 	withDeliveryIgnores,
 } from "./delivery-init";
+import { defaultRuntimeManifest } from "./runtime-manifest";
 
 test("delivery ignore entries are idempotent", () => {
 	const once = withDeliveryIgnores("node_modules/\n");
@@ -24,6 +25,27 @@ test("initializes a target repository without replacing existing ignores", async
 		expect(await readFile(join(root, ".gitignore"), "utf8")).toBe(
 			"node_modules/\n.delivery/\n.review/\n",
 		);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("persists only the explicitly confirmed work-item provider", async () => {
+	const root = await mkdtemp(join(tmpdir(), "delivery-init-provider-"));
+	try {
+		expect(await Bun.spawn(["git", "init", "-q", root]).exited).toBe(0);
+		await initializeTargetRepository(root, {
+			providerId: "local-files",
+			runtime: defaultRuntimeManifest(true),
+		});
+		expect(
+			JSON.parse(
+				await readFile(join(root, ".delivery", "work-items.json"), "utf8"),
+			),
+		).toMatchObject({
+			provider: { id: "local-files", kind: "local-files" },
+			confirmed: true,
+		});
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

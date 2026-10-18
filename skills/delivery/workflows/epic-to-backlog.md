@@ -1,15 +1,15 @@
 # Workflow: epic-to-backlog
 
-Turn an epic-sized idea into groomed, draft-ready tracker stories. Compose
-`/groom`; do not reimplement grooming. In continuous mode the conductor creates
-the approved stories through the tracker provider. A single-step groom leaves
-the verified drafts for the operator.
+Turn an epic-sized idea into groomed, draft-ready work items. Compose `/groom`;
+do not reimplement grooming. In continuous mode the conductor materializes the
+approved items through the repository's confirmed work-item provider. A
+single-step groom leaves the verified drafts for the operator.
 
 Terms: see [`NOTES.md`](../NOTES.md).
 
 ## Loop
 
-Recurring: a the tracker epic, HLD, PRD, or raw idea needs breaking into individually
+Recurring: a work-item group, HLD, PRD, or raw idea needs breaking into individually
 deployable stories before any `/draft`.
 
 ## Trigger
@@ -21,10 +21,10 @@ invokes this workflow with one of:
 2. Inline text (pasted epic description, acceptance notes, constraints)
 3. Conversation context already containing that material
 
-If a tracker epic key is the starting point, read its summary and description
-through the tracker provider when available. Otherwise the operator may export
+If a work-item group is the starting point, read its summary and description
+through the selected provider when available. Otherwise the operator may export
 or paste them into (1) or (2). The `/groom` skill itself never calls the
-tracker; only the conductor may create approved stories afterward.
+provider; only the conductor may materialize approved items afterward.
 
 If there is no usable input, stop and ask for a file path or description. Do
 not guess.
@@ -50,7 +50,7 @@ Invoke:
 Follow the `/groom` skill. Non-negotiables this
 workflow must not weaken:
 
-- No MCP, git, or tracker from groom
+- No MCP, git, or work-item provider from groom
 - One grilling question per turn, each with a recommended answer
 - A question with two or more viable product or slicing choices first follows
   `SKILL.md`'s **Human decision brief**; factual and single-path questions stay
@@ -110,9 +110,9 @@ Groom ends with a closing summary: output directory
 the directory printed by `groom-paths.ts`, list of draft files, optional `prd.md`.
 
 If the operator abandons mid-grill or rejects the breakdown without approval,
-stop. No drafts, no brief, no tracker.
+stop. No drafts, no brief, no work items.
 
-### 3. Materialize the approved tracker stories
+### 3. Materialize the approved work items
 
 Present a **brief** only (not the full draft bodies in the chat dump):
 
@@ -137,14 +137,16 @@ Present a **brief** only (not the full draft bodies in the chat dump):
   immediately if blocked-by is empty; otherwise after blockers are merged);
   each ticket sized for **~25% of a session context window**
 - Link/path to optional `prd.md` if present
-- In continuous mode, use the tracker provider to create exactly one work item
+- In continuous mode, use the confirmed provider to create exactly one work item
   from each approved, verified draft. Preserve the title and body, set the
-  epic/parent links, and create only the "blocked by" links in the approved
-  graph. Record `slice-number → WORK-ITEM-KEY` in the ledger. Creation is
-  idempotent: before each write, search the target epic for the audit marker
-  containing the run id and slice number; reuse that exact item if it exists,
-  and stop on multiple matches. Never create an unapproved slice and never
-  transition status.
+  group/parent references when the provider supports them, and create only the
+  "blocked by" links in the approved graph. For `local-files`, write through
+  `scripts/work-items.ts materialize-local` under
+  `.delivery/work-items/<KEY>.md`; for a remote provider, use its normalized
+  create/link invocation. Record `slice-number → WORK-ITEM-KEY` in the ledger.
+  Creation is idempotent: use one exact audit marker containing the run id and slice number,
+  reuse that exact item if it exists, and stop on conflicting or multiple matches.
+  Never create an unapproved slice and never transition status.
 - In explicit single-step groom mode, print the brief and ask the operator to
   create the work items or invoke `/delivery auto` with the approved grooming
   output to materialize them.
@@ -162,9 +164,9 @@ Workflow is done when:
 - Continuous mode has recorded every created or idempotently reused key; or the
   single-step operator has supplied keys or ended the run
 
-If the operator will create tickets later, record in the brief that
+If the operator will materialize work items later, record in the brief that
 `ticket-to-mr` starts only once a key exists. Ending without keys is a valid
-stop; do not poll the tracker.
+stop; do not poll the provider.
 
 ## Handoff
 
@@ -189,12 +191,12 @@ per the dependency graph:
 | No input | Ask once; stop |
 | Operator never approves slices | Stop; zero files written |
 | Draft fails `verify-ticket.ts` and cannot be fixed in groom's loop | Stay inside groom's fail-closed fix loop; do not invent tickets |
-| Tracker cannot create or link items in continuous mode | Stop with the missing capability; keep every approved draft |
+| Selected provider cannot create or link items in continuous mode | Stop with the missing capability; keep every approved draft |
 
 ## Out of scope
 
 - `/draft`, execute, MR, review
-- tracker status transitions
+- work-item status transitions
 - Scheduling / inbox polling for new epics
 
 ## Implementer notes

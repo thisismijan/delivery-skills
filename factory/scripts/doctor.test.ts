@@ -1,5 +1,9 @@
 import { expect, test } from "bun:test";
-import { type DoctorReport, formatDoctorReport } from "./doctor";
+import {
+	type DoctorReport,
+	formatDoctorReport,
+	workItemDoctorCheck,
+} from "./doctor";
 
 test("groups partial readiness without hiding the safe subset", () => {
 	const report: DoctorReport = {
@@ -63,4 +67,29 @@ test("doctor output contains remedies but no supplied secret", () => {
 	});
 	expect(output).toContain("GITLAB_TOKEN");
 	expect(output).not.toContain(secret);
+});
+
+test("work-item diagnosis distinguishes confirmed and unavailable choices", () => {
+	expect(
+		workItemDoctorCheck({
+			state: "ready",
+			selection: {
+				version: 1,
+				provider: { id: "local-files", kind: "local-files" },
+				confirmed: true,
+			},
+		}),
+	).toMatchObject({
+		category: "Ready now",
+		detail: "local-files",
+	});
+	expect(
+		workItemDoctorCheck({
+			state: "unavailable",
+			remedy: "configure jira or explicitly select another provider",
+		}),
+	).toMatchObject({
+		category: "Needs setup",
+		detail: "configure jira or explicitly select another provider",
+	});
 });
