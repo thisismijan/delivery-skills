@@ -1,4 +1,7 @@
 import { expect, test } from "bun:test";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
 	PAIRED_UTILITY_THRESHOLD,
 	evaluatePairedEvidence,
@@ -171,4 +174,34 @@ test("worker-selection evidence records both selected workers", () => {
 		},
 	});
 	expect(result.passed).toBe(true);
+});
+
+test("the CLI writes a failed result and exits non-zero", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "paired-evaluation-"));
+	try {
+		const input = evidence();
+		input.candidate.utility = 0.5;
+		const evidenceFile = join(dir, "evidence.json");
+		const resultFile = join(dir, "result.json");
+		await writeFile(evidenceFile, JSON.stringify(input));
+		const proc = Bun.spawn(
+			[
+				process.execPath,
+				"run",
+				join(import.meta.dir, "paired-evaluation.ts"),
+				evidenceFile,
+				resultFile,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await proc.exited).toBe(1);
+		const result = JSON.parse(await readFile(resultFile, "utf8")) as {
+			passed: boolean;
+			reasons: string[];
+		};
+		expect(result.passed).toBe(false);
+		expect(result.reasons).toEqual(["relative utility 0.500 is below 0.9"]);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
 });
