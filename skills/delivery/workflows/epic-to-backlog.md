@@ -140,10 +140,18 @@ Present a **brief** only (not the full draft bodies in the chat dump):
 - In continuous mode, use the confirmed provider to create exactly one work item
   from each approved, verified draft. Preserve the title and body, set the
   group/parent references when the provider supports them, and create only the
-  "blocked by" links in the approved graph. For `local-files`, write through
-  `scripts/work-items.ts materialize-local` under
-  `.delivery/work-items/<KEY>.md`; for a remote provider, use its normalized
-  create/link invocation. Record `slice-number → WORK-ITEM-KEY` in the ledger.
+  "blocked by" links in the approved graph. Write one strict JSON input per
+  slice with `approved: true`, its run-and-slice audit id, title, body, type,
+  and approved blockers, then run:
+  ```
+  bun "${FACTORY_ROOT}/scripts/work-item-provider.ts" create \
+    "$(git rev-parse --show-toplevel)" \
+    "${FACTORY_ROOT}/runtime-manifest.json" <approved-item.json>
+  ```
+  After all references exist, apply each approved dependency set with the same
+  command's `link` operation and an input containing `approved: true`, `ref`,
+  and `blockedBy`. Never invoke a provider-specific API or invent an operation.
+  Record `slice-number → WORK-ITEM-KEY` in the ledger.
   Creation is idempotent: use one exact audit marker containing the run id and slice number,
   reuse that exact item if it exists, and stop on conflicting or multiple matches.
   Never create an unapproved slice and never transition status.

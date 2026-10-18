@@ -165,7 +165,7 @@ This command consumes the review comments on the **existing** MR for this ticket
      ```
      bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
      ```
-     Post **one** provider summary note (wrapped via `scripts/audit.ts`) with the MR link, that rendered holdout outcome, and the **actioned / disputed / skipped** counts written in plain language. **STOP.** A human performs the merge.
+     Post **one** provider summary note through `work-item-provider.ts note <repoRoot> "${FACTORY_ROOT}/runtime-manifest.json" <note.json>` (body wrapped via `scripts/audit.ts`) with the MR link, that rendered holdout outcome, and the **actioned / disputed / skipped** counts written in plain language. **STOP.** A human performs the merge.
    - **`fix`** → dispatch the `implementer` to address the verdict `findings`, re-run the green gate (+ lint/typecheck), increment `attempt`, and **go back to step 8** (the re-review runs fresh). Do **not** re-mark ready during the fix loop. If two failed fixes share the same assumption, apply the premise checkpoint from step 6 before any third fix.
    - **`escalate`** (including `reject`, `shouldEscalate`, or exhausted attempts) → post the `reason`/`findings` as a provider note and stop (NEEDS_HUMAN). Leave the MR **unblessed** (not re-marked ready); post no "passed" note.
 
