@@ -52,7 +52,9 @@ describe("smallest complete change", () => {
 	test("both implementers share the reuse ladder and safety floor", () => {
 		for (const prompt of [implementer, implementerOpus]) {
 			expect(prompt).toContain("## Smallest complete change");
-			expect(prompt).toMatch(/reuse.*existing helper, component, service, or pattern/i);
+			expect(prompt).toMatch(
+				/reuse.*existing helper, component, service, or pattern/i,
+			);
 			expect(prompt).toMatch(/platform or standard library/i);
 			expect(prompt).toMatch(/already-installed dependency/i);
 			expect(prompt).toMatch(/trust-boundary\s+validation/i);
@@ -69,10 +71,17 @@ describe("smallest complete change", () => {
 	});
 
 	test("test and grooming workers reuse existing seams and report omissions", () => {
-		expect(testWriter).toMatch(/reuse the narrowest existing public test seam/i);
+		expect(testWriter).toMatch(
+			/reuse the narrowest existing public test seam/i,
+		);
 		expect(groomWriter).toMatch(/smallest complete change/i);
 		for (const prompt of [testWriter, groomWriter]) {
-			for (const heading of ["Reused", "Skipped", "Not checked", "Residual risks"]) {
+			for (const heading of [
+				"Reused",
+				"Skipped",
+				"Not checked",
+				"Residual risks",
+			]) {
 				expect(prompt).toContain(`**${heading}:**`);
 			}
 		}
@@ -101,7 +110,9 @@ describe("smallest complete change", () => {
 			expect(prompt).toMatch(/smallest complete fix/i);
 			expect(prompt).toMatch(/validation.*security.*accessibility/i);
 		}
-		expect(holdoutReviewer).toMatch(/Do not fail.*merely because code could be shorter/i);
+		expect(holdoutReviewer).toMatch(
+			/Do not fail.*merely because code could be shorter/i,
+		);
 		expect(maxReview).toMatch(/Drop "could be shorter"/i);
 	});
 });
