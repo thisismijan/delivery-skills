@@ -404,8 +404,10 @@ Keep the lifecycle portable across conforming runtimes.
   failure, or rollback rules.
 - **Shadow model routing.** A frontier-level read-only `task-profile-controller`
   classifies each task. Factory stages persist that profile, gate outcomes,
-  repairs, escalations, context size, and token or character counts under
-  `.delivery/routing/`. `select-model.ts` determines the required capability;
+  repairs, escalations, context size, wall time, and token, cost, or character
+  counts under
+  `.delivery/routing/`. `capture-usage.ts` records those figures; do not guess
+  them. `select-model.ts` determines the required capability;
   `model-catalogue.ts` chooses an exact model from the runtime-advertised list.
   Muse Wonder can satisfy frontier work. A cheaper shadow recommendation is
   recorded, never dispatched. After each run,

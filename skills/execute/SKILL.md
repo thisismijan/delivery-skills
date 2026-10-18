@@ -111,15 +111,26 @@ re-run the gate. Do not reuse it.
    Persist that JSON. **Dispatch still uses the live `select-model.ts`
    capability and the exact model returned by `model-catalogue.ts`.** A cheaper
    `shadowTier` is a recommendation for later evaluation, never this run's
-   worker. After the red and green gates (or an escalation), persist the
-   observation:
+   worker. Start a usage timer before the implementer runs:
+   ```
+   bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/implement-usage-timer.json"
+   ```
+   After the red and green gates (or an escalation), write the outcome file,
+   then finish capture. Pass `--host "<reviewDir>/host-usage.json"` only when
+   the runtime wrote that file. Always pass the named artifacts:
+   ```
+   bun "${FACTORY_ROOT}/scripts/capture-usage.ts" finish "<reviewDir>/implement-usage-timer.json" "<reviewDir>/implement-usage.json" --input "<reviewDir>/implement-profile.json" --output "<reviewDir>/implement-outcome.json"
+   ```
+   Then persist the observation:
    ```
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/implement-profile.json" <live-model> "<reviewDir>/implement-outcome.json" "<reviewDir>/implement-usage.json" <controller-model> <implementation-model>
    ```
    The outcome file records each gate result, repair count, and escalations.
-   Do not omit it; persistence refuses a missing outcome.
-   The usage file records token or character counts when available, otherwise
-   `{ "source": "unavailable" }`. Persist both exact resolved model identifiers.
+   Do not omit it; persistence refuses a missing outcome. The usage file comes
+   from `capture-usage.ts`. It always records wall time, uses host tokens and
+   cost when present, and otherwise records character counts of those
+   artifacts. Never write `{ "source": "unavailable" }` by hand.
+   Persist both exact resolved model identifiers.
    Do not dispatch a catalogue fast model unless `fast-dispatch.ts` later
    reports that the exact candidate on representative-run reversible, strongly
    verified work has cleared the 90 percent bar. Named safety floors still
@@ -152,11 +163,16 @@ re-run the gate. Do not reuse it.
 
 9. **Self-review.** The `implementer` reviews its own diff against `specs/` and `tasks.md`, and marks `tasks.md` items done.
 
-10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the required capability: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ semantic `opus`, therefore `frontier`), then resolve the exact available frontier model. Dispatch `task-profile-controller` with that frontier model, validate with `task-profile.ts`, then persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"`. After the verdict, persist the observation with an explicit outcome file, including the controller's exact model identifier:
+10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the required capability: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ semantic `opus`, therefore `frontier`), then resolve the exact available frontier model. Dispatch `task-profile-controller` with that frontier model, validate with `task-profile.ts`, then persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"`. Start a usage timer before the holdout reviewer:
    ```
+   bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/review-usage-timer.json"
+   ```
+   After the verdict, write the outcome file, finish capture, then persist the observation with the controller's exact model identifier. Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file:
+   ```
+   bun "${FACTORY_ROOT}/scripts/capture-usage.ts" finish "<reviewDir>/review-usage-timer.json" "<reviewDir>/review-usage.json" --input "<reviewDir>/review-profile.json" --output "<reviewDir>/review-outcome.json"
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-outcome.json" "<reviewDir>/review-usage.json" <frontier-model> <frontier-model>
    ```
-   `review-outcome.json` records the holdout verdict's terminal result, repairs, and escalations. Do not omit it; persistence refuses a missing outcome. Dispatch the `holdout-reviewer` subagent with the same resolved frontier model and **only**: the work item, `<changeDir>` (the spec), the diff file, the test files, all gate-result files, and the **skip report** (`<reviewDir>/skips.md`). **Do not pass the implementer's reasoning or any prior chatter.** It returns a `ReviewVerdict` JSON. **No MR is opened at this point.**
+   `review-outcome.json` records the holdout verdict's terminal result, repairs, and escalations. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Dispatch the `holdout-reviewer` subagent with the same resolved frontier model and **only**: the work item, `<changeDir>` (the spec), the diff file, the test files, all gate-result files, and the **skip report** (`<reviewDir>/skips.md`). **Do not pass the implementer's reasoning or any prior chatter.** It returns a `ReviewVerdict` JSON. **No MR is opened at this point.**
 
 11. **Route the verdict (deterministic).**
     ```

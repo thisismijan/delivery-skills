@@ -34,6 +34,8 @@ export interface RoutingReport {
 	tokenTasks: number;
 	characterTasks: number;
 	unavailableUsage: number;
+	timedTasks: number;
+	costTasks: number;
 	byStage: Record<string, number>;
 }
 
@@ -55,6 +57,8 @@ export function summariseObservations(
 		tokenTasks: 0,
 		characterTasks: 0,
 		unavailableUsage: 0,
+		timedTasks: 0,
+		costTasks: 0,
 		byStage,
 	};
 	for (const item of observations) {
@@ -70,6 +74,8 @@ export function summariseObservations(
 		else if (item.context.usage.source === "characters") {
 			report.characterTasks += 1;
 		} else report.unavailableUsage += 1;
+		if (item.context.usage.wallTimeMs !== undefined) report.timedTasks += 1;
+		if (item.context.usage.costUsd !== undefined) report.costTasks += 1;
 		const stage = item.profile.stage;
 		byStage[stage] = (byStage[stage] ?? 0) + 1;
 	}
@@ -85,8 +91,10 @@ export function formatRoutingReport(report: RoutingReport): string {
 			? `${report.characterTasks} with character counts as a stand-in`
 			: undefined,
 		report.unavailableUsage > 0
-			? `${report.unavailableUsage} without a usage figure`
+			? `${report.unavailableUsage} without a token or character figure`
 			: undefined,
+		report.timedTasks > 0 ? `${report.timedTasks} with wall time` : undefined,
+		report.costTasks > 0 ? `${report.costTasks} with cost` : undefined,
 	].filter((bit): bit is string => Boolean(bit));
 	const body = [
 		`Compared ${report.taskCount} tasks from ${report.runCount} deliveries.`,

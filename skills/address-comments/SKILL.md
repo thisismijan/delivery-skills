@@ -58,20 +58,24 @@ This command consumes the review comments on the **existing** MR for this ticket
    The comment parser flattens the discussions to one entry per note (`parseMrComments`, fail-closed on non-JSON / non-array), dropping forge system notes and carrying each note's parent `discussionId` (needed to reply on its thread in step 7). It then applies `excludeHandledThreads`: if any note in a discussion starts with the factory audit prefix from `scripts/audit.ts`, the **entire discussion** is excluded. Removing only the factory reply would leave the original human note in scope and cause a duplicate action on re-entry. The remaining comments are **in scope**. Non-zero exit (unparseable output) → stop + escalate.
 
 5. **Classify (single batch, read-only).** Resolve `standard` against the runtime
-   model inventory, then dispatch **exactly one** `comment-assessor` subagent
-   with that exact available model (tools `Read, Grep, Glob` only), the in-scope
-   comments (each with its `commentId` and `discussionId`), the diff, and
-   `<changeDir>` (spec + tasks). Keep each comment's `discussionId` so step 7
-   can reply on the right thread. It returns a single `ClassificationVerdict`
-   JSON array. Validate it:
+   model inventory. Start a usage timer, then dispatch **exactly one**
+   `comment-assessor` subagent with that exact available model (tools
+   `Read, Grep, Glob` only), the in-scope comments (each with its `commentId`
+   and `discussionId`), the diff, and `<changeDir>` (spec + tasks). Keep each
+   comment's `discussionId` so step 7 can reply on the right thread.
+   ```
+   bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/classify-usage-timer.json"
+   ```
+   It returns a single `ClassificationVerdict` JSON array. Validate it:
    ```
    bun "${FACTORY_ROOT}/scripts/verdicts.ts" classification "<reviewDir>/classification.json" "<reviewDir>/expected-comment-ids.json"
    ```
-   A malformed or missing verdict → **stop + escalate** and action no comments. If there are zero in-scope comments the verdict is `[]` — nothing to action; go to step 8 only if any prior change was made, otherwise stop cleanly. After a valid verdict, resolve `frontier` and dispatch `task-profile-controller` with that exact available model for the classify task, validate with `task-profile.ts`, persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-shadow.json"`, then persist the observation with an explicit outcome file:
+   A malformed or missing verdict → **stop + escalate** and action no comments. If there are zero in-scope comments the verdict is `[]` — nothing to action; go to step 8 only if any prior change was made, otherwise stop cleanly. After a valid verdict, resolve `frontier` and dispatch `task-profile-controller` with that exact available model for the classify task, validate with `task-profile.ts`, persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-shadow.json"`. Finish capture after the outcome file exists:
    ```
+   bun "${FACTORY_ROOT}/scripts/capture-usage.ts" finish "<reviewDir>/classify-usage-timer.json" "<reviewDir>/classify-usage.json" --input "<reviewDir>/classify-profile.json" --output "<reviewDir>/classify-outcome.json"
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-outcome.json" "<reviewDir>/classify-usage.json" <controller-model> <standard-model>
    ```
-   `classify-outcome.json` records whether classification completed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Classification still used the current semantic standard route; the shadow file must not change that.
+   Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. `classify-outcome.json` records whether classification completed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Classification still used the current semantic standard route; the shadow file must not change that.
 
 6. **Route each comment.** For every entry, derive its action group:
    ```
@@ -125,8 +129,11 @@ This command consumes the review comments on the **existing** MR for this ticket
    # Resolve frontier and dispatch task-profile-controller read-only first.
    bun "${FACTORY_ROOT}/scripts/task-profile.ts" "<reviewDir>/review-profile.json"
    bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"
+   bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/review-usage-timer.json"
+   bun "${FACTORY_ROOT}/scripts/capture-usage.ts" finish "<reviewDir>/review-usage-timer.json" "<reviewDir>/review-usage.json" --input "<reviewDir>/review-profile.json" --output "<reviewDir>/review-outcome.json"
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-outcome.json" "<reviewDir>/review-usage.json" <frontier-model> <frontier-model>
    ```
+   Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. Never write `{ "source": "unavailable" }` by hand.
    Resolve `frontier`, then dispatch a **fresh** `holdout-reviewer` subagent
    with that exact available model over the **cumulative** diff (not
    per-comment) and **only**: the work item, `<changeDir>` (the spec), the

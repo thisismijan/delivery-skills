@@ -61,7 +61,13 @@ test("an observation records gates, repairs, escalations, and usage when present
 			escalations: 0,
 			terminal: "approve",
 		},
-		usage: { source: "tokens", inputTokens: 10, outputTokens: 4 },
+		usage: {
+			source: "tokens",
+			inputTokens: 10,
+			outputTokens: 4,
+			costUsd: 0.01,
+			wallTimeMs: 1200,
+		},
 		controllerModel: "muse-wonder-1.0-high",
 		currentModelId: "claude-sonnet-5-5-medium",
 	});
@@ -74,6 +80,8 @@ test("an observation records gates, repairs, escalations, and usage when present
 	expect(observation.executed).toBe("current");
 	expect(observation.currentOutcome.repairs).toBe(0);
 	expect(observation.context.usage.inputTokens).toBe(10);
+	expect(observation.context.usage.costUsd).toBe(0.01);
+	expect(observation.context.usage.wallTimeMs).toBe(1200);
 	expect(observation.context.size).toBe("small");
 });
 
@@ -398,6 +406,46 @@ test("record-routing persist without an outcome file exits nonzero and writes no
 				"run-cli",
 				profilePath,
 				"sonnet",
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await proc.exited).not.toBe(0);
+		expect(await jsonFilesUnder(root)).toEqual([]);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+test("record-routing persist with invalid usage exits nonzero and writes nothing", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "record-routing-bad-usage-"));
+	try {
+		const profilePath = join(dir, "profile.json");
+		const outcomePath = join(dir, "outcome.json");
+		const usagePath = join(dir, "usage.json");
+		const root = join(dir, ".delivery", "routing");
+		await Bun.write(profilePath, JSON.stringify(search));
+		await Bun.write(
+			outcomePath,
+			JSON.stringify({
+				gates: [],
+				gatesPassed: true,
+				repairs: 0,
+				escalations: 0,
+				terminal: "continue",
+			}),
+		);
+		await Bun.write(usagePath, JSON.stringify({ source: "tokens" }));
+		const proc = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "record-routing.ts"),
+				"persist",
+				root,
+				"run-cli",
+				profilePath,
+				"sonnet",
+				outcomePath,
+				usagePath,
 			],
 			{ stdout: "pipe", stderr: "pipe" },
 		);
