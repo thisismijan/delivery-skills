@@ -212,6 +212,10 @@ describe("workflow authority", () => {
     expect(src).toMatch(/conductor/i);
     expect(src).toMatch(/next-step table|auto\.md/i);
     expect(src).toMatch(/stage specs/i);
+    expect(src).toContain("SDLC-CONSTITUTION.md");
+    expect(src).toContain("sdlc-constitution.json");
+    expect(src).toMatch(/policy kernel/i);
+    expect(src).toMatch(/it wins/i);
   });
 
   test("historical files carry the non-actionable marker and make no source-of-truth claim", () => {
@@ -846,6 +850,9 @@ describe("portable factory pack", () => {
     }
     expect(readme).toContain("Approval of the final groomed plan authorizes routine");
     expect(readme).toContain("Independent tickets run concurrently");
+    expect(readme).toContain("SDLC-CONSTITUTION.md");
+    expect(readme).toContain("policy kernel");
+    expect(readme).toContain(".delivery/runs/<id>.run-contract.json");
   });
 
   test("the README explains one-approval continuous delivery from live contracts", () => {

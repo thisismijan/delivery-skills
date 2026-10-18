@@ -145,6 +145,11 @@ It does not ask whether to proceed between those stages. It stops only when:
 Plan approval never authorizes merge, tracker status transitions, release-risk
 acceptance, bypassing a gate, or installing a skill candidate.
 
+That same approval freezes a hashed run contract at
+`.delivery/runs/<id>.run-contract.json`. Later stages check the hash. A ticket,
+goal, or write outside that contract is a terminal stop until the operator
+approves a new plan version.
+
 Parallel workers never race to edit the shared run ledger. Each writes a
 key-specific journal; the coordinator validates those journals against git and
 the forge, then records the completed wave in one compare-and-swap update. If
@@ -159,6 +164,11 @@ below, records state in the target repository's `.delivery/runs/`, and stops for
 operator-owned decisions. Approval of the final groomed plan authorizes routine
 progression through delivery. Humans still own merge, tracker status, explicit
 risk acceptance, and any live-skill install.
+
+The SDLC constitution in `skills/delivery/SDLC-CONSTITUTION.md` is the policy
+kernel every stage loads. When instructions conflict, it wins. Each commandment
+maps to a schema, gate, ledger transition, or contract test. A failed
+deterministic gate cannot be overridden by prose.
 
 ```mermaid
 flowchart TD
@@ -293,7 +303,7 @@ All live state belongs to the target repository and is gitignored:
 
 | Path | Holds |
 |------|-------|
-| `.delivery/runs/` | Run ledgers, discovery evidence, and engineering postmortems |
+| `.delivery/runs/` | Run ledgers, frozen run contracts, discovery evidence, and engineering postmortems |
 | `.delivery/workers/<run>/<key>.md` | Isolated worker journals reconciled by the coordinator after a parallel wave |
 | `.delivery/routing/` | Advertised model inventory, task profiles, shadow decisions, outcomes, usage capture, per-run scorecards, comparison report, evaluation corpus |
 | `.delivery/candidates/`, `.delivery/versions/` | Improvement candidates, generated paired evidence, and rollback copies |
@@ -307,6 +317,7 @@ fresh session after `/code-review-max`. A new head always needs a new max pass.
 
 ```text
 skills/                    # generic skills any capable host can load
+skills/delivery/SDLC-CONSTITUTION.md  # policy kernel loaded by every stage
 factory/                   # gate scripts and subagent prompts
 factory/model-catalogue.json  # capability tiers to exact advertised models
 adapters/                  # optional runtime integrations and compatibility

@@ -145,6 +145,9 @@ Present a **brief** only (not the full draft bodies in the chat dump):
 - In explicit single-step groom mode, print the brief and ask the operator to
   create the work items or invoke `/delivery auto` with the approved grooming
   output to materialize them.
+- After keys exist, freeze the approved plan with
+  `scripts/sdlc-constitution.ts freeze <draft.json>` into
+  `.delivery/runs/<id>.run-contract.json`. Later stages check that file.
 
 Do not open MRs in this stage.
 

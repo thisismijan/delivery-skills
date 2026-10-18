@@ -7,6 +7,10 @@ description: Second-pass merge-request review. Runs after code-review-max, judge
 
 Target MR: the skill arguments (`<mr-iid>`)
 
+The SDLC constitution (`SDLC-CONSTITUTION.md` beside the delivery skill)
+outranks this skill. Review the approved change only. Do not enlarge scope,
+merge, or treat reviewer prose as a reason to skip a failed gate.
+
 This skill runs inline, not in a forked subagent, because it has to read the
 correctness findings out of this conversation. The note publisher is
 deliberately not a default tool: every publish must raise its own permission

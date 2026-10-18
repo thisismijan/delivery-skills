@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { type CheckResult, capabilityPreflight, summarize } from "./preflight";
 import { parseRuntimeManifest } from "./runtime-manifest";
+import { loadConstitution } from "./sdlc-constitution";
 
 test("all required checks passing -> ready (optional failures ignored)", () => {
 	const results: CheckResult[] = [
@@ -41,6 +42,20 @@ test("stage preflight stops on a missing required capability", () => {
 	expect(
 		results.find((result) => result.name === "mutation.guard")?.detail,
 	).toMatch(/runtime manifest/i);
+});
+
+test("constitution preflight reports the live hash", () => {
+	const live = loadConstitution();
+	const results: CheckResult[] = [
+		{
+			name: "SDLC constitution",
+			ok: true,
+			required: true,
+			detail: `${live.document.id} v${live.document.version} ${live.hash}`,
+		},
+	];
+	expect(summarize(results).allRequiredPassed).toBe(true);
+	expect(results[0]?.detail).toContain(live.hash);
 });
 
 test("stage preflight passes when required capabilities are advertised", () => {
