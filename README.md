@@ -213,7 +213,10 @@ ambiguous match stops the run instead of guessing.
   `.delivery/routing/model-inventory.json`. The workflow still names the
   required capability (standard or frontier). The catalogue then picks an
   exact advertised identifier for that capability. A cheaper shadow
-  recommendation is recorded, never dispatched. Fast catalogue models stay
+  recommendation is recorded, never dispatched. Each recorded task captures
+  wall time automatically, overlays host token and cost figures when the
+  runtime writes them, and otherwise stores character counts of named
+  artifacts. Fast catalogue models stay
   evaluation-only until representative-run scores for that exact candidate
   clear the 90 percent bar with at least five reversible cases and no critical
   misses. Live evidence is not mixed into that sample. Safety floors keep auth,
@@ -233,7 +236,7 @@ All live state belongs to the target repository and is gitignored:
 | Path | Holds |
 |------|-------|
 | `.delivery/runs/` | Run ledgers, discovery evidence, and engineering postmortems |
-| `.delivery/routing/` | Advertised model inventory, task profiles, shadow decisions, outcomes, comparison report, evaluation corpus |
+| `.delivery/routing/` | Advertised model inventory, task profiles, shadow decisions, outcomes, usage capture, comparison report, evaluation corpus |
 | `.delivery/candidates/`, `.delivery/versions/` | Improvement candidates and rollback copies |
 | `.review/<change>/` | Gate commands, append-only gate results, diffs, verdicts |
 | `.review/<change-id>/<head-sha>/` | Review brief, max-pass findings, and draft notes |

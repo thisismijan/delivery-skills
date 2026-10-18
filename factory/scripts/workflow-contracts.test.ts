@@ -280,6 +280,23 @@ describe("bounded recovery and replay safety", () => {
 		expect(runtime).toMatch(/explicit outcome/);
 	});
 
+	test("stages capture wall time automatically and never invent token counts", () => {
+		for (const skill of [draft, execute, addressComments]) {
+			expect(skill).toContain("capture-usage.ts");
+			expect(skill).toContain("start");
+			expect(skill).toContain("finish");
+			expect(skill).toContain(
+				'Never write `{ "source": "unavailable" }` by hand',
+			);
+			expect(skill).toContain("--host");
+			expect(skill).toContain("only when the runtime wrote that file");
+		}
+		expect(execute).toContain("implement-usage-timer.json");
+		expect(execute).toContain("review-usage-timer.json");
+		expect(draft).toContain("author-usage-timer.json");
+		expect(addressComments).toContain("classify-usage-timer.json");
+	});
+
 	test("address-comments holdout approve leaves the merge request draft", () => {
 		expect(addressComments).toContain("[addressed !N]");
 		expect(addressComments).not.toMatch(

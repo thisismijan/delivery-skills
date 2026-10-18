@@ -158,9 +158,9 @@ not imply mutation coverage.
 Record baseline and candidate values for:
 
 - input and output tokens, or labelled character counts when token usage is
-  unavailable;
-- cost when the host exposes it;
-- wall time;
+  unavailable, taken from `capture-usage.ts` rather than guessed;
+- cost when the host wrote it into the captured usage file;
+- wall time from the captured usage timer;
 - repair or retry count;
 - delivered code size;
 - deterministic and hidden check results;

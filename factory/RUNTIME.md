@@ -84,9 +84,13 @@ current session may use. At the start of a factory run:
    weak-verification, and holdout work even after the bar clears. Passing
    evidence does not change live availability without an exact operator
    promotion approval naming that candidate. Public rankings and unscored
-   fixtures never promote. `record-routing.ts persist` requires an explicit outcome
+   fixtures never promote.    `record-routing.ts persist` requires an explicit outcome
    file validated against the outcome schema. A missing or invalid outcome is
-   refused and writes nothing; it is never stored as a successful result. Scored
+   refused and writes nothing; it is never stored as a successful result.
+   Usage files come from `capture-usage.ts`: start a timer before the worker,
+   finish after the outcome exists, overlay host tokens and cost only from a
+   host-written file, and otherwise record character counts of named artifacts.
+   Invalid usage is refused the same way as an invalid outcome. Scored
    corpus entries record utility and critical misses for one exact candidate and
    task class. Promotion reports keep `live` and `representative-run` evidence in
    separate groups and never pool them.

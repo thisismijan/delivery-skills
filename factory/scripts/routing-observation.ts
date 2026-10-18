@@ -9,6 +9,10 @@ export const Usage = z
 		outputTokens: z.number().int().nonnegative().optional(),
 		inputChars: z.number().int().nonnegative().optional(),
 		outputChars: z.number().int().nonnegative().optional(),
+		costUsd: z.number().nonnegative().optional(),
+		wallTimeMs: z.number().int().nonnegative().optional(),
+		startedAt: z.string().min(1).optional(),
+		endedAt: z.string().min(1).optional(),
 	})
 	.superRefine((usage, ctx) => {
 		if (

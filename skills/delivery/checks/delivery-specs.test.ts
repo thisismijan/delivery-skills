@@ -610,8 +610,9 @@ describe("approval-gated self-improvement", () => {
     expect(paired).toMatch(/safe mutation/i);
     for (const metric of [
       "input and output tokens",
+      "capture-usage.ts",
       "cost",
-      "wall time",
+      "wall time from the captured usage timer",
       "repair or retry count",
       "delivered code size",
     ]) {
@@ -711,6 +712,9 @@ describe("shadow model routing", () => {
 		expect(policy).toContain("representative-run");
 		expect(policy).toContain("promotion approval");
 		expect(policy).toContain("Public rankings never promote");
+		expect(policy).toContain("capture-usage.ts");
+		expect(policy).toContain("wall time");
+		expect(policy).toMatch(/do not guess/i);
 	});
 
 	test("the conductor records the host-advertised model list", () => {
@@ -799,6 +803,8 @@ describe("portable factory pack", () => {
     expect(readme).toContain("distributed-state");
     expect(readme).toContain("weak-verification");
     expect(readme).toContain("Public rankings");
+    expect(readme).toContain("wall time automatically");
+    expect(readme).toContain("host token and cost");
   });
 
 

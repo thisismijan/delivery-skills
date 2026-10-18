@@ -5,6 +5,7 @@ import {
 	type RoutingObservation,
 	UNAVAILABLE_USAGE,
 	type Usage,
+	Usage as UsageSchema,
 	parseRoutingObservation,
 } from "./routing-observation";
 import { shadowRoute } from "./shadow-route";
@@ -129,7 +130,7 @@ if (import.meta.main) {
 		const currentModel = LiveModel.parse(modelArg);
 		const outcome = CurrentOutcome.parse(await Bun.file(outcomeFile).json());
 		const usage = usageFile
-			? ((await Bun.file(usageFile).json()) as Usage)
+			? UsageSchema.parse(await Bun.file(usageFile).json())
 			: UNAVAILABLE_USAGE;
 		const observation = buildObservation({
 			runId,
