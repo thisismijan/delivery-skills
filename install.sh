@@ -125,7 +125,12 @@ copy_factory() {
   for item in "$root/factory"/* "$root/factory"/.[!.]*; do
     [[ -e "$item" ]] || continue
     name="$(basename "$item")"
-    case "$name" in node_modules|.review|.|..) continue ;; esac
+    case "$name" in
+      node_modules)
+        [[ -n "${DELIVERY_INSTALL_SKIP_BUN:-}" ]] && continue
+        ;;
+      .review|.|..) continue ;;
+    esac
     rm -rf -- "$dest/$name"
     cp -R "$item" "$dest/$name"
   done
@@ -189,6 +194,9 @@ if [[ -n "$adapter" ]]; then
   if [[ -f "$adapters_root/$adapter/setup.sh" ]]; then
     bash "$adapters_root/$adapter/setup.sh"
   fi
+  bun "$root/factory/scripts/adapter-contract.ts" runtime \
+    "$adapters_root/$adapter/adapter.json" \
+    >"$skills_dir/_factory/runtime-manifest.json"
   echo "Adapter $adapter applied"
 fi
 for provider in "${providers[@]+"${providers[@]}"}"; do

@@ -4,6 +4,7 @@ import {
 	type RuntimeManifest,
 	capabilityResult,
 	loadRuntimeManifest,
+	requiredCapabilitiesForStage,
 } from "./runtime-manifest";
 
 export { MUTATING_STAGES, READ_ONLY_STAGES } from "./runtime-manifest";
@@ -23,12 +24,14 @@ export function canStartStage(input: {
 	if (!MUTATING_STAGES.has(input.stage)) {
 		return { allowed: false, reason: `Unknown stage '${input.stage}'.` };
 	}
-	const guard = capabilityResult(input.runtime, "mutation.guard");
-	if (!guard.ok) {
-		return {
-			allowed: false,
-			reason: guard.reason,
-		};
+	for (const capability of requiredCapabilitiesForStage(input.stage)) {
+		const result = capabilityResult(input.runtime, capability);
+		if (!result.ok) {
+			return {
+				allowed: false,
+				reason: result.reason,
+			};
+		}
 	}
 	return { allowed: true };
 }

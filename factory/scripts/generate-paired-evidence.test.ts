@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { generatePairedEvidence } from "./generate-paired-evidence";
@@ -141,16 +141,33 @@ test("missing wall time and incomplete usage fail closed", async () => {
 
 test("the generator rejects symlinked benchmark artifacts", async () => {
 	const root = await fixture();
+	const outside = await mkdtemp(join(tmpdir(), "paired-generator-outside-"));
 	try {
-		await Bun.write(join(root, "outside.md"), "outside");
-		await Bun.spawn([
-			"ln",
-			"-s",
-			"../outside.md",
+		await Bun.write(join(outside, "secret.md"), "outside");
+		await symlink(
+			join(outside, "secret.md"),
 			join(root, "baseline-skill", "link"),
-		]).exited;
+		);
 		await expect(generatePairedEvidence(plan(), root)).rejects.toThrow(
 			"refusing symlink artifact",
+		);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+		await rm(outside, { recursive: true, force: true });
+	}
+});
+
+test.each([
+	["parent traversal", "../secret.md"],
+	["absolute path", "/tmp/secret.md"],
+	["Windows absolute path", "C:\\secret.md"],
+])("the generator rejects %s", async (_label, artifactPath) => {
+	const root = await fixture();
+	try {
+		const hostile = plan();
+		hostile.fixed.taskFixture = artifactPath;
+		await expect(generatePairedEvidence(hostile, root)).rejects.toThrow(
+			"must stay below the plan directory",
 		);
 	} finally {
 		await rm(root, { recursive: true, force: true });

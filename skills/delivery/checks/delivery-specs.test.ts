@@ -497,7 +497,7 @@ describe("capabilities", () => {
     .map(cells);
 
   test("every capability the workflow depends on is checked", () => {
-    expect(rows.map((r) => r[1])).toEqual(["Stage specs", "Factory", "Review commands", "Forge", "Tracker", "OpenSpec", "Deployed environment", "Skill evaluation"]);
+    expect(rows.map((r) => r[1])).toEqual(["Stage specs", "Factory", "Review commands", "Forge", "Tracker", "Spec tool", "Deployed environment", "Skill evaluation"]);
   });
 
   test("every stage a capability blocks is a real /delivery verb", () => {
@@ -548,6 +548,7 @@ describe("capabilities", () => {
     const decide = section(readiness, "### 6. Decide");
     const brief = section(readiness, "### 7. Write the brief");
     expect(lenses).not.toMatch(/proof of concept or it is downgraded/i);
+    expect(lenses).toContain("Critical, High, Important,");
     expect(lenses).toMatch(/keeps its severity/);
     expect(lenses).toMatch(/marked unverified/);
     expect(decide).toMatch(/Critical and High/);
@@ -763,7 +764,7 @@ describe("shadow model routing", () => {
 		expect(policy).toContain("never dispatched");
 		expect(policy).toContain("select-model.ts");
 		expect(policy).toContain("model-catalogue.ts");
-		expect(policy).toContain("Muse Wonder");
+		expect(policy).toContain("runtime-advertised live frontier candidate");
 		expect(policy).toContain("representative-run");
 		expect(policy).toContain("promotion approval");
 		expect(policy).toContain("Public rankings never promote");
@@ -1058,7 +1059,7 @@ describe("interrupted execute recovery", () => {
     expect(executing).toMatch(/matching.*merge request|matching open MR/i);
     expect(executing).toMatch(/review/i);
     expect(executing).toMatch(/interrupt/i);
-    expect(executing).toContain("/delivery execute");
+    expect(executing).toMatch(/continuous authorization/i);
     expect(executing).toMatch(/live owner|still builds|still running/i);
   });
 

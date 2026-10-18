@@ -8,6 +8,7 @@ import {
 	CONSTITUTION_FREEZE_INVOCATION,
 	CONSTITUTION_PREFLIGHT_INVOCATION,
 	CONSTITUTION_REPORT_INVOCATION,
+	CONSTITUTION_SUPERSEDE_INVOCATION,
 	buildConformanceReport,
 	checkRunContract,
 	freezeAgainstLiveConstitution,
@@ -48,10 +49,18 @@ function sampleDraft(overrides: Record<string, unknown> = {}) {
 		],
 		permittedWrites: [
 			"spec-branch",
+			"tracker-comment",
+			"routing-artifacts",
 			"implementation",
 			"tests",
 			"gates",
 			"draft-change-request",
+			"review-artifacts",
+			"review-notes",
+			"addressed-change-request",
+			"readiness-brief",
+			"spec-archive",
+			"verify-verdict",
 		],
 		humanOwned: [...HUMAN_OWNED],
 		approval: {
@@ -201,6 +210,7 @@ describe("frozen run contract", () => {
 				frozen,
 				constitution: live,
 				stage: "draft",
+				ticketKey: "WORK-2101",
 				proposal: silent,
 			}).reason,
 		).toMatch(/new plan version/);
@@ -223,9 +233,38 @@ describe("frozen run contract", () => {
 				frozen,
 				constitution: live,
 				stage: "draft",
+				ticketKey: "WORK-2101",
 				proposal: next,
 			}).ok,
 		).toBe(true);
+	});
+
+	test("a tampered supersession proposal fails closed", () => {
+		const live = loadConstitution();
+		const frozen = freezeAgainstLiveConstitution(sampleDraft());
+		const proposal = freezeAgainstLiveConstitution(
+			sampleDraft({
+				planVersion: 2,
+				goal: "also rebuild billing",
+				supersedesHash: frozen.contractHash,
+				reason: "billing is now in scope",
+				affectedInvariant: "approved-scope",
+				approval: {
+					who: "operator",
+					words: "yes, add billing",
+					at: "2026-10-18T01:00:00.000Z",
+				},
+			}),
+		);
+		const result = checkRunContract({
+			frozen,
+			constitution: live,
+			stage: "draft",
+			ticketKey: "WORK-2101",
+			proposal: { ...proposal, goal: "unapproved replacement" },
+		});
+		expect(result.ok).toBe(false);
+		expect(result.reason).toMatch(/hash does not match/);
 	});
 
 	test("plan version 2 without a superseding hash is invalid", () => {
@@ -241,6 +280,43 @@ describe("frozen run contract", () => {
 			),
 		).toThrow(/human-owned/);
 	});
+
+	test("stage writes and ticket identity are enforced", () => {
+		const live = loadConstitution();
+		const restricted = freezeAgainstLiveConstitution(
+			sampleDraft({ permittedWrites: ["spec-branch"] }),
+		);
+		expect(
+			checkRunContract({
+				frozen: restricted,
+				constitution: live,
+				stage: "execute",
+				ticketKey: "WORK-2101",
+			}).reason,
+		).toMatch(/write .* outside/);
+		const complete = freezeAgainstLiveConstitution(sampleDraft());
+		expect(
+			checkRunContract({
+				frozen: complete,
+				constitution: live,
+				stage: "execute",
+			}).reason,
+		).toMatch(/requires a ticket key/);
+	});
+
+	test("initial approval cannot be whitespace", () => {
+		expect(() =>
+			freezeAgainstLiveConstitution(
+				sampleDraft({
+					approval: {
+						who: "operator",
+						words: "   ",
+						at: "2026-10-18T00:00:00.000Z",
+					},
+				}),
+			),
+		).toThrow();
+	});
 });
 
 describe("conformance report", () => {
@@ -251,6 +327,7 @@ describe("conformance report", () => {
 			frozen,
 			constitution: live,
 			stage: "execute",
+			ticketKey: "WORK-2101",
 			results: [
 				{ id: "gate", ok: false, detail: "red gate failed" },
 				{ id: "reviewer-prose", ok: true, detail: "looks fine" },
@@ -299,9 +376,47 @@ describe("CLI", () => {
 				frozenPath,
 				"execute",
 				resultsPath,
+				"WORK-2101",
 			]);
 			expect(report.code).toBe(0);
 			expect(JSON.parse(report.stdout).allRequiredPassed).toBe(true);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("supersede validates current and proposed contract files", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "sdlc-supersede-"));
+		try {
+			const current = freezeAgainstLiveConstitution(sampleDraft());
+			const proposal = freezeAgainstLiveConstitution(
+				sampleDraft({
+					planVersion: 2,
+					goal: "also rebuild billing",
+					supersedesHash: current.contractHash,
+					reason: "billing is now in scope",
+					affectedInvariant: "approved-scope",
+					approval: {
+						who: "operator",
+						words: "yes, add billing",
+						at: "2026-10-18T01:00:00.000Z",
+					},
+				}),
+			);
+			const currentPath = join(dir, "current.json");
+			const proposalPath = join(dir, "proposal.json");
+			await writeFile(currentPath, JSON.stringify(current));
+			await writeFile(proposalPath, JSON.stringify(proposal));
+			const accepted = await runCli(["supersede", currentPath, proposalPath]);
+			expect(accepted.code).toBe(0);
+			expect(JSON.parse(accepted.stdout).ok).toBe(true);
+
+			await writeFile(
+				proposalPath,
+				JSON.stringify({ ...proposal, goal: "unapproved replacement" }),
+			);
+			const rejected = await runCli(["supersede", currentPath, proposalPath]);
+			expect(rejected.code).not.toBe(0);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}
@@ -318,7 +433,10 @@ describe("CLI", () => {
 			"scripts/sdlc-constitution.ts check <run-contract.json> <stage> [ticket-key]",
 		);
 		expect(CONSTITUTION_REPORT_INVOCATION).toBe(
-			"scripts/sdlc-constitution.ts report <run-contract.json> <stage> <results.json>",
+			"scripts/sdlc-constitution.ts report <run-contract.json> <stage> <results.json> [ticket-key]",
+		);
+		expect(CONSTITUTION_SUPERSEDE_INVOCATION).toBe(
+			"scripts/sdlc-constitution.ts supersede <current.json> <proposal.json>",
 		);
 	});
 });

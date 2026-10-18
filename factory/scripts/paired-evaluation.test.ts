@@ -90,6 +90,21 @@ test("mismatched controls fail closed instead of producing a score", () => {
 	);
 });
 
+test.each([
+	["positive infinity", Number.POSITIVE_INFINITY],
+	["not a number", Number.NaN],
+])("non-finite %s utility is rejected", (_label, utility) => {
+	const input = evidence();
+	input.candidate.utility = utility;
+	expect(() => evaluatePairedEvidence(input)).toThrow();
+});
+
+test("non-finite cost is rejected", () => {
+	const input = evidence();
+	input.candidate.metrics.costUsd = Number.POSITIVE_INFINITY;
+	expect(() => evaluatePairedEvidence(input)).toThrow();
+});
+
 test("the runs must use the same checks and visibility", () => {
 	const input = evidence();
 	input.candidate.checks[1] = {

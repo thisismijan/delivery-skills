@@ -103,8 +103,8 @@ Infra, skip the subagents in step 3 and run the rollback lens yourself.
 
 Run the lenses the classification turned on as parallel read-only subagents. Give
 each one the diff, the OpenSpec change, and its brief below, not the author's
-reasoning. Each returns findings as: severity (Critical, Important, Suggestion),
-location, what happens, evidence.
+reasoning. Each returns findings as: severity (Critical, High, Important,
+Suggestion), location, what happens, evidence.
 
 - **Rollback** (always on). What does reverting the MR leave behind? Migrations
   without a tested down path, data already written in the new shape, messages

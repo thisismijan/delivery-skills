@@ -33,8 +33,8 @@ async function runInstaller(
 		cwd: rootDir,
 		env: {
 			...process.env,
-			...env,
 			DELIVERY_INSTALL_SKIP_BUN: "1",
+			...env,
 		},
 		stdout: "pipe",
 		stderr: "pipe",
@@ -118,6 +118,49 @@ test("--skills-dir installs generic skills and runtime beside them", async () =>
 		expect(managed).toContain("groom");
 		expect(managed).toContain("delivery");
 		expect(managed).toContain("_factory");
+	});
+});
+
+test("a production install ships dependencies and its primary CLIs run", async () => {
+	await withInstallRoot(async (root) => {
+		const dest = join(root, "skills");
+		const installed = await runInstaller(["--skills-dir", dest], {
+			DELIVERY_BIN_DIR: join(root, "bin"),
+			DELIVERY_INSTALL_SKIP_BUN: "",
+		});
+		expect(installed.exitCode).toBe(0);
+		expect(
+			await pathExists(join(dest, "_factory", "node_modules", "zod")),
+		).toBe(true);
+
+		const next = Bun.spawn(
+			[
+				"bun",
+				join(dest, "_factory", "scripts", "next-action.ts"),
+				"WORK-1",
+				"[drafted]",
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await next.exited).toBe(0);
+		expect(JSON.parse(await new Response(next.stdout).text())).toMatchObject({
+			kind: "run",
+			verb: "execute",
+		});
+
+		const preflight = Bun.spawn(
+			["bun", join(dest, "_factory", "scripts", "preflight.ts")],
+			{
+				cwd: rootDir,
+				env: {
+					...process.env,
+					DELIVERY_FACTORY_ROOT: join(dest, "_factory"),
+				},
+				stdout: "pipe",
+				stderr: "pipe",
+			},
+		);
+		expect(await preflight.exited).toBe(0);
 	});
 });
 
@@ -206,6 +249,50 @@ printf 'sample-adapter\\n' >"$DELIVERY_SKILLS_DIR/.adapter-marker"
 `,
 		);
 		await chmod(join(adapters, "sample", "setup.sh"), 0o755);
+		await writeFile(
+			join(adapters, "sample", "adapter.json"),
+			JSON.stringify({
+				name: "sample",
+				version: 1,
+				capabilities: [
+					{
+						id: "process.run",
+						available: true,
+						mode: "native",
+					},
+					{
+						id: "agent.dispatch",
+						available: false,
+						mode: "unavailable",
+					},
+					{
+						id: "model.inventory",
+						available: false,
+						mode: "unavailable",
+					},
+					{
+						id: "forge.change",
+						available: false,
+						mode: "unavailable",
+					},
+					{
+						id: "tracker.item",
+						available: false,
+						mode: "unavailable",
+					},
+					{
+						id: "review.publish",
+						available: false,
+						mode: "unavailable",
+					},
+					{
+						id: "mutation.guard",
+						available: false,
+						mode: "unenforced",
+					},
+				],
+			}),
+		);
 
 		const missing = await runInstaller(
 			["--skills-dir", dest, "--adapter", "missing-adapter"],
@@ -232,6 +319,19 @@ printf 'sample-adapter\\n' >"$DELIVERY_SKILLS_DIR/.adapter-marker"
 		expect(await readFile(join(dest, ".adapter-marker"), "utf8")).toBe(
 			"sample-adapter\n",
 		);
+		expect(
+			JSON.parse(
+				await readFile(join(dest, "_factory", "runtime-manifest.json"), "utf8"),
+			),
+		).toMatchObject({
+			version: 1,
+			capabilities: {
+				"mutation.guard": {
+					available: false,
+					enforcement: "unenforced",
+				},
+			},
+		});
 		expect(await readFile(join(dest, "groom", "SKILL.md"), "utf8")).toContain(
 			"name: groom",
 		);
@@ -250,6 +350,11 @@ test("shipped cursor adapter installs review wrappers for an explicit destinatio
 		expect(stdout).toContain("Adapter cursor");
 		expect(await pathExists(join(bin, "gl-mr"))).toBe(true);
 		expect(await pathExists(join(bin, "gl-note"))).toBe(true);
+		for (const tool of ["gl-mr", "gl-note"]) {
+			const installed = await readFile(join(bin, tool), "utf8");
+			expect(installed).not.toContain(rootDir);
+			expect(installed).not.toContain("DELIVERY_PACK_ROOT");
+		}
 	});
 });
 

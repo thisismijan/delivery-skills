@@ -1,4 +1,7 @@
 import { expect, test } from "bun:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { buildCorpus, scoreCandidate } from "./evaluation-corpus";
 import {
 	FAST_RELATIVE_UTILITY_THRESHOLD,
@@ -277,6 +280,43 @@ test("a named floor still blocks after the quality bar clears", () => {
 	expect(blocked.allowed).toBe(false);
 	expect(blocked.reason).toContain("auth");
 	expect(namedSafetyFloor(auth.profile)).toBe("auth");
+});
+
+test("the CLI requires a profile and enforces its safety floor", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "fast-dispatch-cli-"));
+	try {
+		const corpusPath = join(dir, "corpus.json");
+		const profilePath = join(dir, "profile.json");
+		const auth = floorCases[0];
+		if (!auth) throw new Error("auth floor fixture missing");
+		await Bun.write(corpusPath, JSON.stringify(clearing()));
+		await Bun.write(profilePath, JSON.stringify(auth.profile));
+
+		const missingProfile = Bun.spawn(
+			["bun", join(import.meta.dir, "fast-dispatch.ts"), corpusPath, SPARK],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await missingProfile.exited).toBe(2);
+
+		const blocked = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "fast-dispatch.ts"),
+				corpusPath,
+				SPARK,
+				profilePath,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		const stdout = await new Response(blocked.stdout).text();
+		expect(await blocked.exited).toBe(1);
+		expect(JSON.parse(stdout)).toMatchObject({
+			allowed: false,
+			reason: expect.stringContaining("auth"),
+		});
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
 });
 
 test("passing evidence without approval leaves availability unchanged", async () => {

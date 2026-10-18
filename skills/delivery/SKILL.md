@@ -96,13 +96,17 @@ nothing, a ticket key, or an MR iid, is unknown. After Phase 1 reconciles the
 ledger, select the next action for Resume, for an explicit lifecycle verb that
 names a key, and for an unknown command:
 
-`scripts/next-action.ts <args> <status|->`
+`scripts/next-action.ts <args> <status|-> [context.json]`
 
 ```
-bun "${FACTORY_ROOT}/scripts/next-action.ts" <args> <status|->
+bun "${FACTORY_ROOT}/scripts/next-action.ts" <args> <status|-> <context.json>
 ```
 
-Pass `-` when there is no ledger. An illegal or unknown stop does not write the ledger. An explicit verb that is allowed still runs only that step.
+Pass `-` when there is no ledger. The context records execute-recovery
+evidence, continuous authorization, blocker state, NO-GO classification, and
+remaining run keys. Missing context fails closed for a guarded transition. An
+illegal or unknown stop does not write the ledger. An explicit verb that is
+allowed still runs only that step.
 
 When the reconciled status is `[executing]`, recover before selecting from the
 table. Pass the owner, matching or conflicting merge request, and whether
@@ -121,23 +125,28 @@ State the chosen entry and what it runs in one line, then continue.
 1. Confirm cwd is a git repo the operator intends as the **target repo**. If
    `pwd` looks like this pack's own clone and the operator did not say
    that is intentional, warn once and ask to continue or cd.
-2. Find or create the run ledger and reconcile it with the real state, as
+2. Check `DELIVERY_WORKER_JOURNAL` before opening run state. When it is set,
+   this is an isolated worker: all `ledger-store.ts` writes are redirected to
+   that absolute journal path, and the worker must never search for or mutate
+   the shared run ledger.
+3. Find or create the run ledger (or the worker journal selected above) and
+   reconcile it with the real state, as
    `delivery-ledger.md` says. The real state wins. Every mutation uses the
    durable writer. Never edit the ledger file directly:
    `bun "${FACTORY_ROOT}/scripts/ledger-store.ts" <root> <id> <expected-generation|-1> <input.md>`
    If a lock is left behind, recover it before writing again:
    `bun "${FACTORY_ROOT}/scripts/ledger-store.ts" recover <root> <id>`
    A concurrency conflict is a terminal stop.
-3. Never infer an approval from chat history. An approval counts only when the
+4. Never infer an approval from chat history. An approval counts only when the
    ledger records it. `/delivery auto` itself authorizes continuous delivery
    for that run. In the full-epic path, explicit approval of the final groomed
-   ticket or slice plan authorizes the same continuous mode. Record
-   `continuous-delivery: yes` with the operator's exact words. It covers draft,
-   execute, review publication, archive, verify, retro, and improvement
-   preparation, but never merge, risk acceptance, failed-gate override, or
-   improvement installation.
+   ticket or slice plan authorizes the same continuous mode. Keep those exact
+   words as pending evidence, but do not record `continuous-delivery: yes`
+   until the frozen run contract exists. It then covers draft, execute, review
+   publication, archive, verify, retro, and improvement preparation, but never
+   merge, risk acceptance, failed-gate override, or improvement installation.
 
-4. Load the SDLC constitution and fail closed if it does not verify. After
+5. Load the SDLC constitution and fail closed if it does not verify. After
    the operator approves the groomed plan, freeze the run contract and record
    its path and hash in the ledger. Before every later mutating stage, check
    that frozen file. A missing contract on a `continuous-delivery: yes` run is
@@ -147,18 +156,22 @@ State the chosen entry and what it runs in one line, then continue.
    scripts/sdlc-constitution.ts preflight
    scripts/sdlc-constitution.ts freeze <draft.json>
    scripts/sdlc-constitution.ts check <run-contract.json> <stage> [ticket-key]
-   scripts/sdlc-constitution.ts report <run-contract.json> <stage> <results.json>
+   scripts/sdlc-constitution.ts supersede <current.json> <proposal.json>
+   scripts/sdlc-constitution.ts report <run-contract.json> <stage> <results.json> [ticket-key]
    bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" preflight
    bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" freeze <draft.json>
    bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" check <run-contract.json> <stage> [ticket-key]
-   bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" report <run-contract.json> <stage> <results.json>
+   bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" supersede <current.json> <proposal.json>
+   bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" report <run-contract.json> <stage> <results.json> [ticket-key]
    ```
    Write the frozen file to `.delivery/runs/<id>.run-contract.json`. A
    constitution hash that no longer matches this pack, or a ticket outside the
    frozen plan, is a terminal stop. Scope changes need a new plan version,
    the previous contract hash, a recorded reason, and a new explicit approval.
+   After a successful freeze, record `continuous-delivery: yes` with the exact
+   authorizing words.
 
-5. Check the capabilities the next stage needs (below) by calling
+6. Check the capabilities the next stage needs (below) by calling
    `checkCapabilities`. For `auto`, check only what that stage needs and
    check again when the next stage starts.
    Before a mutating stage (`draft`, `execute`, `address-comments`, `archive`,
@@ -169,7 +182,7 @@ State the chosen entry and what it runs in one line, then continue.
    Non-zero exit → stop with the printed reason. A runtime that does not declare an enforceable mutation boundary cannot start mutating stages.
    Read-only stages still run.
 
-6. **Record the runtime model inventory.** Read the exact model identifiers the
+7. **Record the runtime model inventory.** Read the exact model identifiers the
    current runtime advertises for subagents. Write
    `.delivery/routing/model-inventory.json` with `version: 1`, the runtime id,
    `recordedAt`, and those exact identifiers. Do not infer names from the
@@ -179,8 +192,9 @@ State the chosen entry and what it runs in one line, then continue.
    bun "${FACTORY_ROOT}/scripts/model-catalogue.ts" resolve <tier> \
      .delivery/routing/model-inventory.json
    ```
-   Pass the returned exact model identifier to the subagent. Muse Wonder is a
-   frontier candidate. Static agent `model:` fields are fallback values only.
+   Pass the returned exact model identifier to the subagent. A
+   runtime-advertised live frontier candidate satisfies frontier work. Static
+   agent `model:` fields are fallback values only.
    A model that is available but marked `evaluation-only` cannot run live.
 
 Do not deep-audit beyond that — each stage workflow lists its own
@@ -198,11 +212,11 @@ its fix.
 | Capability | Check | Needed by | Fix when missing |
 |------------|-------|-----------|------------------|
 | Stage specs | The bundled file resolves | The stage that reads it | Reinstall this delivery-skills version |
-| Factory | `/groom`, `/draft`, `/execute`, `/address-comments` resolve, and `factory/RUNTIME.md` finds `scripts/find-change.ts` | groom, draft, execute, address | Clone delivery-skills and run `./install.sh`. Do not load a second factory pack in the same session |
+| Factory | `/groom`, `/draft`, `/execute`, `/address-comments` resolve, and the runtime selected by `RUNTIME.md` finds `scripts/find-change.ts` | groom, draft, execute, address | Install delivery-skills with `./install.sh --skills-dir <path>`. Do not load a second factory pack in the same session |
 | Review commands | `/code-review-max` and `/mr-review` are available. The forge metadata and note helpers are on PATH. A lightweight built-in review does not count | review | Run `./install.sh`. For forge metadata and note helpers in a cloud agent, run the review-provider setup once |
 | Forge | The forge provider answers a read. A configured forge credential is enough | draft, execute, address, review, ship, archive, verify, auto | Configure the forge provider advertised by the runtime |
-| Tracker | A real work-item read through the tracker provider returns the item. Continuous groom additionally probes create and link with no write before plan approval. A failed read, a result with no key, or a missing approved-write capability stops the stage | triage, draft, discover, groom, retro, auto | Configure the tracker provider advertised by the runtime |
-| OpenSpec | `openspec --version` succeeds | draft, execute, archive | Install `@fission-ai/openspec` |
+| Tracker | A real work-item read through the tracker provider returns the item. Continuous delivery additionally probes create and link with no write before plan approval. A failed read, a result with no key, or a missing approved-write capability stops the stage | triage, draft, discover, retro, auto | Configure the tracker provider advertised by the runtime |
+| Spec tool | The selected spec provider's version probe succeeds | draft, execute, archive | Install and configure the selected spec provider |
 | Deployed environment | The environment's hostnames resolve and answer | verify | Run verify on a machine on the internal network, such as the operator's self-hosted worker |
 | Skill evaluation | The pinned Bun version runs `checks/delivery-specs.test.ts`, and the skill store is writable | improve | Use the Bun version from the target repository and a skill store the runtime can write |
 
@@ -244,8 +258,9 @@ after the parallel wave; a worker never races it for the shared generation.
 - **After draft**: `[drafted]` once the OpenSpec change exists.
 - **After execute starts**: `[executing]`, and the MR iid once it is reported.
   On resume, a matching open merge request records that iid before review.
-  An interrupted execute with no active owner and no merge request is a
-  Stops line with `/delivery execute <KEY>`.
+  An interrupted execute with no active owner and no merge request resumes
+  execute directly when `continuous-delivery: yes` is recorded. A single-step
+  run instead writes a Stops line with `/delivery execute <KEY>`.
 - **After review**: run `scripts/stage3-readiness.ts <iid> <head> <max-pass|-> <approach-pass|->`
   on the pinned max-pass and approach-pass artifacts for the live head. Status
   `[ready !N]` and undraft only when that helper returns ready. Write one
@@ -339,7 +354,8 @@ tree, say they need committing; do not commit them.
 1. Reconcile the ledger as Phase 1 says. When the status is `[executing]`,
    recover the owner, the merge request, and branch, gate, or dirty-worktree
    evidence before selecting. Select the next action with
-   `scripts/next-action.ts <args> <status|->` (`-` when there is no ledger).
+   `scripts/next-action.ts <args> <status|-> [context.json]` (`-` when there is
+   no ledger). The context must carry recovery and guarded-transition evidence.
 2. If it stops, tell the operator why and do not write the ledger. An
    interrupted execute with no active owner and no merge request resumes
    automatically when the ledger records `continuous-delivery: yes`.
@@ -468,8 +484,8 @@ Keep the lifecycle portable across conforming runtimes.
   `.delivery/routing/`. `capture-usage.ts` records those figures; do not guess
   them. `select-model.ts` determines the required capability;
   `model-catalogue.ts` chooses an exact model from the runtime-advertised list.
-  Muse Wonder can satisfy frontier work. A cheaper shadow recommendation is
-  recorded, never dispatched. After each run,
+  A runtime-advertised live frontier candidate can satisfy frontier work. A
+  cheaper shadow recommendation is recorded, never dispatched. After each run,
   generate the routing comparison report and rebuild the evaluation corpus from
   those files. Fast catalogue models stay evaluation-only until
   representative-run scores for the exact candidate clear the 90 percent bar.

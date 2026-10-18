@@ -11,7 +11,7 @@ const CAPABILITIES = [
   "Review commands",
   "Forge",
   "Tracker",
-  "OpenSpec",
+  "Spec tool",
   "Deployed environment",
   "Skill evaluation",
 ] as const;
@@ -94,7 +94,6 @@ describe("checkCapabilities", () => {
       "triage",
       "draft",
       "discover",
-      "groom",
       "retro",
       "auto",
     ]);

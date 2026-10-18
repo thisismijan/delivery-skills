@@ -13,6 +13,7 @@ import {
 	CONCURRENCY_CONFLICT_EXIT_CODE,
 	ConcurrencyConflict,
 	ledgerGeneration,
+	ledgerTarget,
 	nextLedger,
 	recoverLock,
 	writeLedger,
@@ -95,6 +96,42 @@ test("ledger ids cannot escape the state root", async () => {
 			writeLedger(root, "../escape", -1, await readFile(input, "utf8")),
 		).rejects.toThrow("invalid ledger id");
 	});
+});
+
+test("worker journal path is authoritative and cannot mutate the run ledger", async () => {
+	await withRoot(async (root) => {
+		const runRoot = join(root, "runs");
+		const journal = join(root, "workers", "run-1", "work-2.md");
+		const input = join(root, "input.md");
+		await writeLedger(runRoot, "run-1", -1, markdown(0, "\nshared\n"));
+		await writeFile(input, markdown(0, "\nworker\n"));
+		expect(ledgerTarget(runRoot, "run-1", journal)).toEqual({
+			root: join(root, "workers", "run-1"),
+			id: "work-2",
+			workerJournal: true,
+		});
+
+		const script = join(import.meta.dir, "ledger-store.ts");
+		const proc = Bun.spawn(["bun", script, runRoot, "run-1", "-1", input], {
+			env: { ...process.env, DELIVERY_WORKER_JOURNAL: journal },
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		expect(await proc.exited).toBe(0);
+		expect(await readFile(join(runRoot, "run-1.md"), "utf8")).toContain(
+			"shared",
+		);
+		expect(await readFile(journal, "utf8")).toContain("worker");
+	});
+});
+
+test("worker journal must be an absolute safe markdown path", () => {
+	expect(() => ledgerTarget("/runs", "run-1", "../work.md")).toThrow(
+		/absolute/,
+	);
+	expect(() => ledgerTarget("/runs", "run-1", "/workers/../bad?.md")).toThrow(
+		/file-safe/,
+	);
 });
 
 test("two writers on one generation keep only the winner and return a typed conflict", async () => {

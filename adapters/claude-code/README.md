@@ -21,10 +21,8 @@ Claude-only behaviour:
 - Otherwise use `/code-review-max` from this pack.
 - Dynamic workflows may replace a large read-only fan-out. They must not wrap
   both sides of a human approval gate.
-- Factory scripts still honour `CLAUDE_PLUGIN_ROOT` after `RUNTIME.md` sets it
-  to this clone's `factory/` directory.
 - Claude Code is declared **enforced**. Merge
   `adapters/claude-code/settings.json` into your Claude Code settings and set
-  `DELIVERY_FACTORY_ROOT` to this clone's `factory/` directory. The hook is the
-  real enforcement: it blocks merge/close, force-push, hard reset, Jira
+  `DELIVERY_FACTORY_ROOT` to `<skills-dir>/_factory`. The hook is the real
+  enforcement: it blocks merge/close, force-push, hard reset, tracker
   mutation, and equivalent API calls, and it denies a payload with no command.

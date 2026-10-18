@@ -59,3 +59,20 @@ test("a missing run fails instead of writing an empty scorecard", () => {
 		buildRunRoutingScorecard(representativeObservations(), "missing"),
 	).toThrow("no routing observations found");
 });
+
+test("a hostile run id cannot escape the scorecard output directory", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "routing-scorecard-hostile-"));
+	try {
+		const root = join(dir, "routing");
+		const proc = Bun.spawn(
+			["bun", join(import.meta.dir, "routing-scorecard.ts"), root, "../escape"],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await proc.exited).toBe(1);
+		expect(await Bun.file(join(dir, "escape", "scorecard.md")).exists()).toBe(
+			false,
+		);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});

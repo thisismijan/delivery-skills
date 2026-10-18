@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ShadowDecision } from "./shadow-route";
-import { TaskProfile } from "./task-profile";
+import { SafePathSegment, TaskProfile } from "./task-profile";
 
 export const Usage = z
 	.object({
@@ -9,7 +9,7 @@ export const Usage = z
 		outputTokens: z.number().int().nonnegative().optional(),
 		inputChars: z.number().int().nonnegative().optional(),
 		outputChars: z.number().int().nonnegative().optional(),
-		costUsd: z.number().nonnegative().optional(),
+		costUsd: z.number().finite().nonnegative().optional(),
 		wallTimeMs: z.number().int().nonnegative().optional(),
 		startedAt: z.string().min(1).optional(),
 		endedAt: z.string().min(1).optional(),
@@ -47,18 +47,38 @@ export const GateOutcome = z.object({
 });
 export type GateOutcome = z.infer<typeof GateOutcome>;
 
-export const CurrentOutcome = z.object({
-	gates: z.array(GateOutcome),
-	gatesPassed: z.boolean(),
-	repairs: z.number().int().nonnegative(),
-	escalations: z.number().int().nonnegative(),
-	terminal: z.enum(["continue", "approve", "escalate", "stop"]),
-});
+export const CurrentOutcome = z
+	.object({
+		gates: z.array(GateOutcome),
+		gatesPassed: z.boolean(),
+		repairs: z.number().int().nonnegative(),
+		escalations: z.number().int().nonnegative(),
+		terminal: z.enum(["continue", "approve", "escalate", "stop"]),
+	})
+	.superRefine((outcome, context) => {
+		const allGatesPassed =
+			outcome.gates.length > 0 && outcome.gates.every((gate) => gate.passed);
+		if (outcome.gatesPassed !== allGatesPassed) {
+			context.addIssue({
+				code: "custom",
+				path: ["gatesPassed"],
+				message:
+					"gatesPassed must equal the result of all recorded gates passing",
+			});
+		}
+		if (outcome.terminal === "approve" && !allGatesPassed) {
+			context.addIssue({
+				code: "custom",
+				path: ["terminal"],
+				message: "approval requires at least one recorded passing gate",
+			});
+		}
+	});
 export type CurrentOutcome = z.infer<typeof CurrentOutcome>;
 
 export const RoutingObservation = ShadowDecision.extend({
 	version: z.literal(1),
-	runId: z.string().min(1),
+	runId: SafePathSegment,
 	recordedAt: z.string().min(1),
 	source: z.enum(["live", "representative-run"]),
 	currentModelId: z.string().min(1).optional(),

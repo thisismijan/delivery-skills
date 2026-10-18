@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildCorpus } from "./evaluation-corpus";
+import { buildCorpus, writeCorpus } from "./evaluation-corpus";
 import {
 	FAST_RELATIVE_UTILITY_THRESHOLD,
 	MIN_EVALUATED_FAST_SAMPLES,
@@ -95,7 +95,7 @@ test("observations persist under .delivery/routing and reload", async () => {
 			currentModel: "sonnet",
 			source: "live",
 			outcome: {
-				gates: [],
+				gates: [{ name: "green", passed: true }],
 				gatesPassed: true,
 				repairs: 0,
 				escalations: 0,
@@ -112,6 +112,115 @@ test("observations persist under .delivery/routing and reload", async () => {
 	} finally {
 		await rm(dir, { recursive: true, force: true });
 	}
+});
+
+test.each([
+	["run id", { runId: "../escape", profile: search }],
+	["task id", { runId: "run-1", profile: { ...search, taskId: "../escape" } }],
+])(
+	"routing rejects a hostile %s before persistence",
+	async (_label, identity) => {
+		const dir = await mkdtemp(join(tmpdir(), "routing-hostile-"));
+		try {
+			expect(() =>
+				buildObservation({
+					...identity,
+					currentModel: "sonnet",
+					outcome: {
+						gates: [{ name: "green", passed: true }],
+						gatesPassed: true,
+						repairs: 0,
+						escalations: 0,
+						terminal: "continue",
+					},
+				}),
+			).toThrow();
+			expect(await jsonFilesUnder(dir)).toEqual([]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	},
+);
+
+test("loading rejects an observation whose identity does not match its path", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "routing-planted-"));
+	try {
+		const root = join(dir, "routing");
+		const run = join(root, "run-1");
+		await mkdir(run, { recursive: true });
+		await Bun.write(
+			join(run, "search.json"),
+			JSON.stringify({
+				...buildObservation({
+					runId: "run-1",
+					profile: search,
+					currentModel: "sonnet",
+					outcome: {
+						gates: [{ name: "green", passed: true }],
+						gatesPassed: true,
+						repairs: 0,
+						escalations: 0,
+						terminal: "continue",
+					},
+				}),
+				runId: "other-run",
+			}),
+		);
+		await expect(loadObservations(root)).rejects.toThrow(
+			"identity does not match",
+		);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+test("corpus output rejects hostile identifiers before joining paths", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "routing-corpus-hostile-"));
+	try {
+		const entry = buildCorpus(representativeObservations())[0];
+		if (!entry) throw new Error("representative corpus is empty");
+		await expect(
+			writeCorpus(join(dir, "corpus"), [
+				{ ...entry, runId: "../escape" },
+			] as (typeof entry)[]),
+		).rejects.toThrow();
+		expect(await Bun.file(join(dir, "escape-search.json")).exists()).toBe(
+			false,
+		);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+test("outcome summaries cannot contradict their recorded gates", () => {
+	expect(() =>
+		buildObservation({
+			runId: "run-1",
+			profile: search,
+			currentModel: "sonnet",
+			outcome: {
+				gates: [{ name: "red", passed: false }],
+				gatesPassed: true,
+				repairs: 0,
+				escalations: 0,
+				terminal: "continue",
+			},
+		}),
+	).toThrow(/gatesPassed/);
+	expect(() =>
+		buildObservation({
+			runId: "run-1",
+			profile: search,
+			currentModel: "sonnet",
+			outcome: {
+				gates: [{ name: "red", passed: false }],
+				gatesPassed: false,
+				repairs: 0,
+				escalations: 0,
+				terminal: "approve",
+			},
+		}),
+	).toThrow(/approval requires/);
 });
 
 test("the comparison report contrasts live tier with shadow recommendations", () => {
@@ -236,18 +345,21 @@ test("representative deliveries seed routing files, a report, and a corpus", asy
 			entries.push(await Bun.file(join(corpusDir, file)).json());
 		}
 		const entriesPath = join(dir, "entries.json");
+		const profilePath = join(dir, "profile.json");
 		await Bun.write(entriesPath, JSON.stringify(entries));
+		await Bun.write(profilePath, JSON.stringify(search));
 		const gate = Bun.spawn(
 			[
 				"bun",
 				join(import.meta.dir, "fast-dispatch.ts"),
 				entriesPath,
 				"muse-spark-1.3-medium",
+				profilePath,
 			],
 			{ stdout: "pipe", stderr: "pipe" },
 		);
 		const stdout = await new Response(gate.stdout).text();
-		expect(await gate.exited).toBe(0);
+		expect(await gate.exited).toBe(1);
 		expect(JSON.parse(stdout).allowed).toBe(false);
 	} finally {
 		await rm(dir, { recursive: true, force: true });
@@ -307,7 +419,7 @@ async function jsonFilesUnder(root: string): Promise<string[]> {
 
 const continuing = {
 	gates: [] as { name: string; passed: boolean }[],
-	gatesPassed: true,
+	gatesPassed: false,
 	repairs: 0,
 	escalations: 0,
 	terminal: "continue" as const,
@@ -428,7 +540,7 @@ test("record-routing persist with invalid usage exits nonzero and writes nothing
 			outcomePath,
 			JSON.stringify({
 				gates: [],
-				gatesPassed: true,
+				gatesPassed: false,
 				repairs: 0,
 				escalations: 0,
 				terminal: "continue",
