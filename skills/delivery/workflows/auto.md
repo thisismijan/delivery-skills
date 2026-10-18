@@ -27,19 +27,28 @@ The single-step verbs use the same table to tell the operator what to type next.
 
 1. Run the conductor's Phase 1: find or create the ledger and reconcile it.
    Verify `SDLC-CONSTITUTION.md` with `scripts/sdlc-constitution.ts preflight`.
-2. **Continuous authorization.** Record `continuous-delivery: yes`, scoped to
-   this run. The authorizing words are the `/delivery auto` invocation or the
-   operator's explicit approval of the groomed plan in the full-epic path.
-   This standing authorization covers the non-human stages named above. Do not
-   ask a second build, test-seam, review-publication, archive, retro, or
-   improvement-preparation question.
-3. **Frozen run contract.** Once the groomed plan is approved, freeze it with
+2. **Frozen run contract.** Once the groomed plan is approved, freeze it with
    `scripts/sdlc-constitution.ts freeze <draft.json>` into
    `.delivery/runs/<id>.run-contract.json`. Record the path and hash in the
    ledger. Before each later stage, run
    `scripts/sdlc-constitution.ts check <run-contract.json> <stage> [ticket-key]`.
    Non-zero exit is a terminal stop. Do not invent tickets, goals, or writes
-   the contract does not name.
+   the contract does not name. For an existing approved run without this file,
+   reconstruct the draft from durable ticket, dependency, acceptance,
+   approval, and ledger artifacts, then freeze it before progressing. Stop if
+   those artifacts do not prove the exact scope.
+
+   The freeze input is version 1 and contains `runId`, `planVersion`, `goal`,
+   `scope`, `nonGoals`, `tickets` (`key`, `title`, one to three `acceptance`
+   criteria, `blockedBy`), `permittedWrites`, every `humanOwned` boundary, and
+   `approval` (`who`, exact `words`, ISO `at`). A later plan also records
+   `supersedesHash`, `reason`, and `affectedInvariant`.
+3. **Continuous authorization.** Only after the frozen contract exists, record
+   `continuous-delivery: yes`, scoped to this run. The authorizing words are the
+   `/delivery auto` invocation or the operator's explicit approval of the
+   groomed plan in the full-epic path. This standing authorization covers the
+   non-human stages named above. Do not ask a second build, test-seam,
+   review-publication, archive, retro, or improvement-preparation question.
 4. Append a Decision: `auto started at <stage> for <keys>`.
 
 ## The loop
@@ -69,7 +78,7 @@ Between steps, do not ask whether to continue. Continue.
 | `[triage: duplicate <KEY>]` | Nothing | Nothing; the key is done |
 | `[groomed]` | Draft, once every blocker is `[merged !N]` or later | Nothing |
 | `[drafted]` | Execute | Nothing |
-| `[executing]` | Recover: review once a matching merge request exists; wait while a live owner still builds; interrupted stop with `/delivery execute <KEY>` when there is no owner and no merge request | Nothing |
+| `[executing]` | Recover: review once a matching merge request exists; wait while a live owner still builds; resume execute directly after an interruption because continuous authorization is already recorded | Nothing |
 | `[reviewed-blocked !N]` | Address comments, then review the new head | Nothing |
 | `[addressed !N]` | Review the new head | Nothing |
 | `[ready !N]` | Release readiness | Nothing |
@@ -206,7 +215,7 @@ merges, stops, and accepted retro proposals.
 | Review rounds | Three review rounds without a ready verdict on !<iid> | `/delivery review <iid>` after deciding |
 | Every key blocked | Every remaining key waits on a blocker that is not merged | `/delivery status <EPIC>` |
 | A stage stopped | Whatever that stage's stop says | Its next command |
-| Interrupted execute | Execute stopped before a merge request existed | `/delivery execute <KEY>` |
+| Interrupted single-step execute | Execute stopped before a merge request existed and continuous authorization is absent | `/delivery execute <KEY>` |
 
 ## Never
 

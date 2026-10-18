@@ -1,6 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ExecuteRecoveryEvidence } from "./execute-recovery";
-import { classifyEntry, selectNextAction } from "./next-action";
+import {
+	NEXT_ACTION_INVOCATION,
+	classifyEntry,
+	selectNextAction,
+} from "./next-action";
 
 function recordingWriter(): {
 	writer: { write: (markdown: string) => void };
@@ -115,6 +122,7 @@ describe("selectNextAction explicit verb", () => {
 		const result = selectNextAction({
 			args: "draft MDF-1234",
 			status: "[groomed]",
+			blockersMerged: true,
 		});
 		expect(result.kind).toBe("run");
 		if (result.kind !== "run") return;
@@ -272,6 +280,20 @@ describe("selectNextAction executing recovery", () => {
 		expect(calls).toEqual([]);
 	});
 
+	test("continuous delivery resumes an interrupted execute without another approval", () => {
+		const result = selectNextAction({
+			args: "auto MDF-1234",
+			status: "[executing]",
+			recovery: recovery({ owner: { status: "inactive" } }),
+			continuousDelivery: true,
+		});
+		expect(result).toEqual({
+			kind: "run",
+			verb: "execute",
+			singleStep: false,
+		});
+	});
+
 	test("unattributable dirty worktree escalates and does not discard or guess", () => {
 		const { writer, calls } = recordingWriter();
 		const result = selectNextAction(
@@ -377,4 +399,92 @@ describe("selectNextAction executing recovery", () => {
 		expect(result.kind).not.toBe("run");
 		expect(result.kind).not.toBe("wait");
 	});
+});
+
+describe("guarded transitions", () => {
+	test("groomed work cannot draft until every blocker is merged", () => {
+		expect(selectNextAction({ args: KEY, status: "[groomed]" })).toMatchObject({
+			kind: "stop",
+		});
+		expect(
+			selectNextAction({
+				args: KEY,
+				status: "[groomed]",
+				blockersMerged: true,
+			}),
+		).toMatchObject({ kind: "run", verb: "draft" });
+	});
+
+	test("no-go needs an explicit blocker classification", () => {
+		expect(
+			selectNextAction({ args: KEY, status: "[no-go !12]" }),
+		).toMatchObject({ kind: "stop" });
+		expect(
+			selectNextAction({
+				args: KEY,
+				status: "[no-go !12]",
+				noGoNext: "wait",
+			}),
+		).toMatchObject({ kind: "wait" });
+		expect(
+			selectNextAction({
+				args: KEY,
+				status: "[no-go !12]",
+				noGoNext: "address",
+			}),
+		).toMatchObject({ kind: "run", verb: "address" });
+	});
+
+	test("verified work starts retro only when no run keys remain", () => {
+		expect(
+			selectNextAction({ args: KEY, status: "[verified !12]" }),
+		).toMatchObject({ kind: "stop" });
+		expect(
+			selectNextAction({
+				args: KEY,
+				status: "[verified !12]",
+				remainingKeys: 1,
+			}),
+		).toMatchObject({ kind: "stop" });
+		expect(
+			selectNextAction({
+				args: KEY,
+				status: "[verified !12]",
+				remainingKeys: 0,
+			}),
+		).toMatchObject({ kind: "run", verb: "retro" });
+	});
+});
+
+test("the CLI consumes recovery and continuous-delivery context", async () => {
+	const root = await mkdtemp(join(tmpdir(), "next-action-context-"));
+	try {
+		const context = join(root, "context.json");
+		await writeFile(
+			context,
+			JSON.stringify({
+				recovery: recovery({ owner: { status: "inactive" } }),
+				continuousDelivery: true,
+			}),
+		);
+		const proc = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "next-action.ts"),
+				`auto ${KEY}`,
+				"[executing]",
+				context,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await proc.exited).toBe(0);
+		expect(JSON.parse(await new Response(proc.stdout).text())).toEqual({
+			kind: "run",
+			verb: "execute",
+			singleStep: false,
+		});
+		expect(NEXT_ACTION_INVOCATION).toContain("[context.json]");
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
 });

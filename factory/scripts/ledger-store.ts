@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { hostname } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, isAbsolute, join } from "node:path";
 
 const ID = /^[a-z0-9][a-z0-9-]*$/i;
 const OWNER_FILE = "owner.json";
@@ -32,6 +32,32 @@ export interface RecoverLockReport {
 
 export interface LedgerLockOptions {
 	isAlive?: (pid: number) => boolean;
+}
+
+export interface LedgerTarget {
+	root: string;
+	id: string;
+	workerJournal: boolean;
+}
+
+export function ledgerTarget(
+	root: string,
+	id: string,
+	journalPath = process.env.DELIVERY_WORKER_JOURNAL,
+): LedgerTarget {
+	if (!journalPath) return { root, id, workerJournal: false };
+	if (!isAbsolute(journalPath) || !journalPath.endsWith(".md")) {
+		throw new Error("DELIVERY_WORKER_JOURNAL must be an absolute .md path");
+	}
+	const journalId = basename(journalPath, ".md");
+	if (!ID.test(journalId)) {
+		throw new Error("DELIVERY_WORKER_JOURNAL must have a file-safe name");
+	}
+	return {
+		root: dirname(journalPath),
+		id: journalId,
+		workerJournal: true,
+	};
 }
 
 export function ledgerGeneration(markdown: string): number {
@@ -231,7 +257,8 @@ if (import.meta.main) {
 				console.error(`usage: ${LEDGER_RECOVER_INVOCATION}`);
 				process.exit(2);
 			}
-			console.log(JSON.stringify(await recoverLock(root, id)));
+			const target = ledgerTarget(root, id);
+			console.log(JSON.stringify(await recoverLock(target.root, target.id)));
 			process.exit(0);
 		}
 		const [root, id, expectedRaw, input] = args;
@@ -239,9 +266,10 @@ if (import.meta.main) {
 			console.error(`usage: ${LEDGER_WRITE_INVOCATION}`);
 			process.exit(2);
 		}
+		const target = ledgerTarget(root, id);
 		await writeLedger(
-			root,
-			id,
+			target.root,
+			target.id,
 			Number.parseInt(expectedRaw, 10),
 			await Bun.file(input).text(),
 		);

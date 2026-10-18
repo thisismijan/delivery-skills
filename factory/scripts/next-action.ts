@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { z } from "zod";
 import {
 	type ExecuteRecovery,
 	type ExecuteRecoveryEvidence,
@@ -7,7 +8,7 @@ import {
 } from "./execute-recovery";
 
 // biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
-export const NEXT_ACTION_INVOCATION = "scripts/next-action.ts <args> <status|->";
+export const NEXT_ACTION_INVOCATION = "scripts/next-action.ts <args> <status|-> [context.json]";
 
 export type LedgerWriter = {
 	write: (markdown: string) => void | Promise<void>;
@@ -20,7 +21,7 @@ export type ClassifiedEntry =
 	| { kind: "other"; args: string };
 
 export type NextAction =
-	| { kind: "run"; verb: string; singleStep: true; iid?: number }
+	| { kind: "run"; verb: string; singleStep: boolean; iid?: number }
 	| { kind: "stop"; reason: string; nextCommand?: string }
 	| { kind: "wait"; reason: string }
 	| { kind: "escalate"; reason: string };
@@ -29,7 +30,43 @@ export type NextActionInput = {
 	args: string;
 	status: string | null;
 	recovery?: ExecuteRecoveryEvidence;
+	continuousDelivery?: boolean;
+	blockersMerged?: boolean;
+	noGoNext?: "address" | "wait" | "risk-acceptance";
+	remainingKeys?: number;
 };
+
+const AttributableEvidence = z.union([
+	z.object({ present: z.literal(false) }),
+	z.object({ present: z.literal(true), attributed: z.literal(true) }),
+	z.object({ present: z.literal(true), attributed: z.literal(false) }),
+]);
+
+const RecoveryEvidence = z.object({
+	key: z.string().min(1),
+	owner: z.object({
+		status: z.enum(["none", "inactive", "active", "unknown"]),
+	}),
+	mergeRequest: z.discriminatedUnion("status", [
+		z.object({ status: z.literal("none") }),
+		z.object({
+			status: z.literal("matching"),
+			iid: z.number().int().positive(),
+		}),
+		z.object({ status: z.literal("conflicting") }),
+	]),
+	branch: AttributableEvidence.optional(),
+	gate: AttributableEvidence.optional(),
+	dirtyWorktree: AttributableEvidence.optional(),
+});
+
+const NextActionContext = z.object({
+	recovery: RecoveryEvidence.optional(),
+	continuousDelivery: z.boolean().optional(),
+	blockersMerged: z.boolean().optional(),
+	noGoNext: z.enum(["address", "wait", "risk-acceptance"]).optional(),
+	remainingKeys: z.number().int().nonnegative().optional(),
+});
 
 const TICKET_KEY = /^[A-Z][A-Z0-9]+-\d+$/;
 const IID = /^\d+$/;
@@ -218,6 +255,7 @@ function isExecuting(status: string | null): boolean {
 function fromExecutingRecovery(
 	recovery: ExecuteRecovery,
 	entry: ClassifiedEntry,
+	continuousDelivery = false,
 ): NextAction {
 	if (recovery.kind === "review") {
 		if (
@@ -232,7 +270,7 @@ function fromExecutingRecovery(
 		return {
 			kind: "run",
 			verb: "review",
-			singleStep: true,
+			singleStep: !continuousDelivery,
 			iid: recovery.iid,
 		};
 	}
@@ -244,6 +282,9 @@ function fromExecutingRecovery(
 	}
 	if (entry.kind === "explicit-verb" && entry.verb === "execute") {
 		return { kind: "run", verb: "execute", singleStep: true };
+	}
+	if (recovery.kind === "interrupted" && continuousDelivery) {
+		return { kind: "run", verb: "execute", singleStep: false };
 	}
 	if (entry.kind === "explicit-verb" && !ALWAYS_ALLOWED.has(entry.verb)) {
 		return stopped(
@@ -263,17 +304,57 @@ export function selectNextAction(
 		return stopped("That is not a known delivery command.");
 	}
 
-	if (entry.kind === "explicit-verb" && ALWAYS_ALLOWED.has(entry.verb)) {
-		return { kind: "run", verb: entry.verb, singleStep: true };
-	}
-
 	if (isExecuting(input.status)) {
 		if (!input.recovery) {
 			return stopped(
 				"Delivery cannot tell a live execute run from a crash until the merge request and whether execute is still running have been checked.",
 			);
 		}
-		return fromExecutingRecovery(recoverExecuting(input.recovery), entry);
+		return fromExecutingRecovery(
+			recoverExecuting(input.recovery),
+			entry,
+			input.continuousDelivery,
+		);
+	}
+
+	if (entry.kind === "explicit-verb" && ALWAYS_ALLOWED.has(entry.verb)) {
+		return { kind: "run", verb: entry.verb, singleStep: true };
+	}
+
+	const status = input.status ?? "";
+	if (statusMatches(status, "[groomed]") && input.blockersMerged !== true) {
+		return stopped(
+			"Draft cannot start until every recorded blocker is merged.",
+		);
+	}
+	if (statusMatches(status, "[no-go <x>]")) {
+		if (input.noGoNext === "wait") {
+			return {
+				kind: "wait",
+				reason:
+					"Release readiness is waiting on pipeline or conflict evidence.",
+			};
+		}
+		if (input.noGoNext === "risk-acceptance") {
+			return stopped(
+				"Release readiness needs an explicit head-scoped risk acceptance.",
+			);
+		}
+		if (input.noGoNext !== "address") {
+			return stopped(
+				"Classify the NO-GO blocker before selecting the next action.",
+			);
+		}
+	}
+	if (statusMatches(status, "[verified <x>]")) {
+		if (input.remainingKeys === undefined) {
+			return stopped(
+				"Check the run ledger for unfinished keys before starting retro.",
+			);
+		}
+		if (input.remainingKeys > 0) {
+			return stopped("Other delivery keys remain; choose the next ready key.");
+		}
 	}
 
 	const next = nextVerbForStatus(input.status);
@@ -300,7 +381,11 @@ if (import.meta.main) {
 	const args = process.argv[2] ?? "";
 	const statusArg = process.argv[3];
 	const status = !statusArg || statusArg === "-" ? null : statusArg;
-	const result = selectNextAction({ args, status });
+	const contextPath = process.argv[4];
+	const context = contextPath
+		? NextActionContext.parse(await Bun.file(contextPath).json())
+		: {};
+	const result = selectNextAction({ args, status, ...context });
 	console.log(JSON.stringify(result));
 	process.exit(result.kind === "run" ? 0 : 1);
 }
