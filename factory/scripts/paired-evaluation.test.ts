@@ -101,8 +101,12 @@ test("the runs must use the same checks and visibility", () => {
 
 test("hidden-check availability must agree with the recorded checks", () => {
 	const input = evidence();
-	input.baseline.checks[1]!.hidden = false;
-	input.candidate.checks[1]!.hidden = false;
+	const baselineHidden = input.baseline.checks[1];
+	const candidateHidden = input.candidate.checks[1];
+	if (!baselineHidden || !candidateHidden)
+		throw new Error("hidden fixture missing");
+	baselineHidden.hidden = false;
+	candidateHidden.hidden = false;
 	expect(() => evaluatePairedEvidence(input)).toThrow(
 		"hidden checks marked available require at least one hidden check",
 	);
@@ -112,7 +116,9 @@ test("quality, Critical misses, checks, and mutation are independent gates", () 
 	const input = evidence();
 	input.candidate.utility = 0.89;
 	input.candidate.criticalMisses = 1;
-	input.candidate.checks[1]!.passed = false;
+	const hiddenCheck = input.candidate.checks[1];
+	if (!hiddenCheck) throw new Error("hidden fixture missing");
+	hiddenCheck.passed = false;
 	input.mutation.caught = false;
 	const result = evaluatePairedEvidence(input);
 	expect(result.passed).toBe(false);
