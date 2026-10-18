@@ -283,6 +283,7 @@ describe("bounded recovery and replay safety", () => {
 	test("stages capture wall time automatically and never invent token counts", () => {
 		for (const skill of [draft, execute, addressComments]) {
 			expect(skill).toContain("capture-usage.ts");
+			expect(skill).toContain("routing-scorecard.ts");
 			expect(skill).toContain("start");
 			expect(skill).toContain("finish");
 			expect(skill).toContain(
@@ -295,6 +296,13 @@ describe("bounded recovery and replay safety", () => {
 		expect(execute).toContain("review-usage-timer.json");
 		expect(draft).toContain("author-usage-timer.json");
 		expect(addressComments).toContain("classify-usage-timer.json");
+	});
+
+	test("run scorecards do not present shadow recommendations as measured savings", () => {
+		for (const skill of [draft, execute, addressComments]) {
+			expect(skill).toMatch(/shadow quality and savings[\s\S]{0,80}unevaluated/i);
+			expect(skill).toContain("paired benchmark");
+		}
 	});
 
 	test("address-comments holdout approve leaves the merge request draft", () => {

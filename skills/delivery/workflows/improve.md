@@ -35,6 +35,7 @@ relative to that state root. Nothing is written beside the installed skill.
   manifest.md
   patch.diff
   scorecard.md
+  paired-plan.json
   paired-evidence.json
   paired-result.json
   skill/               # complete candidate delivery skill
@@ -174,9 +175,29 @@ quality or safety failure. Persist the paired inputs, outputs, metrics, and
 check evidence under the candidate directory and summarize them in
 `scorecard.md`.
 
-Write the evidence to
-`<state root>/candidates/<id>/paired-evidence.json`, then run the deterministic
-evaluator:
+Write `paired-plan.json` with the shared model and timeout; paths to the task
+fixture, environment description, allowed context, tool contract, output
+contract, and optional model inventory; and paths to each run's managed tree,
+captured usage file, gate-result file, and delivered outputs. Paths are relative
+to the plan. Each gate-result file records `utility`, `criticalMisses`,
+`repairAttempts`, the named visible and hidden `checks`, and the selected worker
+model when routing changed. These are check outputs, not values inferred by the
+generator.
+
+Generate the evidence instead of transcribing hashes, usage, timings, costs, or
+output sizes by hand:
+
+```bash
+bun "${FACTORY_ROOT}/scripts/generate-paired-evidence.ts" \
+  "<state root>/candidates/<id>/paired-plan.json" \
+  "<state root>/candidates/<id>/paired-evidence.json"
+```
+
+The generator hashes every fixed input and both managed trees, reads usage from
+`capture-usage.ts`, reads quality outcomes from the gate-result files, and
+measures delivered output bytes. It refuses missing wall time, incomplete usage,
+symlinked artifacts, malformed checks, and evidence that does not satisfy the
+paired schema. Then run the deterministic evaluator:
 
 ```bash
 bun "${FACTORY_ROOT}/scripts/paired-evaluation.ts" \

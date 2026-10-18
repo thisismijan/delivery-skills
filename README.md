@@ -216,7 +216,12 @@ ambiguous match stops the run instead of guessing.
   recommendation is recorded, never dispatched. Each recorded task captures
   wall time automatically, overlays host token and cost figures when the
   runtime writes them, and otherwise stores character counts of named
-  artifacts. Fast catalogue models stay
+  artifacts. After each task, the run scorecard refreshes with actual gate,
+  repair, escalation, time, cost, and usage totals. It labels shadow quality
+  and savings as unevaluated until a paired benchmark has actually run.
+  The paired-evidence generator hashes fixed inputs and managed trees, reads
+  captured usage and gate results, and measures output size instead of relying
+  on hand-transcribed benchmark evidence. Fast catalogue models stay
   evaluation-only until representative-run scores for that exact candidate
   clear the 90 percent bar with at least five reversible cases and no critical
   misses. Live evidence is not mixed into that sample. Safety floors keep auth,
@@ -236,8 +241,8 @@ All live state belongs to the target repository and is gitignored:
 | Path | Holds |
 |------|-------|
 | `.delivery/runs/` | Run ledgers, discovery evidence, and engineering postmortems |
-| `.delivery/routing/` | Advertised model inventory, task profiles, shadow decisions, outcomes, usage capture, comparison report, evaluation corpus |
-| `.delivery/candidates/`, `.delivery/versions/` | Improvement candidates and rollback copies |
+| `.delivery/routing/` | Advertised model inventory, task profiles, shadow decisions, outcomes, usage capture, per-run scorecards, comparison report, evaluation corpus |
+| `.delivery/candidates/`, `.delivery/versions/` | Improvement candidates, generated paired evidence, and rollback copies |
 | `.review/<change>/` | Gate commands, append-only gate results, diffs, verdicts |
 | `.review/<change-id>/<head-sha>/` | Review brief, max-pass findings, and draft notes |
 

@@ -624,6 +624,14 @@ describe("approval-gated self-improvement", () => {
     expect(paired).toContain(
       'bun "${FACTORY_ROOT}/scripts/paired-evaluation.ts"',
     );
+    expect(paired).toContain(
+      'bun "${FACTORY_ROOT}/scripts/generate-paired-evidence.ts"',
+    );
+    expect(paired).toContain("paired-plan.json");
+    expect(paired).toMatch(/hashes every fixed input and both managed trees/i);
+    expect(paired).toMatch(/reads usage from\s+`capture-usage.ts`/i);
+    expect(paired).toMatch(/reads quality outcomes from the gate-result files/i);
+    expect(paired).toMatch(/refuses missing wall time/i);
     expect(paired).toContain("paired-evidence.json");
     expect(paired).toContain("paired-result.json");
     expect(paired).toMatch(/Malformed or unpaired evidence exits non-zero/);

@@ -124,6 +124,7 @@ re-run the gate. Do not reuse it.
    Then persist the observation:
    ```
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/implement-profile.json" <live-model> "<reviewDir>/implement-outcome.json" "<reviewDir>/implement-usage.json" <controller-model> <implementation-model>
+   bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
    ```
    The outcome file records each gate result, repair count, and escalations.
    Do not omit it; persistence refuses a missing outcome. The usage file comes
@@ -171,8 +172,19 @@ re-run the gate. Do not reuse it.
    ```
    bun "${FACTORY_ROOT}/scripts/capture-usage.ts" finish "<reviewDir>/review-usage-timer.json" "<reviewDir>/review-usage.json" --input "<reviewDir>/review-profile.json" --output "<reviewDir>/review-outcome.json"
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-outcome.json" "<reviewDir>/review-usage.json" <frontier-model> <frontier-model>
+   bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
    ```
-   `review-outcome.json` records the holdout verdict's terminal result, repairs, and escalations. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Dispatch the `holdout-reviewer` subagent with the same resolved frontier model and **only**: the work item, `<changeDir>` (the spec), the diff file, the test files, all gate-result files, and the **skip report** (`<reviewDir>/skips.md`). **Do not pass the implementer's reasoning or any prior chatter.** It returns a `ReviewVerdict` JSON. **No MR is opened at this point.**
+   Refresh the run scorecard after each persisted task. It reports measured
+   live usage and outcomes, but labels shadow quality and savings unevaluated
+   until a paired benchmark exists. `review-outcome.json` records the holdout
+   verdict's terminal result, repairs, and escalations. Do not omit it;
+   persistence refuses a missing outcome. Never write
+   `{ "source": "unavailable" }` by hand. Dispatch the `holdout-reviewer`
+   subagent with the same resolved frontier model and **only**: the work item,
+   `<changeDir>` (the spec), the diff file, the test files, all gate-result
+   files, and the **skip report** (`<reviewDir>/skips.md`). **Do not pass the
+   implementer's reasoning or any prior chatter.** It returns a `ReviewVerdict`
+   JSON. **No MR is opened at this point.**
 
 11. **Route the verdict (deterministic).**
     ```

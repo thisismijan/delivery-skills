@@ -88,7 +88,12 @@ export async function loadObservations(
 		if (!run.isDirectory() || run.name === "corpus") continue;
 		const files = await readdir(join(root, run.name));
 		for (const file of files) {
-			if (!file.endsWith(".json") || file === "report.json") continue;
+			if (
+				!file.endsWith(".json") ||
+				file === "report.json" ||
+				file === "scorecard.json"
+			)
+				continue;
 			const raw = JSON.parse(
 				await readFile(join(root, run.name, file), "utf8"),
 			) as unknown;

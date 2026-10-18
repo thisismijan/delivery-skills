@@ -136,8 +136,16 @@ approval.
    Then persist the observation under the target repo's `.delivery/routing/`:
    ```
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/author-profile.json" sonnet "<reviewDir>/author-outcome.json" "<reviewDir>/author-usage.json" <controller-model>
+   bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
    ```
-   `author-outcome.json` records whether verification passed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. The usage file comes from `capture-usage.ts`. It always records wall time, uses host tokens and cost when present, and otherwise records character counts of those artifacts. Never write `{ "source": "unavailable" }` by hand.
+   Refresh the run scorecard after every persisted task. It reports measured
+   live usage and outcomes, but labels shadow quality and savings unevaluated
+   until a paired benchmark exists. `author-outcome.json` records whether
+   verification passed, any repairs, and any escalation. Do not omit it;
+   persistence refuses a missing outcome. The usage file comes from
+   `capture-usage.ts`. It always records wall time, uses host tokens and cost
+   when present, and otherwise records character counts of those artifacts.
+   Never write `{ "source": "unavailable" }` by hand.
 
 8. **Verify artifacts (fail closed).** Run:
    ```
