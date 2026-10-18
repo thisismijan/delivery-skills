@@ -111,8 +111,9 @@ are packaging sugar for hosts that load skills that way.
 
 `/delivery` is the only command to remember. It routes into the stage skills
 below, records state in the target repository's `.delivery/runs/`, and stops for
-operator-owned decisions. Humans own merge, archive, tracker status, and any
-live-skill install.
+operator-owned decisions. Approval of the final groomed plan authorizes routine
+progression through delivery. Humans still own merge, tracker status, explicit
+risk acceptance, and any live-skill install.
 
 ```mermaid
 flowchart TD
@@ -134,16 +135,19 @@ flowchart TD
 
   discover -->|"operator yes on one-pager"| groom
   triage -->|"ready brief"| draft
-  groom -->|"operator-approved atomic slices"| draft
+  groom -->|"one plan approval"| wave["Ready tickets"]
+  wave -->|"independent"| worktrees["Parallel isolated worktrees"]
+  wave -->|"true blockers"| draft
+  worktrees --> draft
 
   draft --> assess["Assess ticket and size"]
   assess -->|"too large"| split["Split required; human creates tickets"]
   assess --> feasible["Feasibility"]
-  feasible --> seams["Test-seam checkpoint"]
-  seams -->|"operator yes"| spec["Author change contract, tests-first"]
-  spec --> drafted["Contract linked; wait for execute"]
+  feasible --> seams["Select the smallest complete test seams"]
+  seams --> spec["Author change contract, tests-first"]
+  spec --> drafted["Contract linked"]
 
-  drafted -->|"typing execute is the build approval"| execute
+  drafted --> execute
   execute --> resume["Reconcile MR, tests, gates, dirty tree"]
   resume --> red["Write tests, prove red"]
   red --> green["Implement; green, lint, typecheck in parallel"]
@@ -162,23 +166,23 @@ flowchart TD
   ship -->|"GO"| mergeWait["Human merges"]
   ship -->|"NO-GO"| address
   mergeWait --> archive
-  archive -->|"operator yes"| verify
+  archive --> verify
   verify --> retro["retro: learning postmortem"]
   retro -->|"accepted delivery lesson"| improve
   improve -->|"isolated candidate"| applyWait["Operator apply, reject, or rollback"]
 
   classDef human fill:#fff4ce,stroke:#8a6d1d
   classDef stop fill:#f3f3f3,stroke:#666
-  class seams,drafted,split,mergeWait,applyWait human
+  class split,mergeWait,applyWait human
   class start,ledger stop
 ```
 
 Human-owned stops, in order:
 
-1. Groom slice approval, then draft test-seam approval.
-2. Typing `/delivery execute` is the approval to build.
-3. Merge, then archive.
-4. Installing or rolling back a delivery-skill candidate.
+1. Product decisions while shaping the work, then one final groomed-plan
+   approval.
+2. Merge, or explicit acceptance of a release risk.
+3. Installing or rolling back an exact delivery-skill candidate.
 
 ## Guarantees
 
@@ -188,6 +192,10 @@ ambiguous match stops the run instead of guessing.
 - **Tickets are atomic.** Each ticket is one vertical outcome with one to three
   Given/When/Then acceptance criteria, small enough for one fresh session.
   Oversized tickets stop at draft with a proposed split.
+- **Independent tickets run concurrently.** Auto reserves each ready wave,
+  starts one isolated worktree worker per ticket, and lets the coordinator
+  serialize validated journal results into the shared ledger. It never silently
+  falls back to sequential execution.
 - **Tests come first.** The red gate runs a JSON argv command (never a shell
   string), requires exit code 1, and requires the output to name every new test
   file. A missing command, a timeout, or zero tests is not a red result.

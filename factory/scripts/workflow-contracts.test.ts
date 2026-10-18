@@ -25,6 +25,9 @@ const execute = read("../skills/execute/SKILL.md");
 const addressComments = read("../skills/address-comments/SKILL.md");
 const groom = read("../skills/groom/SKILL.md");
 const delivery = read("../skills/delivery/SKILL.md");
+const auto = read("../skills/delivery/workflows/auto.md");
+const ledger = read("../skills/delivery/workflows/delivery-ledger.md");
+const mrReview = read("../skills/mr-review/SKILL.md");
 const runtime = read("RUNTIME.md");
 const cursorAdapter = read("../adapters/cursor/README.md");
 const claudeAdapter = read("../adapters/claude-code/README.md");
@@ -117,16 +120,50 @@ describe("smallest complete change", () => {
 	});
 });
 
-describe("approval-gated design", () => {
-	test("draft requires seam approval before authoring", () => {
+describe("continuous delivery authorization", () => {
+	test("single-step draft asks for seam approval while continuous mode does not", () => {
 		const contract = plain(draft);
-		expect(contract).toContain("Test seam checkpoint");
+		expect(contract).toContain("Test seam decision");
 		expect(contract).toMatch(/explicit operator approval/i);
+		expect(contract).toMatch(
+			/continuous-delivery: yes.*standing authorization.*Do not ask again/i,
+		);
 		expect(contract).toMatch(/what each seam catches and misses/i);
 		expect(contract).toMatch(/existing.*highest.*fewest/i);
-		expect(draft.indexOf("Test seam checkpoint")).toBeLessThan(
+		expect(draft.indexOf("Test seam decision")).toBeLessThan(
 			draft.indexOf("Author the OpenSpec change"),
 		);
+	});
+
+	test("plan approval flows through build, review publication, and post-merge work", () => {
+		for (const doc of [delivery, auto, ledger]) {
+			expect(doc).toContain("continuous-delivery: yes");
+		}
+		expect(execute).toMatch(/continuous-delivery: yes.*without another checkbox/s);
+		expect(mrReview).toMatch(
+			/continuous-delivery: yes.*standing publication authorization/s,
+		);
+		expect(auto).toMatch(/run retro without another checkpoint/i);
+		expect(auto).toMatch(/Archive[\s\S]*continuous authorization/);
+	});
+
+	test("continuous authorization preserves merge, risk, and install boundaries", () => {
+		expect(plain(auto)).toMatch(
+			/not authorization to merge.*accept a release risk.*install an improvement candidate/i,
+		);
+		expect(plain(auto)).toMatch(/never supplies improvement approval/i);
+		expect(delivery).toMatch(/never merge via the forge provider/i);
+	});
+
+	test("parallel workers use isolated worktrees and coordinator-owned state", () => {
+		const contract = plain(auto);
+		expect(contract).toMatch(/automatically fan out the entire ready wave/i);
+		expect(contract).toMatch(/one detached git worktree per key/i);
+		expect(contract).toMatch(/Start all workers before awaiting any one/i);
+		expect(contract).toMatch(/coordinator remains the only writer/i);
+		expect(auto).toContain("DELIVERY_WORKER_JOURNAL");
+		expect(ledger).toContain("### Parallel worker journals");
+		expect(ledger).toMatch(/worker must not search for or mutate the run ledger/i);
 	});
 
 	test("high complexity records a sketch and rejected alternative", () => {

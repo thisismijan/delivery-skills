@@ -100,6 +100,22 @@ empty.
   record is left in place.
 - A concurrency conflict is a terminal stop, never a last-writer-wins merge.
 
+### Parallel worker journals
+
+An auto fan-out has one coordinator and one journal per key. The coordinator
+reserves the wave in the run ledger before dispatch and remains the only run
+ledger writer. Each worker receives the reserved generation and key row, then
+writes only the path in `DELIVERY_WORKER_JOURNAL` under
+`<state-root>/workers/<run-id>/`. It uses `ledger-store.ts` against that worker
+directory for durable compare-and-swap writes. A worker must not search for or
+mutate the run ledger.
+
+The journal records stage status, MR iid, full commit SHAs, gate artifacts,
+stops, and decisions for that key. After all workers settle, the coordinator
+validates each journal against git and the forge and applies the wave's key
+updates to the run ledger in one compare-and-swap write. Missing or conflicting
+evidence stops only that key. Worker prose is never merged into the ledger.
+
 ## Reconciling with real state
 
 On opening a ledger, before acting:
@@ -124,6 +140,13 @@ of approval.
   approvals; ask for a yes and record that.
 - An accepted risk is an approval. Its scope is the MR iid at the head SHA the
   risk was assessed on.
+- `continuous-delivery: yes` is scoped to one run. Record either the exact
+  `/delivery auto ...` invocation or the operator's explicit approval of the
+  final groomed ticket or slice plan. It authorizes routine progression,
+  isolated worktree fan-out, review-note publication, archive, verification,
+  retro, and improvement preparation. It never authorizes merge, risk
+  acceptance, a failed-gate override, tracker transitions, candidate
+  installation, or rollback.
 - An improvement approval is valid only when the operator invokes
   `/delivery improve apply <candidate>` or
   `/delivery improve rollback <version>`. Scope includes that exact id and the

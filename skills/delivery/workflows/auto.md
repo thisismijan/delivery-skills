@@ -1,9 +1,15 @@
 # Auto
 
-`/delivery auto` runs the whole lifecycle from wherever a run is, and stops only
-for decisions that belong to the operator. It adds no stage of its own. For each
-key it reads the status in the ledger, looks up the next step below, and runs the
-same stage spec the matching single-step verb would.
+`/delivery auto` runs the whole lifecycle from wherever a run is. Approval of
+the groomed ticket or slice plan is standing authorization to draft, build,
+review, publish review notes, archive, verify, write the retro, and prepare
+evidence-backed improvement candidates for that run. It is not authorization
+to merge, accept a release risk, install an improvement candidate, or override
+a failed gate.
+
+The full-epic `/delivery <idea-or-file>` path enters this same continuous mode
+as soon as the operator approves the groomed plan. The operator does not need
+to invoke `auto` again. Explicit single-step verbs still run one stage only.
 
 The single-step verbs use the same table to tell the operator what to type next.
 
@@ -20,13 +26,12 @@ The single-step verbs use the same table to tell the operator what to type next.
 ## Start
 
 1. Run the conductor's Phase 1: find or create the ledger and reconcile it.
-2. **Build approval.** If the ledger has no `build-without-asking` approval for
-   this run, ask once:
-   "After each ticket is drafted, should I build it straight away, or show you
-   the draft first? Recommended: show me the draft first."
-   Record the answer in Approvals, scoped to the run, as
-   `build-without-asking: yes` or `build-without-asking: no`. A later
-   `/delivery auto` on the same ledger reuses it and does not ask again.
+2. **Continuous authorization.** Record `continuous-delivery: yes`, scoped to
+   this run. The authorizing words are the `/delivery auto` invocation or the
+   operator's explicit approval of the groomed plan in the full-epic path.
+   This standing authorization covers the non-human stages named above. Do not
+   ask a second build, test-seam, review-publication, archive, retro, or
+   improvement-preparation question.
 3. Append a Decision: `auto started at <stage> for <keys>`.
 
 ## The loop
@@ -55,14 +60,14 @@ Between steps, do not ask whether to continue. Continue.
 | `[triage: wont-fix]` | Nothing | Nothing; the key is done |
 | `[triage: duplicate <KEY>]` | Nothing | Nothing; the key is done |
 | `[groomed]` | Draft, once every blocker is `[merged !N]` or later | Nothing |
-| `[drafted]` | Execute | The draft, unless `build-without-asking: yes` |
+| `[drafted]` | Execute | Nothing |
 | `[executing]` | Recover: review once a matching merge request exists; wait while a live owner still builds; interrupted stop with `/delivery execute <KEY>` when there is no owner and no merge request | Nothing |
 | `[reviewed-blocked !N]` | Address comments, then review the new head | Nothing |
 | `[addressed !N]` | Review the new head | Nothing |
 | `[ready !N]` | Release readiness | Nothing |
 | `[no-go !N]` | Classify the readiness blockers: address code/comment blockers then run ship again; wait on pipeline/conflicts; ask only for operator-owned risk acceptance | Whether to accept an operator-owned risk |
 | `[go !N]` | The operator merges | The merge |
-| `[merged !N]` | Archive the change, wait for the deploy, then verify | The archive |
+| `[merged !N]` | Archive the change, wait for the deploy, then verify | Nothing |
 | `[verified !N]` | The key is done. Choose the next key; when none is left, retro | Nothing |
 | `[regressed !N]` | Nothing. Show the rollback recommendation or the bug report | Nothing; the operator decides |
 | `[retro done]` | Prepare an improvement candidate for any accepted lesson targeting delivery; otherwise the run is done | Installing the exact candidate |
@@ -73,26 +78,51 @@ Between steps, do not ask whether to continue. Continue.
 round. After three rounds without `[ready !N]`, stop and ask the operator how to
 proceed.
 
-**Archive.** Resolve the change with `factory/scripts/find-change.ts`; exactly one
-match is required, so `MDF-1234` can never select `MDF-12345`. If it is already under
-`openspec/changes/archive/`, skip the archive. Otherwise ask:
-"!<iid> is merged. Archive <change-name> now? Recommended: yes." On yes, record
-the approval and run `/openspec-archive <change-name>`. If that leaves changes in the
-working tree, tell the operator they need committing; do not commit them.
+**Archive.** Resolve the change with `factory/scripts/find-change.ts`; exactly
+one match is required, so `MDF-1234` can never select `MDF-12345`. If it is
+already under `openspec/changes/archive/`, skip the archive. Otherwise run
+`/openspec-archive <change-name>` under the run's continuous authorization.
+Commit and push the archive through the repository's normal protected-branch
+path; open a follow-up change request when direct push is unavailable. Never
+merge it. Archive publication may wait for that human merge, but it does not
+block deployed verification, retro, or improvement preparation for the
+already-merged product change.
 
 ### Choosing a key
 
 - One key in scope: that key.
 - An epic: the keys whose blockers are all merged and that are not done, stopped,
   or handed off.
-- More than one key can start now: ask once per wave.
-  "<n> tickets can start now: <keys>. Run them one after another here, or fan
-  them out to separate worktrees? Recommended: fan out."
-  - **Fan out**: emit one fan-out brief per key with `START` set to
-    `/delivery auto <KEY>`. Append a Decision `handed off <KEY>` for each. End
-    the turn. A later `/delivery auto <EPIC>` skips handed-off keys until their
-    status shows they are done.
-  - **One after another**: work them in ledger order.
+- More than one key can start now: automatically fan out the entire ready wave.
+  Serial execution is allowed only for a real blocking edge recorded in the
+  approved plan.
+  1. Resolve one absolute shared `DELIVERY_STATE_ROOT` from the primary
+     worktree. The coordinator remains the only writer of the run ledger.
+     Reserve the whole wave in one compare-and-swap write before dispatch.
+  2. Create one detached git worktree per key from the recorded base. Keep
+     worktrees outside one another. Never reuse a dirty or occupied path.
+     Use argv-equivalent execution, not a shell-built string:
+     `git worktree add --detach <path> <full-base-sha>`. The worker creates the
+     deterministic ticket branch before its first commit.
+  3. Dispatch one mutating isolated worker per worktree through the runtime's
+     `agent.dispatch` capability. Its command is `/delivery auto <KEY>`, its cwd
+     is that worktree, and its environment includes the shared state root plus
+     `DELIVERY_WORKER_JOURNAL=<state-root>/workers/<run-id>/<key>.md`. Give it
+     the reserved ledger generation and immutable key row. A worker writes only
+     its own journal through `ledger-store.ts`; it never mutates the run ledger.
+  4. Give each worker the fan-out brief and forbid merge, tracker transitions,
+     sibling worktrees, and work outside its key.
+  5. Start all workers before awaiting any one of them. Reconcile each result
+     from its journal, git, and forge, not from prose. After the wave settles,
+     apply validated key updates to the run ledger in one coordinator
+     compare-and-swap write. A malformed, missing, or conflicting result stops
+     that key without cancelling successful siblings.
+  6. Append `dispatched <KEY> to <worktree>` for each key. Remove a worktree only
+     after its branch and artifacts are durably pushed and the worker has
+     stopped.
+- If the runtime cannot dispatch isolated mutating workers, stop once with the
+  missing capability and the fan-out commands. Do not silently run an
+  independent ready wave sequentially.
 - Two sessions can write one ledger at the same time. Every write uses the
   ledger's generation compare-and-swap. A stale generation is a terminal
   conflict; re-read and reconcile instead of overwriting.
@@ -101,16 +131,14 @@ working tree, tell the operator they need committing; do not commit them.
 
 Ask only when one of these comes up:
 
-1. A gate a stage already has: discovery's yes, groom's grilling and ticket
-   approval, a decision `/mr-review` puts to the operator.
-2. The draft, when `build-without-asking` is `no`.
-3. Accepting a risk on a NO-GO.
-4. The merge. It is always the operator's.
-5. The archive.
-6. Fan out or one after another.
-7. Installing an evaluated delivery improvement candidate. Retro acceptance is
+1. Product decisions during discovery or grooming, followed by approval of the
+   final ticket or slice plan.
+2. Accepting a risk on a NO-GO.
+3. The merge. It is always the operator's.
+4. Installing an evaluated delivery improvement candidate. Retro acceptance is
    not installation approval.
-8. Anything a stage stops on.
+5. Anything a stage stops on because required evidence is missing or
+   contradictory.
 
 Ask one question at a time, with a recommended answer, worded so that "yes"
 accepts it. Record the answer in the ledger.
@@ -144,18 +172,22 @@ Every turn auto ends says three things:
 - What the run is waiting on, if anything.
 - The single command that resumes it.
 
-When every key is done or stopped, run retro. If it accepted a qualifying
-proposal targeting delivery, follow `improve.md` to prepare and evaluate the
-candidate, show its checkpoint, and end the turn. `/delivery auto` never answers
-that checkpoint. When no such proposal exists, or after the candidate is
+When every key is done or stopped, run retro without another checkpoint. Under
+continuous authorization, evidence-backed delivery-skill proposals are
+accepted for investigation and other proposals are recorded as backlog; none
+is applied. Follow `improve.md` immediately for every qualifying accepted
+delivery lesson, prepare and evaluate the candidate, show its installation
+checkpoint, and end the turn. `/delivery auto` never answers that checkpoint.
+When no such proposal exists, or after the candidate is
 rejected or installed in a later chat, give the epic's closing brief: keys, MRs,
 merges, stops, and accepted retro proposals.
 
 ## Ledger writes
 
-- Approvals: `build-without-asking`, every merge confirmation, every archive yes.
-- Decisions: `auto started`, every `handed off <KEY>`, every wave's fan-out
-  choice, and every candidate prepared.
+- Approvals: `continuous-delivery: yes`, every merge confirmation, and every
+  exact improvement installation or rollback command.
+- Decisions: `auto started`, every `dispatched <KEY> to <worktree>`, automatic
+  archive, retro proposal disposition, and every candidate prepared.
 - Keys: `[waiting: <what>]` while waiting, replaced by the next status.
 - Everything each stage spec writes, as if its verb had been run.
 
@@ -171,10 +203,14 @@ merges, stops, and accepted retro proposals.
 ## Never
 
 - Merge, or set an MR to merge when its pipeline succeeds.
-- Create, transition, label, or close work items.
-- Spawn worktrees or agents. Fan-out is a brief the operator acts on.
-- Archive without a yes for that change.
+- Create work items outside the approved verified groom drafts, or transition,
+  label, or close work items.
+- Run independent ready tickets sequentially when isolated dispatch is
+  available.
+- Treat continuous authorization as permission to merge, accept risk, bypass a
+  gate, or install a candidate.
 - Retry a failed stage.
-- Skip a stage's own gate because auto is running.
+- Skip a correctness, security, test, review, or readiness gate because auto is
+  running.
 - Install or rollback a delivery-skill version; `auto` may prepare a candidate
   but never supplies improvement approval.

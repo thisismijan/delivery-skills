@@ -98,7 +98,15 @@ bun "${FACTORY_ROOT}/scripts/next-action.ts" <args> <status|->
 
 Pass `-` when there is no ledger. An illegal or unknown stop does not write the ledger. An explicit verb that is allowed still runs only that step.
 
-When the reconciled status is `[executing]`, recover before selecting from the table. Pass the owner, matching or conflicting merge request, and whether branch, gate, or dirty-worktree evidence can be attributed. A matching open merge request records the iid and proceeds to review. No active owner and no merge request is an interrupted stop that offers `/delivery execute <KEY>`; a bare key does not run execute. Typing execute remains the approval to build. A live owner with no merge request waits. Evidence that cannot be attributed escalates; never discard it and never guess.
+When the reconciled status is `[executing]`, recover before selecting from the
+table. Pass the owner, matching or conflicting merge request, and whether
+branch, gate, or dirty-worktree evidence can be attributed. A matching open
+merge request records the iid and proceeds to review. No active owner and no
+merge request is an interrupted stop. A single-step run offers
+`/delivery execute <KEY>` because typing execute is its approval to build. A
+run with recorded `continuous-delivery: yes` resumes execute directly without
+another approval. A live owner with no merge request waits. Evidence that
+cannot be attributed escalates; never discard it and never guess.
 
 State the chosen entry and what it runs in one line, then continue.
 
@@ -115,7 +123,13 @@ State the chosen entry and what it runs in one line, then continue.
    `bun "${FACTORY_ROOT}/scripts/ledger-store.ts" recover <root> <id>`
    A concurrency conflict is a terminal stop.
 3. Never infer an approval from chat history. An approval counts only when the
-   ledger records it.
+   ledger records it. `/delivery auto` itself authorizes continuous delivery
+   for that run. In the full-epic path, explicit approval of the final groomed
+   ticket or slice plan authorizes the same continuous mode. Record
+   `continuous-delivery: yes` with the operator's exact words. It covers draft,
+   execute, review publication, archive, verify, retro, and improvement
+   preparation, but never merge, risk acceptance, failed-gate override, or
+   improvement installation.
 
 4. Check the capabilities the next stage needs (below) by calling
    `checkCapabilities`. For `auto`, check only what that stage needs and
@@ -160,7 +174,7 @@ its fix.
 | Factory | `/groom`, `/draft`, `/execute`, `/address-comments` resolve, and `factory/RUNTIME.md` finds `scripts/find-change.ts` | groom, draft, execute, address | Clone delivery-skills and run `./install.sh`. Do not load a second factory pack in the same session |
 | Review commands | `/code-review-max` and `/mr-review` are available. The forge metadata and note helpers are on PATH. A lightweight built-in review does not count | review | Run `./install.sh`. For forge metadata and note helpers in a cloud agent, run the review-provider setup once |
 | Forge | The forge provider answers a read. A configured forge credential is enough | draft, execute, address, review, ship, archive, verify, auto | Configure the forge provider advertised by the runtime |
-| Tracker | A real work-item read through the tracker provider returns the item. A failed read, or a result with no key, stops the stage | triage, draft, discover, retro | Configure the tracker provider advertised by the runtime |
+| Tracker | A real work-item read through the tracker provider returns the item. Continuous groom additionally probes create and link with no write before plan approval. A failed read, a result with no key, or a missing approved-write capability stops the stage | triage, draft, discover, groom, retro, auto | Configure the tracker provider advertised by the runtime |
 | OpenSpec | `openspec --version` succeeds | draft, execute, archive | Install `@fission-ai/openspec` |
 | Deployed environment | The environment's hostnames resolve and answer | verify | Run verify on a machine on the internal network, such as the operator's self-hosted worker |
 | Skill evaluation | The pinned Bun version runs `checks/delivery-specs.test.ts`, and the skill store is writable | improve | Use the Bun version from the target repository and a skill store the runtime can write |
@@ -193,6 +207,11 @@ and, when a lock is left behind,
 using only the status tags in `delivery-ledger.md`. A concurrency conflict is a
 terminal stop.
 
+In an isolated auto worker, `DELIVERY_WORKER_JOURNAL` changes the destination,
+not the evidence rules. Write only that key's worker journal. The parent
+coordinator is the sole run-ledger writer and reconciles validated journals
+after the parallel wave; a worker never races it for the shared generation.
+
 - **After groom**: one Keys row per ticket groom created, with its blockers,
   status `[groomed]`. Add the epic key to the ledger's `Ids:` line.
 - **After draft**: `[drafted]` once the OpenSpec change exists.
@@ -219,7 +238,10 @@ terminal stop.
 ### Auto
 
 Follow `workflows/auto.md`. It runs every stage below in order, from wherever
-the run is, and stops only for the operator's decisions.
+the run is, automatically fans independent tickets into isolated worktrees,
+and stops only for product decisions before plan approval, merge, explicit
+risk acceptance, failed or ambiguous evidence, and exact improvement
+installation.
 
 ### Single steps
 
@@ -266,19 +288,24 @@ tree, say they need committing; do not commit them.
 
 1. Read and follow `epic-to-backlog.md` with the idea/file/text argument.
    Invoke `/groom …` as that workflow specifies; honor its grilling
-   and approval gates. Prefer **max parallelism** and **small-context atomic
+   and final plan approval. That approval starts continuous mode for this run;
+   record it and continue without another stage checkbox. Prefer **max
+   parallelism** and **small-context atomic
    slices** (at most ~25% of a context window for the complete ticket,
    including tests and review; blockers only when real - see that workflow).
 2. Compute the **ready-now** set (blocked-by empty / already merged). If more
-   than one key: emit one fan-out brief per key (see Fan-out brief) and stop —
-   do not multiplex execute. If the operator wants serial, honor that.
+   than one key, follow auto's isolated-worktree fan-out and start the entire
+   wave concurrently. Do not ask whether to use serial execution. If isolated
+   mutating dispatch is unavailable, stop with the capability remedy and
+   runnable fan-out commands rather than silently executing the wave in
+   sequence.
 3. True blockers only: run those serially (ticket-to-mr → review → release
    readiness → human **merge**), then fan out whatever they unblock.
 4. Further waves when the operator reports merges/skips. Update the ledger
    first, then recompute ready-now from it.
-5. Epic-level closing brief when done: keys, MR iids/merges, stops, and a
-   recommendation to run `/delivery retro <EPIC>`; human owns leftover
-   merge/archive/tracker status.
+5. Epic-level closing brief when done: keys, MR iids/merges, stops, archive
+   status, retro, and any prepared improvement candidate. Humans own merge,
+   tracker status, risk acceptance, and candidate installation.
 
 ### Entry B — Resume
 
@@ -287,9 +314,10 @@ tree, say they need committing; do not commit them.
    evidence before selecting. Select the next action with
    `scripts/next-action.ts <args> <status|->` (`-` when there is no ledger).
 2. If it stops, tell the operator why and do not write the ledger. An
-   interrupted execute with no active owner and no merge request offers
-   `/delivery execute <KEY>` and does not run execute in this resume step.
-   Typing execute remains the approval to build.
+   interrupted execute with no active owner and no merge request resumes
+   automatically when the ledger records `continuous-delivery: yes`.
+   Otherwise it offers `/delivery execute <KEY>` and does not run execute in
+   this resume step; typing execute remains the single-step approval to build.
 3. If `[executing]` has a matching open merge request, record the iid and
    proceed to review as the selected step.
 4. If it returns a wait, end the turn. If it escalates because evidence
@@ -361,7 +389,7 @@ CONTEXT     links to the ledger, OpenSpec change, ADRs, blockers' MRs
 ACCEPTANCE  how the operator will know it is done
 VERIFY      the gates that must pass and where the evidence will be
 FORBIDDEN   merge, the tracker transitions, work outside SCOPE
-START       git worktree add <path> <base> && cd <path> && /delivery <KEY>
+START       git worktree add --detach <path> <full-base-sha> && cd <path> && /delivery <KEY>
 ```
 
 Under `auto`, `START` ends with `/delivery auto <KEY>` instead.
@@ -383,9 +411,12 @@ At each boundary, pick the first option that applies:
 
 Keep the lifecycle portable across conforming runtimes.
 
-- A mutating stage or a stage with an operator checkpoint runs in the main
-  conversation. Never put two sides of a human gate into one background
-  workflow: workflow agents cannot take mid-run operator input.
+- Before the final groomed plan is approved, a mutating stage or a stage with
+  an operator checkpoint runs in the main conversation. After continuous
+  authorization is recorded, independent tickets may run as mutating isolated
+  workers in separate worktrees. A worker stops at merge, risk acceptance, a
+  failed or ambiguous gate, or candidate installation; it never tries to take
+  that decision itself.
 - Use one to four read-only subagents for bounded research, review, or
   evaluation. Give peers the same immutable brief and require structured
   results so failures cannot disappear in prose.
@@ -400,8 +431,9 @@ Keep the lifecycle portable across conforming runtimes.
   verification phase have succeeded. Do not spend dozens of agents on a task a
   bounded pass can answer.
 - Reusable orchestration is promoted only after a real run succeeds. Generated
-  orchestration never bypasses the stage's existing approval, permission,
-  failure, or rollback rules.
+  orchestration never bypasses permission, correctness, security, failure, or
+  rollback rules. Continuous authorization replaces repeated progression
+  confirmations; it does not replace evidence gates.
 - **Shadow model routing.** A frontier-level read-only `task-profile-controller`
   classifies each task. Factory stages persist that profile, gate outcomes,
   repairs, escalations, context size, wall time, and token, cost, or character
@@ -423,15 +455,19 @@ Keep the lifecycle portable across conforming runtimes.
 
 - Use each stage's checkpoints only. No extra confirms inside factory
   substeps.
-- Multiple ready-now keys → fan-out brief (default). Serial only on request
-  or for true blockers.
+- In continuous mode, multiple ready-now keys are automatically dispatched in
+  isolated worktrees. Serial is only for true blockers. Missing isolated
+  dispatch stops with runnable fan-out commands instead of falling back to
+  sequential execution.
 - Dependents wait on **merged** blockers, not ready MRs.
 - A review or readiness verdict holds only for the head it was given on. A new
   head voids it unless the patch-id is unchanged.
-- Never merge via the forge provider, never create work items, never transition tracker status,
-  never auto-spawn worktrees or agents.
-- `/openspec-archive` runs only through `/delivery archive` or auto's archive
-  question, after the MR is merged, with the operator's yes for that change.
+- Never merge via the forge provider and never transition tracker status.
+  Create work items only from approved, verified groom drafts in continuous
+  mode, with the run-and-slice audit marker and idempotency check.
+- `/openspec-archive` runs only after the product MR is merged. Its explicit
+  single-step verb is approval for that one archive; continuous mode archives
+  under the recorded run authorization and never merges its follow-up change.
 
 ## Command cheat-sheet
 
