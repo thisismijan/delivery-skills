@@ -7,10 +7,7 @@ bin_dir="${DELIVERY_BIN_DIR:-$HOME/.local/bin}"
 provider="$pack_root/providers/gitlab"
 mkdir -p "$bin_dir"
 for tool in gl-mr gl-note; do
-  cat >"$bin_dir/$tool" <<EOF
-#!/usr/bin/env bash
-exec bash "$provider/$tool" "\$@"
-EOF
+  cp "$provider/$tool" "$bin_dir/$tool"
   chmod 0755 "$bin_dir/$tool"
 done
 echo "Review tools -> $bin_dir"

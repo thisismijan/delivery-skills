@@ -763,7 +763,7 @@ describe("shadow model routing", () => {
 		expect(policy).toContain("never dispatched");
 		expect(policy).toContain("select-model.ts");
 		expect(policy).toContain("model-catalogue.ts");
-		expect(policy).toContain("Muse Wonder");
+		expect(policy).toContain("runtime-advertised live frontier candidate");
 		expect(policy).toContain("representative-run");
 		expect(policy).toContain("promotion approval");
 		expect(policy).toContain("Public rankings never promote");

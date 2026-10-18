@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { basename, dirname } from "node:path";
+
 export const ADAPTER_CAPABILITY_IDS = [
 	"process.run",
 	"agent.dispatch",
@@ -24,6 +27,19 @@ export interface AdapterManifest {
 	name: string;
 	version: number;
 	capabilities: AdapterCapability[];
+}
+
+export interface GeneratedRuntimeManifest {
+	version: 1;
+	capabilities: Record<
+		string,
+		{
+			available: boolean;
+			mode: "native" | "adapter" | "unavailable";
+			invocation?: string;
+			enforcement?: "enforced" | "unenforced";
+		}
+	>;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -80,4 +96,55 @@ export function validateAdapterManifest(
 		}
 	}
 	return errors;
+}
+
+export function adapterRuntimeManifest(
+	raw: unknown,
+	dirName: string,
+): GeneratedRuntimeManifest {
+	const errors = validateAdapterManifest(raw, dirName);
+	if (errors.length > 0) throw new Error(errors.join("; "));
+	const manifest = raw as AdapterManifest;
+	const capabilities: GeneratedRuntimeManifest["capabilities"] = {};
+	for (const capability of manifest.capabilities) {
+		const available = capability.available;
+		const mode =
+			!available || capability.mode === "unavailable"
+				? "unavailable"
+				: capability.mode === "provider"
+					? "adapter"
+					: "native";
+		capabilities[capability.id] = {
+			available,
+			mode,
+			...(available
+				? {
+						invocation:
+							capability.invocation ??
+							`adapter:${manifest.name}:${capability.id}`,
+					}
+				: {}),
+			...(capability.id === "mutation.guard"
+				? {
+						enforcement:
+							available && capability.mode !== "unenforced"
+								? ("enforced" as const)
+								: ("unenforced" as const),
+					}
+				: {}),
+		};
+	}
+	return { version: 1, capabilities };
+}
+
+if (import.meta.main) {
+	const command = process.argv[2];
+	const path = process.argv[3];
+	if (command !== "runtime" || !path) {
+		console.error("usage: adapter-contract.ts runtime <adapter.json>");
+		process.exit(2);
+	}
+	const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+	const runtime = adapterRuntimeManifest(raw, basename(dirname(path)));
+	process.stdout.write(`${JSON.stringify(runtime, null, 2)}\n`);
 }

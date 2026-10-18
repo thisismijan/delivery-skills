@@ -179,8 +179,9 @@ State the chosen entry and what it runs in one line, then continue.
    bun "${FACTORY_ROOT}/scripts/model-catalogue.ts" resolve <tier> \
      .delivery/routing/model-inventory.json
    ```
-   Pass the returned exact model identifier to the subagent. Muse Wonder is a
-   frontier candidate. Static agent `model:` fields are fallback values only.
+   Pass the returned exact model identifier to the subagent. A
+   runtime-advertised live frontier candidate satisfies frontier work. Static
+   agent `model:` fields are fallback values only.
    A model that is available but marked `evaluation-only` cannot run live.
 
 Do not deep-audit beyond that — each stage workflow lists its own
@@ -198,11 +199,11 @@ its fix.
 | Capability | Check | Needed by | Fix when missing |
 |------------|-------|-----------|------------------|
 | Stage specs | The bundled file resolves | The stage that reads it | Reinstall this delivery-skills version |
-| Factory | `/groom`, `/draft`, `/execute`, `/address-comments` resolve, and `factory/RUNTIME.md` finds `scripts/find-change.ts` | groom, draft, execute, address | Clone delivery-skills and run `./install.sh`. Do not load a second factory pack in the same session |
+| Factory | `/groom`, `/draft`, `/execute`, `/address-comments` resolve, and the runtime selected by `RUNTIME.md` finds `scripts/find-change.ts` | groom, draft, execute, address | Install delivery-skills with `./install.sh --skills-dir <path>`. Do not load a second factory pack in the same session |
 | Review commands | `/code-review-max` and `/mr-review` are available. The forge metadata and note helpers are on PATH. A lightweight built-in review does not count | review | Run `./install.sh`. For forge metadata and note helpers in a cloud agent, run the review-provider setup once |
 | Forge | The forge provider answers a read. A configured forge credential is enough | draft, execute, address, review, ship, archive, verify, auto | Configure the forge provider advertised by the runtime |
-| Tracker | A real work-item read through the tracker provider returns the item. Continuous groom additionally probes create and link with no write before plan approval. A failed read, a result with no key, or a missing approved-write capability stops the stage | triage, draft, discover, groom, retro, auto | Configure the tracker provider advertised by the runtime |
-| OpenSpec | `openspec --version` succeeds | draft, execute, archive | Install `@fission-ai/openspec` |
+| Tracker | A real work-item read through the tracker provider returns the item. Continuous delivery additionally probes create and link with no write before plan approval. A failed read, a result with no key, or a missing approved-write capability stops the stage | triage, draft, discover, retro, auto | Configure the tracker provider advertised by the runtime |
+| Spec tool | The selected spec provider's version probe succeeds | draft, execute, archive | Install and configure the selected spec provider |
 | Deployed environment | The environment's hostnames resolve and answer | verify | Run verify on a machine on the internal network, such as the operator's self-hosted worker |
 | Skill evaluation | The pinned Bun version runs `checks/delivery-specs.test.ts`, and the skill store is writable | improve | Use the Bun version from the target repository and a skill store the runtime can write |
 
@@ -468,8 +469,8 @@ Keep the lifecycle portable across conforming runtimes.
   `.delivery/routing/`. `capture-usage.ts` records those figures; do not guess
   them. `select-model.ts` determines the required capability;
   `model-catalogue.ts` chooses an exact model from the runtime-advertised list.
-  Muse Wonder can satisfy frontier work. A cheaper shadow recommendation is
-  recorded, never dispatched. After each run,
+  A runtime-advertised live frontier candidate can satisfy frontier work. A
+  cheaper shadow recommendation is recorded, never dispatched. After each run,
   generate the routing comparison report and rebuild the evaluation corpus from
   those files. Fast catalogue models stay evaluation-only until
   representative-run scores for the exact candidate clear the 90 percent bar.

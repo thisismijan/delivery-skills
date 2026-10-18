@@ -181,6 +181,24 @@ describe("mutation enforcement", () => {
 			false,
 		);
 	});
+
+	test("auto also requires isolated agent dispatch", () => {
+		const guarded = manifest({ "mutation.guard": mutation("enforced") });
+		expect(canStartStage({ stage: "auto", runtime: guarded })).toMatchObject({
+			allowed: false,
+		});
+		const isolated = manifest({
+			"mutation.guard": mutation("enforced"),
+			"agent.dispatch": {
+				available: true,
+				mode: "native",
+				invocation: "agent.dispatch.isolated-cwd-env",
+			},
+		});
+		expect(canStartStage({ stage: "auto", runtime: isolated })).toEqual({
+			allowed: true,
+		});
+	});
 });
 
 describe("advertised model resolution", () => {

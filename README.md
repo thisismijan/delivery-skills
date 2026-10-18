@@ -14,7 +14,7 @@ The pack includes:
 - `/delivery` — thin conductor, ledger, auto, retro, approval-gated improvement
 - `/groom` `/draft` `/execute` `/address-comments` — portable factory stages
 - `/code-review-max` `/mr-review` — dual-pass change review
-- an archive stage supplied by the selected spec provider
+- a bundled OpenSpec archive stage, which requires the OpenSpec CLI
 
 ## Install
 
@@ -39,8 +39,8 @@ What the installer does:
   same pinned dependencies.
 - Copies each skill and the runtime into the destination, writing a managed
   manifest. Reinstalls replace only managed files.
-- Installs the generic runtime beside the skills at `_factory/`, without
-  `node_modules` or review scratch files.
+- Installs the generic runtime beside the skills at `_factory/`, including its
+  pinned runtime dependencies but excluding review scratch files.
 - Leaves unmanaged files and delivery state (`runs`, `candidates`, `versions`)
   untouched.
 - Fails without replacing an existing install when the destination cannot be

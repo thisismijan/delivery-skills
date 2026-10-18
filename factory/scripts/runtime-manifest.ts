@@ -160,6 +160,7 @@ export function capabilityResult(
 }
 
 export function requiredCapabilitiesForStage(stage: string): CapabilityId[] {
+	if (stage === "auto") return ["mutation.guard", "agent.dispatch"];
 	if (MUTATING_STAGES.has(stage)) return ["mutation.guard"];
 	return [];
 }

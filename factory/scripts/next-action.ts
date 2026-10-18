@@ -55,10 +55,11 @@ const VERB_KEYWORDS: Array<{ pattern: RegExp; verb: string }> = [
 ];
 
 function skillRoot(): string {
-	return (
-		process.env.DELIVERY_SKILL_ROOT ??
-		join(import.meta.dir, "..", "..", "skills", "delivery")
-	);
+	if (process.env.DELIVERY_SKILL_ROOT) return process.env.DELIVERY_SKILL_ROOT;
+	const factoryRoot = join(import.meta.dir, "..");
+	const installed = join(factoryRoot, "..", "delivery");
+	if (existsSync(join(installed, "SKILL.md"))) return installed;
+	return join(factoryRoot, "..", "skills", "delivery");
 }
 
 function readSkill(): string {

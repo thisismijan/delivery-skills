@@ -3,8 +3,11 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
 	ADAPTER_CAPABILITY_IDS,
+	adapterRuntimeManifest,
 	validateAdapterManifest,
 } from "./adapter-contract";
+import { parseRuntimeManifest } from "./runtime-manifest";
+import { canStartStage } from "./stage-gating";
 
 const packRoot = join(import.meta.dir, "..", "..");
 const adaptersRoot = join(packRoot, "adapters");
@@ -32,6 +35,23 @@ test("validateAdapterManifest accepts a complete portable document", () => {
 	).toEqual([]);
 });
 
+test("adapter declarations generate the runtime manifest used by stage gates", () => {
+	const generated = adapterRuntimeManifest(
+		{ name: "sample", version: 1, capabilities: COMPLETE_CAPABILITIES },
+		"sample",
+	);
+	const runtime = parseRuntimeManifest(generated);
+	expect(runtime.capabilities["mutation.guard"]).toMatchObject({
+		available: false,
+		mode: "unavailable",
+		enforcement: "unenforced",
+	});
+	expect(runtime.capabilities["process.run"]).toMatchObject({
+		available: true,
+		mode: "native",
+	});
+});
+
 test("validateAdapterManifest rejects a host-named incomplete document", () => {
 	expect(
 		validateAdapterManifest({ name: "other", version: 2 }, "sample"),
@@ -51,6 +71,14 @@ test("every shipped adapter declares a runtime-validated manifest", () => {
 		const raw = JSON.parse(readFileSync(manifestPath, "utf8")) as unknown;
 		expect(validateAdapterManifest(raw, name)).toEqual([]);
 	}
+});
+
+test("the shipped cursor adapter keeps mutating stages blocked", () => {
+	const raw = JSON.parse(
+		readFileSync(join(adaptersRoot, "cursor", "adapter.json"), "utf8"),
+	) as unknown;
+	const runtime = parseRuntimeManifest(adapterRuntimeManifest(raw, "cursor"));
+	expect(canStartStage({ stage: "execute", runtime }).allowed).toBe(false);
 });
 
 test("adapter capability identifiers match the portable runtime contract", () => {
