@@ -72,10 +72,23 @@ Rules:
 - Each draft describes **one** clear deliverable (one slice, not multiple).
 - Each draft must fit one fresh **small-context session** for understanding, tests, implementation, verification, and review: one useful vertical outcome, one primary public contract or behaviour, and one cohesive code area plus its tests.
 - Split any independently deployable "and" outcome, second consumer, unrelated subsystem, broad cleanup, or bundled feature-plus-migration. Keep each split vertically complete; do not emit frontend-only, backend-only, test-only, or speculative foundation microtickets unless that layer is itself the usable contract.
+- Describe the **smallest complete change** that delivers the outcome. Reuse a
+  stable existing contract, capability, or repository pattern before proposing
+  a new one. Do not add speculative options, extension points, dependencies,
+  frameworks, configuration, or cleanup to make a ticket look comprehensive.
+  Never shrink away required validation, security, accessibility, data-loss
+  protection, error handling, or an accepted boundary case.
 - Describe **what** the slice delivers, never how it is implemented or tested. Do not include implementation decisions, test seams, or MCP/git/the tracker steps in the draft content.
 - State the **current behaviour** and the **desired behaviour** in terms of the user-visible or public contract. Prefer stable interface and behaviour language over file paths, line numbers, or private symbols that become stale before implementation.
 - Make **Out of scope** explicit and specific. Do not use "N/A" when a nearby capability, caller, platform, migration, or operational concern could reasonably be mistaken as included.
 
 ## Output
 
-Write the files and report: list every file path you created or updated, one per line.
+Write the files and report a compact handoff with exactly these headings:
+
+- **Files changed:** every created or updated path, one per line.
+- **Reused:** stable contracts or existing capabilities retained by the drafts,
+  or `none`.
+- **Skipped:** adjacent outcomes deliberately excluded or split out, or `none`.
+- **Not checked:** repository facts you could not verify with your tools.
+- **Residual risks:** concrete ambiguity or completeness risk, or `none`.

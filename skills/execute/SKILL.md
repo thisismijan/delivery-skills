@@ -78,9 +78,13 @@ re-run the gate. Do not reuse it.
    `<changeDir>/tasks.md`. It writes test files only. It writes **durable** tests
    and **skips** inherently transient (point-in-time migration) scenarios,
    reporting each skip with a reason (see "Test durability" in `CONVENTIONS.md`).
-   **Capture its skip report** verbatim to `<reviewDir>/skips.md` (write an
-   explicit "none" if it skipped nothing) - the holdout reviewer reads it in
-   step 10 and the MR surfaces it in step 11.
+   Capture its complete compact handoff verbatim to
+   `<reviewDir>/test-writer-handoff.md`. Extract the `Skipped` section without
+   rewriting it to `<reviewDir>/skips.md` (write an explicit `none` if it
+   skipped nothing). The holdout reviewer reads only the skip artifact in step
+   10; it never receives the worker's reasoning or complete handoff. The MR
+   surfaces skips and any material `Not checked` or `Residual risks` items in
+   step 11. Gate artifacts, not worker claims, remain authoritative.
 
 5. **Red gate (enforced).** Write `<reviewDir>/red-command.json` containing an argv array (never a shell string), the repo cwd, every expected new test path, and a timeout. Run it and persist the JSON output under an append-only name containing the test commit:
    ```
@@ -127,7 +131,11 @@ re-run the gate. Do not reuse it.
 7. **Implement to green.** Dispatch the `implementer` subagent using the exact
    runtime model resolved in step 6. Override the prompt's static model. If the
    host cannot override a plugin agent's model, use the existing
-   `implementer-opus` fallback only for the semantic frontier case.
+   `implementer-opus` fallback only for the semantic frontier case. Capture its
+   complete compact handoff verbatim to
+   `<reviewDir>/implementer-handoff.md`. This is an audit and human-summary
+   input only: never pass it, the implementer's plan, or implementation
+   reasoning to the holdout reviewer. Actual gate results remain authoritative.
 
 8. **Green gates.** Write `<reviewDir>/green-command.json` with argv, cwd, and all expected test paths. Run the full green gate, lint, and typecheck **in parallel**, persist each result under an append-only name containing the source commit, and wait for all three:
    ```
@@ -159,7 +167,7 @@ re-run the gate. Do not reuse it.
       ```
       bun "${FACTORY_ROOT}/scripts/mr-title.ts" <work-item-key> "<ticket summary>"
       ```
-      (yields e.g. `SMAI-123 - Add new fireworks feature`.) The MR description carries `Closes`, the spec link, a short human-readable paragraph explaining what the change does and how, and any frontier justification — write it like a person would (no field-name dumps, no em dashes; see the human-output rules in `CONVENTIONS.md`). If `<reviewDir>/skips.md` lists any skipped scenarios, **surface them in the description** as a short plain-language note ("The following acceptance points were verified as part of this change but intentionally not given a permanent test, because they only describe the migration moment: ..."), so the human sees what was deliberately left untested and why. Never drop skips silently. Render the holdout outcome for the MR note and the tracker comment with the summary helper (Rule 2 — never paste raw verdict fields):
+      (yields e.g. `SMAI-123 - Add new fireworks feature`.) The MR description carries `Closes`, the spec link, a short human-readable paragraph explaining what the change does and how, and any frontier justification — write it like a person would (no field-name dumps, no em dashes; see the human-output rules in `CONVENTIONS.md`). Read the compact test-writer and implementer handoffs. Surface every material `Skipped`, `Not checked`, or `Residual risks` item in plain human language, but do not paste internal headings, raw worker output, or reasoning. If `<reviewDir>/skips.md` lists any skipped scenarios, **surface them in the description** as a short plain-language note ("The following acceptance points were verified as part of this change but intentionally not given a permanent test, because they only describe the migration moment: ..."), so the human sees what was deliberately left untested and why. Never drop skips or unresolved risks silently. Do not repeat a worker's claimed gate result; use only the persisted gate artifacts. Render the holdout outcome for the MR note and the tracker comment with the summary helper (Rule 2 — never paste raw verdict fields):
       ```
       bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
       ```

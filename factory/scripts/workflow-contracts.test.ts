@@ -15,6 +15,8 @@ const plain = (text: string) =>
 	text.replace(/[*`\n]+/g, " ").replace(/\s+/g, " ");
 
 const testWriter = read("agents/test-writer.md");
+const implementer = read("agents/implementer.md");
+const implementerOpus = read("agents/implementer-opus.md");
 const holdoutReviewer = read("agents/holdout-reviewer.md");
 const groomWriter = read("agents/groom-writer.md");
 const ticketAssessor = read("agents/ticket-assessor.md");
@@ -43,6 +45,64 @@ describe("test epistemology", () => {
 			expect(prompt).toMatch(/tautolog/i);
 			expect(prompt).toMatch(/implementation logic/i);
 		}
+	});
+});
+
+describe("smallest complete change", () => {
+	test("both implementers share the reuse ladder and safety floor", () => {
+		for (const prompt of [implementer, implementerOpus]) {
+			expect(prompt).toContain("## Smallest complete change");
+			expect(prompt).toMatch(/reuse.*existing helper, component, service, or pattern/i);
+			expect(prompt).toMatch(/platform or standard library/i);
+			expect(prompt).toMatch(/already-installed dependency/i);
+			expect(prompt).toMatch(/trust-boundary\s+validation/i);
+			for (const heading of [
+				"Files changed",
+				"Reused",
+				"Skipped",
+				"Not checked",
+				"Residual risks",
+			]) {
+				expect(prompt).toContain(`**${heading}:**`);
+			}
+		}
+	});
+
+	test("test and grooming workers reuse existing seams and report omissions", () => {
+		expect(testWriter).toMatch(/reuse the narrowest existing public test seam/i);
+		expect(groomWriter).toMatch(/smallest complete change/i);
+		for (const prompt of [testWriter, groomWriter]) {
+			for (const heading of ["Reused", "Skipped", "Not checked", "Residual risks"]) {
+				expect(prompt).toContain(`**${heading}:**`);
+			}
+		}
+	});
+
+	test("draft specifies the reuse ladder and execute keeps handoffs out of holdout", () => {
+		const draftContract = plain(draft);
+		expect(draftContract).toMatch(/Specify the smallest complete change/i);
+		expect(draftContract).toMatch(
+			/avoiding unnecessary work.*existing repository capability.*platform or standard library.*installed dependency.*smallest direct addition/i,
+		);
+		expect(execute).toContain("test-writer-handoff.md");
+		expect(execute).toContain("implementer-handoff.md");
+		expect(plain(execute)).toMatch(
+			/never pass it.*implementation reasoning to the holdout reviewer/i,
+		);
+		expect(plain(execute)).toMatch(
+			/Surface every material.*Skipped.*Not checked.*Residual risks/i,
+		);
+	});
+
+	test("holdout and max review reject only materially unnecessary machinery", () => {
+		const maxReview = read("../skills/code-review-max/SKILL.md");
+		for (const prompt of [holdoutReviewer, maxReview]) {
+			expect(prompt).toMatch(/concrete cost/i);
+			expect(prompt).toMatch(/smallest complete fix/i);
+			expect(prompt).toMatch(/validation.*security.*accessibility/i);
+		}
+		expect(holdoutReviewer).toMatch(/Do not fail.*merely because code could be shorter/i);
+		expect(maxReview).toMatch(/Drop "could be shorter"/i);
 	});
 });
 

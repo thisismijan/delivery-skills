@@ -73,6 +73,14 @@ or push.
    - Trace callers and consumers outside the diff.
    - Check types, browser/server boundaries, generated artifacts, configuration,
      CI selection, and dependency changes.
+   - Check whether the diff adds a dependency, abstraction, wrapper, option,
+     conversion, configuration knob, or duplicated capability when an existing
+     repository or platform capability already satisfies the requirement.
+     Report it only when the extra machinery has a concrete cost such as a
+     larger public surface, additional failure path, duplicated logic, or
+     operational burden. Never trade away validation, security, accessibility,
+     data-loss protection, required error handling, or accepted boundary
+     behaviour merely to reduce code.
 
 Each candidate finding must contain:
 
@@ -100,6 +108,9 @@ The main conversation owns the verdict. For every candidate:
 5. Drop duplicates and anything already raised in the MR discussions.
 6. Drop claims that depend only on a name, comment, or reviewer assertion.
 7. Downgrade or drop a finding whose impact or trigger cannot be shown.
+8. Drop "could be shorter" or preferred-style findings. An unnecessary-
+   complexity finding must name the existing capability that can be reused,
+   the concrete cost, and the smallest complete fix.
 
 No candidate is a finding merely because several reviewers repeated it.
 
