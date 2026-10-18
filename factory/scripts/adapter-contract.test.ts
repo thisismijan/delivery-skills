@@ -52,6 +52,23 @@ test("adapter declarations generate the runtime manifest used by stage gates", (
 	});
 });
 
+test("static adapter declaration cannot claim mutation enforcement", () => {
+	const capabilities = COMPLETE_CAPABILITIES.map((capability) =>
+		capability.id === "mutation.guard"
+			? { ...capability, available: true, mode: "native" }
+			: capability,
+	);
+	const raw = { name: "sample", version: 1, capabilities };
+	expect(
+		adapterRuntimeManifest(raw, "sample").capabilities["mutation.guard"],
+	).toMatchObject({ available: true, enforcement: "unenforced" });
+	expect(
+		adapterRuntimeManifest(raw, "sample", {
+			mutationGuardVerified: true,
+		}).capabilities["mutation.guard"],
+	).toMatchObject({ available: true, enforcement: "enforced" });
+});
+
 test("validateAdapterManifest rejects a host-named incomplete document", () => {
 	expect(
 		validateAdapterManifest({ name: "other", version: 2 }, "sample"),

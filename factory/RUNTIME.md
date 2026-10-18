@@ -21,14 +21,25 @@ The runtime is bounded. It needs:
 If a required capability is missing, stop with that gap and a configuration
 remedy. Do not invent a tool the host did not expose.
 
-The SDLC constitution (`SDLC-CONSTITUTION.md`) is required on every run. Verify it before mutating:
+Every install writes `runtime-manifest.json` in this directory. The generic
+manifest is complete and fail closed; selected adapters and providers overlay
+only capabilities their setup can substantiate. Check the installation from
+inside the target repository:
 
 ```
-bun "$FACTORY_ROOT/scripts/sdlc-constitution.ts" preflight
+bun "$FACTORY_ROOT/scripts/doctor.ts"
+bun "$FACTORY_ROOT/scripts/delivery-init.ts"
 ```
 
-A missing or mismatched constitution is a terminal stop. After plan approval,
-later stages also check `.delivery/runs/<id>.run-contract.json`.
+Doctor reports ready capabilities, setup remedies, host limitations, and
+human-owned actions separately. Init adds `.delivery/` and `.review/` to
+`.gitignore` once and then runs doctor. The SDLC constitution
+(`SDLC-CONSTITUTION.md`) remains required on every run; a missing or mismatched
+constitution is a terminal stop. After plan approval, later stages also check
+`.delivery/runs/<id>.run-contract.json`.
+
+For constitution-only verification, run
+`bun "$FACTORY_ROOT/scripts/sdlc-constitution.ts" preflight`.
 
 ## Resolve FACTORY_ROOT
 

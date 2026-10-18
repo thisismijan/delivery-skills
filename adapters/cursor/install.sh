@@ -5,5 +5,5 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(cd "$here/../.." && pwd)"
 dest="${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}"
-bash "$root/install.sh" --skills-dir "$dest" --adapter cursor "$@"
+bash "$root/install.sh" --skills-dir "$dest" --adapter cursor --provider gitlab "$@"
 echo "Cursor skills -> $dest"

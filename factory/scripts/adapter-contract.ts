@@ -101,6 +101,7 @@ export function validateAdapterManifest(
 export function adapterRuntimeManifest(
 	raw: unknown,
 	dirName: string,
+	options: { mutationGuardVerified?: boolean } = {},
 ): GeneratedRuntimeManifest {
 	const errors = validateAdapterManifest(raw, dirName);
 	if (errors.length > 0) throw new Error(errors.join("; "));
@@ -127,7 +128,9 @@ export function adapterRuntimeManifest(
 			...(capability.id === "mutation.guard"
 				? {
 						enforcement:
-							available && capability.mode !== "unenforced"
+							available &&
+							capability.mode !== "unenforced" &&
+							options.mutationGuardVerified
 								? ("enforced" as const)
 								: ("unenforced" as const),
 					}
@@ -145,6 +148,11 @@ if (import.meta.main) {
 		process.exit(2);
 	}
 	const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
-	const runtime = adapterRuntimeManifest(raw, basename(dirname(path)));
+	const evidencePath = process.argv[4];
+	const runtime = adapterRuntimeManifest(raw, basename(dirname(path)), {
+		mutationGuardVerified:
+			evidencePath !== undefined &&
+			readFileSync(evidencePath, "utf8").trim() === "verified",
+	});
 	process.stdout.write(`${JSON.stringify(runtime, null, 2)}\n`);
 }

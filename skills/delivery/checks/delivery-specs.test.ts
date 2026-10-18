@@ -102,6 +102,8 @@ describe("entry detection", () => {
     ["docs/stories/F5-4-port-igspec-gates.md", "Full epic"],
     ["", "Help"],
     ["help", "Help"],
+    ["doctor", "Doctor"],
+    ["init", "Initialize"],
     ["auto", "Auto"],
     ["auto Add a spend-by-repository panel to the costs page", "Auto"],
     ["auto MDF-2000", "Auto"],

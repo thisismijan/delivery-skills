@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# Optional Claude Code adapter: install forge/review wrappers from the GitLab provider.
+# Claude Code adapter: install and verify the mutation-denial hook.
 set -euo pipefail
 
-pack_root="${DELIVERY_PACK_ROOT:?}"
-bin_dir="${DELIVERY_BIN_DIR:-$HOME/.local/bin}"
-provider="$pack_root/providers/gitlab"
-mkdir -p "$bin_dir"
-for tool in gl-mr gl-note; do
-  cp "$provider/$tool" "$bin_dir/$tool"
-  chmod 0755 "$bin_dir/$tool"
-done
-echo "Review tools -> $bin_dir"
+factory_root="${DELIVERY_FACTORY_ROOT:?}"
+settings_file="${CLAUDE_SETTINGS_FILE:-$HOME/.claude/settings.json}"
+evidence="$factory_root/.mutation-guard-enforced"
+bun "$factory_root/scripts/claude-settings.ts" \
+  "$settings_file" \
+  "$factory_root" \
+  "$evidence"

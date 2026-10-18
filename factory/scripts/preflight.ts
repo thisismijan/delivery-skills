@@ -1,11 +1,10 @@
-import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { formatDoctorReport, runDoctor } from "./doctor";
 import {
 	type RuntimeManifest,
 	capabilityResult,
 	requiredCapabilitiesForStage,
 } from "./runtime-manifest";
-import { constitutionPreflight } from "./sdlc-constitution";
 
 export interface CheckResult {
 	name: string;
@@ -29,14 +28,6 @@ export function summarize(results: CheckResult[]): Summary {
 	return { allRequiredPassed, lines };
 }
 
-async function run(argv: string[]): Promise<{ code: number; out: string }> {
-	const p = Bun.spawn(argv, { stdout: "pipe", stderr: "pipe" });
-	const out =
-		(await new Response(p.stdout).text()) +
-		(await new Response(p.stderr).text());
-	return { code: await p.exited, out: out.trim() };
-}
-
 export function redactRemote(value: string): string {
 	return value.replace(/(https?:\/\/)[^/@\s]+@/gi, "$1[redacted]@");
 }
@@ -56,55 +47,13 @@ export function capabilityPreflight(
 	});
 }
 
-async function runChecks(): Promise<CheckResult[]> {
-	const pluginRoot =
-		process.env.DELIVERY_FACTORY_ROOT ?? join(import.meta.dir, "..");
-	const results: CheckResult[] = [];
-
-	results.push({
-		name: "Bun runtime",
-		ok: true,
-		required: true,
-		detail: Bun.version,
-	});
-
-	const depsOk = existsSync(join(pluginRoot, "node_modules", "zod"));
-	results.push({
-		name: "Plugin deps (zod) installed",
-		ok: depsOk,
-		required: true,
-		detail: depsOk ? "ok" : `run 'bun install' in ${pluginRoot}`,
-	});
-
-	for (const check of constitutionPreflight(pluginRoot)) {
-		results.push({
-			name: "SDLC constitution",
-			ok: check.ok,
-			required: check.required,
-			detail: check.detail,
-		});
-	}
-
-	const rem = await run(["git", "remote", "-v"]);
-	results.push({
-		name: "git remote present",
-		ok: rem.code === 0 && rem.out.length > 0,
-		required: false,
-		detail: redactRemote(rem.out.split("\n")[0] || "no git remote configured"),
-	});
-
-	return results;
-}
-
 if (import.meta.main) {
-	const results = await runChecks();
-	const { allRequiredPassed, lines } = summarize(results);
-	console.log(
-		"delivery-skills preflight (run this from inside the target repo)\n",
-	);
-	console.log(lines.join("\n"));
-	console.log(
-		`\n${allRequiredPassed ? "READY — all required checks passed." : "NOT READY — fix the ✗ items above."}`,
-	);
-	process.exit(allRequiredPassed ? 0 : 1);
+	const factoryRoot =
+		process.env.DELIVERY_FACTORY_ROOT ?? join(import.meta.dir, "..");
+	const report = await runDoctor({
+		factoryRoot,
+		cwd: process.cwd(),
+	});
+	console.log(formatDoctorReport(report));
+	process.exit(report.coreReady ? 0 : 1);
 }

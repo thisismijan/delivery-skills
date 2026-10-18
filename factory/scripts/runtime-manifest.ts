@@ -56,6 +56,46 @@ export const RuntimeManifest = z
 	.strict();
 export type RuntimeManifest = z.infer<typeof RuntimeManifest>;
 
+export function defaultRuntimeManifest(
+	processAvailable = false,
+): RuntimeManifest {
+	const capabilities = Object.fromEntries(
+		CAPABILITY_IDS.map((id) => [
+			id,
+			id === "process.run" && processAvailable
+				? {
+						available: true,
+						mode: "native" as const,
+						invocation: "bun",
+					}
+				: {
+						available: false,
+						mode: "unavailable" as const,
+						...(id === "mutation.guard"
+							? { enforcement: "unenforced" as const }
+							: {}),
+					},
+		]),
+	);
+	return RuntimeManifest.parse({
+		version: RUNTIME_MANIFEST_VERSION,
+		capabilities,
+	});
+}
+
+export function overlayRuntimeManifest(
+	base: RuntimeManifest,
+	overlay: RuntimeManifest,
+): RuntimeManifest {
+	return RuntimeManifest.parse({
+		version: RUNTIME_MANIFEST_VERSION,
+		capabilities: {
+			...base.capabilities,
+			...overlay.capabilities,
+		},
+	});
+}
+
 export interface NormalizedCapabilityResult {
 	capability: CapabilityId;
 	ok: boolean;
@@ -69,6 +109,7 @@ export interface MissingCapability {
 }
 
 export const MUTATING_STAGES = new Set([
+	"init",
 	"draft",
 	"execute",
 	"address-comments",
@@ -182,4 +223,25 @@ export function advertisedModels(
 	const descriptor = lookupCapability(runtime, "model.inventory");
 	if (!descriptor?.available) return [];
 	return [...(descriptor.models ?? [])];
+}
+
+if (import.meta.main) {
+	const [command, ...args] = process.argv.slice(2);
+	if (command === "default") {
+		const processAvailable = args.includes("--process");
+		process.stdout.write(
+			`${JSON.stringify(defaultRuntimeManifest(processAvailable), null, 2)}\n`,
+		);
+	} else if (command === "overlay" && args[0] && args[1]) {
+		const base = await loadRuntimeManifest(args[0]);
+		const overlay = await loadRuntimeManifest(args[1]);
+		process.stdout.write(
+			`${JSON.stringify(overlayRuntimeManifest(base, overlay), null, 2)}\n`,
+		);
+	} else {
+		console.error(
+			"usage: runtime-manifest.ts default [--process] | overlay <base.json> <overlay.json>",
+		);
+		process.exit(2);
+	}
 }

@@ -1,13 +1,5 @@
 #!/usr/bin/env bash
-# Optional Cursor adapter: install forge/review wrappers from the GitLab provider.
+# Cursor adapter: state the host mutation limitation; providers install tools.
 set -euo pipefail
 
-pack_root="${DELIVERY_PACK_ROOT:?}"
-bin_dir="${DELIVERY_BIN_DIR:-$HOME/.local/bin}"
-provider="$pack_root/providers/gitlab"
-mkdir -p "$bin_dir"
-for tool in gl-mr gl-note; do
-  cp "$provider/$tool" "$bin_dir/$tool"
-  chmod 0755 "$bin_dir/$tool"
-done
-echo "Review tools -> $bin_dir"
+echo "Cursor read-only stages are ready. Mutating stages remain blocked because Cursor exposes no enforceable denial hook."

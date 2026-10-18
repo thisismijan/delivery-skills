@@ -21,6 +21,6 @@ if ! mkdir -p "$store" 2>/dev/null; then
   echo "Agent store skipped (not writable here): $store"
   exit 0
 fi
-bash "$root/install.sh" --skills-dir "$store" --adapter cursor "$@"
+bash "$root/install.sh" --skills-dir "$store" --adapter cursor --provider gitlab "$@"
 echo "Agent store -> $store"
 echo "Factory -> $store/_factory"
