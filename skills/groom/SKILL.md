@@ -63,12 +63,20 @@ Before asking the operator anything, classify the input as one of:
 
 Base the classification on the input itself and the explorer's report (Step 3). Present the classification to the operator as a recommendation (for example, "This reads as a single ticket, recommend skipping the PRD" or "This reads as two tickets, recommend a split before we go further"). The operator can accept the recommendation or override it. This recommendation determines whether Steps 6 and 7 run at all (see below) — it is not a formality.
 
+If two or more classifications remain genuinely viable, follow the delivery
+conductor's **Human decision brief** before asking. If evidence supports only
+one classification, present that recommendation directly without manufacturing
+alternatives.
+
 ### Step 5 — Grilling loop (one question at a time, each with a recommended answer)
 
 Ask the operator questions to fill in gaps, resolve ambiguities, and surface constraints. Rules:
 
 - **Exactly one question per turn.** Never batch two or more questions.
 - **Every question includes a recommended answer** (e.g. "Recommended: Yes, scope it to the dashboard page only."). The operator can accept the recommendation or override it.
+- When a question offers two or more viable product or slicing choices, first
+  follow the delivery conductor's **Human decision brief**, including both
+  technical lenses. Factual and single-viable-path questions stay direct.
 - Maintain a **question frontier**: ask only a question whose prerequisites are already settled. Do not ask downstream scope or acceptance questions while an earlier product decision can change them.
 - **Facts are discovered; decisions are asked.** Inspect the input and codebase for facts. Ask the operator only for intent, trade-offs, or decisions that cannot be discovered.
 - **Prefer inspecting the code** over asking when the answer is discoverable from the codebase (the explorer's report or a direct `Read`/`Grep`).
@@ -100,6 +108,9 @@ What you present here depends on Step 4's recommendation:
   - Is the granularity right? (Each slice should be individually deployable and cover a single user story.)
   - Are the dependencies correct?
   - Are any slices missing?
+
+If feedback requires choosing among two or more viable breakdowns, compare them
+through the delivery conductor's **Human decision brief** before asking.
 
 Iterate based on operator feedback until the operator explicitly approves the ticket or the breakdown. **Write no draft files during this step.**
 

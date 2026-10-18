@@ -228,6 +228,8 @@ describe("durable grooming", () => {
 		expect(groom).toMatch(/prerequisites.*settled/i);
 		expect(groom).toMatch(/facts.*discover/i);
 		expect(groom).toMatch(/decisions.*ask/i);
+		expect(groom).toMatch(/Human decision brief/i);
+		expect(groom).toMatch(/two or more viable.*product or slicing/is);
 	});
 
 	test("ticket prompts prefer contracts over stale source coordinates", () => {
@@ -237,6 +239,31 @@ describe("durable grooming", () => {
 			expect(prompt).toMatch(/stale.*file path|file paths.*stale/i);
 			expect(prompt).toMatch(/out of scope/i);
 		}
+	});
+});
+
+describe("context-rich human decisions", () => {
+	test("the conductor owns the canonical brief", () => {
+		expect(delivery).toContain("## Human decision brief");
+		expect(delivery).toContain("### DSA lens");
+		expect(delivery).toContain("### System-design lens");
+		expect(delivery).toContain("No material DSA difference");
+		expect(delivery).toContain("No material system-design");
+		expect(delivery).toMatch(/Never invent Big-O claims/i);
+	});
+
+	test("stage skills invoke the brief only when multiple paths are viable", () => {
+		expect(draft).toMatch(
+			/two or more seam sets are viable.*Human decision brief/is,
+		);
+		expect(draft).toMatch(/Do not invent differences/i);
+		expect(mrReview).toMatch(/three choices:.*Human\s+decision brief/is);
+		expect(mrReview).toMatch(/no material DSA or\s+system-design difference/i);
+	});
+
+	test("decision context never turns failed evidence into an option", () => {
+		expect(delivery).toMatch(/failed gate never\s+becomes an option/i);
+		expect(auto).toMatch(/Contradictory or unattributable.*remains a stop/is);
 	});
 });
 

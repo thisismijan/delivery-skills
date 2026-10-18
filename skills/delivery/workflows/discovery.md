@@ -64,6 +64,9 @@ Merge the results into four lists:
 Ask the operator one question at a time. Give a recommended answer with each,
 worded so that "yes" accepts it.
 
+- When a question asks the operator to choose among two or more viable product
+  directions, first follow `SKILL.md`'s **Human decision brief**. Keep a factual
+  or single-viable-path question direct.
 - Never ask for a fact you can look up. Look it up.
 - A question you could answer by running something is not the operator's to
   answer. Write a throwaway probe in a scratch directory outside the repo, run
@@ -82,9 +85,10 @@ Do this step only if more than one direction is still credible.
    remove a constraint, 10 times the scale, the smallest useful version, reuse
    what exists, and do nothing.
 2. Group them into 2 or 3 real directions.
-3. For each direction: the value if it works, how feasible it is with what
-   exists, and the cost of being wrong.
-4. Recommend one and say why the others lost.
+3. Present those directions through `SKILL.md`'s **Human decision brief**,
+   including the relevant DSA and system-design lenses.
+4. Recommend one and say why the others lost, what the recommendation assumes,
+   and what evidence would change it.
 
 ### 5. Check the size
 

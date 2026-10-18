@@ -223,6 +223,12 @@ Leave out any section that has nothing in it.
 
 The brief is the checkpoint. What the operator says next decides what happens:
 
+When a NO-GO or accepted risk leaves two or more viable responses, first follow
+`SKILL.md`'s **Human decision brief** to compare fixing, accepting the scoped
+risk, changing rollout, or abandoning the release. A Critical or High finding
+still blocks unless the operator explicitly accepts that exact risk; the brief
+cannot override the gate.
+
 | Operator | Next |
 |----------|------|
 | Merges | Nothing here. Recommend `/delivery verify <iid>` after deploy |

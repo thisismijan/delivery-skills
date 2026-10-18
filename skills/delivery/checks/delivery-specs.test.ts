@@ -254,6 +254,104 @@ describe("workflow authority", () => {
   });
 });
 
+describe("human decision context", () => {
+  const brief = section(SKILL, "## Human decision brief");
+
+  test("the canonical brief supplies complete evidence and option context", () => {
+    for (const field of [
+      "## Decision:",
+      "**Why now:**",
+      "### Evidence and constraints",
+      "Known:",
+      "Constraint:",
+      "Assumption:",
+      "Unknown:",
+      "### Option A:",
+      "**How it works:**",
+      "**Pros:**",
+      "**Cons:**",
+      "**Risks and consequences:**",
+      "### Comparison and recommendation",
+      "**Recommendation:**",
+      "**Would change if:**",
+      "**Reversibility:**",
+      "**If we wait:**",
+      "**Choose:**",
+    ]) {
+      expect([field, brief.includes(field)]).toEqual([field, true]);
+    }
+    expect(brief).toMatch(/two or more viable options/i);
+    expect(brief).toMatch(/recommendation is\s+weak/i);
+    expect(brief).toMatch(/Ask exactly one final question/i);
+  });
+
+  test("the brief applies only to real choices and preserves hard gates", () => {
+    expect(brief).toMatch(/Do not manufacture a choice/i);
+    for (const excluded of [
+      "factual question",
+      "missing identifier",
+      "deterministic gate result",
+      "one viable path",
+      "simple confirmation",
+    ]) {
+      expect([excluded, brief.includes(excluded)]).toEqual([excluded, true]);
+    }
+    expect(brief).toMatch(/failed gate never\s+becomes an option/i);
+    expect(brief).toMatch(/does not take.*decision|does not.*weaken.*approval/is);
+  });
+
+  test("DSA and system-design lenses teach only material differences", () => {
+    expect(brief).toContain("### DSA lens");
+    expect(brief).toMatch(/data structures/i);
+    expect(brief).toMatch(/time\/space complexity/i);
+    expect(brief).toMatch(/concurrency/i);
+    expect(brief).toContain("No material DSA difference");
+    expect(brief).toMatch(/Never invent Big-O claims/i);
+    expect(brief).toContain("### System-design lens");
+    for (const concern of [
+      "boundaries",
+      "state ownership",
+      "consistency",
+      "scaling",
+      "reliability",
+      "recovery",
+      "security",
+      "operability",
+    ]) {
+      expect([concern, brief.includes(concern)]).toEqual([concern, true]);
+    }
+    expect(brief).toContain("No material system-design");
+  });
+
+  test("analysis depth scales from local reversible to consequential choices", () => {
+    expect(brief).toMatch(/local, cheap, reversible choice\s+short/i);
+    expect(brief).toMatch(
+      /public contract.*persistent data.*security boundary.*distributed state.*cross-system.*operational topology/s,
+    );
+    expect(brief).toMatch(/plain language/i);
+    expect(brief).toMatch(/practical consequence/i);
+  });
+
+  test("every live workflow that can ask a multi-option question invokes the brief", () => {
+    const governed = [
+      "discovery.md",
+      "epic-to-backlog.md",
+      "auto.md",
+      "intake.md",
+      "mr-review-to-ready.md",
+      "release-readiness.md",
+      "post-merge-verify.md",
+      "improve.md",
+    ];
+    for (const name of governed) {
+      expect([
+        name,
+        /Human\s+decision\s+brief/i.test(SPECS[name]),
+      ]).toEqual([name, true]);
+    }
+  });
+});
+
 const CONTRADICTED_NOTES = `# NOTES — contradicted historical file
 
 Three stage workflows are source of truth.

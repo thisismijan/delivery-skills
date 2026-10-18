@@ -258,6 +258,12 @@ Write `patch.diff`, `manifest.md`, and `scorecard.md`. Show:
 - adversarial verdict;
 - rollback plan.
 
+When apply, reject, or leave pending are all viable, first follow
+`SKILL.md`'s **Human decision brief**. Compare the candidate's actual behavioral
+and operational consequences, relevant DSA and system-design implications,
+reversibility, and the evidence that would change the recommendation. A failed
+evaluation is not a viable install option.
+
 Ask exactly:
 
 > Install `<candidate>` on baseline `<hash>`? Recommended: yes only if the

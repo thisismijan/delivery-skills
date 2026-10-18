@@ -82,7 +82,11 @@ system boundary that needs a controlled fake.
 In a single-step `/draft`, require **explicit operator approval** of the seams.
 A feasibility `proceed` verdict is not approval. If the operator rejects or
 changes them, revise and ask again; if approval is absent, stop without
-authoring.
+authoring. When two or more seam sets are viable, first follow the delivery
+conductor's **Human decision brief**. Explain what each option catches and
+misses, relevant complexity or concurrency consequences, and boundary,
+coupling, reliability, and operability effects. Do not invent differences when
+the seams are materially equivalent.
 
 When the shared run ledger records `continuous-delivery: yes`, the approved
 groomed plan is standing authorization for this implementation decision. Do
