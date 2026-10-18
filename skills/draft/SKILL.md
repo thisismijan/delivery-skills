@@ -97,6 +97,17 @@ approval.
 
 7. **Author the OpenSpec change.** Run `/opsx:propose` to scaffold `openspec/changes/<changeName>/` (`proposal.md`, `specs/`, `design.md`, `tasks.md`), grounded in the ticket, the `derivedAcceptanceCriteria` from the assessment, and the feasibility `approachSketch`. Every derived acceptance criterion must map to a scenario in `specs/`; order `tasks.md` **tests-first**. Do **not** write implementation code here.
 
+   **Specify the smallest complete change.** Reuse the target repository's
+   stable contracts, seams, capabilities, and established patterns before
+   proposing a new one. Prefer, in order: avoiding unnecessary work, an
+   existing repository capability, the platform or standard library, an
+   installed dependency, then the smallest direct addition. Do not propose a
+   dependency, abstraction, wrapper, option, extension point, configuration
+   knob, conversion, or adjacent cleanup for a hypothetical future need.
+   Preserve every required boundary case and never trade away validation,
+   security, accessibility, data-loss protection, or required error handling
+   for a smaller design.
+
    **Author for durable behaviour, not migration moments** (see "Test durability" in `CONVENTIONS.md`). Acceptance criteria and their scenarios must express the intended **steady-state behaviour**, not the absence of the old thing - the factory tests what should hold for all future versions, never a point-in-time migration state. For a **removal** ticket, the durable coverage is *deleting the removed behaviour's existing tests*, so the scenario says that behaviour is gone from the surface, not "the old route returns 404 forever". For a **migration** ticket, assert the new steady state (the feature works via the new stack), not "no trace of the old stack remains". Do not phrase a scenario as an existence/absence check or a config-file-shape check when a behavioural form exists; where none exists, that scenario is transient and `test-writer` will skip it downstream.
 
    **Persist the feasibility decision for Phase 2.** The `complexitySignal` was judged here by the `feasibility-analyst` against the real codebase — it must not be re-guessed in `/execute`. Record it (verbatim from the `FeasibilityVerdict`) to a committed meta file so execute selects the model deterministically:

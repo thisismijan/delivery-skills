@@ -600,6 +600,28 @@ describe("approval-gated self-improvement", () => {
     expect(improve).toContain("Reviewer agreement is not proof.");
   });
 
+  test("candidate evaluation is paired, hidden, mutation-tested, and quality-gated", () => {
+    const paired = section(improve, "### 3a. Paired benchmark");
+    expect(paired).toMatch(
+      /same\s+task fixture, exact model, environment, allowed context, tools, output contract/i,
+    );
+    expect(paired).toContain("managed skill tree is the only variable");
+    expect(paired).toMatch(/hidden from both runs/i);
+    expect(paired).toMatch(/safe mutation/i);
+    for (const metric of [
+      "input and output tokens",
+      "cost",
+      "wall time",
+      "repair or retry count",
+      "delivered code size",
+    ]) {
+      expect(paired).toContain(metric);
+    }
+    expect(paired).toContain("at least 90 percent of baseline");
+    expect(paired).toContain("zero Critical misses");
+    expect(paired).toMatch(/diagnostic evidence only/i);
+  });
+
   test("retro acceptance cannot install a candidate", () => {
     expect(retro).toContain("Accepting a proposal approves investigation, not a patch and not installation.");
     expect(improve).toContain("Retro acceptance is not installation approval.");

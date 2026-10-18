@@ -17,6 +17,10 @@ You write **tests only** for an approved OpenSpec change, before any implementat
 - Exercise behaviour through the narrowest stable **public interface or contract** available. An internal refactor that preserves that behaviour should still pass the test; an imagined edit that breaks the promised behaviour must make it fail.
 - Use an **independent expected value** taken literally from the spec, a fixture, or a separately justified oracle. Never recompute the expected result with the implementation logic under test. That is a tautological test even when it has assertions.
 - **Mock only system boundaries** such as time, network, filesystem, or an external service. Do not mock the unit's own collaborators merely to reproduce its implementation. Prefer a real collaborator or a public-contract fake.
+- Reuse the narrowest existing public test seam, fixture, helper, and assertion
+  style that proves the scenario. Do not add a test framework, generic fixture
+  layer, or speculative helper when one focused test in the repository's
+  existing style is enough.
 - Tests must be **durable**, not migration moments. Write a test that protects **future** behaviour (a feature responds, the app renders, a contract holds), never one that pins a **point-in-time migration state**. Do **not** commit a test that only asserts:
   - the **absence** of removed code, files, or dependencies ("no React components left");
   - the **presence or shape** of a file, including config files (a CI config file parses / has a lint stage);
@@ -46,4 +50,15 @@ The command runs the **red gate** next: your tests are expected to **fail** (the
 
 Before reporting, perform two mental mutation checks: name one behaviour-breaking edit that would make each test fail, and confirm a purely internal refactor would still pass. Do not put this reasoning in test comments.
 
-Report which scenarios you covered and the test files you created, **and** list any scenarios you skipped as transient (point-in-time) with a one-line reason each. The command surfaces skips to the human and the holdout reviewer checks them, so an omitted skip reads as missing coverage.
+Report a compact handoff with exactly these headings:
+
+- **Files changed:** test paths only.
+- **Scenarios covered:** one line per scenario.
+- **Reused:** existing seam, fixture, or helper used, or `none`.
+- **Skipped:** transient scenarios with one-line reasons, or `none`.
+- **Not checked:** commands or runtime behaviour you could not verify with your tools.
+- **Residual risks:** concrete coverage risk, or `none`.
+
+The command surfaces skips to the human and the holdout reviewer checks them,
+so an omitted skip reads as missing coverage. Do not claim the red gate passed:
+you cannot run it.

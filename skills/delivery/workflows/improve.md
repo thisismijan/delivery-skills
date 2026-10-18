@@ -134,6 +134,44 @@ green.
 Do not broaden the proposal, perform adjacent cleanup, weaken a test, remove a
 gate, or reduce an approval requirement.
 
+### 3a. Paired benchmark
+
+Run one baseline/candidate pair before adversarial evaluation. Use the same
+task fixture, exact model, environment, allowed context, tools, output contract,
+timeout, and deterministic checks. The managed skill tree is the only variable:
+the live tree is the baseline and the isolated candidate tree is the candidate.
+When the lesson itself changes model routing, keep the controller, inventory,
+task, and environment fixed; the resulting worker selection is then the
+declared variable under test. Record hashes for every fixed input so an
+unpaired or stale run fails closed.
+
+Keep deterministic correctness and security checks hidden from both runs where
+the runtime permits it. Record check identities and outcomes after both outputs
+are fixed; never put expected answers into the worker prompt. For non-trivial
+logic or a changed regression test, make one safe mutation that represents the
+cited failure, prove the new test or hidden check catches it, then discard the
+mutation. If a safe mutation cannot be made, record why in `scorecard.md`; do
+not imply mutation coverage.
+
+Record baseline and candidate values for:
+
+- input and output tokens, or labelled character counts when token usage is
+  unavailable;
+- cost when the host exposes it;
+- wall time;
+- repair or retry count;
+- delivered code size;
+- deterministic and hidden check results;
+- mutation caught or not checked.
+
+Quality is the gate: the candidate must retain at least 90 percent of baseline
+utility, have zero Critical misses, pass all required deterministic and hidden
+checks, and catch the required mutation. A smaller output, lower cost, faster
+run, or smaller diff is diagnostic evidence only and never compensates for a
+quality or safety failure. Persist the paired inputs, outputs, metrics, and
+check evidence under the candidate directory and summarize them in
+`scorecard.md`.
+
 ### 4. Adversarial evaluation
 
 Use a bounded, read-only evaluation phase. In the runtime, run three fresh subagents
@@ -174,6 +212,8 @@ Write `patch.diff`, `manifest.md`, and `scorecard.md`. Show:
 - full patch;
 - baseline failing-test evidence;
 - candidate passing-test evidence;
+- paired baseline/candidate identities, quality result, hidden-check and
+  mutation evidence, and efficiency deltas;
 - adversarial verdict;
 - rollback plan.
 
