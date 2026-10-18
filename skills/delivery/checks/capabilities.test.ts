@@ -10,16 +10,16 @@ const CAPABILITIES = [
   "Factory",
   "Review commands",
   "Forge",
-  "Tracker",
+  "Work items",
   "Spec tool",
   "Deployed environment",
   "Skill evaluation",
 ] as const;
 
-const TRACKER_ITEM = { key: "MDF-2101" };
+const WORK_ITEM = { key: "MDF-2101" };
 
 function passingResult(name: string): ProbeResult {
-  if (name === "Tracker") return { ok: true, ticket: TRACKER_ITEM };
+  if (name === "Work items") return { ok: true, workItem: WORK_ITEM };
   return { ok: true };
 }
 
@@ -81,15 +81,15 @@ describe("checkCapabilities", () => {
     });
   });
 
-  test("a failed tracker read stops a stage that needs the tracker", () => {
+  test("a failed work-item read stops a stage that needs work items", () => {
     const { probes } = recordingProbes({
-      Tracker: () => ({ ok: false }),
+      "Work items": () => ({ ok: false }),
     });
 
     const result = checkCapabilities("draft", probes);
 
     expect(result.stop).not.toBeNull();
-    expect(result.stop?.capability).toBe("Tracker");
+    expect(result.stop?.capability).toBe("Work items");
     expect(result.stop?.blockedStages).toEqual([
       "triage",
       "draft",
@@ -98,29 +98,29 @@ describe("checkCapabilities", () => {
       "auto",
     ]);
     expect(result.stop?.fix).toBe(
-      "Configure the tracker provider advertised by the runtime",
+      "Confirm `local-files` or configure and confirm the exact remote or custom provider advertised by the runtime",
     );
   });
 
-  test("a tracker probe that returns no work item stops instead of reporting success", () => {
+  test("a provider probe that returns no work item stops instead of reporting success", () => {
     const { probes, calls } = recordingProbes({
-      Tracker: () => ({ ok: true }),
+      "Work items": () => ({ ok: true }),
     });
 
     const result = checkCapabilities("draft", probes);
 
-    expect(calls.Tracker).toBe(1);
+    expect(calls["Work items"]).toBe(1);
     expect(result.stop).not.toBeNull();
-    expect(result.stop?.capability).toBe("Tracker");
+    expect(result.stop?.capability).toBe("Work items");
   });
 
-  test("the tracker probe is called exactly once when the stage needs the tracker", () => {
+  test("the work-item probe is called exactly once when the stage needs it", () => {
     const { probes, calls } = recordingProbes();
 
     const result = checkCapabilities("draft", probes);
 
     expect(result.stop).toBeNull();
-    expect(calls.Tracker).toBe(1);
+    expect(calls["Work items"]).toBe(1);
   });
 
   test("a recording runner checks again at each stage boundary", () => {
@@ -129,17 +129,17 @@ describe("checkCapabilities", () => {
     const draft = checkCapabilities("draft", probes);
     expect(draft.stop).toBeNull();
     expect(calls.Forge).toBe(1);
-    expect(calls.Tracker).toBe(1);
+    expect(calls["Work items"]).toBe(1);
     expect(calls["Deployed environment"] ?? 0).toBe(0);
 
     const verify = checkCapabilities("verify", probes);
     expect(verify.stop).toBeNull();
     expect(calls.Forge).toBe(2);
-    expect(calls.Tracker).toBe(1);
+    expect(calls["Work items"]).toBe(1);
     expect(calls["Deployed environment"]).toBe(1);
     expect(verify.results.map((row) => row.capability)).toContain(
       "Deployed environment",
     );
-    expect(verify.results.map((row) => row.capability)).not.toContain("Tracker");
+    expect(verify.results.map((row) => row.capability)).not.toContain("Work items");
   });
 });

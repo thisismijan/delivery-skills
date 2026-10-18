@@ -179,8 +179,7 @@ Print a closing summary that includes:
 3. **Next steps:**
    - Review the drafts in the output directory.
    - Materialize each approved draft through the repository's confirmed
-     work-item provider (`local-files`, Jira, forge issues, or another runtime
-     provider).
+     work-item provider (`local-files` or an advertised remote provider).
    - Run `/draft <WORK-ITEM-REF>` for each item to begin the build phase.
 
 ### Step 11 — Invariants (asserted by this command)

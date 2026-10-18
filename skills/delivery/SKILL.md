@@ -135,9 +135,9 @@ State the chosen entry and what it runs in one line, then continue.
      "${FACTORY_ROOT}/runtime-manifest.json"
    ```
    When no choice exists, list the substantiated options with
-   `work-item-config.ts options`. Always include `local-files`; include Jira,
-   forge issues, or another remote provider only when the runtime advertises
-   that exact provider. Present the alternatives with the **Human decision
+   `work-item-config.ts options`. Always include `local-files`; include a
+   remote provider only when the runtime advertises that exact provider.
+   Present the alternatives with the **Human decision
    brief**, including local durability/portability versus remote collaboration
    and integration trade-offs, recommend based on the repository's needs, and
    ask the operator to confirm one. Never infer from remotes, credentials, host,
@@ -240,7 +240,7 @@ its fix.
 | Factory | `/groom`, `/draft`, `/execute`, `/address-comments` resolve, and the runtime selected by `RUNTIME.md` finds `scripts/find-change.ts` | groom, draft, execute, address | Install delivery-skills with `./install.sh --skills-dir <path>`. Do not load a second factory pack in the same session |
 | Review commands | `/code-review-max` and `/mr-review` are available. The forge metadata and note helpers are on PATH. A lightweight built-in review does not count | review | Run `./install.sh`. For forge metadata and note helpers in a cloud agent, run the review-provider setup once |
 | Forge | The forge provider answers a read. A configured forge credential is enough | draft, execute, address, review, ship, archive, verify, auto | Configure the forge provider advertised by the runtime |
-| Work items | `work-item-config.ts check` validates the confirmed repository provider. Local files require no remote capability. A remote provider must pass a real work-item read; a failed read or result with no key stops. Continuous delivery additionally probes create and link with no write before plan approval | triage, draft, discover, retro, auto | Confirm `local-files` or configure and confirm the exact Jira, forge-issues, or custom provider advertised by the runtime |
+| Work items | `work-item-config.ts check` validates the confirmed repository provider. Local files require no remote capability. A remote provider must pass a real work-item read; a failed read or result with no key stops. Continuous delivery additionally probes create and link with no write before plan approval | triage, draft, discover, retro, auto | Confirm `local-files` or configure and confirm the exact remote or custom provider advertised by the runtime |
 | Spec tool | The selected spec provider's version probe succeeds | draft, execute, archive | Install and configure the selected spec provider |
 | Deployed environment | The environment's hostnames resolve and answer | verify | Run verify on a machine on the internal network, such as the operator's self-hosted worker |
 | Skill evaluation | The pinned Bun version runs `checks/delivery-specs.test.ts`, and the skill store is writable | improve | Use the Bun version from the target repository and a skill store the runtime can write |
