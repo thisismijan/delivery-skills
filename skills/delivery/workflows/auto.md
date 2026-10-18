@@ -168,10 +168,10 @@ step.
 
 ## Waiting
 
-- **For a pipeline, a build, or a deploy.** Observe it once. For an MR, read
-  `head_pipeline` from the forge change view for `<iid>`, not the branch's
-  pipeline. If it is still running, set `[waiting: <what>]`, end the turn, and
-  give the resume command. Do not sleep or poll in the same turn.
+- **For a pipeline, a build, or a deploy.** Observe it once. For a forge
+  change, use the normalized `pipeline` from `forge-provider.ts read` for its
+  ref, not a branch pipeline. Require `current: true`. If it is still running,
+  set `[waiting: <what>]`, end the turn, and give the resume command. Do not sleep or poll in the same turn.
 - **For a person** (a merge, a reporter, an answer): do not poll. Set
   `[waiting: <what>]`, ask, and end the turn. Their reply resumes the loop.
 - **Never retry a failed stage.** A failure is a terminal stop, exactly as when

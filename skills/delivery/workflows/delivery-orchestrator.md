@@ -40,7 +40,7 @@ iid, else epic/idea input.
 ## Preconditions
 
 Union of the stage preconditions for the entry point chosen. Do not start stage
-2 without OpenSpec init; do not start stage 3 without `gl-mr`.
+2 without OpenSpec init; do not start stage 3 without `scripts/forge-provider.ts` `read`.
 
 ## Steps
 

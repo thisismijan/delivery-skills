@@ -1,0 +1,28 @@
+[
+  {
+    "id": 9001,
+    "iid": 42,
+    "title": "Keep review evidence complete",
+    "description": "Bind files, diff, and discussions to the head revision.",
+    "state": "opened",
+    "draft": true,
+    "author": { "name": "Ada Lovelace", "username": "ada" },
+    "source_branch": "cursor/generic-forge-provider-327b",
+    "target_branch": "main",
+    "sha": "aaa111bbb222ccc333ddd444eee555fff666aaa1",
+    "web_url": "https://gitlab.example/acme/app/-/merge_requests/42"
+  },
+  {
+    "id": 9003,
+    "iid": 43,
+    "title": "Second open change",
+    "description": "",
+    "state": "opened",
+    "draft": false,
+    "author": { "name": "Ada Lovelace" },
+    "source_branch": "cursor/generic-forge-provider-327b",
+    "target_branch": "main",
+    "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "web_url": "https://gitlab.example/acme/app/-/merge_requests/43"
+  }
+]

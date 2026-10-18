@@ -48,7 +48,7 @@ It runs inside an interactive skill-capable runtime session. The target repo hol
 ## Architecture: three layers by trust
 
 1. **Orchestration (prompts):** the two commands under `commands/` and the subagents under `agents/` (`ticket-assessor`, `feasibility-analyst`, `holdout-reviewer`, `task-profile-controller`). AI-driven; a human invokes the commands and decides between phases.
-2. **I/O (tools):** tracker provider, `git` plus the forge provider (branch, merge request, merge), OpenSpec `/opsx:*`. The agents call these.
+2. **I/O (tools):** tracker provider, `git`, and `scripts/forge-provider.ts` (change find/read/create/note/reply). OpenSpec `/opsx:*`. The agents call these. Humans own merge, close, and thread resolution.
 3. **Deterministic teeth (code):** small TypeScript scripts under `scripts/`: the **test gate** (runs the target repo's tests, emits structured pass/fail) and **verify-change** (OpenSpec artifact + structural checks; Zod-validated review verdict). Run on Bun, unit-tested with `bun test`.
 
 ## Hard rules
@@ -58,7 +58,7 @@ It runs inside an interactive skill-capable runtime session. The target repo hol
 3. **Holdout review.** The reviewer is a **fresh frontier subagent** with restricted tools that sees the ticket, the spec, the diff, the tests, and the results, never the implementer's reasoning, plan, or commit rationale.
 4. **Model policy.** Standard tier by default; **review always frontier**; implementation may use frontier only with a high complexity signal **and** a recorded, non-empty justification. The runtime inventory supplies the exact identifiers.
 5. **Verdicts are validated.** The review verdict is parsed/validated (Zod) before the approve decision; malformed → fail closed (stop + escalate).
-6. **The factory never merges, archives, or closes MRs.** It creates the MR, marks it ready, and posts the review outcome. A human performs the merge (and the post-merge `/openspec-archive`). `review-route.ts` returns `approve` (not `merge`) on a satisfied review.
+6. **The factory never merges, archives, closes, or resolves threads.** It creates the draft change and posts the review outcome through `scripts/forge-provider.ts`. A human performs the merge (and the post-merge `/openspec-archive`). `review-route.ts` returns `approve` (not `merge`) on a satisfied review. Generic skills never call a provider-native helper.
 7. **Humans own tracker status.** MCP usage is `fetch` + `comment` only, with **no status transitions, and no attachments** (the tracker provider exposes neither). The spec is linked from a comment; the git branch holds it.
 8. **Fail closed.** Missing spec on disk, tests that didn't run, missing artifacts, exhausted fix attempts → stop + escalate. The happy path must be positively proven.
 

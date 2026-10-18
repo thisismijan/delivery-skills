@@ -472,23 +472,36 @@ test("explicit --provider installs that provider and generic install includes no
 		expect(selected.exitCode).toBe(0);
 		expect(selected.stdout).toContain("Provider gitlab: ready");
 		expect(selected.stdout).not.toContain("test-token");
+		expect(await pathExists(join(bin, "gitlab-forge"))).toBe(true);
 		expect(await pathExists(join(bin, "gl-mr"))).toBe(true);
 		expect(await pathExists(join(bin, "gl-note"))).toBe(true);
-		for (const tool of ["gl-mr", "gl-note"]) {
+		for (const tool of ["gitlab-forge", "gl-mr", "gl-note"]) {
 			const installed = await readFile(join(bin, tool), "utf8");
 			expect(installed).not.toContain(rootDir);
 			expect(installed).not.toContain("DELIVERY_PACK_ROOT");
 		}
-		expect(
-			JSON.parse(
-				await readFile(join(dest, "_factory", "runtime-manifest.json"), "utf8"),
-			),
-		).toMatchObject({
-			capabilities: {
-				"forge.change": { available: true, invocation: "gl-mr" },
-				"review.publish": { available: true, invocation: "gl-note" },
-			},
+		const runtime = JSON.parse(
+			await readFile(join(dest, "_factory", "runtime-manifest.json"), "utf8"),
+		) as {
+			capabilities: Record<
+				string,
+				{
+					available: boolean;
+					mode?: string;
+					invocation?: string;
+					provider?: string;
+				}
+			>;
+		};
+		expect(runtime.capabilities["forge.change"]).toEqual({
+			available: true,
+			mode: "adapter",
+			invocation: `exec:${join(bin, "gitlab-forge")}`,
+			provider: "gitlab",
 		});
+		expect(runtime.capabilities["review.publish"]).toEqual(
+			runtime.capabilities["forge.change"],
+		);
 	});
 });
 

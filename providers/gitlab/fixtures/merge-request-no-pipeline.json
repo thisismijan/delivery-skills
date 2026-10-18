@@ -1,0 +1,14 @@
+{
+  "id": 9002,
+  "iid": 7,
+  "project_id": 17,
+  "title": "No pipeline yet",
+  "description": "",
+  "state": "opened",
+  "draft": false,
+  "author": { "username": "ada" },
+  "source_branch": "feature/no-pipeline",
+  "target_branch": "main",
+  "sha": "ffffffffffffffffffffffffffffffffffffffff",
+  "web_url": "https://gitlab.example/acme/app/-/merge_requests/7"
+}

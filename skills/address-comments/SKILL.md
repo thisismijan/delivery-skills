@@ -49,9 +49,17 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    Non-zero exit (no match, or `ambiguous` with more than one match) → **stop + escalate** (fail closed) without guessing. Otherwise use the printed `match` as `<changeName>` (the branch name; `openspec/changes/<changeName>` is `<changeDir>`).
 
-2. **Confirm an open MR exists.** Check the MR for the source branch via the forge provider's change list for source branch `<changeName>` in the opened state. If there is **no** open MR for the branch, **stop + escalate** (use `scripts/escalate.ts` semantics / `assertOrEscalate`): make zero commits and post nothing. Record the MR IRI/number as `<mr>`.
+2. **Confirm an open change exists.** Resolve `<repoRoot>` with `git rev-parse --show-toplevel`. Create `<reviewDir> = <repoRoot>/.review/<changeName>/address-comments`. Write `{ "sourceBranch": "<changeName>" }` to `<reviewDir>/find-input.json`, then:
+   ```
+   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" find "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/find-input.json"
+   ```
+   Non-zero exit → **stop + escalate**. If there is **no** open change for the branch, **stop + escalate** (use `scripts/escalate.ts` semantics / `assertOrEscalate`): make zero commits and post nothing. Record the returned opaque change `ref` as `<change-ref>` (a user-facing MR iid is an alias for that ref).
 
-3. **Check out** the spec branch `<changeName>`. Resolve `<repoRoot>` with `git rev-parse --show-toplevel`, set `<reviewDir> = <repoRoot>/.review/<changeName>/address-comments`, and create it. Mark the MR draft with the forge provider's draft action before changing code. Before reusing a persisted per-comment or cumulative gate artifact, verify it is still bound to the current commit, command, and test file contents. The script calls verifyGateEvidence:
+3. **Check out** the spec branch `<changeName>`. Mark the change draft before changing code. Write `{ "approved": true, "ref": "<change-ref>", "draft": true }` to `<reviewDir>/set-draft-input.json`, then:
+   ```
+   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" set-draft "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/set-draft-input.json"
+   ```
+   Non-zero exit → **stop + escalate**. Before reusing a persisted per-comment or cumulative gate artifact, verify it is still bound to the current commit, command, and test file contents. The script calls verifyGateEvidence:
    ```
    bun "${FACTORY_ROOT}/scripts/test-gate.ts" verify "<reviewDir>/red-gate-<commentId>-<test-commit>.json" "<reviewDir>/red-command-<commentId>.json"
    bun "${FACTORY_ROOT}/scripts/test-gate.ts" verify "<reviewDir>/green-gate-<commentId>-<source-commit>.json" "<reviewDir>/green-command-<commentId>.json"
@@ -61,11 +69,13 @@ This command consumes the review comments on the **existing** MR for this ticket
    bun "${FACTORY_ROOT}/scripts/config.ts"
    ```
 
-4. **Gather and scope comments.** Fetch the MR's discussion threads via the forge provider's discussion dump (not a note-list helper whose output shape differs across CLIs), then pipe into the parser/filter:
+4. **Gather and scope comments.** Write `{ "ref": "<change-ref>" }` to `<reviewDir>/discussions-input.json`, then fetch discussion threads with the exact forge command:
    ```
-   <forge discussion JSON> | bun "${FACTORY_ROOT}/scripts/forge-comments.ts"
+   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" discussions "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/discussions-input.json" \
+     | bun "${FACTORY_ROOT}/scripts/forge-comments.ts" \
+     > "<reviewDir>/comments.json"
    ```
-   The comment parser flattens the discussions to one entry per note (`parseMrComments`, fail-closed on non-JSON / non-array), dropping forge system notes and carrying each note's parent `discussionId` (needed to reply on its thread in step 7). It then applies `excludeHandledThreads`: if any note in a discussion starts with the factory audit prefix from `scripts/audit.ts`, the **entire discussion** is excluded. Removing only the factory reply would leave the original human note in scope and cause a duplicate action on re-entry. The remaining comments are **in scope**. Non-zero exit (unparseable output) → stop + escalate.
+   Non-zero exit or unparseable output → **stop + escalate**. The provider result is normalized JSON bound to the requested change and head revision. `forge-comments.ts` flattens it to one entry per non-system note, carries each parent `discussionId` (needed to reply on its thread), and applies `excludeHandledThreads`: if an authenticated factory note in a discussion starts with the audit prefix, the **entire discussion** is excluded. Removing only the factory reply would leave the original human note in scope and cause a duplicate action on re-entry. The resulting comments are **in scope**.
 
 5. **Classify (single batch, read-only).** Resolve `standard` against the runtime
    model inventory. Start a usage timer, then dispatch **exactly one**
@@ -119,16 +129,15 @@ This command consumes the review comments on the **existing** MR for this ticket
 
    - **`outdated`** (skip): no reply, no code change. (Tracked only in the final counts.)
 
-7. **Persist re-review state, then reply.** First write `<reviewDir>/re-review-pending.json` with the MR iid, current head SHA, comment ids, and gate artifact paths. Its presence means step 8 must run even when re-entry finds zero in-scope comments. Then, for each in-scope comment **except** those routed `skip`, post **exactly one** reply **on that comment's own thread** (not a new general note), wrapping the body with the audit prefix from `scripts/audit.ts`:
+7. **Persist re-review state, then reply.** First write `<reviewDir>/re-review-pending.json` with the change ref, current head SHA, comment ids, and gate artifact paths. Its presence means step 8 must run even when re-entry finds zero in-scope comments. Then, for each in-scope comment **except** those routed `skip`, post **exactly one** reply **on that comment's own thread** (not a new general note), wrapping the body with the audit prefix from `scripts/audit.ts`:
    ```
    bun "${FACTORY_ROOT}/scripts/audit.ts" address-comments "<reply body>"
    ```
-   Write the wrapped body under `.review/`, run the publication check, then post to the comment's `discussionId` from step 4 (not a general note):
+   Write the wrapped body under `.review/`. For each reply, write `{ "approved": true, "ref": "<change-ref>", "discussionId": "<discussionId>", "bodyPath": "<file>" }` to a per-note input file, then:
    ```
-   bun "${FACTORY_ROOT}/scripts/note-publication.ts" check <file> <repoRoot>
-   <forge thread-reply for discussionId with body from file>
+   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" reply "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reply-input.json>"
    ```
-   (`--field ...=@<file>` reads the body from the file; `--raw-field` does NOT expand `@<file>`).
+   One call per thread; do not batch. If one fails, report the failure and stop rather than continuing down the list. The command checks the body before any adapter. Do not post a general note in place of a thread reply.
    - actioned (`bug`/`non-functional`, and `question` that required a change): state what changed and include the **commit SHA**.
    - answered (`question` with no change): give the answer.
    - disputed (`nitpick`/`false-positive`): give the reasoned rationale and "disputed — human decides".
@@ -159,14 +168,14 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    bun "${FACTORY_ROOT}/scripts/review-route.ts" "<reviewDir>/holdout-verdict.json" <attempt> <maxAttempts>
    ```
-   **Non-zero exit = malformed verdict → stop + escalate** (fail closed): MR not re-marked ready, no work-item "passed" note. Then act on `action`:
+   **Non-zero exit = malformed verdict → stop + escalate** (fail closed): change not re-marked ready, no work-item "passed" note. Then act on `action`:
 
-   - **`approve`** → remove `re-review-pending.json`. Leave the MR **draft**. Do not undraft it. Status becomes `[addressed !N]` until Stage 3 dual review passes (never merge or close via the forge provider). Render the holdout outcome for humans with the summary helper (Rule 2 — never paste raw verdict fields):
+   - **`approve`** → remove `re-review-pending.json`. Leave the change **draft**. Do not undraft it. Status becomes `[addressed !N]` until Stage 3 dual review passes (never merge, close, or resolve threads). Render the holdout outcome for humans with the summary helper (Rule 2 — never paste raw verdict fields):
      ```
      bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
      ```
-     Post **one** provider summary note through `work-item-provider.ts note <repoRoot> "${FACTORY_ROOT}/runtime-manifest.json" <note.json>` (body wrapped via `scripts/audit.ts`) with the MR link, that rendered holdout outcome, and the **actioned / disputed / skipped** counts written in plain language. **STOP.** A human performs the merge.
+     Post **one** provider summary note through `work-item-provider.ts note <repoRoot> "${FACTORY_ROOT}/runtime-manifest.json" <note.json>` (body wrapped via `scripts/audit.ts`) with the change URL, that rendered holdout outcome, and the **actioned / disputed / skipped** counts written in plain language. **STOP.** A human performs the merge.
    - **`fix`** → dispatch the `implementer` to address the verdict `findings`, re-run the green gate (+ lint/typecheck), increment `attempt`, and **go back to step 8** (the re-review runs fresh). Do **not** re-mark ready during the fix loop. If two failed fixes share the same assumption, apply the premise checkpoint from step 6 before any third fix.
-   - **`escalate`** (including `reject`, `shouldEscalate`, or exhausted attempts) → post the `reason`/`findings` as a provider note and stop (NEEDS_HUMAN). Leave the MR **unblessed** (not re-marked ready); post no "passed" note.
+   - **`escalate`** (including `reject`, `shouldEscalate`, or exhausted attempts) → post the `reason`/`findings` as a provider note and stop (NEEDS_HUMAN). Leave the change **unblessed** (not re-marked ready); post no "passed" note.
 
-9. **Invariants.** Holdout approve leaves the MR **draft** under `[addressed !N]`. Stage 3 dual review is the only authority that may undraft. The factory **never** merges, closes, archives, or resolves threads, and **never** transitions work-item status; humans own all of that. The reviewer never sees implementer/assessor reasoning. Every assessed thread received exactly one reply across all re-entries; the only work-item write is the single summary note.
+9. **Invariants.** Holdout approve leaves the change **draft** under `[addressed !N]`. Stage 3 dual review is the only authority that may undraft. The factory **never** merges, closes, archives, or resolves threads, and **never** transitions work-item status; humans own all of that. The reviewer never sees implementer/assessor reasoning. Every assessed thread received exactly one reply across all re-entries; the only work-item write is the single summary note. Every forge read or mutation uses `scripts/forge-provider.ts` with an exact operation; never invent a helper name.

@@ -21,9 +21,11 @@ Check these in order. The first one that fails is a terminal stop.
 
 1. **Ledger.** Find it by key or iid (`delivery-ledger.md`). If none exists,
    create one for the key and record that readiness started without one.
-2. **MR is open.** Read it: the forge change view for `<iid>`. Use `state`,
-   `draft`, `sha`, `source_branch`, `target_branch`, `has_conflicts`,
-   `detailed_merge_status`, and `head_pipeline`.
+2. **Change is open.** Write `{ "ref": "<ref>" }` (CLI alias: the MR iid) and
+   read it with the exact forge command:
+   `bun "${FACTORY_ROOT}/scripts/forge-provider.ts" read "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <read-input.json>`.
+   Use only the normalized `state`, `draft`, `branches`, `revisions`,
+   `pipeline`, and `mergeability` fields.
    - `merged` → stop: "already merged; run `/delivery verify <iid>` after
      deploy".
    - `closed` → stop: "MR is closed".
@@ -42,22 +44,17 @@ Check these in order. The first one that fails is a terminal stop.
      `/delivery review <iid>`".
    - Patch-id differs → stop: "the change moved since review at <short head>;
      run `/delivery review <iid>` again".
-4. **Pipeline is finished at the current head.** `head_pipeline` belongs to the
-   current head `sha` when either:
-   - `head_pipeline.sha` equals `sha` (a branch or detached pipeline), or
-   - `head_pipeline.sha` is a merged-results commit whose second parent is `sha`.
-     Projects with merged-results pipelines run the MR's pipeline on
-     `refs/merge-requests/<iid>/merge`, a commit merging the head into the
-     target, so its sha is never the head itself. Read the parents with
-     the forge provider's commit lookup for `<head_pipeline.sha>`.
-
-   A pipeline that belongs to an older head does not count. Its status must be
-   `success`.
+4. **Pipeline is finished at the current head.** The normalized pipeline must
+   be available and `current: true`; the adapter owns provider-specific
+   branch, detached, and merged-results revision checks. A pipeline with
+   `current: false` belongs to older or unrelated evidence and does not count.
+   Its status must be `success`.
    - Running or pending → stop: "pipeline still running at <short sha>; run
      `/delivery ship <iid>` when it finishes". Do not wait or poll.
    - Failed → continue. It becomes a blocker in step 6.
-5. **No conflicts.** `has_conflicts` is false. Conflicts become a blocker in
-   step 6.
+5. **No conflicts.** Normalized mergeability must be available and
+   `conflicts: false`. Unavailable mergeability is a terminal capability gap;
+   conflicts become a blocker in step 6.
 
 ## Steps
 

@@ -18,14 +18,16 @@ or changes a flag.
 1. **Ledger.** Find it (`delivery-ledger.md`). If the ledger has no readiness
    brief for this iid, continue and say in the result that there was no watch
    list to check against.
-2. **MR is merged.** the forge change view for `<iid>`: `state` is `merged`.
-   Otherwise stop: "!<iid> is not merged".
-3. **The merge is deployed.** Find the merge commit (`merge_commit_sha`, or
-   `squash_commit_sha` for a squash merge) and confirm that the environment runs
-   a version containing it. Evidence can be a version endpoint, an image tag,
-   or the deploy job for that commit. If you cannot confirm it, stop: "cannot
-   confirm <short sha> is deployed to <env>". Do not verify a version you cannot
-   identify.
+2. **Change is merged.** Write `{ "ref": "<ref>" }` and run
+   `bun "${FACTORY_ROOT}/scripts/forge-provider.ts" read "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <read-input.json>`.
+   Require normalized `state: "merged"`. Otherwise stop: "!<iid> is not
+   merged".
+3. **The merge is deployed.** Use normalized `revisions.merged`; if it is
+   absent, stop because the deployed revision cannot be identified. Confirm
+   that the environment runs a version containing it. Evidence can be a version
+   endpoint, an image tag, or the deploy job for that revision. If you cannot
+   confirm it, stop: "cannot confirm <short sha> is deployed to <env>". Do not
+   verify a version you cannot identify.
 
 ## Steps
 

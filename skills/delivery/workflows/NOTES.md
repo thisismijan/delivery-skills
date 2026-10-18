@@ -26,7 +26,7 @@ of a human approval gate in one background run.
 | Channel | How we touch it | Writes allowed |
 |---------|-----------------|----------------|
 | **Tracker** | Tracker provider advertised by the runtime. Informational until a stage needs a real work-item read. | Factory: read plus **comment only**. Humans create and transition work items. |
-| **Forge** | Forge provider advertised by the runtime. Pack helpers `gl-mr` (read-only) and `gl-note` (publish review notes) are the normalized metadata and publication commands. | Factory opens the merge request and posts notes. Humans merge and close. Stage 3 marks a merge request ready after both review passes. `gl-mr` is GET-only by design. Every note publisher runs `checkNotePublication` before any network call; bodies must resolve under `.review/` and must not look secret-bearing. |
+| **Forge** | Runtime `forge.change` and `review.publish` capabilities, invoked only through `scripts/forge-provider.ts`. | Factory opens the draft change and posts notes. Humans merge, close, and resolve threads. Stage 3 marks a change ready after both review passes. Every `note` and `reply` checks the body before any adapter; bodies must resolve under `.review/` and must not look secret-bearing. |
 | **OpenSpec** | `openspec/` in the **target repo**; `/opsx:*` commands | Factory authors changes under `openspec/changes/`. Humans run `/openspec-archive` after merge. |
 
 Project is inferred from `git remote get-url origin` unless the forge provider is given an explicit project.
@@ -38,7 +38,7 @@ Do not confuse these review surfaces:
 | Term | What it is | When |
 |------|------------|------|
 | **`/code-review-max !<iid>`** | Pack skill. Pinned, multi-lens correctness pass for a merge request. Ends with an iid + head-SHA marker. | After a ready merge request exists, before `/mr-review` in the same conversation. |
-| **`/mr-review <iid>`** | Pack skill. Approach pass; validates the correctness pass against the current head, merges both passes, drafts under `.review/mr-<iid>/<head-sha>/`, and posts via `gl-note` only after human confirm. | Same conversation or a fresh one using the matching pinned max artifact. |
+| **`/mr-review <iid>`** | Pack skill. Approach pass; validates the correctness pass against the current head, merges both passes, drafts under `.review/mr-<iid>/<head-sha>/`, and posts via `forge-provider.ts` `note` only after human confirm. | Same conversation or a fresh one using the matching pinned max artifact. |
 | **Lightweight built-in review** | A host review command that is not the max pass. | **Not** the max pass `/mr-review` depends on; it has no fan-out or freshness marker. |
 
 Factory stages (this clone's `skills/` + `factory/`):
@@ -79,7 +79,7 @@ Factory stages (this clone's `skills/` + `factory/`):
 
 ## Factory non-goals (v1)
 
-- No merge or close through the forge provider
+- No merge, close, or thread resolution through `scripts/forge-provider.ts`
 - No tracker status transitions
 - No automatic work-item create from groom
 - No host-native port of a source framework
@@ -133,7 +133,7 @@ Implement against the live sources named in `SKILL.md`; do not invent new stage 
    - After groom approval: create one work item per draft + parent/epic + blocked-by links, then return a `slice → KEY` map (keeps human checkpoint; removes copy-paste)
    - Optional read of epic key as groom input (still no writes inside groom itself)
 5. **Forge provider metadata**
-   - Merge-request meta/discussions/notes via the forge provider beside `gl-mr` / `gl-note`
+   - Change meta/discussions/notes only through `scripts/forge-provider.ts`
 6. **Still deferred**
    - Tracker status transitions from the factory (humans own status unless policy changes)
    - Auto-spawn worktrees / cloud agents from the conductor (brief-only fan-out remains)

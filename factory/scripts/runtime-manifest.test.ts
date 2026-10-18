@@ -107,6 +107,54 @@ describe("runtime manifest validation", () => {
 		).toBe("forge-issues");
 	});
 
+	test("requires identity for available forge and review-publication providers", () => {
+		expect(() =>
+			parseRuntimeManifest({
+				version: 1,
+				capabilities: {
+					"forge.change": {
+						available: true,
+						mode: "adapter",
+						invocation: "exec:/usr/bin/forge",
+					},
+				},
+			}),
+		).toThrow(/provider/);
+		expect(() =>
+			parseRuntimeManifest({
+				version: 1,
+				capabilities: {
+					"review.publish": {
+						available: true,
+						mode: "adapter",
+						invocation: "exec:/usr/bin/review",
+					},
+				},
+			}),
+		).toThrow(/provider/);
+		const runtime = parseRuntimeManifest({
+			version: 1,
+			capabilities: {
+				"forge.change": {
+					available: true,
+					mode: "adapter",
+					invocation: "exec:/usr/bin/forge",
+					provider: "sample-forge",
+				},
+				"review.publish": {
+					available: true,
+					mode: "adapter",
+					invocation: "exec:/usr/bin/review",
+					provider: "sample-forge",
+				},
+			},
+		});
+		expect(runtime.capabilities["forge.change"]?.provider).toBe("sample-forge");
+		expect(runtime.capabilities["review.publish"]?.provider).toBe(
+			"sample-forge",
+		);
+	});
+
 	test("builds a complete fail-closed default", () => {
 		const runtime = defaultRuntimeManifest();
 		expect(Object.keys(runtime.capabilities).sort()).toEqual([
@@ -147,6 +195,7 @@ describe("runtime manifest validation", () => {
 					available: true,
 					mode: "adapter",
 					invocation: "gl-mr",
+					provider: "sample-forge",
 				},
 			}),
 		);
@@ -164,12 +213,14 @@ describe("capability lookup and missing-capability errors", () => {
 				available: true,
 				mode: "adapter",
 				invocation: "forge.open-change",
+				provider: "sample-forge",
 			},
 		});
 		expect(lookupCapability(runtime, "forge.change")).toEqual({
 			available: true,
 			mode: "adapter",
 			invocation: "forge.open-change",
+			provider: "sample-forge",
 		});
 		expect(capabilityResult(runtime, "forge.change").ok).toBe(true);
 	});

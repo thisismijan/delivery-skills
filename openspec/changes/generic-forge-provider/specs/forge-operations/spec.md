@@ -10,7 +10,8 @@ across forge products while preserving human-owned delivery boundaries.
 ### Requirement: Forge changes have normalized identities and metadata
 The system SHALL expose provider-neutral find and read operations whose results
 include provider identity, opaque change reference, state, branches, revisions,
-title, description, author, URL, and available pipeline evidence.
+title, description, author, URL, current-head pipeline evidence, and
+mergeability.
 
 #### Scenario: Change is found by source branch
 - **WHEN** a caller finds open changes for a source branch
