@@ -41,42 +41,35 @@ What the installer does:
   manifest. Reinstalls replace only managed files.
 - Installs the generic runtime beside the skills at `_factory/`, including its
   pinned runtime dependencies but excluding review scratch files.
+- Writes `_factory/runtime-manifest.json`. The generic baseline advertises
+  subprocess execution and keeps every unavailable capability fail closed;
+  selected adapters and providers overlay only capabilities they can verify.
 - Leaves unmanaged files and delivery state (`runs`, `candidates`, `versions`)
   untouched.
-- Fails without replacing an existing install when the destination cannot be
-  written.
+- Restores the previous install if validation or selected setup fails.
 
 Reload the host session so the installed skills are picked up.
 
 ## Quick start
 
-1. Install the generic pack into a skills directory your runtime loads.
-2. Configure a version-1 runtime manifest. This minimal example supports
-   read-only work only; continuous delivery additionally needs the capabilities
-   listed below. Invocation values are opaque references interpreted by the
-   runtime or selected adapter:
+1. Install the pack into a skills directory your runtime loads. Prefer its
+   named adapter wrapper when one exists; the adapter README gives the exact
+   command and host limitation.
+2. Reload the host, enter the repository to deliver, and run:
 
-   ```json
-   {
-     "version": 1,
-     "capabilities": {
-       "process.run": {
-         "available": true,
-         "mode": "native",
-         "invocation": "subprocess"
-       },
-       "mutation.guard": {
-         "available": false,
-         "mode": "unavailable",
-         "enforcement": "unknown"
-       }
-     }
-   }
+   ```bash
+   export FACTORY_ROOT="/path/to/skills/_factory"
+   bun "$FACTORY_ROOT/scripts/doctor.ts"
+   bun "$FACTORY_ROOT/scripts/delivery-init.ts"
    ```
 
-3. In a target repository, invoke the `delivery` skill with `help` or `status`.
-   If the runtime exposes slash skills, the equivalent forms are `/delivery
-   help` and `/delivery status`.
+   `doctor` separates what is ready, what needs setup, host limitations, and
+   actions that always remain human-owned. It reports credential presence only;
+   it never prints credential values. `delivery-init.ts` idempotently adds
+   `.delivery/` and `.review/` to the target repository's `.gitignore`.
+3. Invoke the `delivery` skill with `help`, `doctor`, `init`, or `status`. If the
+   runtime exposes slash skills, use `/delivery help`, `/delivery doctor`,
+   `/delivery init`, or `/delivery status`.
 
 Read-only stages can run with a smaller capability set. Mutating stages require
 `mutation.guard` with `enforcement: "enforced"`. A missing capability produces a
@@ -204,13 +197,20 @@ a new explicit approval. The previous contract remains durable evidence.
 Runtime and CI checks use one command:
 
 ```bash
+bun "$FACTORY_ROOT/scripts/doctor.ts"
+```
+
+The compatibility preflight command delegates to the same doctor. For the
+constitution-only runtime and CI check, use:
+
+```bash
 bun "$FACTORY_ROOT/scripts/sdlc-constitution.ts" preflight
 ```
 
-The same helper exposes `freeze`, `check`, and `report` for run-contract
-creation, stage-boundary validation, and conformance evidence. See the
-constitution itself for the canonical commandments; the README deliberately
-does not maintain a second numbered rule catalogue.
+The constitution helper also exposes `freeze`, `check`, and `report` for
+run-contract creation, stage-boundary validation, and conformance evidence.
+See the constitution itself for the canonical commandments; the README
+deliberately does not maintain a second numbered rule catalogue.
 
 ## SDLC
 

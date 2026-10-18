@@ -6,14 +6,20 @@ Agents also read `/cursor/stores/user/skills`.
 From the clone:
 
 ```bash
-./install.sh --skills-dir "${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}" --adapter cursor
-# compatibility wrapper:
 bash adapters/cursor/install.sh
 # cloud agent VM:
 bash adapters/cursor/install-store.sh
-# or the named-host wrapper:
+# equivalent compatibility routes:
 bash adapters/compat.sh --cursor
 bash adapters/compat.sh --store
+```
+
+The wrappers install the generic pack, this adapter, and the GitLab review
+provider. Reload Cursor, enter the target repository, and run:
+
+```bash
+bun "${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}/_factory/scripts/doctor.ts"
+bun "${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}/_factory/scripts/delivery-init.ts"
 ```
 
 That is a managed copy of `skills/*` plus `_factory/`. Do not edit files under
@@ -26,8 +32,9 @@ Cursor-only behaviour:
 - Correctness pass is `/code-review-max`.
 - Native Cursor `/code-review` is rejected by `/mr-review`.
 - Parallel work uses Cursor subagents, not Claude dynamic workflows.
-- `gl-mr` / `gl-note` are installed into `~/.local/bin` by this adapter. Ensure
-  that directory is on `PATH`.
+- `gl-mr` / `gl-note` are installed into `~/.local/bin` by the selected GitLab
+  provider. Ensure that directory is on `PATH`; doctor reports missing tools or
+  credentials without printing secret values.
 - Cursor is declared **unenforced**. It has no executable hook that can deny a
   tool call, so mutating stages stay blocked until a real enforcement hook
   exists and this declaration is changed with a test. Read-only stages still

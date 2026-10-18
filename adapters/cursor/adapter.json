@@ -5,9 +5,9 @@
     { "id": "process.run", "available": true, "mode": "native" },
     { "id": "agent.dispatch", "available": true, "mode": "native" },
     { "id": "model.inventory", "available": true, "mode": "native" },
-    { "id": "forge.change", "available": true, "mode": "provider", "invocation": "gl-mr" },
+    { "id": "forge.change", "available": false, "mode": "unavailable" },
     { "id": "tracker.item", "available": false, "mode": "unavailable" },
-    { "id": "review.publish", "available": true, "mode": "provider", "invocation": "gl-note" },
+    { "id": "review.publish", "available": false, "mode": "unavailable" },
     { "id": "mutation.guard", "available": false, "mode": "unenforced" }
   ]
 }

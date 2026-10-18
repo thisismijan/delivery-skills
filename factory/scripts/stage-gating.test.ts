@@ -82,6 +82,12 @@ describe("canStartStage", () => {
 		expect(canStartStage({ stage: "draft", runtime: enforced }).allowed).toBe(
 			true,
 		);
+		expect(canStartStage({ stage: "init", runtime: enforced }).allowed).toBe(
+			true,
+		);
+		expect(canStartStage({ stage: "init", runtime: unenforced }).allowed).toBe(
+			false,
+		);
 	});
 
 	test("does not consult a host name when selecting stage behavior", () => {

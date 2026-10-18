@@ -58,6 +58,8 @@ rows.
 
 | Match | Entry | Runs |
 |-------|-------|------|
+| `^doctor$` | Doctor | Installed runtime diagnosis |
+| `^init$` | Initialize | Target-repository bootstrap |
 | `^auto(\s+.+)?$` | Auto | `workflows/auto.md` |
 | `^help$` | Help | The cheat-sheet below |
 | `^discover\s+.+` | Discovery | Stage 0 |
@@ -174,10 +176,10 @@ State the chosen entry and what it runs in one line, then continue.
 6. Check the capabilities the next stage needs (below) by calling
    `checkCapabilities`. For `auto`, check only what that stage needs and
    check again when the next stage starts.
-   Before a mutating stage (`draft`, `execute`, `address-comments`, `archive`,
+   Before a mutating stage (`init`, `draft`, `execute`, `address-comments`, `archive`,
    `auto`, `improve-apply`, `improve-rollback`), run `canStartStage` with the runtime manifest:
    ```
-   bun "${FACTORY_ROOT}/scripts/stage-gating.ts" <stage> <runtime-manifest.json>
+   bun "${FACTORY_ROOT}/scripts/stage-gating.ts" <stage> "${FACTORY_ROOT}/runtime-manifest.json"
    ```
    Non-zero exit → stop with the printed reason. A runtime that does not declare an enforceable mutation boundary cannot start mutating stages.
    Read-only stages still run.
@@ -310,6 +312,16 @@ none or several is a terminal stop that names what was found. Its MR must be
 merged; otherwise stop: "!<iid> is not merged; archive after the merge". Typing
 this verb is the operator's yes. If the archive leaves changes in the working
 tree, say they need committing; do not commit them.
+
+### Entry P — Setup
+
+- **Doctor** is read-only. Run
+  `bun "${FACTORY_ROOT}/scripts/doctor.ts"` in the target repository and print
+  its complete Ready now, Needs setup, Host limitation, and Human-owned report.
+- **Initialize** is an explicit local mutation. First gate `init` with
+  `${FACTORY_ROOT}/runtime-manifest.json`, then run
+  `bun "${FACTORY_ROOT}/scripts/delivery-init.ts"`. It may add only
+  `.delivery/` and `.review/` to `.gitignore`; it creates no remote resource.
 
 ### Entry 0 — Discovery
 
@@ -585,6 +597,8 @@ Run in the **target repo** cwd with this delivery pack loaded. This is everythin
 ```
 /delivery auto [idea | KEY | iid]    # the whole lifecycle; stops only for your decisions
 /delivery status [KEY]               # where everything is, and what to type next
+/delivery doctor                     # live readiness and exact setup remedies
+/delivery init                       # initialize this target repository safely
 
 /delivery discover <idea>            # shape a vague idea into a one-pager
 /delivery triage <BUG-KEY>           # take a bug report into the loop

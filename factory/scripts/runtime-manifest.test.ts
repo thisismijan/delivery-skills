@@ -4,9 +4,11 @@ import {
 	type RuntimeManifest,
 	advertisedModels,
 	capabilityResult,
+	defaultRuntimeManifest,
 	lookupCapability,
 	missingCapabilitiesForStage,
 	missingCapability,
+	overlayRuntimeManifest,
 	parseRuntimeManifest,
 } from "./runtime-manifest";
 import { canStartStage } from "./stage-gating";
@@ -75,6 +77,55 @@ describe("runtime manifest validation", () => {
 				},
 			}),
 		).toThrow();
+	});
+
+	test("builds a complete fail-closed default", () => {
+		const runtime = defaultRuntimeManifest();
+		expect(Object.keys(runtime.capabilities).sort()).toEqual([
+			"agent.dispatch",
+			"forge.change",
+			"model.inventory",
+			"mutation.guard",
+			"process.run",
+			"review.publish",
+			"tracker.item",
+		]);
+		expect(runtime.capabilities["process.run"]?.available).toBe(false);
+		expect(runtime.capabilities["mutation.guard"]).toMatchObject({
+			available: false,
+			enforcement: "unenforced",
+		});
+	});
+
+	test("enables only the installed subprocess runtime in the generic baseline", () => {
+		const runtime = defaultRuntimeManifest(true);
+		expect(runtime.capabilities["process.run"]).toEqual({
+			available: true,
+			mode: "native",
+			invocation: "bun",
+		});
+		expect(runtime.capabilities["mutation.guard"]?.available).toBe(false);
+	});
+
+	test("overlays owned capabilities without weakening mutation enforcement", () => {
+		const guarded = overlayRuntimeManifest(
+			defaultRuntimeManifest(true),
+			manifest({ "mutation.guard": mutation("enforced") }),
+		);
+		const withForge = overlayRuntimeManifest(
+			guarded,
+			manifest({
+				"forge.change": {
+					available: true,
+					mode: "adapter",
+					invocation: "gl-mr",
+				},
+			}),
+		);
+		expect(withForge.capabilities["forge.change"]?.available).toBe(true);
+		expect(withForge.capabilities["mutation.guard"]?.enforcement).toBe(
+			"enforced",
+		);
 	});
 });
 

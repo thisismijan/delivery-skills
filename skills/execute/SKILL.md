@@ -30,7 +30,7 @@ This command implements the approved change and, **only after the holdout review
 - **Fail closed:** no matching spec, more than one match, a gate that didn't run, or a gate failure with attempts exhausted → stop + escalate. Never open an MR on un-green code.
 - **Mutation boundary.** Run `canStartStage` before any write, using the runtime's mutation-guard identifier:
   ```
-  bun "${FACTORY_ROOT}/scripts/stage-gating.ts" execute <runtime-manifest.json>
+  bun "${FACTORY_ROOT}/scripts/stage-gating.ts" execute "${FACTORY_ROOT}/runtime-manifest.json"
   ```
   Non-zero exit → **stop**. A runtime that does not declare an enforceable mutation boundary cannot start this mutating stage. Do not proceed when mutation boundaries are unenforced or unknown.
 

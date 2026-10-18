@@ -138,12 +138,20 @@ copy_factory() {
 
 staging=""
 backup=""
+activated=0
+adapter_runtime=""
+provider_runtime=""
+composed_runtime=""
 cleanup() {
   if [[ -n "$staging" && -d "$staging" ]]; then
     rm -rf -- "$staging"
   fi
-  if [[ -n "$backup" && -e "$backup" && ! -e "$skills_dir" ]]; then
-    mv "$backup" "$skills_dir" 2>/dev/null || true
+  rm -f -- "$adapter_runtime" "$provider_runtime" "$composed_runtime"
+  if [[ "$activated" -eq 1 ]]; then
+    rm -rf -- "$skills_dir"
+    if [[ -n "$backup" && -e "$backup" ]]; then
+      mv "$backup" "$skills_dir" 2>/dev/null || true
+    fi
   fi
 }
 trap cleanup EXIT
@@ -169,6 +177,13 @@ for skill in "$root/skills"/*; do
 done
 
 copy_factory "$staging/_factory"
+if [[ -n "${DELIVERY_INSTALL_SKIP_BUN:-}" ]]; then
+  cp "$root/factory/default-runtime-manifest.json" \
+    "$staging/_factory/runtime-manifest.json"
+else
+  bun "$root/factory/scripts/runtime-manifest.ts" default --process \
+    >"$staging/_factory/runtime-manifest.json"
+fi
 printf '%s\n' "_factory" >>"$managed"
 copy_unmanaged "$skills_dir" "$staging"
 
@@ -179,11 +194,7 @@ if [[ -e "$skills_dir" ]]; then
 fi
 mv "$staging" "$skills_dir"
 staging=""
-if [[ -n "$backup" ]]; then
-  rm -rf -- "$backup"
-  backup=""
-fi
-trap - EXIT
+activated=1
 
 if [[ -n "$adapter" || ${#providers[@]} -gt 0 ]]; then
   export DELIVERY_SKILLS_DIR="$skills_dir"
@@ -194,19 +205,59 @@ if [[ -n "$adapter" ]]; then
   if [[ -f "$adapters_root/$adapter/setup.sh" ]]; then
     bash "$adapters_root/$adapter/setup.sh"
   fi
-  bun "$root/factory/scripts/adapter-contract.ts" runtime \
-    "$adapters_root/$adapter/adapter.json" \
-    >"$skills_dir/_factory/runtime-manifest.json"
+  adapter_runtime="$(mktemp "$parent/.delivery-adapter-runtime.XXXXXX")"
+  adapter_args=(
+    runtime
+    "$adapters_root/$adapter/adapter.json"
+  )
+  if [[ -f "$skills_dir/_factory/.mutation-guard-enforced" ]]; then
+    adapter_args+=("$skills_dir/_factory/.mutation-guard-enforced")
+  fi
+  bun "$root/factory/scripts/adapter-contract.ts" "${adapter_args[@]}" \
+    >"$adapter_runtime"
+  composed_runtime="$(mktemp "$parent/.delivery-runtime.XXXXXX")"
+  bun "$root/factory/scripts/runtime-manifest.ts" overlay \
+    "$skills_dir/_factory/runtime-manifest.json" \
+    "$adapter_runtime" \
+    >"$composed_runtime"
+  mv "$composed_runtime" "$skills_dir/_factory/runtime-manifest.json"
+  rm -f "$adapter_runtime"
+  adapter_runtime=""
+  composed_runtime=""
   echo "Adapter $adapter applied"
 fi
 for provider in "${providers[@]+"${providers[@]}"}"; do
   if [[ -f "$providers_root/$provider/setup.sh" ]]; then
     bash "$providers_root/$provider/setup.sh"
   fi
-  echo "Provider $provider applied"
+  provider_runtime="$(mktemp "$parent/.delivery-provider-runtime.XXXXXX")"
+  bun "$root/factory/scripts/provider-contract.ts" runtime \
+    "$providers_root/$provider/provider.json" \
+    "${DELIVERY_BIN_DIR:-$HOME/.local/bin}" \
+    >"$provider_runtime"
+  composed_runtime="$(mktemp "$parent/.delivery-runtime.XXXXXX")"
+  bun "$root/factory/scripts/runtime-manifest.ts" overlay \
+    "$skills_dir/_factory/runtime-manifest.json" \
+    "$provider_runtime" \
+    >"$composed_runtime"
+  mv "$composed_runtime" "$skills_dir/_factory/runtime-manifest.json"
+  rm -f "$provider_runtime"
+  provider_runtime=""
+  composed_runtime=""
+  bun "$root/factory/scripts/provider-contract.ts" status \
+    "$providers_root/$provider/provider.json" \
+    "${DELIVERY_BIN_DIR:-$HOME/.local/bin}"
 done
+
+if [[ -n "$backup" ]]; then
+  rm -rf -- "$backup"
+  backup=""
+fi
+activated=0
+trap - EXIT
 
 echo "Skills -> $skills_dir"
 echo "Runtime -> $skills_dir/_factory"
 echo "Reload the host session so the installed skills are picked up."
 echo "Factory root: $skills_dir/_factory"
+echo "Then run: bun \"$skills_dir/_factory/scripts/doctor.ts\""

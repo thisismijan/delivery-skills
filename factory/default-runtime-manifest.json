@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "capabilities": {
+    "process.run": {
+      "available": false,
+      "mode": "unavailable"
+    },
+    "agent.dispatch": {
+      "available": false,
+      "mode": "unavailable"
+    },
+    "model.inventory": {
+      "available": false,
+      "mode": "unavailable"
+    },
+    "forge.change": {
+      "available": false,
+      "mode": "unavailable"
+    },
+    "tracker.item": {
+      "available": false,
+      "mode": "unavailable"
+    },
+    "review.publish": {
+      "available": false,
+      "mode": "unavailable"
+    },
+    "mutation.guard": {
+      "available": false,
+      "mode": "unavailable",
+      "enforcement": "unenforced"
+    }
+  }
+}

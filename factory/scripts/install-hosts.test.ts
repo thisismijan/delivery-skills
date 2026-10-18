@@ -47,6 +47,7 @@ test("--all skips an unwritable Cloud Agent store and still installs desktop hos
 		const { stdout, stderr, exitCode } = await runInstaller(["--all"], {
 			CURSOR_SKILLS_DIR: cursor,
 			CLAUDE_SKILLS_DIR: claude,
+			CLAUDE_SETTINGS_FILE: join(root, "claude-settings.json"),
 			CURSOR_AGENT_STORE: store,
 			CURSOR_AGENT_STORE_PROBE: join(root, "missing-store"),
 			DELIVERY_BIN_DIR: join(root, "bin"),
@@ -54,10 +55,30 @@ test("--all skips an unwritable Cloud Agent store and still installs desktop hos
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain(`Cursor skills -> ${cursor}`);
 		expect(stdout).toContain(`Claude Code skills -> ${claude}`);
+		expect(stdout).toContain("Mutating stages remain blocked");
+		expect(stdout).toContain("Claude mutation hook");
 		expect(stdout).toContain(
 			`Agent store skipped (not writable here): ${store}`,
 		);
 		expect(stderr).not.toMatch(/Read-only file system/);
+		expect(
+			await readFile(join(root, "claude-settings.json"), "utf8"),
+		).toContain(join(claude, "_factory", "scripts", "commit-guard.ts"));
+		expect(
+			JSON.parse(
+				await readFile(
+					join(claude, "_factory", "runtime-manifest.json"),
+					"utf8",
+				),
+			),
+		).toMatchObject({
+			capabilities: {
+				"mutation.guard": {
+					available: true,
+					enforcement: "enforced",
+				},
+			},
+		});
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
