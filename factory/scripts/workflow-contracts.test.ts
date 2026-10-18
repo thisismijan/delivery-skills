@@ -139,7 +139,9 @@ describe("continuous delivery authorization", () => {
 		for (const doc of [delivery, auto, ledger]) {
 			expect(doc).toContain("continuous-delivery: yes");
 		}
-		expect(execute).toMatch(/continuous-delivery: yes.*without another checkbox/s);
+		expect(execute).toMatch(
+			/continuous-delivery: yes.*without another checkbox/s,
+		);
 		expect(mrReview).toMatch(
 			/continuous-delivery: yes.*standing publication authorization/s,
 		);
@@ -163,7 +165,9 @@ describe("continuous delivery authorization", () => {
 		expect(contract).toMatch(/coordinator remains the only writer/i);
 		expect(auto).toContain("DELIVERY_WORKER_JOURNAL");
 		expect(ledger).toContain("### Parallel worker journals");
-		expect(ledger).toMatch(/worker must not search for or mutate the run ledger/i);
+		expect(ledger).toMatch(
+			/worker must not search for or\s+mutate the run ledger/i,
+		);
 	});
 
 	test("high complexity records a sketch and rejected alternative", () => {

@@ -241,8 +241,8 @@ Retro never drafts or installs the candidate.
 
 In a single-step retro, the operator decides each proposal. In continuous mode,
 the standing run authorization applies the safe dispositions above. Nothing is
-applied in either mode. Accepting a proposal approves investigation, not a
-patch and not installation.
+applied in either mode. Accepting a proposal approves investigation, not a patch
+and not installation.
 
 ## Ledger writes
 
