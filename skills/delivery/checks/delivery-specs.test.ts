@@ -680,9 +680,11 @@ describe("approval-gated self-improvement", () => {
   });
 
   test("retro acceptance cannot install a candidate", () => {
-    expect(retro).toContain("Accepting a proposal approves investigation, not a patch and not installation.");
+    expect(retro).toMatch(
+      /Accepting a proposal approves investigation, not a patch\s+and not installation\./,
+    );
     expect(improve).toContain("Retro acceptance is not installation approval.");
-    expect(AUTO).toContain("`/delivery auto` never answers\nthat checkpoint.");
+    expect(AUTO).toMatch(/`\/delivery auto` never answers\s+that checkpoint\./);
   });
 
   test("apply is bound to an exact candidate and unchanged baseline", () => {
