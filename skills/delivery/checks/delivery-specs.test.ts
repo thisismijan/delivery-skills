@@ -281,7 +281,7 @@ describe("human decision context", () => {
       expect([field, brief.includes(field)]).toEqual([field, true]);
     }
     expect(brief).toMatch(/two or more viable options/i);
-    expect(brief).toMatch(/recommendation is weak/i);
+    expect(brief).toMatch(/recommendation is\s+weak/i);
     expect(brief).toMatch(/Ask exactly one final question/i);
   });
 
@@ -296,7 +296,7 @@ describe("human decision context", () => {
     ]) {
       expect([excluded, brief.includes(excluded)]).toEqual([excluded, true]);
     }
-    expect(brief).toMatch(/failed gate never becomes an option/i);
+    expect(brief).toMatch(/failed gate never\s+becomes an option/i);
     expect(brief).toMatch(/does not take.*decision|does not.*weaken.*approval/is);
   });
 
@@ -346,7 +346,7 @@ describe("human decision context", () => {
     for (const name of governed) {
       expect([
         name,
-        /Human decision brief/i.test(SPECS[name]),
+        /Human\s+decision\s+brief/i.test(SPECS[name]),
       ]).toEqual([name, true]);
     }
   });

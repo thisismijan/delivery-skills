@@ -262,7 +262,7 @@ describe("context-rich human decisions", () => {
 	});
 
 	test("decision context never turns failed evidence into an option", () => {
-		expect(delivery).toMatch(/failed gate never becomes an option/i);
+		expect(delivery).toMatch(/failed gate never\s+becomes an option/i);
 		expect(auto).toMatch(/Contradictory or unattributable.*remains a stop/is);
 	});
 });
