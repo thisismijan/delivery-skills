@@ -494,6 +494,72 @@ Keep the lifecycle portable across conforming runtimes.
   without an exact operator promotion approval. Public rankings never promote.
   Changing the catalogue does not change this run.
 
+## Human decision brief
+
+Before asking the operator to choose among two or more viable options, present
+one compact decision brief. This applies to product direction, slicing,
+implementation seams, recovery paths, release-risk responses, review
+publication or fix paths, and improvement installation or rollback when more
+than one option can safely proceed.
+
+Do not manufacture a choice. A factual question, missing identifier or
+credential, deterministic gate result, one viable path, or simple confirmation
+of an already selected option may be asked directly. A failed gate never
+becomes an option. This brief explains a human-owned decision; it does not take
+that decision or weaken its approval boundary.
+
+Scale the depth to the consequence. Keep a local, cheap, reversible choice
+short. Go deeper for a public contract, persistent data, security boundary,
+distributed state, cross-system effect, operational topology, safety concern,
+or costly rollback. Use plain language and define a technical term by its
+practical consequence.
+
+Use this shape:
+
+```markdown
+## Decision: <what must be chosen>
+**Why now:** <why work cannot safely continue without this choice>
+
+### Evidence and constraints
+- Known: <verified fact and source>
+- Constraint: <boundary that every option must respect>
+- Assumption: <unverified premise>
+- Unknown: <remaining uncertainty>
+
+### Option A: <name>
+**How it works:** <mechanism and reasoning>
+**Pros:** <benefits>
+**Cons:** <drawbacks>
+**Risks and consequences:** <failure modes and practical effect>
+
+### Option B: <name>
+<the same fields>
+
+### DSA lens
+<material data structures, lookup/traversal/scheduling behavior, concurrency
+semantics, and supported time/space complexity; or "No material DSA difference"
+with the reason. Never invent Big-O claims.>
+
+### System-design lens
+<material boundaries, state ownership, consistency, coupling, scaling,
+reliability, recovery, security, and operability; or "No material system-design
+difference" with the actual discriminator.>
+
+### Comparison and recommendation
+<side-by-side material consequences>
+**Recommendation:** <option and evidence-bound reason>
+**Assumptions:** <what the recommendation relies on>
+**Would change if:** <evidence that would change the recommendation>
+**Reversibility:** <cost and method of changing course>
+**If we wait:** <effect of delaying or giving no answer>
+
+**Choose:** <one precise question naming every viable option>
+```
+
+If evidence does not support a strong preference, say the recommendation is
+weak and name the missing evidence or value judgment that decides it. Never
+hide uncertainty in a confident recommendation. Ask exactly one final question.
+
 ## Checkpoint policy
 
 - Use each stage's checkpoints only. No extra confirms inside factory

@@ -158,7 +158,10 @@ Ask only when one of these comes up:
    contradictory.
 
 Ask one question at a time, with a recommended answer, worded so that "yes"
-accepts it. Record the answer in the ledger.
+accepts it. When two or more viable product, recovery, risk-response, or
+improvement choices remain, first follow `SKILL.md`'s **Human decision brief**.
+Contradictory or unattributable recovery evidence remains a stop, not an option.
+Record the answer in the ledger.
 
 Never ask for a fact you can look up, and never ask whether to go on to the next
 step.

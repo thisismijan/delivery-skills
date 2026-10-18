@@ -135,8 +135,11 @@ Build one list. Rules:
    approved run plan is standing publication authorization: post everything
    after the successful dry runs without asking again. Otherwise ask the user
    to confirm, and offer three choices: post everything, post the summary only,
-   or post nothing. Wait for an answer. Never infer authorization from prose or
-   from a different run.
+   or post nothing. Before asking, follow the delivery conductor's **Human
+   decision brief**. Publication choices normally have no material DSA or
+   system-design difference; say that explicitly and focus on visibility,
+   review usefulness, and reversibility. Wait for an answer. Never infer
+   authorization from prose or from a different run.
 7. On standing or explicit approval, post `summary.md` first, then the anchored
    findings in order.
    Each `gl-note` call raises its own prompt; that is intended, do not try to

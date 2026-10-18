@@ -52,6 +52,9 @@ workflow must not weaken:
 
 - No MCP, git, or tracker from groom
 - One grilling question per turn, each with a recommended answer
+- A question with two or more viable product or slicing choices first follows
+  `SKILL.md`'s **Human decision brief**; factual and single-path questions stay
+  direct
 - Write nothing before the operator explicitly approves the slice breakdown
 - Every final draft passes `verify-ticket.ts`
 

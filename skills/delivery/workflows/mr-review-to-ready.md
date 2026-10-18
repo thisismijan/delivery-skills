@@ -91,6 +91,8 @@ After findings exist (posted or kept local), brief the operator:
 
 - Verdict line from mr-review
 - Count of `[bug]` / `[approach]` / `[nit]`, how many blocking
+- When more than one safe next path remains, use `SKILL.md`'s **Human decision
+  brief** to explain the trade-offs before asking.
 - Choices: (a) run `/address-comments <WORK-ITEM-KEY>` when the MR was
   factory-built and comments are on the forge, (b) author fixes manually, (c) merge
   as-is, (d) abandon / escalate to humans

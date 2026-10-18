@@ -119,6 +119,9 @@ no AI or tool attribution.
 
 The operator confirms the state.
 
+- If evidence leaves two or more states genuinely viable, present them through
+  `SKILL.md`'s **Human decision brief** before asking. Do not turn a
+  deterministic classification or one viable state into an artificial choice.
 - **`ready`**: draft reads the ticket, so the brief has to be on it. The
   operator posts it, or tells you to post it as one comment on this ticket.
   Then continue with Stage 2 for the key.

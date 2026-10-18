@@ -69,6 +69,11 @@ On **regressed**:
   reproduce it, and evidence. Once it is filed, it enters the loop through
   `/delivery triage <KEY>`.
 
+If rollback, forward repair, or containment are simultaneously viable, compare
+them through `SKILL.md`'s **Human decision brief** before asking the operator.
+The deployed evidence and readiness rollback trigger are known facts; do not
+soften a met trigger into a preference.
+
 On **inconclusive**, list exactly what could not be checked and what access
 would close the gap.
 
