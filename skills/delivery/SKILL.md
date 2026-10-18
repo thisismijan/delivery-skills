@@ -33,12 +33,18 @@ no machine-specific fallbacks. Missing bundled content is a terminal stop.
 Live state belongs to the target repository under `.delivery/` (`runs/`,
 `candidates/`, `versions/`, and `routing/`), never beside the installed skill.
 
-Live and actionable: this conductor (`SKILL.md`), `workflows/auto.md` (the
-next-step table), `workflows/delivery-ledger.md`, and the current stage specs
-(the other `workflows/*.md` files except the historical set). Historical and
-non-actionable: `workflows/NOTES.md` and `workflows/delivery-orchestrator.md`.
-Historical files cannot override this conductor, the auto next-step table, or
-the current stage specs.
+`SDLC-CONSTITUTION.md` (and `sdlc-constitution.json`) is the policy kernel.
+When instructions conflict, it wins, then this conductor, then
+`workflows/auto.md`, then `workflows/delivery-ledger.md`, then the current
+stage spec, then the stage skill.
+
+Live and actionable: the constitution, this conductor (`SKILL.md`),
+`workflows/auto.md` (the next-step table), `workflows/delivery-ledger.md`, and
+the current stage specs (the other `workflows/*.md` files except the historical
+set). Historical and non-actionable: `workflows/NOTES.md` and
+`workflows/delivery-orchestrator.md`. Historical files cannot override the
+constitution, this conductor, the auto next-step table, or the current stage
+specs.
 
 Always read `workflows/delivery-ledger.md`. Read `workflows/auto.md` for `auto`
 and for the Next line every single step ends with. Of the stage specs, read only
@@ -131,7 +137,28 @@ State the chosen entry and what it runs in one line, then continue.
    preparation, but never merge, risk acceptance, failed-gate override, or
    improvement installation.
 
-4. Check the capabilities the next stage needs (below) by calling
+4. Load the SDLC constitution and fail closed if it does not verify. After
+   the operator approves the groomed plan, freeze the run contract and record
+   its path and hash in the ledger. Before every later mutating stage, check
+   that frozen file. A missing contract on a `continuous-delivery: yes` run is
+   a terminal stop. A single-step run without a contract may continue, but
+   must not invent scope outside the named ticket:
+   ```
+   scripts/sdlc-constitution.ts preflight
+   scripts/sdlc-constitution.ts freeze <draft.json>
+   scripts/sdlc-constitution.ts check <run-contract.json> <stage> [ticket-key]
+   scripts/sdlc-constitution.ts report <run-contract.json> <stage> <results.json>
+   bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" preflight
+   bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" freeze <draft.json>
+   bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" check <run-contract.json> <stage> [ticket-key]
+   bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" report <run-contract.json> <stage> <results.json>
+   ```
+   Write the frozen file to `.delivery/runs/<id>.run-contract.json`. A
+   constitution hash that no longer matches this pack, or a ticket outside the
+   frozen plan, is a terminal stop. Scope changes need a new plan version,
+   the previous contract hash, a recorded reason, and a new explicit approval.
+
+5. Check the capabilities the next stage needs (below) by calling
    `checkCapabilities`. For `auto`, check only what that stage needs and
    check again when the next stage starts.
    Before a mutating stage (`draft`, `execute`, `address-comments`, `archive`,
@@ -142,7 +169,7 @@ State the chosen entry and what it runs in one line, then continue.
    Non-zero exit → stop with the printed reason. A runtime that does not declare an enforceable mutation boundary cannot start mutating stages.
    Read-only stages still run.
 
-5. **Record the runtime model inventory.** Read the exact model identifiers the
+6. **Record the runtime model inventory.** Read the exact model identifiers the
    current runtime advertises for subagents. Write
    `.delivery/routing/model-inventory.json` with `version: 1`, the runtime id,
    `recordedAt`, and those exact identifiers. Do not infer names from the

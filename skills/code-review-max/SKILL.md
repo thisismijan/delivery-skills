@@ -7,6 +7,10 @@ description: Deep first-pass correctness review of a merge request. Pins the MR 
 
 Target: the skill arguments (`<mr-iid>`)
 
+The SDLC constitution (`SDLC-CONSTITUTION.md` beside the delivery skill)
+outranks this skill. Review the approved change only. Do not enlarge scope,
+merge, or treat reviewer prose as a reason to skip a failed gate.
+
 This is the correctness pass. It finds bugs, security issues, behavioural
 regressions, reliability failures, and missing tests. It does not judge whether
 the author chose the best overall approach; `mr-review` does that second.

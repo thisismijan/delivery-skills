@@ -8,6 +8,13 @@ Resolve this SKILL.md to its real path, then load the first existing runtime:
 `$DELIVERY_FACTORY_ROOT/RUNTIME.md`. Follow its `FACTORY_ROOT` procedure and
 Export `FACTORY_ROOT` as that file describes. When a step names a subagent, read
 `$FACTORY_ROOT/agents/<name>.md` and follow it. Do not invent a cheaper substitute prompt.
+Load the SDLC constitution (`SDLC-CONSTITUTION.md` beside the delivery skill).
+It outranks this skill. Verify with
+`bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" preflight`.
+If `.delivery/runs/<id>.run-contract.json` exists, or the ledger records
+`continuous-delivery: yes`, check it before mutating:
+`bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" check <run-contract.json> address-comments <work-item-key>`.
+Non-zero exit is a terminal stop. Do not add scope the frozen plan does not name.
 
 
 You are running **/address-comments** for the work item named in the skill arguments (`<work-item-key>`).

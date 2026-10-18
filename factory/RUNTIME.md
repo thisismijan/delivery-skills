@@ -21,6 +21,15 @@ The runtime is bounded. It needs:
 If a required capability is missing, stop with that gap and a configuration
 remedy. Do not invent a tool the host did not expose.
 
+The SDLC constitution (`SDLC-CONSTITUTION.md`) is required on every run. Verify it before mutating:
+
+```
+bun "$FACTORY_ROOT/scripts/sdlc-constitution.ts" preflight
+```
+
+A missing or mismatched constitution is a terminal stop. After plan approval,
+later stages also check `.delivery/runs/<id>.run-contract.json`.
+
 ## Resolve FACTORY_ROOT
 
 Use the first match:

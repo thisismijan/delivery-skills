@@ -8,6 +8,9 @@ Resolve this SKILL.md to its real path, then load the first existing runtime:
 `$DELIVERY_FACTORY_ROOT/RUNTIME.md`. Follow its `FACTORY_ROOT` procedure and
 Export `FACTORY_ROOT` as that file describes. When a step names a subagent, read
 `$FACTORY_ROOT/agents/<name>.md` and follow it. Do not invent a cheaper substitute prompt.
+Load the SDLC constitution (`SDLC-CONSTITUTION.md` beside the delivery skill).
+It outranks this skill. Verify with
+`bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" preflight`.
 
 
 You are running **/groom**.
@@ -19,7 +22,7 @@ This command turns whatever the operator provides (a file path, inline text, or 
 - **No MCP, git, or tracker tools.** This command and both its subagents (`groom-explorer`, `groom-writer`) carry no MCP, git, or tracker tools. `Bash` is present on this command ONLY to run the local deterministic Bun scripts (`groom-paths.ts`, `verify-ticket.ts`, `human-text.ts`) and to make the idempotent `.gitignore` edit. Never invoke `git`, a forge CLI, or any tracker call from it. A run produces zero commits and zero tracker activity. All writes land only under the grooming output directory (plus the single `.gitignore` line).
 - **One question per turn.** The grilling loop emits exactly one question per turn, always with a recommended answer. Never batch two or more questions into a single turn.
 - **Atomic and complete.** Every ticket is one useful vertical outcome that can be understood, tested, implemented, and reviewed in one fresh small-context session. Prefer another ticket over another independent outcome.
-- **Write nothing before approval.** No draft file is written until the operator explicitly approves the ticket or the slice breakdown.
+- **Write nothing before approval.** No draft file is written until the operator explicitly approves the ticket or the slice breakdown. The conductor freezes that approved plan as the run contract. This skill does not invent extra tickets after that yes.
 - **Fail closed on bad drafts.** A draft that fails `verify-ticket.ts` is fixed and re-emitted, never written as the final artifact.
 - **All human-facing output passes through `sanitizeHumanText`.** No em dashes or en dashes in any output (see `scripts/human-text.ts`).
 

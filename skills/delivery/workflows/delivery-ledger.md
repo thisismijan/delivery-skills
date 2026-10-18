@@ -35,6 +35,7 @@ Target repo: <path or remote URL>
 Created: <yyyy-mm-dd>
 Generation: <non-negative integer>
 Discovery: <link to the discovery one-pager, if any>
+Run contract: <relative path> (sha256:<hex>)
 
 ## Keys
 
@@ -146,7 +147,12 @@ of approval.
   isolated worktree fan-out, review-note publication, archive, verification,
   retro, and improvement preparation. It never authorizes merge, risk
   acceptance, a failed-gate override, tracker transitions, candidate
-  installation, or rollback.
+  installation, or rollback.   The same approval freezes
+  `.delivery/runs/<id>.run-contract.json` against `SDLC-CONSTITUTION.md`.
+  Later stages check that hash.
+  A constitution or contract mismatch is a terminal stop. A new plan version
+  must name the previous hash, the affected invariant, and a new explicit
+  approval.
 - An improvement approval is valid only when the operator invokes
   `/delivery improve apply <candidate>` or
   `/delivery improve rollback <version>`. Scope includes that exact id and the

@@ -1,0 +1,258 @@
+{
+	"version": 1,
+	"id": "sdlc-constitution",
+	"title": "SDLC constitution",
+	"precedence": [
+		"constitution",
+		"conductor",
+		"auto",
+		"ledger",
+		"stage-spec",
+		"skill",
+		"historical"
+	],
+	"humanOwned": [
+		"merge",
+		"tracker-status",
+		"release-risk",
+		"gate-override",
+		"skill-install"
+	],
+	"commandments": [
+		{
+			"id": "approved-scope",
+			"kind": "MUST",
+			"title": "Deliver only the approved scope.",
+			"enforcement": "schema",
+			"enforcementId": "run-contract-check"
+		},
+		{
+			"id": "smallest-complete",
+			"kind": "MUST",
+			"title": "Prefer the smallest complete vertical change.",
+			"enforcement": "contract-test",
+			"enforcementId": "small-context-ticket-scope"
+		},
+		{
+			"id": "no-speculative-work",
+			"kind": "NEVER",
+			"title": "add speculative abstractions or adjacent cleanup.",
+			"enforcement": "judgement",
+			"enforcementId": "holdout-and-max-review"
+		},
+		{
+			"id": "facts-then-decisions",
+			"kind": "MUST",
+			"title": "Discover facts; ask humans only for genuine decisions.",
+			"enforcement": "contract-test",
+			"enforcementId": "durable-grooming"
+		},
+		{
+			"id": "independent-expectations",
+			"kind": "MUST",
+			"title": "Keep tests and acceptance criteria independent of implementation.",
+			"enforcement": "contract-test",
+			"enforcementId": "test-epistemology"
+		},
+		{
+			"id": "mutation-boundary",
+			"kind": "MUST",
+			"title": "Give every mutation provenance and an enforceable boundary.",
+			"enforcement": "gate",
+			"enforcementId": "stage-gating"
+		},
+		{
+			"id": "fail-closed",
+			"kind": "MUST",
+			"title": "Fail closed on missing, malformed, stale, or ambiguous evidence.",
+			"enforcement": "gate",
+			"enforcementId": "verdicts-and-gates"
+		},
+		{
+			"id": "concurrent-independence",
+			"kind": "MUST",
+			"title": "Run independent work concurrently; real dependencies order work.",
+			"enforcement": "contract-test",
+			"enforcementId": "auto-fan-out"
+		},
+		{
+			"id": "human-owned-actions",
+			"kind": "NEVER",
+			"title": "take human-owned actions.",
+			"enforcement": "gate",
+			"enforcementId": "commit-guard"
+		},
+		{
+			"id": "safety-floors",
+			"kind": "NEVER",
+			"title": "weaken security, validation, accessibility, recovery, or data protection for speed.",
+			"enforcement": "gate",
+			"enforcementId": "fast-safety-floors"
+		},
+		{
+			"id": "durable-resume",
+			"kind": "MUST",
+			"title": "Resume from durable artifacts, never conversational memory.",
+			"enforcement": "state-machine",
+			"enforcementId": "ledger-store"
+		},
+		{
+			"id": "recorded-deviation",
+			"kind": "MUST",
+			"title": "Record every deviation with a reason, the affected invariant, and a new approval.",
+			"enforcement": "schema",
+			"enforcementId": "run-contract-version"
+		}
+	],
+	"stages": {
+		"help": {
+			"inputs": [],
+			"writes": [],
+			"outputs": ["cheat-sheet"],
+			"next": [],
+			"stops": [],
+			"humanApprovals": []
+		},
+		"status": {
+			"inputs": ["ledger"],
+			"writes": [],
+			"outputs": ["status-report"],
+			"next": [],
+			"stops": [],
+			"humanApprovals": []
+		},
+		"discover": {
+			"inputs": ["idea"],
+			"writes": ["discovery-brief"],
+			"outputs": ["one-pager"],
+			"next": ["groom"],
+			"stops": ["no-usable-input"],
+			"humanApprovals": ["one-pager"]
+		},
+		"triage": {
+			"inputs": ["bug-report"],
+			"writes": ["intake-brief"],
+			"outputs": ["triage-status"],
+			"next": ["draft"],
+			"stops": ["needs-info"],
+			"humanApprovals": []
+		},
+		"groom": {
+			"inputs": ["idea", "one-pager"],
+			"writes": ["grooming-output", "gitignore-line"],
+			"outputs": ["ticket-drafts"],
+			"next": ["draft"],
+			"stops": ["unapproved-plan"],
+			"humanApprovals": ["groomed-plan"]
+		},
+		"draft": {
+			"inputs": ["run-contract", "ticket"],
+			"writes": ["spec-branch", "tracker-comment", "routing-artifacts"],
+			"outputs": ["openspec-change"],
+			"next": ["execute"],
+			"stops": ["weak-ticket", "infeasible", "too-large"],
+			"humanApprovals": []
+		},
+		"execute": {
+			"inputs": ["run-contract", "openspec-change"],
+			"writes": [
+				"implementation",
+				"tests",
+				"gates",
+				"draft-change-request",
+				"tracker-comment",
+				"routing-artifacts"
+			],
+			"outputs": ["draft-change-request"],
+			"next": ["review"],
+			"stops": ["failed-gate", "holdout-rejected"],
+			"humanApprovals": []
+		},
+		"review": {
+			"inputs": ["draft-change-request", "run-contract"],
+			"writes": ["review-artifacts", "review-notes"],
+			"outputs": ["review-verdict"],
+			"next": ["ship", "address-comments"],
+			"stops": ["missing-review-evidence"],
+			"humanApprovals": []
+		},
+		"address-comments": {
+			"inputs": ["review-findings", "run-contract"],
+			"writes": [
+				"implementation",
+				"tests",
+				"gates",
+				"review-notes",
+				"routing-artifacts"
+			],
+			"outputs": ["addressed-change-request"],
+			"next": ["review"],
+			"stops": ["failed-gate", "holdout-rejected"],
+			"humanApprovals": []
+		},
+		"ship": {
+			"inputs": ["ready-change-request"],
+			"writes": ["readiness-brief"],
+			"outputs": ["go-or-no-go"],
+			"next": [],
+			"stops": ["draft-change-request", "missing-review-verdict"],
+			"humanApprovals": ["release-risk"]
+		},
+		"archive": {
+			"inputs": ["merged-change"],
+			"writes": ["spec-archive"],
+			"outputs": ["archived-change"],
+			"next": ["verify"],
+			"stops": ["not-merged"],
+			"humanApprovals": []
+		},
+		"verify": {
+			"inputs": ["deployed-change"],
+			"writes": ["verify-verdict"],
+			"outputs": ["verified-or-regressed"],
+			"next": ["retro"],
+			"stops": ["inconclusive-deploy"],
+			"humanApprovals": []
+		},
+		"retro": {
+			"inputs": ["verified-run"],
+			"writes": ["engineering-postmortem"],
+			"outputs": ["lessons"],
+			"next": ["improve"],
+			"stops": [],
+			"humanApprovals": []
+		},
+		"improve": {
+			"inputs": ["lessons"],
+			"writes": ["improvement-candidate"],
+			"outputs": ["evaluated-candidate"],
+			"next": [],
+			"stops": ["failed-evaluation"],
+			"humanApprovals": ["skill-install"]
+		},
+		"improve-apply": {
+			"inputs": ["evaluated-candidate"],
+			"writes": ["live-skills"],
+			"outputs": ["installed-version"],
+			"next": [],
+			"stops": ["missing-install-approval"],
+			"humanApprovals": ["skill-install"]
+		},
+		"improve-rollback": {
+			"inputs": ["installed-version"],
+			"writes": ["live-skills"],
+			"outputs": ["restored-version"],
+			"next": [],
+			"stops": ["missing-rollback-approval"],
+			"humanApprovals": ["skill-install"]
+		},
+		"auto": {
+			"inputs": ["ledger", "run-contract"],
+			"writes": ["ledger", "worker-journals"],
+			"outputs": ["next-stage"],
+			"next": [],
+			"stops": ["missing-isolation", "failed-gate"],
+			"humanApprovals": ["groomed-plan", "merge", "release-risk", "skill-install"]
+		}
+	}
+}

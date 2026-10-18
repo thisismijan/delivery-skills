@@ -8,6 +8,14 @@ import {
 	readForgeChange,
 	readTrackerItem,
 } from "./providers";
+import {
+	CONSTITUTION_CHECK_INVOCATION,
+	CONSTITUTION_FREEZE_INVOCATION,
+	CONSTITUTION_PREFLIGHT_INVOCATION,
+	CONSTITUTION_REPORT_INVOCATION,
+	CONSTITUTION_VERSION,
+	loadConstitution,
+} from "./sdlc-constitution";
 
 const ROOT = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
@@ -176,6 +184,41 @@ describe("continuous delivery authorization", () => {
 		expect(contract).toMatch(/usage sketch/i);
 		expect(contract).toMatch(/type or signature sketch/i);
 		expect(contract).toMatch(/rejected alternative/i);
+	});
+});
+
+describe("SDLC constitution", () => {
+	test("live skills share the same constitution version and do not contradict it", () => {
+		const live = loadConstitution();
+		expect(live.document.version).toBe(CONSTITUTION_VERSION);
+		expect(live.hash).toMatch(/^sha256:[0-9a-f]{64}$/);
+		for (const doc of [
+			delivery,
+			auto,
+			ledger,
+			groom,
+			draft,
+			execute,
+			addressComments,
+			mrReview,
+			read("../skills/code-review-max/SKILL.md"),
+			runtime,
+		]) {
+			expect(doc).toContain("SDLC-CONSTITUTION.md");
+			expect(doc).not.toMatch(/constitution is advisory/i);
+			expect(doc).not.toMatch(/prose overrides? a failed/i);
+		}
+		expect(delivery).toMatch(/it wins/i);
+		expect(read("../skills/delivery/SDLC-CONSTITUTION.md")).toContain(
+			"this file wins",
+		);
+		expect(delivery).toContain(CONSTITUTION_PREFLIGHT_INVOCATION);
+		expect(delivery).toContain(CONSTITUTION_FREEZE_INVOCATION);
+		expect(delivery).toContain(CONSTITUTION_CHECK_INVOCATION);
+		expect(delivery).toContain(CONSTITUTION_REPORT_INVOCATION);
+		expect(auto).toContain("Frozen run contract");
+		expect(ledger).toContain(".delivery/runs/<id>.run-contract.json");
+		expect(runtime).toContain("sdlc-constitution.ts");
 	});
 });
 

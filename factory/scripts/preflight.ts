@@ -5,6 +5,7 @@ import {
 	capabilityResult,
 	requiredCapabilitiesForStage,
 } from "./runtime-manifest";
+import { constitutionPreflight } from "./sdlc-constitution";
 
 export interface CheckResult {
 	name: string;
@@ -74,6 +75,15 @@ async function runChecks(): Promise<CheckResult[]> {
 		required: true,
 		detail: depsOk ? "ok" : `run 'bun install' in ${pluginRoot}`,
 	});
+
+	for (const check of constitutionPreflight(pluginRoot)) {
+		results.push({
+			name: "SDLC constitution",
+			ok: check.ok,
+			required: check.required,
+			detail: check.detail,
+		});
+	}
 
 	const rem = await run(["git", "remote", "-v"]);
 	results.push({

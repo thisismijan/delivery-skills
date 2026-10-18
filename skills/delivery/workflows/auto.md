@@ -26,13 +26,21 @@ The single-step verbs use the same table to tell the operator what to type next.
 ## Start
 
 1. Run the conductor's Phase 1: find or create the ledger and reconcile it.
+   Verify `SDLC-CONSTITUTION.md` with `scripts/sdlc-constitution.ts preflight`.
 2. **Continuous authorization.** Record `continuous-delivery: yes`, scoped to
    this run. The authorizing words are the `/delivery auto` invocation or the
    operator's explicit approval of the groomed plan in the full-epic path.
    This standing authorization covers the non-human stages named above. Do not
    ask a second build, test-seam, review-publication, archive, retro, or
    improvement-preparation question.
-3. Append a Decision: `auto started at <stage> for <keys>`.
+3. **Frozen run contract.** Once the groomed plan is approved, freeze it with
+   `scripts/sdlc-constitution.ts freeze <draft.json>` into
+   `.delivery/runs/<id>.run-contract.json`. Record the path and hash in the
+   ledger. Before each later stage, run
+   `scripts/sdlc-constitution.ts check <run-contract.json> <stage> [ticket-key]`.
+   Non-zero exit is a terminal stop. Do not invent tickets, goals, or writes
+   the contract does not name.
+4. Append a Decision: `auto started at <stage> for <keys>`.
 
 ## The loop
 
@@ -42,7 +50,7 @@ Repeat until every key is done, stopped, or waiting on a person:
 2. Pick the key to work on (Choosing a key, below).
 3. Check the capabilities that stage needs with `checkCapabilities`. Re-check
    at each stage boundary so a later capability is checked when that stage
-   begins.
+   begins. Check the frozen run contract for that stage before mutating.
 4. Look up its next step in the table and run it.
 5. Write the ledger, then go back to 1.
 
