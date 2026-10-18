@@ -74,6 +74,7 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    bun "${FACTORY_ROOT}/scripts/capture-usage.ts" finish "<reviewDir>/classify-usage-timer.json" "<reviewDir>/classify-usage.json" --input "<reviewDir>/classify-profile.json" --output "<reviewDir>/classify-outcome.json"
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-outcome.json" "<reviewDir>/classify-usage.json" <controller-model> <standard-model>
+   bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
    ```
    Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. `classify-outcome.json` records whether classification completed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Classification still used the current semantic standard route; the shadow file must not change that.
 
@@ -132,8 +133,13 @@ This command consumes the review comments on the **existing** MR for this ticket
    bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/review-usage-timer.json"
    bun "${FACTORY_ROOT}/scripts/capture-usage.ts" finish "<reviewDir>/review-usage-timer.json" "<reviewDir>/review-usage.json" --input "<reviewDir>/review-profile.json" --output "<reviewDir>/review-outcome.json"
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-outcome.json" "<reviewDir>/review-usage.json" <frontier-model> <frontier-model>
+   bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
    ```
-   Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. Never write `{ "source": "unavailable" }` by hand.
+   Refresh the run scorecard after each persisted task. It reports measured
+   live usage and outcomes, while shadow quality and savings remain explicitly
+   unevaluated until a paired benchmark exists. Pass
+   `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that
+   file. Never write `{ "source": "unavailable" }` by hand.
    Resolve `frontier`, then dispatch a **fresh** `holdout-reviewer` subagent
    with that exact available model over the **cumulative** diff (not
    per-comment) and **only**: the work item, `<changeDir>` (the spec), the
