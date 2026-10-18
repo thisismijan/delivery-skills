@@ -156,11 +156,13 @@ State the chosen entry and what it runs in one line, then continue.
    scripts/sdlc-constitution.ts preflight
    scripts/sdlc-constitution.ts freeze <draft.json>
    scripts/sdlc-constitution.ts check <run-contract.json> <stage> [ticket-key]
-   scripts/sdlc-constitution.ts report <run-contract.json> <stage> <results.json>
+   scripts/sdlc-constitution.ts supersede <current.json> <proposal.json>
+   scripts/sdlc-constitution.ts report <run-contract.json> <stage> <results.json> [ticket-key]
    bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" preflight
    bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" freeze <draft.json>
    bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" check <run-contract.json> <stage> [ticket-key]
-   bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" report <run-contract.json> <stage> <results.json>
+   bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" supersede <current.json> <proposal.json>
+   bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" report <run-contract.json> <stage> <results.json> [ticket-key]
    ```
    Write the frozen file to `.delivery/runs/<id>.run-contract.json`. A
    constitution hash that no longer matches this pack, or a ticket outside the

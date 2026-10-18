@@ -17,7 +17,7 @@ export interface Stage3ReadinessResult {
 
 const MAX_MARKER = /^<!-- code-review-max:mr=(\d+) head=([0-9a-f]{40}) -->$/i;
 const APPROACH_MARKER = /^<!-- mr-review:([0-9a-f]{40}) -->$/i;
-const MAX_BLOCKING_SEVERITY = /\[(Critical|High|Medium)\]/;
+const MAX_BLOCKING_SEVERITY = /\[(Critical|High|Medium)\]/i;
 const NON_BLOCKING =
 	/would not block|not blocking|does not block|non-blocking/i;
 
@@ -60,10 +60,10 @@ function parseMax(body: string, iid: string, head: string): string | null {
 	}
 	const line = verdict(body);
 	if (!line) return "The max-pass review is not valid for this merge request.";
-	if (/block/i.test(line) && !/pass/i.test(line)) {
+	if (line.trim().toUpperCase() === "BLOCK") {
 		return "The max-pass review still has blockers.";
 	}
-	if (!/pass/i.test(line)) {
+	if (line.trim().toUpperCase() !== "PASS") {
 		return "The max-pass review is not valid for this merge request.";
 	}
 	if (MAX_BLOCKING_SEVERITY.test(body)) {

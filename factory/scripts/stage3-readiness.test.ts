@@ -174,6 +174,18 @@ describe("decideStage3Readiness blocking evidence", () => {
 		expect(result.decision).toBe("stay-draft");
 	});
 
+	test("mixed PASS and BLOCK verdicts fail closed", () => {
+		for (const verdict of ["PASS WITH BLOCKERS", "BLOCK PASS"]) {
+			const result = decideStage3Readiness({
+				iid: IID,
+				head: HEAD,
+				maxPass: maxPass({ verdict }),
+				approachPass: approachPass(),
+			});
+			expect(result.decision).toBe("stay-draft");
+		}
+	});
+
 	test("max-pass High finding stays draft", () => {
 		const result = decideStage3Readiness({
 			iid: IID,
@@ -185,6 +197,20 @@ describe("decideStage3Readiness blocking evidence", () => {
 			approachPass: approachPass(),
 		});
 		expect(result.decision).toBe("stay-draft");
+	});
+
+	test("blocking severity is case-insensitive", () => {
+		for (const severity of ["high", "HIGH", "medium"]) {
+			const result = decideStage3Readiness({
+				iid: IID,
+				head: HEAD,
+				maxPass: maxPass({
+					findings: `1. **[${severity}] \`src/a.ts:42\` — regression**`,
+				}),
+				approachPass: approachPass(),
+			});
+			expect(result.decision).toBe("stay-draft");
+		}
 	});
 
 	test("max-pass Medium finding stays draft", () => {

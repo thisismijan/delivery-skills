@@ -17,7 +17,10 @@ export const CONSTITUTION_CHECK_INVOCATION =
 	"scripts/sdlc-constitution.ts check <run-contract.json> <stage> [ticket-key]";
 // biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
 export const CONSTITUTION_REPORT_INVOCATION =
-	"scripts/sdlc-constitution.ts report <run-contract.json> <stage> <results.json>";
+	"scripts/sdlc-constitution.ts report <run-contract.json> <stage> <results.json> [ticket-key]";
+// biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
+export const CONSTITUTION_SUPERSEDE_INVOCATION =
+	"scripts/sdlc-constitution.ts supersede <current.json> <proposal.json>";
 
 export const RUN_CONTRACT_RELATIVE_PATH =
 	".delivery/runs/<id>.run-contract.json";
@@ -139,9 +142,9 @@ export type RunContractTicket = z.infer<typeof RunContractTicket>;
 
 export const RunContractApproval = z
 	.object({
-		who: z.string().min(1),
-		words: z.string().min(1),
-		at: z.string().min(1),
+		who: z.string().trim().min(1),
+		words: z.string().trim().min(1),
+		at: z.string().datetime(),
 	})
 	.strict();
 export type RunContractApproval = z.infer<typeof RunContractApproval>;
@@ -157,7 +160,10 @@ const RunContractFields = {
 	permittedWrites: z.array(z.string().min(1)).min(1),
 	humanOwned: z.array(HumanOwnedAction).nonempty(),
 	approval: RunContractApproval,
-	supersedesHash: z.string().min(1).optional(),
+	supersedesHash: z
+		.string()
+		.regex(/^sha256:[0-9a-f]{64}$/)
+		.optional(),
 	reason: z.string().min(1).optional(),
 	affectedInvariant: z.string().min(1).optional(),
 };
@@ -240,6 +246,16 @@ export interface ContractCheckResult {
 	ok: boolean;
 	reason?: string;
 }
+
+const TICKET_SCOPED_STAGES = new Set([
+	"draft",
+	"execute",
+	"review",
+	"address-comments",
+	"ship",
+	"archive",
+	"verify",
+]);
 
 export interface ConformanceCheck {
 	id: string;
@@ -449,6 +465,26 @@ export function checkRunContract(input: {
 				reason: `stage '${input.stage}' is not allowed to perform '${write}'`,
 			};
 		}
+		if (!input.frozen.permittedWrites.includes(write)) {
+			return {
+				ok: false,
+				reason: `stage '${input.stage}' write '${write}' is outside the frozen run contract`,
+			};
+		}
+	}
+	for (const owned of input.constitution.document.humanOwned) {
+		if (!input.frozen.humanOwned.includes(owned)) {
+			return {
+				ok: false,
+				reason: `run contract omitted human-owned action '${owned}'`,
+			};
+		}
+	}
+	if (TICKET_SCOPED_STAGES.has(input.stage) && !input.ticketKey) {
+		return {
+			ok: false,
+			reason: `stage '${input.stage}' requires a ticket key`,
+		};
 	}
 	if (input.ticketKey) {
 		const known = input.frozen.tickets.some(
@@ -479,35 +515,52 @@ function checkProposal(
 	proposal: FrozenRunContract,
 	liveHash: string,
 ): ContractCheckResult {
-	if (proposal.constitutionHash !== liveHash) {
+	let current: FrozenRunContract;
+	let proposed: FrozenRunContract;
+	try {
+		current = parseFrozenRunContract(frozen);
+		proposed = parseFrozenRunContract(proposal);
+	} catch (error) {
+		return {
+			ok: false,
+			reason: error instanceof Error ? error.message : String(error),
+		};
+	}
+	if (proposed.constitutionHash !== liveHash) {
 		return {
 			ok: false,
 			reason:
 				"proposed run contract is hashed against a different constitution",
 		};
 	}
-	if (proposal.contractHash === frozen.contractHash) {
+	if (proposed.contractHash === current.contractHash) {
 		return { ok: true };
 	}
-	if (proposal.planVersion <= frozen.planVersion) {
+	if (proposed.planVersion <= current.planVersion) {
 		return {
 			ok: false,
 			reason: "a scope change needs a new plan version",
 		};
 	}
-	if (proposal.supersedesHash !== frozen.contractHash) {
+	if (proposed.supersedesHash !== current.contractHash) {
 		return {
 			ok: false,
 			reason: "a new plan version must supersede the current contract hash",
 		};
 	}
-	if (!proposal.reason || !proposal.affectedInvariant) {
+	if (!proposed.reason || !proposed.affectedInvariant) {
 		return {
 			ok: false,
 			reason: "a scope change needs a recorded reason and affected invariant",
 		};
 	}
-	if (!proposal.approval.words.trim()) {
+	if (!proposed.approval.words.trim()) {
+		return {
+			ok: false,
+			reason: "a scope change needs a new explicit approval",
+		};
+	}
+	if (proposed.approval.at === current.approval.at) {
 		return {
 			ok: false,
 			reason: "a scope change needs a new explicit approval",
@@ -637,10 +690,29 @@ async function main(argv: string[]): Promise<number> {
 		console.log(JSON.stringify(result));
 		return result.ok ? 0 : 1;
 	}
+	if (command === "supersede") {
+		const currentPath = argv[1];
+		const proposalPath = argv[2];
+		if (!currentPath || !proposalPath) {
+			console.error(`usage: ${CONSTITUTION_SUPERSEDE_INVOCATION}`);
+			return 2;
+		}
+		const live = loadConstitution();
+		const current = parseFrozenRunContract(
+			await readJsonFile(currentPath, currentPath),
+		);
+		const proposal = parseFrozenRunContract(
+			await readJsonFile(proposalPath, proposalPath),
+		);
+		const result = checkProposal(current, proposal, live.hash);
+		console.log(JSON.stringify(result));
+		return result.ok ? 0 : 1;
+	}
 	if (command === "report") {
 		const path = argv[1];
 		const stage = argv[2];
 		const resultsPath = argv[3];
+		const ticketKey = argv[4];
 		if (!path || !stage || !resultsPath) {
 			console.error(`usage: ${CONSTITUTION_REPORT_INVOCATION}`);
 			return 2;
@@ -662,12 +734,13 @@ async function main(argv: string[]): Promise<number> {
 			constitution: live,
 			stage,
 			results,
+			ticketKey,
 		});
 		process.stdout.write(`${JSON.stringify(report, null, "\t")}\n`);
 		return report.allRequiredPassed ? 0 : 1;
 	}
 	console.error(
-		"usage: sdlc-constitution.ts preflight|hash|freeze|check|report ...",
+		"usage: sdlc-constitution.ts preflight|hash|freeze|check|supersede|report ...",
 	);
 	return 2;
 }
