@@ -22,8 +22,8 @@
 
 - [x] 4.1 Update generic and GitLab provider documentation; verify copied commands and capability names against source contracts.
 - [x] 4.2 Run `openspec validate generic-forge-provider --strict` and verify all change artifacts.
-- [ ] 4.3 Run `cd factory && bun run check && bun test` and verify the complete factory suite.
-- [ ] 4.4 Run `BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks` and verify the complete delivery suite.
+- [x] 4.3 Run `cd factory && bun run check && bun test` and verify the complete factory suite.
+- [x] 4.4 Run `BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks` and verify the complete delivery suite.
 
 ## Workflow follow-up
 
