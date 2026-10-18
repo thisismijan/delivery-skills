@@ -620,6 +620,13 @@ describe("approval-gated self-improvement", () => {
     expect(paired).toContain("at least 90 percent of baseline");
     expect(paired).toContain("zero Critical misses");
     expect(paired).toMatch(/diagnostic evidence only/i);
+    expect(paired).toContain(
+      'bun "${FACTORY_ROOT}/scripts/paired-evaluation.ts"',
+    );
+    expect(paired).toContain("paired-evidence.json");
+    expect(paired).toContain("paired-result.json");
+    expect(paired).toMatch(/Malformed or unpaired evidence exits non-zero/);
+    expect(paired).toMatch(/do not calculate or override the decision in prose/i);
   });
 
   test("retro acceptance cannot install a candidate", () => {
