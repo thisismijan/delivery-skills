@@ -5,7 +5,6 @@ const ConfigSchema = z.object({
 	commandExecute: z.literal("/execute").default("/execute"),
 	maxFixAttempts: z.coerce.number().int().positive().default(2),
 	modelDefault: z.enum(["sonnet", "opus"]).default("sonnet"),
-	issueSource: z.string().min(1).optional(),
 	codeHost: z.string().min(1).optional(),
 	specTool: z.string().min(1).optional(),
 });
@@ -20,7 +19,6 @@ export function loadConfig(
 		commandExecute: env.COMMAND_EXECUTE,
 		maxFixAttempts: env.MAX_FIX_ATTEMPTS,
 		modelDefault: env.MODEL_DEFAULT,
-		issueSource: env.ISSUE_SOURCE,
 		codeHost: env.CODE_HOST,
 		specTool: env.SPEC_TOOL,
 	});

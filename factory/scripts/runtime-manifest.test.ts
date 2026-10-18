@@ -79,6 +79,34 @@ describe("runtime manifest validation", () => {
 		).toThrow();
 	});
 
+	test("requires identity for an available remote work-item provider", () => {
+		expect(() =>
+			parseRuntimeManifest({
+				version: 1,
+				capabilities: {
+					"tracker.item": {
+						available: true,
+						mode: "adapter",
+						invocation: "tracker.read",
+					},
+				},
+			}),
+		).toThrow(/provider/);
+		expect(
+			parseRuntimeManifest({
+				version: 1,
+				capabilities: {
+					"tracker.item": {
+						available: true,
+						mode: "adapter",
+						invocation: "tracker.read",
+						provider: "forge-issues",
+					},
+				},
+			}).capabilities["tracker.item"]?.provider,
+		).toBe("forge-issues");
+	});
+
 	test("builds a complete fail-closed default", () => {
 		const runtime = defaultRuntimeManifest();
 		expect(Object.keys(runtime.capabilities).sort()).toEqual([

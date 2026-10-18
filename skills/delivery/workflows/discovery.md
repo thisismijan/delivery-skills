@@ -21,7 +21,7 @@ creates tickets, writes production code, or pushes branches.
 2. Open or create the ledger with id `discover-<yyyy-mm-dd>-<slug>`
    (`delivery-ledger.md`). Add one Keys row with the ledger id as its key and
    status `[discovering]`.
-3. Note which sources can be read: the tracker, Confluence, and any other connected
+3. Note which sources can be read: the selected work-item provider, Confluence, and any other connected
    sources. A source that cannot be read is recorded as a gap, not skipped.
 
 ## Steps
@@ -47,7 +47,7 @@ search that finds nothing is reported as a finding: "searched <where> for
 | Source | Look for |
 |--------|----------|
 | Code and git history | Code that already does part of this; reverted attempts; commits that mention the terms |
-| the tracker | Open, closed, and won't-fix tickets and epics on the same problem |
+| selected work-item provider | Open, closed, and won't-fix items and groups on the same problem |
 | Confluence | Designs, decisions, postmortems |
 | OpenSpec | Current specs and archived changes in the target repo |
 | ADRs | Decisions that constrain or contradict the idea |
@@ -161,7 +161,8 @@ source artifacts are the argument to Stage 1, including in a fresh session.
 
 ## Never
 
-- Create a the tracker epic or ticket. Groom does that, behind its own gates.
+- Create a remote or local work item. Groom and the conductor do that behind
+  their own gates.
 - Commit or push a probe.
 - Start drafting an OpenSpec change.
 - Treat a search that found nothing as a search that was not run.

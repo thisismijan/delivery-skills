@@ -29,9 +29,10 @@ export interface NormalizedProviderResult<T> {
 	message?: string;
 }
 
-export interface TrackerItem {
+export interface WorkItem {
 	key: string;
 }
+export type TrackerItem = WorkItem;
 
 export interface ForgeChange {
 	id: string;
@@ -100,10 +101,10 @@ export function invokeProvider<T>(
 	};
 }
 
-export function readTrackerItem(
+export function readWorkItem(
 	descriptor: ProviderDescriptor,
-	probe?: () => { ok: boolean; item?: TrackerItem | null },
-): NormalizedProviderResult<TrackerItem> {
+	probe?: () => { ok: boolean; item?: WorkItem | null },
+): NormalizedProviderResult<WorkItem> {
 	if (descriptor.kind !== "tracker") {
 		return invalidResult("tracker", "Descriptor is not a tracker provider.");
 	}
@@ -116,6 +117,8 @@ export function readTrackerItem(
 		return { ok: true, value: { key } };
 	});
 }
+
+export const readTrackerItem = readWorkItem;
 
 export function readForgeChange(
 	descriptor: ProviderDescriptor,

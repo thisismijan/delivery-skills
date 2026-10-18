@@ -5,6 +5,7 @@ import {
 	missingProvider,
 	readForgeChange,
 	readTrackerItem,
+	readWorkItem,
 } from "./providers";
 
 const absentForge: ProviderDescriptor = { kind: "forge", mode: "absent" };
@@ -60,7 +61,7 @@ describe("normalized providers", () => {
 	});
 
 	test("a fake tracker returns a normalized work item", () => {
-		const result = readTrackerItem(fakeTracker, () => ({
+		const result = readWorkItem(fakeTracker, () => ({
 			ok: true,
 			item: { key: "WORK-21" },
 		}));

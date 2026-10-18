@@ -468,6 +468,23 @@ describe("portable mutation boundaries", () => {
 	});
 });
 
+describe("generic work-item selection", () => {
+	test("delivery confirms one repository provider before lifecycle work", () => {
+		expect(delivery).toContain("work-item-config.ts");
+		expect(delivery).toContain("local-files");
+		expect(delivery).toMatch(/Never infer from remotes, credentials, host/i);
+		expect(delivery).toContain("--replace");
+		expect(delivery).toMatch(/Human decision brief/);
+	});
+
+	test("groom and draft route through provider-neutral handoffs", () => {
+		expect(groom).toMatch(/confirmed\s+work-item provider/i);
+		expect(groom).not.toMatch(/copy the content into the tracker manually/i);
+		expect(draft).toMatch(/confirmed provider/i);
+		expect(draft).toContain(".delivery/work-items/");
+	});
+});
+
 describe("normalized provider contracts", () => {
 	test("an absent forge or tracker provider fails closed", () => {
 		expect(readForgeChange({ kind: "forge", mode: "absent" }).reason).toBe(

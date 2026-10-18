@@ -19,7 +19,7 @@ This command turns whatever the operator provides (a file path, inline text, or 
 
 ## Hard rules
 
-- **No MCP, git, or tracker tools.** This command and both its subagents (`groom-explorer`, `groom-writer`) carry no MCP, git, or tracker tools. `Bash` is present on this command ONLY to run the local deterministic Bun scripts (`groom-paths.ts`, `verify-ticket.ts`, `human-text.ts`) and to make the idempotent `.gitignore` edit. Never invoke `git`, a forge CLI, or any tracker call from it. A run produces zero commits and zero tracker activity. All writes land only under the grooming output directory (plus the single `.gitignore` line).
+- **No MCP, git, or work-item provider tools.** This command and both its subagents (`groom-explorer`, `groom-writer`) carry no MCP, git, or provider tools. `Bash` is present on this command ONLY to run the local deterministic Bun scripts (`groom-paths.ts`, `verify-ticket.ts`, `human-text.ts`) and to make the idempotent `.gitignore` edit. Never invoke `git`, a forge CLI, or any remote work-item call from it. A run produces zero commits and zero remote work-item activity. All writes land only under the grooming output directory (plus the single `.gitignore` line).
 - **One question per turn.** The grilling loop emits exactly one question per turn, always with a recommended answer. Never batch two or more questions into a single turn.
 - **Atomic and complete.** Every ticket is one useful vertical outcome that can be understood, tested, implemented, and reviewed in one fresh small-context session. Prefer another ticket over another independent outcome.
 - **Write nothing before approval.** No draft file is written until the operator explicitly approves the ticket or the slice breakdown. The conductor freezes that approved plan as the run contract. This skill does not invent extra tickets after that yes.
@@ -178,13 +178,15 @@ Print a closing summary that includes:
 2. **Files written:** the list of draft filenames (and `prd.md` if written).
 3. **Next steps:**
    - Review the drafts in the output directory.
-   - Create work items from each approved draft (copy the content into the tracker manually).
-   - Run `/draft <WORK-ITEM-KEY>` for each ticket to begin the build phase.
+   - Materialize each approved draft through the repository's confirmed
+     work-item provider (`local-files`, Jira, forge issues, or another runtime
+     provider).
+   - Run `/draft <WORK-ITEM-REF>` for each item to begin the build phase.
 
 ### Step 11 — Invariants (asserted by this command)
 
-- This command and its subagents (`groom-explorer`, `groom-writer`) hold **no** MCP, git, or tracker tools.
-- A run of `/groom` makes **no commits** and **no tracker activity**.
+- This command and its subagents (`groom-explorer`, `groom-writer`) hold **no** MCP, git, or work-item provider tools.
+- A run of `/groom` makes **no commits** and **no remote work-item activity**.
 - All generated artifacts (PRD and ticket drafts) land only under the grooming output directory — never elsewhere in the repo. The sole exception is the single idempotent `.gitignore` line added in Step 9.
 - No draft with zero acceptance criteria is ever written as a final artifact.
 - No draft with more than three acceptance criteria is ever written as a final artifact.
