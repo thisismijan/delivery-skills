@@ -19,8 +19,8 @@
 ## 4. Integration verification
 
 - [x] 4.1 Run `openspec validate executable-work-item-providers --strict` and verify all artifacts.
-- [ ] 4.2 Run `cd factory && bun run check && bun test` and verify the complete factory suite.
-- [ ] 4.3 Run `BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks` and verify the complete delivery suite.
+- [x] 4.2 Run `cd factory && bun run check && bun test` and verify the complete factory suite.
+- [x] 4.3 Run `BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks` and verify the complete delivery suite.
 
 ## Workflow follow-up
 
