@@ -120,15 +120,13 @@ test("ADF conversion round-trips plain work-item bodies", () => {
 test("list paginates the project and returns normalized work items", async () => {
 	const { deps, requests } = recordingDeps((request) => {
 		const parsed = new URL(request.url);
-		expect(parsed.pathname).toBe("/rest/api/3/search");
+		expect(parsed.pathname).toBe("/rest/api/3/search/jql");
 		expect(parsed.searchParams.get("jql")).toContain(`project = "${PROJECT}"`);
+		expect(parsed.searchParams.has("startAt")).toBe(false);
 		expect(request.method).toBe("GET");
-		if (parsed.searchParams.get("startAt") === "0") {
-			return loadFixture("search-page-1.json");
-		}
-		if (parsed.searchParams.get("startAt") === "1") {
-			return loadFixture("search-page-2.json");
-		}
+		const token = parsed.searchParams.get("nextPageToken");
+		if (token === null) return loadFixture("search-page-1.json");
+		if (token === "page-2-token") return loadFixture("search-page-2.json");
 		throw new Error(`unexpected search ${parsed.search}`);
 	});
 	const result = await runJiraTracker("list", envelope({}), deps);
@@ -156,6 +154,28 @@ test("list paginates the project and returns normalized work items", async () =>
 	expect(JSON.stringify(result)).not.toContain(TOKEN);
 	expect(JSON.stringify(result)).not.toContain("issuetype");
 	expect(requests.every((request) => request.method === "GET")).toBe(true);
+});
+
+test("list follows the next-page token past a short page until isLast", async () => {
+	const page1 = loadFixture("search-page-1.json") as { issues: unknown[] };
+	const page2 = loadFixture("search-page-2.json") as { issues: unknown[] };
+	const { deps, requests } = recordingDeps((request) => {
+		const token = new URL(request.url).searchParams.get("nextPageToken");
+		if (token === null) {
+			return { issues: [], nextPageToken: "after-empty", isLast: false };
+		}
+		if (token === "after-empty") {
+			return { issues: page1.issues, nextPageToken: "last", isLast: false };
+		}
+		if (token === "last") return { issues: page2.issues, isLast: true };
+		throw new Error(`unexpected token ${token}`);
+	});
+	deps.perPage = 5;
+	const items = (await runJiraTracker("list", envelope({}), deps)) as Array<{
+		ref: string;
+	}>;
+	expect(items.map((item) => item.ref)).toEqual(["DELIV-1", "DELIV-2"]);
+	expect(requests).toHaveLength(3);
 });
 
 test("read maps type, blockers, tagged notes, and ignores unrelated links", async () => {
@@ -211,14 +231,9 @@ test("approved create is idempotent on audit id and refuses conflicting replay",
 	const { deps, requests } = recordingDeps((request) => {
 		const parsed = new URL(request.url);
 		const path = parsed.pathname;
-		if (request.method === "GET" && path === "/rest/api/3/search") {
+		if (request.method === "GET" && path === "/rest/api/3/search/jql") {
 			if (exists) {
-				return {
-					startAt: 0,
-					maxResults: 1,
-					total: 1,
-					issues: [created],
-				};
+				return { issues: [created], isLast: true };
 			}
 			return loadFixture("search-empty.json");
 		}
