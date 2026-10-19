@@ -39,7 +39,31 @@ Operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions
 `anchors`, `create`, `set-draft`, `note`, `reply`.
 
 `pipeline` takes `{ "revision": "<sha>" }` and returns evidence bound to that
-exact revision. Delivery uses it for the default-branch pipeline after merge.
+exact revision. Delivery uses normalized pipeline evidence from `read` for the
+open change head, then calls `pipeline` for `revisions.merged` after merge.
+Evidence for a branch's latest commit or a different revision is not accepted.
+
+## Pipeline route
+
+```text
+bun "$FACTORY_ROOT/scripts/pipeline-route.ts" '<input-json>'
+```
+
+The input identifies the change or default-branch phase, exact-revision
+pipeline evidence, failure attribution, current fix attempt, maximum attempts,
+and whether the repair remains inside the approved scope. The result is one of:
+
+| Action | Meaning |
+|--------|---------|
+| `proceed` | The exact revision passed |
+| `wait` | Evidence is not terminal or is not available yet; subscribe or resume later |
+| `fix-forward` | The failure is attributable, in scope, and within budget |
+| `escalate` | A human decision or provider action is required |
+
+For an open change, fix-forward updates the existing branch and invalidates
+affected gates. For a merged revision, it creates a new reviewed recovery
+change. It never retries provider jobs, reverts, or writes to the default
+branch.
 
 ## Work-item command
 

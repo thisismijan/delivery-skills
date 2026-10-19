@@ -15,6 +15,7 @@ The pack includes:
 - `/delivery` — thin conductor, ledger, auto, retro, approval-gated improvement
 - `/groom` `/draft` `/execute` `/address-comments` — portable factory stages
 - `/code-review-max` `/mr-review` — dual-pass change review
+- exact-revision pipeline monitoring before and after a human merge
 - a bundled OpenSpec archive stage, which requires the OpenSpec CLI
 
 ## Install
@@ -158,22 +159,49 @@ After approval, it automatically:
 3. Starts independent tickets concurrently, one isolated git worktree and
    worker per ticket. True blockers remain ordered.
 4. Drafts the change contract, selects test seams, builds test-first, runs all
-   gates, performs both review passes, publishes review notes, and prepares each
-   merge request for human review.
-5. After you merge, archives the change, verifies the deployment, writes the
-   engineering retro, and prepares any evidence-backed delivery-skill
+   gates, performs both review passes, publishes review notes, and monitors the
+   merge request pipeline at its exact head revision.
+5. After you merge, monitors the default-branch pipeline at the exact merged
+   revision before archiving the change, verifying the deployment, writing the
+   engineering retro, and preparing any evidence-backed delivery-skill
    improvement candidate.
 
 It does not ask whether to proceed between those stages. It stops only when:
 
 - a product decision is still needed before the final plan;
-- a gate fails or evidence is missing or contradictory;
+- a failed gate cannot be repaired safely inside the approved contract and
+  bounded attempt budget, or evidence is missing or contradictory;
 - a release requires explicit risk acceptance;
 - a merge is ready for a human;
 - an evaluated skill candidate is ready for exact install or rollback approval.
 
 Plan approval never authorizes merge, work-item status transitions, release-risk
 acceptance, bypassing a gate, or installing a skill candidate.
+
+### Pipeline monitoring and recovery
+
+Delivery treats the merge request head and the merged default-branch commit as
+separate integration points. A green merge request does not prove that the
+commit created by the merge is green. Evidence must name the exact revision
+being evaluated.
+
+While a pipeline is queued or running, delivery subscribes to host events when
+available and ends the turn. It never sleeps or repeatedly polls. Without an
+event subscription, it leaves `/delivery auto <KEY>` as the resume command.
+
+When a pipeline fails, delivery uses job evidence and, where possible, a local
+reproduction to classify the failure:
+
+- An attributable, in-scope failure below the run's `maxFixAttempts` budget may
+  fix forward. Before merge it repairs the existing change and reruns every
+  invalidated gate. After merge it opens a new reviewed recovery change; it
+  never pushes directly to the default branch.
+- A transient, unrelated, ambiguous, out-of-scope, or budget-exhausted failure
+  escalates with the revision, failed checks, sanitized evidence, and suggested
+  human action.
+
+Provider job retries, rollback, merge, close, revert, and protected-branch
+writes remain human-owned.
 
 That same approval freezes a hashed run contract at
 `.delivery/runs/<id>.run-contract.json`. Later stages check the hash. A ticket,
@@ -306,9 +334,15 @@ flowchart TD
   mrReview -->|"blocked"| address
   address -->|"cumulative gates and holdout"| review
 
-  ship -->|"GO"| mergeWait["Human merges"]
+  ship -->|"GO"| changePipeline["Exact-head pipeline"]
   ship -->|"NO-GO"| address
-  mergeWait --> archive
+  changePipeline -->|"passed"| mergeWait["Human merges"]
+  changePipeline -->|"repairable"| address
+  mergeWait --> mergedPipeline["Exact merged-revision pipeline"]
+  mergedPipeline -->|"passed"| archive
+  mergedPipeline -->|"repairable"| recovery["New reviewed recovery change"]
+  recovery --> review
+  mergedPipeline -->|"ambiguous or exhausted"| escalate["Escalate with evidence"]
   archive --> verify
   verify --> retro["retro: learning postmortem"]
   retro -->|"accepted delivery lesson"| improve
@@ -316,7 +350,7 @@ flowchart TD
 
   classDef human fill:#fff4ce,stroke:#8a6d1d
   classDef stop fill:#f3f3f3,stroke:#666
-  class split,mergeWait,applyWait human
+  class split,mergeWait,applyWait,escalate human
   class start,ledger stop
 ```
 

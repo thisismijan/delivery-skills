@@ -28,6 +28,23 @@ from `skills/delivery/SKILL.md`.
 Resume with `/delivery <KEY>` or `/delivery auto <key>`. Do not skip a failed
 gate.
 
+## Pipeline checkpoints
+
+| Checkpoint | Evidence | On success | Repairable failure |
+|------------|----------|------------|--------------------|
+| Open change | Current pipeline for the exact change head | Continue release readiness and wait for human merge | Repair the same branch, rerun invalidated gates, and monitor the new head |
+| After merge | Default-branch pipeline for the exact merged revision | Archive, verify deployment, and continue to retro | Open a new draft recovery change and run the normal review and readiness path |
+
+Missing or running evidence is a wait, not a pass. Delivery uses a host event
+subscription when available; otherwise it ends with `/delivery auto <KEY>` so
+you can resume later. It does not keep a process alive to poll.
+
+A failure fixes forward only when evidence attributes it to the delivered
+change, the repair stays inside the frozen run contract, and the attempt budget
+has not been exhausted. Transient, unrelated, ambiguous, out-of-scope, and
+exhausted failures stop with an evidence-backed escalation. Retrying a provider
+job, reverting, and merging remain human decisions.
+
 ## Verbs
 
 | Command | Role |
