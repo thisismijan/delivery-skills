@@ -6,7 +6,7 @@ adapter directory.
 
 | Adapter | Wrapper | Mutation boundary |
 |---------|---------|-------------------|
-| [`cursor`](cursor/README.md) | `adapters/cursor/install.sh` | Unenforced. Read-only stages run; mutating stages stay blocked. |
+| [`cursor`](cursor/README.md) | `adapters/cursor/install.sh` | Enforced after setup verifies `hooks.json`. |
 | [`claude-code`](claude-code/README.md) | `adapters/claude-code/install.sh` | Enforced after setup verifies the PreToolUse hook. |
 | [`migration`](migration/README.md) | `./install.sh --adapter migration` | Compatibility reads for old state names only. |
 

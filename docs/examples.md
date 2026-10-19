@@ -15,7 +15,7 @@ bun "$FACTORY_ROOT/scripts/doctor.ts"
 bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items local-files
 ```
 
-Doctor should show core runtime ready. Forge and remote work items remain
+Doctor should show read-only lifecycle ready. Forge and remote work items remain
 **Needs setup**; that is expected. `/delivery` still grooms into `.delivery/work-items/`
 keys such as `LOCAL-1`. Execute cannot open a pull request until you add a
 forge provider.
@@ -44,8 +44,8 @@ Doctor should list `github-forge`, `github-tracker`, and **GitHub credential**
 under Ready now when PATH and the token are present. It must not ask for
 GitLab tools.
 
-On Cursor, mutation guard stays a host limitation. Use Claude Code with
-`--provider github` when you need mutating stages.
+Reload Cursor after install so the verified `hooks.json` hook loads. Doctor
+should then show Mutation guard as ready for mutating stages.
 
 ## GitLab merge requests and GitLab issues
 

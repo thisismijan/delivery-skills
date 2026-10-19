@@ -40,3 +40,42 @@ test("command-less payload denies", async () => {
 	const payload = await runHook(JSON.stringify({ tool_input: {} }));
 	expect(denyReason(payload)).toMatch(/command/i);
 });
+
+async function runCursorHook(stdin: string): Promise<Record<string, unknown>> {
+	const proc = Bun.spawn(["bun", hook, "--protocol", "cursor"], {
+		stdin: new Blob([stdin]).stream(),
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	const stdout = await new Response(proc.stdout).text();
+	await proc.exited;
+	return JSON.parse(stdout) as Record<string, unknown>;
+}
+
+test("Cursor shell payload denies a human-owned merge", async () => {
+	const payload = await runCursorHook(
+		JSON.stringify({ command: "gh pr merge 12", cwd: "/repo", sandbox: false }),
+	);
+	expect(payload).toMatchObject({
+		permission: "deny",
+	});
+	expect(String(payload.agent_message)).toMatch(/merge/i);
+});
+
+test("Cursor MCP payload denies a Jira status transition", async () => {
+	const payload = await runCursorHook(
+		JSON.stringify({
+			tool_name: "transitionJiraIssue",
+			tool_input: { issueId: "DEL-1" },
+			mcp_server_name: "atlassian",
+		}),
+	);
+	expect(payload.permission).toBe("deny");
+});
+
+test("Cursor allow responses are valid permission JSON", async () => {
+	const payload = await runCursorHook(
+		JSON.stringify({ command: "git status", cwd: "/repo" }),
+	);
+	expect(payload).toEqual({ permission: "allow" });
+});

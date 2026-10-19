@@ -41,10 +41,12 @@ gate.
 
 ## Host difference
 
-- **Claude Code:** mutating stages run after the adapter verifies its hook.
-- **Cursor:** mutating stages stay blocked. Read-only discovery, diagnosis, and
-  review briefing still run. Do not merge, close, force-push, hard-reset, or
-  mutate tracker state from the agent.
+- **Claude Code:** mutating stages run after the adapter verifies its
+  PreToolUse hook and you reload the session.
+- **Cursor:** mutating stages run after the adapter verifies `hooks.json` and
+  you reload Cursor. Until doctor shows Mutation guard as ready, only
+  read-only discovery, diagnosis, and review briefing run. Do not merge,
+  close, force-push, hard-reset, or mutate tracker state from the agent.
 
 ## Stops that always need a human
 

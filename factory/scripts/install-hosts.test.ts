@@ -48,6 +48,7 @@ test("--all skips an unwritable Cloud Agent store and still installs desktop hos
 			CURSOR_SKILLS_DIR: cursor,
 			CLAUDE_SKILLS_DIR: claude,
 			CLAUDE_SETTINGS_FILE: join(root, "claude-settings.json"),
+			CURSOR_HOOKS_FILE: join(root, "cursor-hooks.json"),
 			CURSOR_AGENT_STORE: store,
 			CURSOR_AGENT_STORE_PROBE: join(root, "missing-store"),
 			DELIVERY_BIN_DIR: join(root, "bin"),
@@ -55,7 +56,7 @@ test("--all skips an unwritable Cloud Agent store and still installs desktop hos
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain(`Cursor skills -> ${cursor}`);
 		expect(stdout).toContain(`Claude Code skills -> ${claude}`);
-		expect(stdout).toContain("Mutating stages remain blocked");
+		expect(stdout).toContain("Cursor mutation hook");
 		expect(stdout).toContain("Claude mutation hook");
 		expect(stdout).toContain(
 			`Agent store skipped (not writable here): ${store}`,
@@ -64,10 +65,28 @@ test("--all skips an unwritable Cloud Agent store and still installs desktop hos
 		expect(
 			await readFile(join(root, "claude-settings.json"), "utf8"),
 		).toContain(join(claude, "_factory", "scripts", "commit-guard.ts"));
+		expect(await readFile(join(root, "cursor-hooks.json"), "utf8")).toContain(
+			"--protocol cursor",
+		);
 		expect(
 			JSON.parse(
 				await readFile(
 					join(claude, "_factory", "runtime-manifest.json"),
+					"utf8",
+				),
+			),
+		).toMatchObject({
+			capabilities: {
+				"mutation.guard": {
+					available: true,
+					enforcement: "enforced",
+				},
+			},
+		});
+		expect(
+			JSON.parse(
+				await readFile(
+					join(cursor, "_factory", "runtime-manifest.json"),
 					"utf8",
 				),
 			),
@@ -105,6 +124,7 @@ test("--store keeps the factory inside the synced tree and preserves delivery st
 		const { stdout, stderr, exitCode } = await runInstaller(["--store"], {
 			CURSOR_AGENT_STORE: store,
 			CURSOR_AGENT_STORE_PROBE: storeRoot,
+			CURSOR_HOOKS_FILE: join(root, "cursor-hooks.json"),
 			DELIVERY_BIN_DIR: join(root, "bin"),
 		});
 
@@ -178,12 +198,14 @@ test("reinstall leaves skill-local leftover candidates and versions untouched", 
 		const first = await runInstaller(["--store"], {
 			CURSOR_AGENT_STORE: store,
 			CURSOR_AGENT_STORE_PROBE: storeRoot,
+			CURSOR_HOOKS_FILE: join(root, "cursor-hooks.json"),
 			DELIVERY_BIN_DIR: join(root, "bin"),
 		});
 		expect(first.exitCode).toBe(0);
 		const second = await runInstaller(["--store"], {
 			CURSOR_AGENT_STORE: store,
 			CURSOR_AGENT_STORE_PROBE: storeRoot,
+			CURSOR_HOOKS_FILE: join(root, "cursor-hooks.json"),
 			DELIVERY_BIN_DIR: join(root, "bin"),
 		});
 		expect(second.exitCode).toBe(0);
@@ -206,6 +228,7 @@ test("--cursor replaces a stale real skill directory with the managed pack copy"
 
 		const { exitCode } = await runInstaller(["--cursor"], {
 			CURSOR_SKILLS_DIR: cursor,
+			CURSOR_HOOKS_FILE: join(root, "cursor-hooks.json"),
 			DELIVERY_BIN_DIR: join(root, "bin"),
 		});
 

@@ -3,9 +3,11 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+	formatInitHandoff,
 	initializeTargetRepository,
 	withDeliveryIgnores,
 } from "./delivery-init";
+import { doctorReadiness } from "./doctor";
 import { defaultRuntimeManifest } from "./runtime-manifest";
 
 test("delivery ignore entries are idempotent", () => {
@@ -61,4 +63,49 @@ test("refuses to initialize outside a git repository", async () => {
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
+});
+
+test("init handoff reprints only unresolved doctor checks", () => {
+	const checks = [
+		{
+			category: "Ready now" as const,
+			name: "Runtime manifest",
+			detail: "valid",
+			required: true,
+			ok: true,
+		},
+		{
+			category: "Needs setup" as const,
+			name: "Bun runtime",
+			detail: "install Bun 1.4.2",
+			required: false,
+			ok: false,
+		},
+		{
+			category: "Human-owned" as const,
+			name: "Merge",
+			detail: "requires explicit operator action",
+			required: false,
+			ok: true,
+		},
+	];
+	const output = formatInitHandoff({
+		root: "/repo",
+		runtime: defaultRuntimeManifest(true),
+		selection: {
+			state: "ready",
+			selection: {
+				version: 1,
+				provider: { id: "gitlab", kind: "remote" },
+				confirmed: true,
+			},
+		},
+		doctor: { checks, ...doctorReadiness(checks) },
+	});
+	expect(output).toContain("NEEDS SETUP");
+	expect(output).toContain("Bun runtime");
+	expect(output).toContain("Work-item provider: gitlab");
+	expect(output).toContain("/delivery help");
+	expect(output).not.toContain("READY NOW");
+	expect(output).not.toContain("HUMAN-OWNED");
 });

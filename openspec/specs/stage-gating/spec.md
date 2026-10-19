@@ -22,8 +22,12 @@ A mutating stage SHALL NOT start on a host that does not declare enforced mutati
 - **THEN** the stage is allowed
 
 ### Requirement: Host declarations follow real enforcement
-Claude Code SHALL be declared enforced and Cursor SHALL stay declared unenforced until a real enforcement hook exists.
+A host SHALL be declared enforced only after setup verifies a real denial hook. Claude Code verifies PreToolUse. Cursor verifies `hooks.json`. Static adapter declaration alone SHALL NOT authorize a mutating stage.
 
-#### Scenario: Cursor mutating stage
-- **WHEN** a mutating stage starts on Cursor
+#### Scenario: Cursor mutating stage without a verified hook
+- **WHEN** a mutating stage starts on Cursor before hook verification
 - **THEN** it is blocked
+
+#### Scenario: Cursor mutating stage with a verified hook
+- **WHEN** Cursor setup has persisted and verified `hooks.json`
+- **THEN** mutating stages are allowed

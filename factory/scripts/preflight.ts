@@ -55,5 +55,5 @@ if (import.meta.main) {
 		cwd: process.cwd(),
 	});
 	console.log(formatDoctorReport(report));
-	process.exit(report.coreReady ? 0 : 1);
+	process.exit(report.readOnlyReady ? 0 : 1);
 }

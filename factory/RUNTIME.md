@@ -35,9 +35,10 @@ bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items <confirmed-provider-id
 
 Doctor reports ready capabilities, the repository's confirmed work-item
 provider, setup remedies, host limitations, and human-owned actions separately.
-Init persists that explicit provider choice, adds `.delivery/` and `.review/`
-to `.gitignore` once, and then runs doctor. It never infers a provider from
-remotes or credentials. The SDLC constitution
+It distinguishes read-only lifecycle from full lifecycle. Init persists that
+explicit provider choice, adds `.delivery/` and `.review/` to `.gitignore`
+once, and then reprints only unresolved doctor checks. It never infers a
+provider from remotes or credentials. The SDLC constitution
 (`SDLC-CONSTITUTION.md`) remains required on every run; a missing or mismatched
 constitution is a terminal stop. After plan approval, later stages also check
 `.delivery/runs/<id>.run-contract.json`.

@@ -246,14 +246,11 @@ test("settings are validated and local files take none", async () => {
 		/key=value/,
 	);
 	expect(() =>
-		parseSettingArguments([
-			"--setting",
-			"project=A",
-			"--setting",
-			"project=B",
-		]),
+		parseSettingArguments(["--setting", "project=A", "--setting", "project=B"]),
 	).toThrow(/given twice/);
-	expect(() => parseSettingArguments(["--setting", "project=A\u0007"])).toThrow();
+	expect(() =>
+		parseSettingArguments(["--setting", "project=A\u0007"]),
+	).toThrow();
 	await withRepository(async (root) => {
 		await expect(
 			configureWorkItemProvider({

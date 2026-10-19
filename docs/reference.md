@@ -21,6 +21,7 @@ Environment:
 | `CURSOR_AGENT_STORE` | Cloud store install destination |
 | `CLAUDE_SKILLS_DIR` | Claude wrapper destination |
 | `CLAUDE_SETTINGS_FILE` | Claude settings for the mutation hook |
+| `CURSOR_HOOKS_FILE` | Cursor `hooks.json` for the mutation hook |
 
 ## Runtime capabilities
 
@@ -67,5 +68,9 @@ bun "$FACTORY_ROOT/scripts/work-item-provider.ts" \
 
 ## Doctor
 
-`bun "$FACTORY_ROOT/scripts/doctor.ts"` exits 0 when required core checks
-pass. Optional provider and OpenSpec gaps do not fail the core.
+`bun "$FACTORY_ROOT/scripts/doctor.ts"` exits 0 when **read-only lifecycle**
+checks pass. An unpinned Bun version and an unverified mutation hook do not
+fail that exit. Full lifecycle is a separate verdict: pinned Bun plus a
+verified denial hook. Optional provider and OpenSpec gaps do not fail
+read-only readiness. Init reprints only unresolved checks after it writes
+configuration.

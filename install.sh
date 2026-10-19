@@ -111,12 +111,35 @@ else
   fi
 fi
 
-if [[ -n "${DELIVERY_INSTALL_SKIP_BUN:-}" ]]; then
-  :
-elif command -v bun >/dev/null 2>&1; then
+expected_bun=""
+while IFS= read -r line; do
+  case "$line" in
+    *'"packageManager": "bun@'*)
+      expected_bun="${line#*bun@}"
+      expected_bun="${expected_bun%%\"*}"
+      break
+      ;;
+  esac
+done < "$root/factory/package.json"
+bun_install_cmd="curl -fsSL https://bun.sh/install | bash -s \"bun-v${expected_bun}\""
+
+if [[ -z "${DELIVERY_INSTALL_SKIP_BUN:-}" ]]; then
+  if ! command -v bun >/dev/null 2>&1; then
+    echo "Bun ${expected_bun} is required before install." >&2
+    echo "Install the pinned runtime:" >&2
+    echo "  ${bun_install_cmd}" >&2
+    echo "Then restart the shell and confirm: bun --version" >&2
+    exit 1
+  fi
+  found_bun="$(bun --version)"
+  if [[ "$found_bun" != "$expected_bun" ]]; then
+    echo "Pinned Bun runtime is ${expected_bun}; found ${found_bun}." >&2
+    echo "Install the pinned runtime:" >&2
+    echo "  ${bun_install_cmd}" >&2
+    echo "If an older bun is earlier on PATH, put ~/.bun/bin first or uninstall that package." >&2
+    echo "Continuing with ${found_bun}; doctor will keep this as a setup item." >&2
+  fi
   (cd "$root/factory" && bun install --frozen-lockfile)
-else
-  echo "bun is not on PATH; factory gate scripts will fail until it is installed" >&2
 fi
 
 copy_unmanaged() {

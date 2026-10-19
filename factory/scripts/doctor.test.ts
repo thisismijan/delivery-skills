@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
 import {
 	type DoctorReport,
+	doctorReadiness,
 	formatDoctorReport,
+	formatDoctorVerdict,
 	remoteProviderDoctorChecks,
 	workItemDoctorCheck,
 } from "./doctor";
@@ -11,41 +13,45 @@ import {
 	parseRuntimeManifest,
 } from "./runtime-manifest";
 
+function report(partial: Pick<DoctorReport, "checks">): DoctorReport {
+	return { checks: partial.checks, ...doctorReadiness(partial.checks) };
+}
+
 test("groups partial readiness without hiding the safe subset", () => {
-	const report: DoctorReport = {
-		coreReady: true,
-		checks: [
-			{
-				category: "Ready now",
-				name: "Runtime manifest",
-				detail: "valid",
-				required: true,
-				ok: true,
-			},
-			{
-				category: "Needs setup",
-				name: "OpenSpec CLI",
-				detail: "install OpenSpec before archive",
-				required: false,
-				ok: false,
-			},
-			{
-				category: "Host limitation",
-				name: "Mutation guard",
-				detail: "mutating stages stay blocked",
-				required: false,
-				ok: false,
-			},
-			{
-				category: "Human-owned",
-				name: "Merge",
-				detail: "requires explicit operator action",
-				required: false,
-				ok: true,
-			},
-		],
-	};
-	const output = formatDoctorReport(report);
+	const output = formatDoctorReport(
+		report({
+			checks: [
+				{
+					category: "Ready now",
+					name: "Runtime manifest",
+					detail: "valid",
+					required: true,
+					ok: true,
+				},
+				{
+					category: "Needs setup",
+					name: "OpenSpec CLI",
+					detail: "install OpenSpec before archive",
+					required: false,
+					ok: false,
+				},
+				{
+					category: "Host limitation",
+					name: "Mutation guard",
+					detail: "mutating stages stay blocked",
+					required: false,
+					ok: false,
+				},
+				{
+					category: "Human-owned",
+					name: "Merge",
+					detail: "requires explicit operator action",
+					required: false,
+					ok: true,
+				},
+			],
+		}),
+	);
 	for (const heading of [
 		"READY NOW",
 		"NEEDS SETUP",
@@ -54,23 +60,26 @@ test("groups partial readiness without hiding the safe subset", () => {
 	]) {
 		expect(output).toContain(heading);
 	}
-	expect(output).toContain("Core runtime is ready");
+	expect(output).toContain("Read-only lifecycle is available");
+	expect(output).toContain("Mutating stages need a verified denial hook");
+	expect(output).not.toContain("Read-only lifecycle is not ready");
 });
 
 test("doctor output contains remedies but no supplied secret", () => {
 	const secret = "glpat-never-print-this";
-	const output = formatDoctorReport({
-		coreReady: false,
-		checks: [
-			{
-				category: "Needs setup",
-				name: "GitLab credential",
-				detail: "set GITLAB_TOKEN, GL_TOKEN_FILE, or ~/token",
-				required: false,
-				ok: false,
-			},
-		],
-	});
+	const output = formatDoctorReport(
+		report({
+			checks: [
+				{
+					category: "Needs setup",
+					name: "GitLab credential",
+					detail: "set GITLAB_TOKEN, GL_TOKEN_FILE, or ~/token",
+					required: false,
+					ok: false,
+				},
+			],
+		}),
+	);
 	expect(output).toContain("GITLAB_TOKEN");
 	expect(output).not.toContain(secret);
 });
@@ -97,7 +106,8 @@ test("work-item diagnosis distinguishes confirmed and unavailable choices", () =
 	).toMatchObject({
 		category: "Needs setup",
 		detail: "configure jira or explicitly select another provider",
-	});	expect(
+	});
+	expect(
 		workItemDoctorCheck({
 			state: "ready",
 			selection: {
@@ -201,7 +211,7 @@ test("mixed GitHub forge and Jira tracker probes both", () => {
 		},
 		(name) => `/bin/${name}`,
 	);
-	const output = formatDoctorReport({ coreReady: true, checks });
+	const output = formatDoctorReport(report({ checks }));
 	expect(output).toContain("github-forge");
 	expect(output).toContain("jira-tracker");
 	expect(output).toContain("GitHub credential");
@@ -209,4 +219,73 @@ test("mixed GitHub forge and Jira tracker probes both", () => {
 	expect(output).not.toContain("gitlab-forge");
 	expect(output).not.toContain("secret-github");
 	expect(output).not.toContain("secret-jira");
+});
+
+test("an unpinned bun does not fail read-only readiness", () => {
+	const checks: DoctorReport["checks"] = [
+		{
+			category: "Needs setup",
+			name: "Bun runtime",
+			detail:
+				'curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.2"; found 1.3.14',
+			required: false,
+			ok: false,
+		},
+		{
+			category: "Ready now",
+			name: "Runtime dependencies",
+			detail: "installed",
+			required: true,
+			ok: true,
+		},
+		{
+			category: "Host limitation",
+			name: "Mutation guard",
+			detail: "mutating stages stay blocked",
+			required: false,
+			ok: false,
+		},
+	];
+	expect(doctorReadiness(checks)).toMatchObject({
+		readOnlyReady: true,
+		fullLifecycleReady: false,
+	});
+	expect(formatDoctorVerdict(report({ checks }))).toContain(
+		"Read-only lifecycle is available",
+	);
+});
+
+test("unresolved formatting hides ready and human-owned rows", () => {
+	const output = formatDoctorReport(
+		report({
+			checks: [
+				{
+					category: "Ready now",
+					name: "Runtime manifest",
+					detail: "valid",
+					required: true,
+					ok: true,
+				},
+				{
+					category: "Needs setup",
+					name: "Bun runtime",
+					detail: "install Bun 1.4.2",
+					required: false,
+					ok: false,
+				},
+				{
+					category: "Human-owned",
+					name: "Merge",
+					detail: "requires explicit operator action",
+					required: false,
+					ok: true,
+				},
+			],
+		}),
+		{ onlyUnresolved: true },
+	);
+	expect(output).toContain("NEEDS SETUP");
+	expect(output).toContain("Bun runtime");
+	expect(output).not.toContain("READY NOW");
+	expect(output).not.toContain("HUMAN-OWNED");
 });

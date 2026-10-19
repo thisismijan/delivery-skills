@@ -125,12 +125,18 @@ test("every shipped adapter declares a runtime-validated manifest", () => {
 	}
 });
 
-test("the shipped cursor adapter keeps mutating stages blocked", () => {
+test("the shipped cursor adapter keeps mutating stages blocked until the hook is verified", () => {
 	const raw = JSON.parse(
 		readFileSync(join(adaptersRoot, "cursor", "adapter.json"), "utf8"),
 	) as unknown;
 	const runtime = parseRuntimeManifest(adapterRuntimeManifest(raw, "cursor"));
 	expect(canStartStage({ stage: "execute", runtime }).allowed).toBe(false);
+	const verified = parseRuntimeManifest(
+		adapterRuntimeManifest(raw, "cursor", { mutationGuardVerified: true }),
+	);
+	expect(canStartStage({ stage: "execute", runtime: verified }).allowed).toBe(
+		true,
+	);
 });
 
 test("adapter capability identifiers match the portable runtime contract", () => {

@@ -1,9 +1,11 @@
 import { lstat, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { type DoctorReport, formatDoctorReport, runDoctor } from "./doctor";
 import { loadRuntimeManifest } from "./runtime-manifest";
 import type { RuntimeManifest } from "./runtime-manifest";
 import {
 	type ProviderSettings,
+	type WorkItemSelectionStatus,
 	configureWorkItemProvider,
 	describeSelection,
 	parseSettingArguments,
@@ -84,6 +86,39 @@ export async function initializeTargetRepository(
 	return root;
 }
 
+export function formatInitHandoff(options: {
+	root: string;
+	selection: WorkItemSelectionStatus;
+	runtime: RuntimeManifest;
+	doctor: DoctorReport;
+}): string {
+	const unresolved = formatDoctorReport(options.doctor, {
+		onlyUnresolved: true,
+	});
+	return [
+		unresolved,
+		"",
+		`Target repository initialized: ${options.root}`,
+		options.selection.state === "ready" && options.selection.selection
+			? `Work-item provider: ${describeSelection(options.selection.selection)}`
+			: "Work-item provider confirmation required:",
+		...(options.selection.state === "ready"
+			? []
+			: workItemOptions(options.runtime).map(
+					(option) => `  ${option.id}: ${option.label}`,
+				)),
+		...(options.selection.state === "ready"
+			? []
+			: [
+					"Run again with --work-items <provider-id> after confirming the choice.",
+				]),
+		"First commands:",
+		"  /delivery help",
+		"  /delivery discover <idea>",
+		"  /delivery status",
+	].join("\n");
+}
+
 if (import.meta.main) {
 	try {
 		const args = process.argv.slice(2);
@@ -109,40 +144,19 @@ if (import.meta.main) {
 				: undefined,
 		);
 		const selection = await workItemSelectionStatus(root, runtime);
-		const doctor = Bun.spawn(
-			["bun", join(factoryRoot, "scripts", "doctor.ts")],
-			{
-				cwd: root,
-				env: { ...process.env, DELIVERY_FACTORY_ROOT: factoryRoot },
-				stdout: "inherit",
-				stderr: "inherit",
-			},
-		);
-		const code = await doctor.exited;
+		const doctor = await runDoctor({
+			factoryRoot,
+			cwd: root,
+		});
 		console.log(
-			[
-				"",
-				`Target repository initialized: ${root}`,
-				selection.state === "ready" && selection.selection
-					? `Work-item provider: ${describeSelection(selection.selection)}`
-					: "Work-item provider confirmation required:",
-				...(selection.state === "ready"
-					? []
-					: workItemOptions(runtime).map(
-							(option) => `  ${option.id}: ${option.label}`,
-						)),
-				...(selection.state === "ready"
-					? []
-					: [
-							"Run again with --work-items <provider-id> after confirming the choice.",
-						]),
-				"First commands:",
-				"  /delivery help",
-				"  /delivery discover <idea>",
-				"  /delivery status",
-			].join("\n"),
+			formatInitHandoff({
+				root,
+				selection,
+				runtime,
+				doctor,
+			}),
 		);
-		process.exit(code === 0 && selection.state === "ready" ? 0 : 1);
+		process.exit(doctor.readOnlyReady && selection.state === "ready" ? 0 : 1);
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));
 		process.exit(1);

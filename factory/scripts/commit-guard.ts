@@ -132,6 +132,14 @@ export function isForbiddenMutation(command: string): GuardResult {
 	return decideCommand(command);
 }
 
+export type GuardProtocol = "claude" | "cursor";
+
+export function parseGuardProtocol(argv: string[]): GuardProtocol {
+	const index = argv.indexOf("--protocol");
+	const value = index >= 0 ? argv[index + 1] : undefined;
+	return value === "cursor" ? "cursor" : "claude";
+}
+
 function denyOutput(reason: string): string {
 	return JSON.stringify({
 		hookSpecificOutput: {
@@ -142,21 +150,54 @@ function denyOutput(reason: string): string {
 	});
 }
 
-function commandFromPayload(
+function toolInputCommand(toolInput: unknown): string | undefined {
+	if (typeof toolInput === "string") {
+		try {
+			return toolInputCommand(JSON.parse(toolInput) as unknown);
+		} catch {
+			return undefined;
+		}
+	}
+	if (
+		typeof toolInput !== "object" ||
+		toolInput === null ||
+		Array.isArray(toolInput)
+	) {
+		return undefined;
+	}
+	const command = (toolInput as { command?: unknown }).command;
+	return typeof command === "string" && command.length > 0
+		? command
+		: undefined;
+}
+
+export function commandFromPayload(
 	raw: string,
 ): { ok: true; command: string } | { ok: false; reason: string } {
 	try {
 		const parsed = JSON.parse(raw) as {
-			tool_input?: { command?: unknown };
+			command?: unknown;
+			tool_name?: unknown;
+			tool_input?: unknown;
 		};
-		const command = parsed?.tool_input?.command;
-		if (typeof command !== "string" || command.length === 0) {
-			return {
-				ok: false,
-				reason: "Guard payload has no command; refusing to fail open.",
-			};
+		const toolName =
+			typeof parsed.tool_name === "string" ? parsed.tool_name : "";
+		if (toolName && toolName !== "Shell" && toolName !== "Bash") {
+			const encoded =
+				typeof parsed.tool_input === "string"
+					? parsed.tool_input
+					: JSON.stringify(parsed.tool_input ?? {});
+			return { ok: true, command: `${toolName} ${encoded}` };
 		}
-		return { ok: true, command };
+		const fromTool = toolInputCommand(parsed.tool_input);
+		if (fromTool) return { ok: true, command: fromTool };
+		if (typeof parsed.command === "string" && parsed.command.length > 0) {
+			return { ok: true, command: parsed.command };
+		}
+		return {
+			ok: false,
+			reason: "Guard payload has no command; refusing to fail open.",
+		};
 	} catch {
 		return {
 			ok: false,
@@ -165,18 +206,41 @@ function commandFromPayload(
 	}
 }
 
+export function evaluateCommand(command: string): GuardResult {
+	const forbidden = decideCommand(command);
+	return forbidden.blocked ? forbidden : isAttributionViolation(command);
+}
+
+export function formatGuardStdout(
+	protocol: GuardProtocol,
+	result: GuardResult,
+): string {
+	const reason = result.reason ?? "Command refused.";
+	if (protocol === "cursor") {
+		if (result.blocked) {
+			return JSON.stringify({
+				permission: "deny",
+				user_message: reason,
+				agent_message: reason,
+			});
+		}
+		return JSON.stringify({ permission: "allow" });
+	}
+	return result.blocked ? denyOutput(reason) : "";
+}
+
 if (import.meta.main) {
+	const protocol = parseGuardProtocol(process.argv.slice(2));
 	const raw = await new Response(Bun.stdin.stream()).text();
 	const parsed = commandFromPayload(raw);
 	if (!parsed.ok) {
-		console.log(denyOutput(parsed.reason));
+		console.log(
+			formatGuardStdout(protocol, { blocked: true, reason: parsed.reason }),
+		);
 		process.exit(0);
 	}
-	const result = decideCommand(parsed.command).blocked
-		? decideCommand(parsed.command)
-		: isAttributionViolation(parsed.command);
-	if (result.blocked) {
-		console.log(denyOutput(result.reason ?? "Command refused."));
-	}
+	const result = evaluateCommand(parsed.command);
+	const stdout = formatGuardStdout(protocol, result);
+	if (stdout) console.log(stdout);
 	process.exit(0);
 }

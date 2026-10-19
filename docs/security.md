@@ -14,8 +14,11 @@ approval) create or link work items and attach audit notes. It must never:
 - accept release risk except as an explicit operator decision for one head
 
 Claude Code enforces those denials with a PreToolUse hook after adapter
-setup. Cursor cannot. On Cursor, treat the agent shell as unconstrained and
-do not ask it to merge or mutate tracker status.
+setup. Cursor enforces them with `hooks.json` (`beforeShellExecution`,
+`beforeMCPExecution`, and `preToolUse`, all `failClosed`) after adapter
+setup. Reload the host so the hook is loaded. Until doctor shows Mutation
+guard as ready, treat the agent shell as unconstrained and do not ask it to
+merge or mutate tracker status.
 
 ## Credentials
 
