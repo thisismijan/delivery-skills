@@ -90,6 +90,15 @@ export function githubCredentialPresent(
 	return Boolean(home && existsSync(join(home, "token")));
 }
 
+// Settings a repository must record (delivery init --setting key=value) before a remote work-item
+// provider can serve it. They are per repository because one machine serves repositories that
+// file work items in different places; anything machine-wide stays in the environment.
+export const REQUIRED_REPOSITORY_SETTINGS: Readonly<
+	Record<string, readonly string[]>
+> = {
+	jira: ["project"],
+};
+
 export function jiraCredentialPresent(
 	env: Record<string, string | undefined>,
 ): boolean {
@@ -163,9 +172,8 @@ export function credentialState(
 		if (!env.JIRA_SITE?.trim()) {
 			reasons.push("set JIRA_SITE to your Jira Cloud site URL");
 		}
-		if (!env.JIRA_PROJECT?.trim()) {
-			reasons.push("set JIRA_PROJECT to the Jira project key");
-		}
+		// The project is per repository (delivery init --setting project=<KEY>), so installing
+		// once for every repository on this machine does not depend on any one of them.
 		if (!jiraCredentialPresent(env)) {
 			reasons.push(
 				"set JIRA_EMAIL and JIRA_API_TOKEN, or JIRA_TOKEN_FILE, or ~/jira-token for Jira access",

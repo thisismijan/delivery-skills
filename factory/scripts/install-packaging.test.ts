@@ -522,7 +522,6 @@ test("explicit --provider jira installs jira-tracker and advertises tracker.item
 			{
 				DELIVERY_BIN_DIR: bin,
 				JIRA_SITE: "https://acme.atlassian.net",
-				JIRA_PROJECT: "DELIV",
 				JIRA_EMAIL: "ada@example.test",
 				JIRA_API_TOKEN: "test-token",
 				PATH: `${bin}:${process.env.PATH ?? ""}`,

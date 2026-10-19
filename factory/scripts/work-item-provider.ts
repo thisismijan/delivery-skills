@@ -319,6 +319,7 @@ async function invokeRemoteProvider(options: {
 	operation: WorkItemOperation;
 	repositoryRoot: string;
 	input: unknown;
+	settings?: Record<string, string>;
 }): Promise<WorkItem | WorkItem[]> {
 	if (!options.invocation.startsWith("exec:")) {
 		throw new Error(
@@ -340,6 +341,10 @@ async function invokeRemoteProvider(options: {
 			version: PROVIDER_PROTOCOL_VERSION,
 			provider: options.provider,
 			repositoryRoot: options.repositoryRoot,
+			// The repository's provider settings, e.g. which tracker project it files work items in.
+			...(options.settings && Object.keys(options.settings).length > 0
+				? { settings: options.settings }
+				: {}),
 			input: options.input,
 		}),
 	);
@@ -406,6 +411,7 @@ export async function runWorkItemOperation(options: {
 		invocation: tracker.invocation,
 		operation: options.operation,
 		repositoryRoot: options.repositoryRoot,
+		settings: status.selection.provider.settings,
 		input,
 	});
 }

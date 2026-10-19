@@ -44,6 +44,7 @@ function envelope(
 		version: 1,
 		provider: "jira",
 		repositoryRoot: "/tmp/app",
+		settings: { project: PROJECT },
 		...extra,
 		input,
 	};
@@ -60,7 +61,6 @@ function recordingDeps(handler: (request: JiraRequest) => unknown): {
 		deps: {
 			env: {
 				JIRA_SITE: SITE,
-				JIRA_PROJECT: PROJECT,
 				JIRA_EMAIL: EMAIL,
 				JIRA_API_TOKEN: TOKEN,
 			},
@@ -548,7 +548,6 @@ test("CLI rejects missing credentials without putting secrets on argv", async ()
 					PATH: process.env.PATH,
 					HOME: root,
 					JIRA_SITE: SITE,
-					JIRA_PROJECT: PROJECT,
 					JIRA_EMAIL: "",
 					JIRA_API_TOKEN: "",
 					JIRA_TOKEN: "",
@@ -593,7 +592,6 @@ test("token files are used when env tokens are absent", async () => {
 		deps.env = {
 			HOME: root,
 			JIRA_SITE: SITE,
-			JIRA_PROJECT: PROJECT,
 			JIRA_EMAIL: "",
 			JIRA_API_TOKEN: "",
 		};
@@ -610,4 +608,58 @@ test("token files are used when env tokens are absent", async () => {
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
+});
+
+test("the project comes from the repository settings, never JIRA_PROJECT", async () => {
+	const { deps, requests } = recordingDeps(() => {
+		throw new Error("network should not run without a repository project");
+	});
+	deps.env = { ...deps.env, JIRA_PROJECT: PROJECT };
+	await expect(
+		runJiraTracker(
+			"read",
+			envelope({ ref: "DELIV-1" }, { settings: {} }),
+			deps,
+		),
+	).rejects.toThrow(
+		/No Jira project is set for this repository.*--setting project=/,
+	);
+	expect(requests).toEqual([]);
+});
+
+test("each repository's project scopes its searches, and its site overrides JIRA_SITE", async () => {
+	const { deps, requests } = recordingDeps(() =>
+		loadFixture("search-empty.json"),
+	);
+	await runJiraTracker(
+		"list",
+		envelope(
+			{},
+			{ settings: { project: "OTHER", site: "other.atlassian.net" } },
+		),
+		deps,
+	);
+	const url = new URL(requests[0]?.url ?? "");
+	expect(url.origin).toBe("https://other.atlassian.net");
+	expect(url.searchParams.get("jql")).toContain('project = "OTHER"');
+	expect(url.searchParams.get("jql")).not.toContain(PROJECT);
+});
+
+test("settings in a flat envelope are not read as operation input", async () => {
+	const { deps } = recordingDeps((request) => {
+		expect(new URL(request.url).pathname).toBe("/rest/api/3/issue/DELIV-1");
+		return loadFixture("issue-deliv-1.json");
+	});
+	const item = await runJiraTracker(
+		"read",
+		{
+			version: 1,
+			provider: "jira",
+			repositoryRoot: "/tmp/app",
+			settings: { project: PROJECT },
+			ref: "DELIV-1",
+		},
+		deps,
+	);
+	expect(item).toMatchObject({ ref: "DELIV-1" });
 });

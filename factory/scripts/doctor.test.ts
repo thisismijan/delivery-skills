@@ -97,7 +97,16 @@ test("work-item diagnosis distinguishes confirmed and unavailable choices", () =
 	).toMatchObject({
 		category: "Needs setup",
 		detail: "configure jira or explicitly select another provider",
-	});
+	});	expect(
+		workItemDoctorCheck({
+			state: "ready",
+			selection: {
+				version: 1,
+				provider: { id: "jira", kind: "remote", settings: { project: "MDF" } },
+				confirmed: true,
+			},
+		}),
+	).toMatchObject({ category: "Ready now", detail: "jira (project=MDF)" });
 });
 
 test("generic runtime does not demand a GitLab tool", () => {
@@ -187,7 +196,6 @@ test("mixed GitHub forge and Jira tracker probes both", () => {
 		{
 			GITHUB_TOKEN: "secret-github",
 			JIRA_SITE: "https://example.atlassian.net",
-			JIRA_PROJECT: "DEL",
 			JIRA_EMAIL: "ops@example.com",
 			JIRA_API_TOKEN: "secret-jira",
 		},

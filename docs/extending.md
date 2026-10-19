@@ -31,7 +31,10 @@ Add `providers/<name>/` with `provider.json`:
 
 `kind` is `forge`, `tracker`, or `spec-tool`. Executables take one operation
 argument and a version-1 JSON envelope on stdin, write JSON on stdout, and
-must not invoke a shell or put secrets on argv.
+must not invoke a shell or put secrets on argv. A tracker envelope carries
+`settings` when the repository recorded any with
+`delivery-init.ts --setting key=value`; settings are plain configuration, never
+credentials.
 
 Forge operations: `find`, `read`, `files`, `diff`, `commits`, `discussions`,
 `anchors`, `create`, `set-draft`, `note`, `reply`. Tracker operations:
