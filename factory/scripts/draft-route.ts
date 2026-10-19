@@ -1,5 +1,6 @@
 import {
 	type AssessmentVerdict,
+	MAX_DERIVED_ACCEPTANCE_CRITERIA,
 	type FeasibilityVerdict,
 	parseAssessmentVerdict,
 	parseFeasibilityVerdict,
@@ -20,7 +21,7 @@ export function routeAfterAssessment(
 	if (
 		a.quality === "good" &&
 		(a.derivedAcceptanceCriteria.length === 0 ||
-			a.derivedAcceptanceCriteria.length > 3)
+			a.derivedAcceptanceCriteria.length > MAX_DERIVED_ACCEPTANCE_CRITERIA)
 	) {
 		return {
 			decision: "clarify",
