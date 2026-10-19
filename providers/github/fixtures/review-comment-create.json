@@ -1,0 +1,9 @@
+{
+  "id": 502,
+  "body": "Inline finding.",
+  "path": "src/example.ts",
+  "line": 2,
+  "side": "RIGHT",
+  "html_url": "https://github.com/acme/app/pull/42#discussion_r502",
+  "user": { "login": "ada" }
+}

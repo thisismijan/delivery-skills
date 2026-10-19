@@ -1,0 +1,19 @@
+{
+  "id": 9100,
+  "number": 99,
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "title": "Open a draft change",
+  "body": "Created from the normalized envelope.",
+  "user": { "login": "ada" },
+  "html_url": "https://github.com/acme/app/pull/99",
+  "head": {
+    "ref": "cursor/generic-forge-provider-327b",
+    "sha": "dddddddddddddddddddddddddddddddddddddddd"
+  },
+  "base": {
+    "ref": "main",
+    "sha": "basebasebasebasebasebasebasebasebasebase"
+  }
+}

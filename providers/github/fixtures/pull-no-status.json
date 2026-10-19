@@ -1,0 +1,20 @@
+{
+  "id": 9002,
+  "number": 7,
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "title": "No pipeline yet",
+  "body": "",
+  "user": { "login": "ada" },
+  "html_url": "https://github.com/acme/app/pull/7",
+  "head": {
+    "ref": "feature/no-pipeline",
+    "sha": "ffffffffffffffffffffffffffffffffffffffff"
+  },
+  "base": {
+    "ref": "main",
+    "sha": "basebasebasebasebasebasebasebasebasebase"
+  },
+  "changed_files": 1
+}

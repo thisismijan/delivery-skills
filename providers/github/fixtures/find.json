@@ -1,0 +1,38 @@
+[
+  {
+    "id": 9001,
+    "number": 42,
+    "state": "open",
+    "draft": true,
+    "title": "Keep review evidence complete",
+    "body": "Bind files, diff, and discussions to the head revision.",
+    "user": { "login": "ada", "name": "Ada Lovelace" },
+    "html_url": "https://github.com/acme/app/pull/42",
+    "head": {
+      "ref": "cursor/generic-forge-provider-327b",
+      "sha": "aaa111bbb222ccc333ddd444eee555fff666aaa1"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "basebasebasebasebasebasebasebasebasebase"
+    }
+  },
+  {
+    "id": 9003,
+    "number": 43,
+    "state": "open",
+    "draft": false,
+    "title": "Second open change",
+    "body": "",
+    "user": { "login": "ada" },
+    "html_url": "https://github.com/acme/app/pull/43",
+    "head": {
+      "ref": "cursor/generic-forge-provider-327b",
+      "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "basebasebasebasebasebasebasebasebasebase"
+    }
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "id": 101,
+    "user": { "login": "reviewer" },
+    "body": "Please bind the head revision.",
+    "path": "src/example.ts",
+    "line": 2,
+    "side": "RIGHT",
+    "html_url": "https://github.com/acme/app/pull/42#discussion_r101"
+  },
+  {
+    "id": 102,
+    "user": { "login": "github-actions[bot]" },
+    "body": "System event",
+    "html_url": "https://github.com/acme/app/pull/42#discussion_r102"
+  }
+]

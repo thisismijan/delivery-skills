@@ -1,0 +1,8 @@
+[
+  {
+    "id": 901,
+    "user": { "login": "ada" },
+    "body": "<!-- delivery-note-audit-id: draft:ready -->\nupdated",
+    "html_url": "https://github.com/acme/app/issues/11#issuecomment-901"
+  }
+]

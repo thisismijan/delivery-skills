@@ -550,6 +550,60 @@ test("explicit --provider jira installs jira-tracker and advertises tracker.item
 	});
 });
 
+test("explicit --provider github substantiates forge, review, and tracker", async () => {
+	await withInstallRoot(async (root) => {
+		const dest = join(root, "skills");
+		const bin = join(root, "bin");
+		const selected = await runInstaller(
+			["--skills-dir", dest, "--provider", "github"],
+			{
+				DELIVERY_BIN_DIR: bin,
+				GITHUB_TOKEN: "test-token",
+				PATH: `${bin}:${process.env.PATH ?? ""}`,
+			},
+		);
+		expect(selected.exitCode).toBe(0);
+		expect(selected.stdout).toContain("Provider github: ready");
+		expect(selected.stdout).not.toContain("test-token");
+		expect(await pathExists(join(bin, "github-forge"))).toBe(true);
+		expect(await pathExists(join(bin, "github-tracker"))).toBe(true);
+		expect(await pathExists(join(bin, "github-client.ts"))).toBe(true);
+		for (const tool of ["github-forge", "github-tracker", "github-client.ts"]) {
+			const installed = await readFile(join(bin, tool), "utf8");
+			expect(installed).not.toContain(rootDir);
+			expect(installed).not.toContain("DELIVERY_PACK_ROOT");
+		}
+		const runtime = JSON.parse(
+			await readFile(join(dest, "_factory", "runtime-manifest.json"), "utf8"),
+		) as {
+			capabilities: Record<
+				string,
+				{
+					available: boolean;
+					mode?: string;
+					invocation?: string;
+					provider?: string;
+				}
+			>;
+		};
+		expect(runtime.capabilities["forge.change"]).toEqual({
+			available: true,
+			mode: "adapter",
+			invocation: `exec:${join(bin, "github-forge")}`,
+			provider: "github",
+		});
+		expect(runtime.capabilities["review.publish"]).toEqual(
+			runtime.capabilities["forge.change"],
+		);
+		expect(runtime.capabilities["tracker.item"]).toEqual({
+			available: true,
+			mode: "adapter",
+			invocation: `exec:${join(bin, "github-tracker")}`,
+			provider: "github",
+		});
+	});
+});
+
 test("README documents --skills-dir and optional --adapter without named hosts", () => {
 	expect(readme).toContain("./install.sh --skills-dir");
 	expect(readme).toContain("--adapter");

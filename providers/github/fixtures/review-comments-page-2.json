@@ -1,0 +1,12 @@
+[
+  {
+    "id": 103,
+    "in_reply_to_id": 101,
+    "user": { "login": "ada" },
+    "body": "A later thread reply.",
+    "path": "src/example.ts",
+    "line": 2,
+    "side": "RIGHT",
+    "html_url": "https://github.com/acme/app/pull/42#discussion_r103"
+  }
+]

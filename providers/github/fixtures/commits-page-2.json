@@ -1,0 +1,10 @@
+[
+  {
+    "sha": "cccccccccccccccccccccccccccccccccccccccc",
+    "commit": {
+      "message": "Newest commit",
+      "author": { "name": "Ada Lovelace" }
+    },
+    "author": { "login": "ada" }
+  }
+]
