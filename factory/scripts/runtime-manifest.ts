@@ -59,13 +59,33 @@ export const RuntimeManifest = z
 	})
 	.strict()
 	.superRefine((manifest, ctx) => {
-		const tracker = manifest.capabilities["tracker.item"];
-		if (tracker?.available && !tracker.provider) {
-			ctx.addIssue({
-				code: "custom",
-				path: ["capabilities", "tracker.item", "provider"],
+		const remoteIdentity: Array<{
+			id: CapabilityId;
+			message: string;
+		}> = [
+			{
+				id: "tracker.item",
 				message: "an available remote work-item capability needs a provider id",
-			});
+			},
+			{
+				id: "forge.change",
+				message: "an available forge capability needs a provider id",
+			},
+			{
+				id: "review.publish",
+				message:
+					"an available review-publication capability needs a provider id",
+			},
+		];
+		for (const { id, message } of remoteIdentity) {
+			const descriptor = manifest.capabilities[id];
+			if (descriptor?.available && !descriptor.provider) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["capabilities", id, "provider"],
+					message,
+				});
+			}
 		}
 	});
 export type RuntimeManifest = z.infer<typeof RuntimeManifest>;

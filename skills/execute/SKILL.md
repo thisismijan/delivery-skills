@@ -26,7 +26,7 @@ This command implements the approved change and, **only after the holdout review
 - **Tests first.** Write tests before implementation and prove they fail (red gate). Never modify tests to make them pass.
 - **No pressure bypass.** Time pressure never permits skipping the red gate, green gate, holdout review, or operator-owned action.
 - **Review before the MR.** The holdout review runs against the **committed branch diff + gate results** — there is no MR yet. **An MR is opened only after the review returns `approve`.** Never open an MR for un-reviewed, changes-requested, rejected, or escalated work.
-- **Gated writes only:** the only writes are the branch commit/push, the MR (created post-approval), and notes (on the MR and the selected work item). **The factory NEVER merges or closes an MR, and never changes work-item status; humans own merge, close, and status.**
+- **Gated writes only:** the only writes are the branch commit/push, the change (created post-approval), and notes (on the change and the selected work item). **The factory NEVER merges, closes, or resolves threads, and never changes work-item status; humans own merge, close, thread resolution, and status.**
 - **Fail closed:** no matching spec, more than one match, a gate that didn't run, or a gate failure with attempts exhausted → stop + escalate. Never open an MR on un-green code.
 - **Mutation boundary.** Run `canStartStage` before any write, using the runtime's mutation-guard identifier:
   ```
@@ -69,8 +69,15 @@ bun "${FACTORY_ROOT}/scripts/test-gate.ts" verify "<reviewDir>/green-gate-<sourc
 Non-zero exit means the evidence is stale or the command or tests changed —
 re-run the gate. Do not reuse it.
 
-- If an approved existing MR already points at the current branch head, report
-  it and stop successfully. **Never open a duplicate MR.**
+- Find any open change for this source branch with the exact forge command.
+  Write `{ "sourceBranch": "<changeName>" }` to `<reviewDir>/find-input.json`,
+  then:
+  ```
+  bun "${FACTORY_ROOT}/scripts/forge-provider.ts" find "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/find-input.json"
+  ```
+  Non-zero exit → **stop + escalate** (fail closed). If an open change already
+  points at the current branch head, report that change ref and stop
+  successfully. **Never open a duplicate MR.**
 - Resume from the earliest incomplete gate. Never repeat a completed write,
   **never rewrite already-proven tests**, and never discard dirty work without
   identifying whether it belongs to this run.
@@ -203,21 +210,24 @@ re-run the gate. Do not reuse it.
     bun "${FACTORY_ROOT}/scripts/review-route.ts" "<reviewDir>/holdout-verdict.json" <attempt> <maxAttempts>
     ```
     `maxAttempts` comes from `bun "${FACTORY_ROOT}/scripts/config.ts"` (`maxFixAttempts`, default 2); `attempt` starts at 1 and increments each fix loop. **Non-zero exit = malformed verdict → stop + escalate** (fail closed). Then act on `action`:
-    - **`approve`** → **now open a draft MR.** Push the branch (`git push -u origin <changeName>`) and create it with the forge provider's draft-create action, targeting the default branch. Stage 3 review, not execute, marks it ready. **Build the MR title with the title helper so it always opens with the work-item reference** (Rule 3):
+    - **`approve`** → **now open a draft change.** Push the branch (`git push -u origin <changeName>`). **Build the title with the title helper so it always opens with the work-item reference** (Rule 3):
       ```
       bun "${FACTORY_ROOT}/scripts/mr-title.ts" <work-item-key> "<ticket summary>"
       ```
-      (yields e.g. `SMAI-123 - Add new fireworks feature`.) The MR description carries `Closes`, the spec link, a short human-readable paragraph explaining what the change does and how, and any frontier justification — write it like a person would (no field-name dumps, no em dashes; see the human-output rules in `CONVENTIONS.md`). Read the compact test-writer and implementer handoffs. Surface every material `Skipped`, `Not checked`, or `Residual risks` item in plain human language, but do not paste internal headings, raw worker output, or reasoning. If `<reviewDir>/skips.md` lists any skipped scenarios, **surface them in the description** as a short plain-language note ("The following acceptance points were verified as part of this change but intentionally not given a permanent test, because they only describe the migration moment: ..."), so the human sees what was deliberately left untested and why. Never drop skips or unresolved risks silently. Do not repeat a worker's claimed gate result; use only the persisted gate artifacts. Render the holdout outcome for the MR note and the tracker comment with the summary helper (Rule 2 — never paste raw verdict fields):
+      (yields e.g. `SMAI-123 - Add new fireworks feature`.) The description carries `Closes`, the spec link, a short human-readable paragraph explaining what the change does and how, and any frontier justification — write it like a person would (no field-name dumps, no em dashes; see the human-output rules in `CONVENTIONS.md`). Read the compact test-writer and implementer handoffs. Surface every material `Skipped`, `Not checked`, or `Residual risks` item in plain human language, but do not paste internal headings, raw worker output, or reasoning. If `<reviewDir>/skips.md` lists any skipped scenarios, **surface them in the description** as a short plain-language note ("The following acceptance points were verified as part of this change but intentionally not given a permanent test, because they only describe the migration moment: ..."), so the human sees what was deliberately left untested and why. Never drop skips or unresolved risks silently. Do not repeat a worker's claimed gate result; use only the persisted gate artifacts. Write `{ "approved": true, "draft": true, "sourceBranch": "<changeName>", "targetBranch": "<default-branch>", "title": "<title>", "description": "<description>" }` to `<reviewDir>/create-input.json`, then create the draft change with the exact forge command:
+      ```
+      bun "${FACTORY_ROOT}/scripts/forge-provider.ts" create "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/create-input.json"
+      ```
+      Non-zero exit → **stop + escalate** (fail closed). Record the returned change `ref` (a user-facing MR iid is an alias for that ref). Stage 3 review, not execute, marks it ready. Render the holdout outcome for the change note and the tracker comment with the summary helper (Rule 2 — never paste raw verdict fields):
       ```
       bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
       ```
-      Post that summary as an MR note **and** one selected-provider note (via `scripts/audit.ts`) with the MR link, stating the review passed and that a human performs the merge. Publish the work-item note only through `work-item-provider.ts note <repoRoot> "${FACTORY_ROOT}/runtime-manifest.json" <note.json>`. Write the forge note body under `.review/`, then run the publication check and `gl-note` (do not bypass with a raw forge API or a general note helper):
+      Post that summary as a change note **and** one selected-provider note (via `scripts/audit.ts`) with the change URL, stating the review passed and that a human performs the merge. Publish the work-item note only through `work-item-provider.ts note <repoRoot> "${FACTORY_ROOT}/runtime-manifest.json" <note.json>`. Write the forge note body under `.review/`. Write `{ "approved": true, "ref": "<change-ref>", "bodyPath": "<file>" }` to `<reviewDir>/note-input.json`, then:
       ```
-      bun "${FACTORY_ROOT}/scripts/note-publication.ts" check <file> <repoRoot>
-      gl-note <iid> --file <file>
+      bun "${FACTORY_ROOT}/scripts/forge-provider.ts" note "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/note-input.json"
       ```
-      This posts an individual note that never counts as an unresolved thread blocking the human's merge. **STOP at APPROVED.** Do **not** merge via the forge provider. Do **not** run `/openspec-archive` (it folds the spec into `openspec/specs/` and only makes sense after the human's merge — leave it to a post-merge step).
+      Do not bypass with a provider-native helper or a raw forge API. The command checks the body before any adapter; a refused body is a terminal stop. This posts an individual note that never counts as an unresolved thread blocking the human's merge. **STOP at APPROVED.** Do **not** merge, close, or resolve threads. Do **not** run `/openspec-archive` (it folds the spec into `openspec/specs/` and only makes sense after the human's merge — leave it to a post-merge step).
     - **`fix`** → dispatch the `implementer` subagent to address the verdict `findings`, re-run the **green gate** (step 8), increment `attempt`, and **go back to step 10** (re-review runs fresh — it does not see the fixer's reasoning). **No MR is created during the fix loop.** If two failed fixes share the same assumption, apply the premise checkpoint from step 8 before any third fix.
     - **`escalate`** → push the branch (`git push -u origin <changeName>`) so a human can inspect the work, post the `reason` (and any `findings`) as a selected-provider note, and stop (NEEDS_HUMAN). **Do not open an MR**; the review did not pass and the human decides what happens next.
 
-12. **Invariants.** An MR exists **only** for review-approved work. The factory **creates and approves MRs but NEVER merges, archives, or closes them**; humans own merge, close, and the post-merge archive. The reviewer never sees implementer reasoning; the factory never changes work-item status.
+12. **Invariants.** A change exists **only** for review-approved work. The factory **creates draft changes but NEVER merges, archives, closes, or resolves threads**; humans own merge, close, thread resolution, and the post-merge archive. The reviewer never sees implementer reasoning; the factory never changes work-item status. Every forge read or mutation uses `scripts/forge-provider.ts` with an exact operation; never invent a helper name.

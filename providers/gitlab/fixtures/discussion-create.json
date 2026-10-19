@@ -1,0 +1,10 @@
+{
+  "id": "discussion-new",
+  "notes": [
+    {
+      "id": 502,
+      "body": "Inline finding.",
+      "web_url": "https://gitlab.example/acme/app/-/merge_requests/42#note_502"
+    }
+  ]
+}

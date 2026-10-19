@@ -36,7 +36,22 @@ const delivery = read("../skills/delivery/SKILL.md");
 const auto = read("../skills/delivery/workflows/auto.md");
 const ledger = read("../skills/delivery/workflows/delivery-ledger.md");
 const mrReview = read("../skills/mr-review/SKILL.md");
+const codeReviewMax = read("../skills/code-review-max/SKILL.md");
+const ticketToMr = read("../skills/delivery/workflows/ticket-to-mr.md");
+const mrReviewToReady = read(
+	"../skills/delivery/workflows/mr-review-to-ready.md",
+);
+const releaseReadiness = read(
+	"../skills/delivery/workflows/release-readiness.md",
+);
+const notes = read("../skills/delivery/workflows/NOTES.md");
+const orchestrator = read(
+	"../skills/delivery/workflows/delivery-orchestrator.md",
+);
+const conventions = read("CONVENTIONS.md");
 const runtime = read("RUNTIME.md");
+const FORGE_PROVIDER = 'bun "${FACTORY_ROOT}/scripts/forge-provider.ts"';
+const PROVIDER_NATIVE = /\b(?:gl-mr|gl-note|glab)\b/;
 const cursorAdapter = read("../adapters/cursor/README.md");
 const claudeAdapter = read("../adapters/claude-code/README.md");
 const claudeSettings = read("../adapters/claude-code/settings.json");
@@ -115,7 +130,7 @@ describe("smallest complete change", () => {
 	});
 
 	test("holdout and max review reject only materially unnecessary machinery", () => {
-		const maxReview = read("../skills/code-review-max/SKILL.md");
+		const maxReview = codeReviewMax;
 		for (const prompt of [holdoutReviewer, maxReview]) {
 			expect(prompt).toMatch(/concrete cost/i);
 			expect(prompt).toMatch(/smallest complete fix/i);
@@ -162,7 +177,8 @@ describe("continuous delivery authorization", () => {
 			/not authorization to merge.*accept a release risk.*install an improvement candidate/i,
 		);
 		expect(plain(auto)).toMatch(/never supplies improvement approval/i);
-		expect(delivery).toMatch(/never merge via the forge provider/i);
+		expect(delivery).toContain("Never merge via the forge provider");
+		expect(delivery).toMatch(/Never close a change or resolve threads/i);
 	});
 
 	test("parallel workers use isolated worktrees and coordinator-owned state", () => {
@@ -201,7 +217,7 @@ describe("SDLC constitution", () => {
 			execute,
 			addressComments,
 			mrReview,
-			read("../skills/code-review-max/SKILL.md"),
+			codeReviewMax,
 			runtime,
 		]) {
 			expect(doc).toContain("SDLC-CONSTITUTION.md");
@@ -520,5 +536,105 @@ describe("normalized provider contracts", () => {
 				() => ({ ok: true, item: { key: "WORK-1" } }),
 			).value,
 		).toEqual({ key: "WORK-1" });
+	});
+});
+
+describe("normalized forge workflow commands", () => {
+	const genericDocs = [
+		["execute", execute],
+		["address-comments", addressComments],
+		["code-review-max", codeReviewMax],
+		["mr-review", mrReview],
+		["delivery", delivery],
+		["ticket-to-mr", ticketToMr],
+		["mr-review-to-ready", mrReviewToReady],
+		["release-readiness", releaseReadiness],
+		["NOTES", notes],
+		["delivery-orchestrator", orchestrator],
+		["RUNTIME", runtime],
+		["CONVENTIONS", conventions],
+	] as const;
+
+	test("generic skills and docs never name a provider-native forge helper", () => {
+		for (const [name, doc] of genericDocs) {
+			expect([name, PROVIDER_NATIVE.test(doc)]).toEqual([name, false]);
+		}
+	});
+
+	test("execute finds, creates, and notes through exact forge-provider calls", () => {
+		expect(execute).toContain(`${FORGE_PROVIDER} find`);
+		expect(execute).toContain(`${FORGE_PROVIDER} create`);
+		expect(execute).toContain(`${FORGE_PROVIDER} note`);
+		expect(execute).toContain('"${FACTORY_ROOT}/runtime-manifest.json"');
+		expect(plain(execute)).toMatch(
+			/never merges?, closes?, or resolves? threads/i,
+		);
+	});
+
+	test("address-comments finds, drafts, reads discussions, and replies through exact calls", () => {
+		expect(addressComments).toContain(`${FORGE_PROVIDER} find`);
+		expect(addressComments).toContain(`${FORGE_PROVIDER} set-draft`);
+		expect(addressComments).toContain(`${FORGE_PROVIDER} discussions`);
+		expect(addressComments).toContain(`${FORGE_PROVIDER} reply`);
+		expect(addressComments).toMatch(/One call per thread/i);
+		expect(addressComments).toMatch(/Never.*mark any thread resolved/i);
+		expect(plain(addressComments)).toMatch(
+			/never merge, close, or resolve threads/i,
+		);
+	});
+
+	test("code-review-max pins evidence with read, files, and diff before commits", () => {
+		const readAt = codeReviewMax.indexOf(`${FORGE_PROVIDER} read`);
+		const filesAt = codeReviewMax.indexOf(`${FORGE_PROVIDER} files`);
+		const diffAt = codeReviewMax.indexOf(`${FORGE_PROVIDER} diff`);
+		const commitsAt = codeReviewMax.indexOf(`${FORGE_PROVIDER} commits`);
+		expect(readAt).toBeGreaterThan(-1);
+		expect(filesAt).toBeGreaterThan(readAt);
+		expect(diffAt).toBeGreaterThan(filesAt);
+		expect(commitsAt).toBeGreaterThan(diffAt);
+		expect(codeReviewMax).toMatch(/Never review a partial diff/);
+		expect(codeReviewMax).toContain(
+			"Do not publish findings through the forge provider.",
+		);
+	});
+
+	test("mr-review preserves evidence order and per-note dry-run then approval", () => {
+		const phase1 = mrReview.slice(
+			mrReview.indexOf("## Phase 1"),
+			mrReview.indexOf("## Phase 2"),
+		);
+		const readAt = phase1.indexOf(`${FORGE_PROVIDER} read`);
+		const commitsAt = phase1.indexOf(`${FORGE_PROVIDER} commits`);
+		const discussionsAt = phase1.indexOf(`${FORGE_PROVIDER} discussions`);
+		const filesAt = phase1.indexOf(`${FORGE_PROVIDER} files`);
+		expect(readAt).toBeGreaterThan(-1);
+		expect(commitsAt).toBeGreaterThan(readAt);
+		expect(discussionsAt).toBeGreaterThan(commitsAt);
+		expect(filesAt).toBeGreaterThan(discussionsAt);
+		expect(phase1).not.toContain(`${FORGE_PROVIDER} diff`);
+		expect(mrReview).toContain(
+			"Do not run `forge-provider.ts` `diff` during this phase",
+		);
+		expect(mrReview).toContain(`${FORGE_PROVIDER} diff`);
+		expect(mrReview).toContain(`${FORGE_PROVIDER} anchors`);
+		expect(mrReview).toContain('"dryRun": true');
+		expect(mrReview).toContain('must not set `"approved": true`');
+		expect(mrReview).toContain('"approved": true');
+		expect(mrReview).toMatch(/summary\.md` first/i);
+		expect(mrReview).toMatch(
+			/Each `note` call raises its own prompt[\s\S]*If one fails/i,
+		);
+		expect(mrReview).toMatch(/Never merge, close, or resolve threads/);
+	});
+
+	test("delivery and stage workflows route forge I/O through forge-provider.ts", () => {
+		expect(delivery).toContain("scripts/forge-provider.ts");
+		expect(mrReviewToReady).toContain(`${FORGE_PROVIDER} read`);
+		expect(mrReviewToReady).toMatch(/per-note prompts/i);
+		expect(releaseReadiness).toContain(`${FORGE_PROVIDER} read`);
+		expect(runtime).toContain(
+			'bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot>',
+		);
+		expect(conventions).toContain("scripts/forge-provider.ts");
 	});
 });

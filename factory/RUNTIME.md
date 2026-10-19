@@ -89,6 +89,26 @@ Stage invocations are identical on every conforming runtime. Native review
 commands, hooks, forge wrappers, tracker setup, and spec tooling live in
 optional adapters or providers selected during installation.
 
+Generic skills never call those wrappers. Change inspection and review
+publication use one command:
+
+```
+bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
+  "$FACTORY_ROOT/runtime-manifest.json" [input.json]
+```
+
+Operations are `find`, `read`, `files`, `diff`, `commits`, `discussions`,
+`anchors`, `create`, `set-draft`, `note`, and `reply`. Inputs are JSON files.
+`note` and `reply` name a body file under the target repository's `.review/`
+directory; the command checks that path before any adapter. Mutations require
+`"approved": true`. A dry-run uses `"dryRun": true` and must not set
+`"approved": true`. The interface does not expose merge, close, delete,
+approve, or thread resolution; humans own those actions.
+
+`forge.change` and `review.publish` must advertise the same provider. A
+missing, mismatched, or failed capability is a terminal stop with a
+configuration remedy.
+
 ## Runtime model inventory
 
 The runtime, not this repository, is the source of truth for which models the

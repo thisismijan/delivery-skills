@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import type { RuntimeManifest } from "./runtime-manifest";
 import { parseRuntimeManifest } from "./runtime-manifest";
 
@@ -43,24 +43,21 @@ export function evaluateProvider(
 		reasons.push("provider manifest version must be 1");
 
 	if (provider.name === "gitlab" && provider.kind === "forge") {
-		for (const tool of ["gl-mr", "gl-note"]) {
-			if (!existsSync(join(options.binDir, tool))) {
-				reasons.push(`${tool} is not installed in ${options.binDir}`);
-			} else if (!which(tool)) {
-				reasons.push(
-					`${tool} is installed but not on PATH; add ${options.binDir} to PATH`,
-				);
-			}
+		const binDir = isAbsolute(options.binDir)
+			? options.binDir
+			: resolve(options.binDir);
+		const executable = join(binDir, "gitlab-forge");
+		if (!existsSync(executable)) {
+			reasons.push(`gitlab-forge is not installed in ${binDir}`);
 		}
-		for (const dependency of ["curl", "jq", "awk"]) {
-			if (!which(dependency)) reasons.push(`${dependency} is not on PATH`);
-		}
+		if (!which("bun")) reasons.push("bun is not on PATH");
 		if (!credentialPresent(env)) {
 			reasons.push(
 				"set GITLAB_TOKEN, GL_TOKEN_FILE, or ~/token for GitLab access",
 			);
 		}
 		const ready = reasons.length === 0;
+		const invocation = `exec:${executable}`;
 		return {
 			name: provider.name,
 			ready,
@@ -72,14 +69,16 @@ export function evaluateProvider(
 						? {
 								available: true,
 								mode: "adapter",
-								invocation: "gl-mr",
+								invocation,
+								provider: "gitlab",
 							}
 						: { available: false, mode: "unavailable" },
 					"review.publish": ready
 						? {
 								available: true,
 								mode: "adapter",
-								invocation: "gl-note",
+								invocation,
+								provider: "gitlab",
 							}
 						: { available: false, mode: "unavailable" },
 				},

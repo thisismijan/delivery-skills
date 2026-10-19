@@ -2,5 +2,5 @@
   "name": "gitlab",
   "version": 1,
   "kind": "forge",
-  "tools": ["gl-mr", "gl-note"]
+  "tools": ["gitlab-forge", "gl-mr", "gl-note"]
 }

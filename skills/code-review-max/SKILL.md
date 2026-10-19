@@ -1,11 +1,17 @@
 ---
 name: code-review-max
-description: Deep first-pass correctness review of a merge request. Pins the MR head, fans out independent read-only review lenses, verifies every candidate against the code, and leaves stamped findings for mr-review. Use when the user types /code-review-max, asks for the maximum review pass, or /delivery review needs its correctness pass.
+description: Deep first-pass correctness review of a change. Pins the change head, fans out independent read-only review lenses, verifies every candidate against the code, and leaves stamped findings for mr-review. Use when the user types /code-review-max, asks for the maximum review pass, or /delivery review needs its correctness pass.
 ---
 
 # Code review max
 
-Target: the skill arguments (`<mr-iid>`)
+Target: the skill arguments (`<ref>`; a user-facing MR iid such as `840` or `!840` is an alias for that change ref)
+
+Resolve this SKILL.md to its real path, then load the first existing runtime:
+`../_factory/RUNTIME.md` (Cloud store), `../../factory/RUNTIME.md` (clone), or
+`$DELIVERY_FACTORY_ROOT/RUNTIME.md`. Follow its `FACTORY_ROOT` procedure and
+export `FACTORY_ROOT` as that file describes. Resolve `<repoRoot>` with
+`git rev-parse --show-toplevel`.
 
 The SDLC constitution (`SDLC-CONSTITUTION.md` beside the delivery skill)
 outranks this skill. Review the approved change only. Do not enlarge scope,
@@ -22,15 +28,20 @@ report to this conversation; they do not publish anything.
 
 Stop at the first failure:
 
-1. Parse the skill arguments as an MR iid, accepting `840` or `!840` and nothing else.
-2. `gl-mr <iid> meta`, `gl-mr <iid> refs`, `gl-mr <iid> changes`, and
-   `gl-mr <iid> diff` all succeed. If `gl-mr` reports overflow or truncation,
-   stop. Never review a partial diff.
-3. Read the exact head and base SHAs from `gl-mr <iid> refs`. Fetch both without
-   checking either out. The current branch is irrelevant.
-4. Read the MR description and commits. Identify the requirement from the MR,
-   linked ticket, and OpenSpec change. If none says what the change is meant to
-   do, report that as a blocking review-input failure and stop.
+1. Parse the skill arguments as a change ref, accepting `840` or `!840` and nothing else. Strip a leading `!`. That value is `<ref>` (the CLI user alias for the opaque change reference).
+2. Write `{ "ref": "<ref>" }` to `.review/mr-<ref>/read-input.json`, then run these exact commands, in this order. Every one must succeed:
+   ```
+   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" read "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" ".review/mr-<ref>/read-input.json"
+   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" files "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" ".review/mr-<ref>/read-input.json"
+   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" diff "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" ".review/mr-<ref>/read-input.json"
+   ```
+   If any command exits non-zero, or the diff is refused as incomplete or overflowed, stop. Never review a partial diff.
+3. Read the exact head and base SHAs from the `read` result's revisions. Fetch both without checking either out. The current branch is irrelevant.
+4. Read the change description from the `read` result and the commits with:
+   ```
+   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" commits "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" ".review/mr-<ref>/read-input.json"
+   ```
+   Identify the requirement from the change, linked ticket, and OpenSpec change. If none says what the change is meant to do, report that as a blocking review-input failure and stop.
 
 State: `Reviewing !<iid> at <full-head-sha> against <full-base-sha>.`
 
@@ -38,7 +49,7 @@ State: `Reviewing !<iid> at <full-head-sha> against <full-base-sha>.`
 
 Give every reviewer the same immutable brief:
 
-- MR iid, full base SHA, full head SHA.
+- Change ref (and the user-facing MR iid alias), full base SHA, full head SHA.
 - Requirement and acceptance criteria, quoted with their source.
 - Changed paths.
 - Repository rules and the commands CI runs.
@@ -46,11 +57,11 @@ Give every reviewer the same immutable brief:
   outside the diff that is needed to prove a claim.
 - The severity and evidence rules below.
 
-Do not give reviewers the MR author's reasoning as evidence. A statement in the
-MR description is a claim to verify.
+Do not give reviewers the author's reasoning as evidence. A statement in the
+change description is a claim to verify.
 
 Persist the brief at `.review/mr-<iid>/<full-head-sha>/brief.md`. Reuse it only
-when its iid and full head SHA still match live `gl-mr` metadata; otherwise
+when its ref and full head SHA still match live `read` metadata; otherwise
 rebuild it. This worktree-local artifact lets the second pass run in a fresh conversation on any conforming runtime.
 
 ## Parallel review
@@ -109,7 +120,7 @@ The main conversation owns the verdict. For every candidate:
    the correct anchor.
 3. Run the cheapest focused test or reproduction when practical.
 4. Search for an existing guard that clears the risk.
-5. Drop duplicates and anything already raised in the MR discussions.
+5. Drop duplicates and anything already raised in the change discussions.
 6. Drop claims that depend only on a name, comment, or reviewer assertion.
 7. Downgrade or drop a finding whose impact or trigger cannot be shown.
 8. Drop "could be shorter" or preferred-style findings. An unnecessary-
@@ -168,8 +179,10 @@ the publish checkpoint.
 ## Never
 
 - Review a truncated diff.
-- Review the current working tree instead of the pinned MR head.
+- Review the current working tree instead of the pinned change head.
 - Treat reviewer consensus as proof.
 - Manufacture findings to look thorough.
 - Make code changes.
 - Post notes, approve, merge, or change tracker items.
+- Call a provider-native helper. Change evidence comes only from
+  `scripts/forge-provider.ts`.

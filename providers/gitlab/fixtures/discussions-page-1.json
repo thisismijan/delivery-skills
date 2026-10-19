@@ -1,0 +1,32 @@
+[
+  {
+    "id": "discussion-one",
+    "resolved": false,
+    "notes": [
+      {
+        "id": 101,
+        "body": "Please bind the head revision.",
+        "system": false,
+        "resolved": false,
+        "author": { "username": "reviewer" },
+        "position": {
+          "new_path": "src/example.ts",
+          "old_path": "src/example.ts",
+          "new_line": 2
+        }
+      }
+    ]
+  },
+  {
+    "id": "discussion-two",
+    "resolved": true,
+    "notes": [
+      {
+        "id": 102,
+        "body": "System event",
+        "system": true,
+        "author": { "name": "GitLab" }
+      }
+    ]
+  }
+]

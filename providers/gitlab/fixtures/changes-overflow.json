@@ -1,0 +1,10 @@
+{
+  "overflow": true,
+  "changes": [
+    {
+      "old_path": "src/example.ts",
+      "new_path": "src/example.ts",
+      "diff": "@@ -1 +1 @@\n-old\n+new\n"
+    }
+  ]
+}

@@ -24,7 +24,11 @@ const COMPLETE_CAPABILITIES = ADAPTER_CAPABILITY_IDS.map((id) => ({
 	id,
 	available: id !== "mutation.guard",
 	mode: id === "mutation.guard" ? "unenforced" : "native",
-	...(id === "tracker.item" ? { provider: "sample-work-items" } : {}),
+	...(id === "tracker.item"
+		? { provider: "sample-work-items" }
+		: id === "forge.change" || id === "review.publish"
+			? { provider: "sample-forge" }
+			: {}),
 }));
 
 test("validateAdapterManifest accepts a complete portable document", () => {
@@ -82,6 +86,22 @@ test("available work-item adapters must declare their provider identity", () => 
 			"sample",
 		).join("\n"),
 	).toMatch(/provider is required/);
+});
+
+test("available forge and review adapters must declare their provider identity", () => {
+	for (const id of ["forge.change", "review.publish"] as const) {
+		const capabilities = COMPLETE_CAPABILITIES.map((capability) =>
+			capability.id === id
+				? { id: capability.id, available: true, mode: "provider" }
+				: capability,
+		);
+		expect(
+			validateAdapterManifest(
+				{ name: "sample", version: 1, capabilities },
+				"sample",
+			).join("\n"),
+		).toMatch(/provider is required/);
+	}
 });
 
 test("validateAdapterManifest rejects a host-named incomplete document", () => {

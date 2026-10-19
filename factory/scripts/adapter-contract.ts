@@ -99,12 +99,20 @@ export function validateAdapterManifest(
 			errors.push(`capabilities[${index}].provider is not a valid provider id`);
 		}
 		if (
-			entry.id === "tracker.item" &&
+			(entry.id === "tracker.item" ||
+				entry.id === "forge.change" ||
+				entry.id === "review.publish") &&
 			entry.available === true &&
 			entry.provider === undefined
 		) {
+			const kind =
+				entry.id === "tracker.item"
+					? "work-item"
+					: entry.id === "review.publish"
+						? "review-publication"
+						: "forge";
 			errors.push(
-				`capabilities[${index}].provider is required for an available work-item capability`,
+				`capabilities[${index}].provider is required for an available ${kind} capability`,
 			);
 		}
 	}

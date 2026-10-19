@@ -1,0 +1,13 @@
+{
+  "id": 9100,
+  "iid": 99,
+  "title": "Open a draft change",
+  "description": "Created from the normalized envelope.",
+  "state": "opened",
+  "draft": true,
+  "author": { "name": "Ada Lovelace", "username": "ada" },
+  "source_branch": "cursor/generic-forge-provider-327b",
+  "target_branch": "main",
+  "sha": "dddddddddddddddddddddddddddddddddddddddd",
+  "web_url": "https://gitlab.example/acme/app/-/merge_requests/99"
+}

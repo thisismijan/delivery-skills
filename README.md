@@ -97,9 +97,28 @@ A host can run this pack when it can:
   Continuous groom needs create and link support from a selected remote
   provider after plan approval. Missing providers stop at that boundary and
   keep completed artifacts.
+- Run forge change and review operations through
+  `scripts/forge-provider.ts`. Generic skills never call a provider-native
+  helper.
 
 Portability means any host that satisfies those capabilities. It does not mean
 the pack invents tools a host does not expose.
+
+### Forge command
+
+Every generic workflow reads and publishes forge state with one command:
+
+```
+bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
+  "$FACTORY_ROOT/runtime-manifest.json" [input.json]
+```
+
+Operations: `find`, `read`, `files`, `diff`, `commits`, `discussions`,
+`anchors`, `create`, `set-draft`, `note`, `reply`. Review evidence is fetched
+one view at a time in the order the review skill names. Notes are dry-run,
+shown, then posted one at a time after human confirmation (or standing
+continuous-delivery authorization). Merge, close, and thread resolution stay
+human-owned. Provider-native helpers are not generic workflow commands.
 
 ## Use
 

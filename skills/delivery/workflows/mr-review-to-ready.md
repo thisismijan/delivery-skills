@@ -15,18 +15,18 @@ a human merges.
 
 ## Trigger
 
-**Event:** operator supplies a merge request **iid** (integer, e.g. `740`) in a
-the runtime or the runtime session with cwd = **target repo** (so `gl-mr` resolves
-the project from `origin`).
+**Event:** operator supplies a change **ref** (CLI alias: merge-request iid,
+integer, e.g. `740`) in a runtime session with cwd = **target repo**.
 
 Optional: work-item key for the same change, needed only if `/address-comments`
 will run.
 
 ## Preconditions
 
-- `gl-mr` and `gl-note` on `PATH` (`~/.local/bin`); token at `~/token` (or
-  `GL_TOKEN_FILE`)
-- MR is open and fetchable: `gl-mr <iid> meta` succeeds
+- `scripts/forge-provider.ts` can `read` the change against the runtime manifest
+- Change is open and fetchable:
+  `bun "${FACTORY_ROOT}/scripts/forge-provider.ts" read "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <read-input.json>`
+  succeeds
 - For the address-comments path: this delivery pack loaded, open MR on the spec branch,
   work-item key known
 - **Same conversation** must hold both review passes: `/mr-review` reads the
@@ -66,12 +66,12 @@ Do not invent a replacement correctness review.
 Follow the installed `mr-review` skill's SKILL.md exactly. Highlights this
 workflow must not weaken:
 
-- Stop if max-pass findings for this MR and current head are missing from both
+- Stop if max-pass findings for this change and current head are missing from both
   the conversation and the pinned artifact
-- Stop if `gl-mr` diff overflows / truncates
+- Stop if `forge-provider.ts` `diff` is refused as incomplete or overflowed
 - Derive approaches **before** reading the diff
 - Write drafts under `.review/mr-<iid>/<full-head-sha>/` with `<!-- mr-review:<head-sha> -->`
-- Dry-run `gl-note`, print full note bodies, then **checkpoint** before publish
+- Dry-run each `forge-provider.ts` `note` (`dryRun: true`), print full note bodies, then **checkpoint** before publish
 
 ### 3. Checkpoint — publish review notes (push right)
 
@@ -130,7 +130,7 @@ Workflow is done when the operator states they are ready to merge (or abandon).
 | Artifact | Consumer |
 |----------|----------|
 | `.review/mr-<iid>/<full-head-sha>/` | Pinned review brief and audit trail |
-| Posted `gl-note` threads | Authors / `/address-comments` |
+| Posted review notes | Authors / `/address-comments` |
 | Operator "ready to merge" | Human merge + archive |
 
 ## Failure modes
@@ -141,7 +141,7 @@ Workflow is done when the operator states they are ready to merge (or abandon).
 | No current max-pass findings in conversation | Tell operator to run `/code-review-max !<iid>` in this runtime or native `/code-review max !<iid>` in the runtime; stop |
 | Only the runtime `/code-review` findings exist | Reject them: the lightweight command has no max fan-out or freshness stamp |
 | Correctness marker names another iid or head SHA | Treat it as stale and restart at step 1 |
-| `gl-mr` meta/diff failure or overflow | Report verbatim; stop |
+| `forge-provider.ts` `read`/`diff` failure or overflow | Report verbatim; stop |
 | address-comments: no open MR / escalate | Stop with factory reason; no fake ready |
 | Operator uses another review skill instead of a max pass | Invalid for this chain; `/mr-review` will refuse — redirect to step 1 |
 
@@ -155,5 +155,5 @@ Workflow is done when the operator states they are ready to merge (or abandon).
 
 1. Enforce same-conversation ordering: code-review-max → mr-review in this runtime,
    or native code-review max → mr-review in the runtime.
-2. Do not batch `gl-note` to skip permission prompts; mr-review requires per-note prompts.
+2. Do not batch `forge-provider.ts` `note` to skip permission prompts; mr-review requires per-note prompts. Never merge, close, or resolve threads.
 3. Wire address-comments only when work-item key is known; otherwise stop after review with a brief that asks for the key or manual fix.

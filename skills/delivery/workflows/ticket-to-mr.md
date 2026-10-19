@@ -27,7 +27,7 @@ not share one dirty worktree across parallel tickets.
 - Target repo has `openspec/` initialized (expanded profile) — required before
   draft can author a change
 - tracker provider authorized; `tracker_base_url` configured on the plugin
-- the forge provider authenticated
+- `scripts/forge-provider.ts` can `read` against the runtime manifest
 - Bun available for gate scripts
 - Ticket body is expected to be draft-ready (from groom or equivalent); weak
   tickets are handled by draft's terminal clarify/reject, not by this workflow

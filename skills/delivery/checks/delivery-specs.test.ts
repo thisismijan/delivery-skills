@@ -16,6 +16,9 @@ const AUTO = readFileSync(join(WORKFLOWS, "auto.md"), "utf8");
 const CODE_REVIEW_MAX = readFileSync(join(SKILLS_ROOT, "code-review-max", "SKILL.md"), "utf8");
 const MR_REVIEW = readFileSync(join(SKILLS_ROOT, "mr-review", "SKILL.md"), "utf8");
 const ADDRESS_COMMENTS = readFileSync(join(SKILLS_ROOT, "address-comments", "SKILL.md"), "utf8");
+const EXECUTE = readFileSync(join(SKILLS_ROOT, "execute", "SKILL.md"), "utf8");
+const FORGE_PROVIDER = 'bun "${FACTORY_ROOT}/scripts/forge-provider.ts"';
+const PROVIDER_NATIVE = /\b(?:gl-mr|gl-note|glab)\b/;
 const SPECS = Object.fromEntries(
   readdirSync(WORKFLOWS)
     .filter((f) => f.endsWith(".md"))
@@ -640,9 +643,9 @@ describe("capabilities", () => {
 
   test("a merged-results pipeline counts for the head it merged", () => {
     const readiness = SPECS["release-readiness.md"];
-    expect(readiness).toContain("`head_pipeline.sha` equals `sha`");
-    expect(readiness).toContain("merged-results commit whose second parent is `sha`");
-    expect(readiness).toContain("A pipeline that belongs to an older head does not count.");
+    expect(readiness).toContain("`current: true`");
+    expect(readiness).toContain("merged-results revision checks");
+    expect(readiness).toContain("older or unrelated evidence");
   });
 
   test("the readiness workflow states the fail-closed rule", () => {
@@ -665,8 +668,9 @@ describe("capabilities", () => {
 
   test("auto waits on the MR's own pipeline, not the branch's", () => {
     const waiting = section(AUTO, "## Waiting");
-    expect(waiting).toMatch(/read\s+`head_pipeline` from the forge change view for `<iid>`, not the branch's\s+pipeline/);
-    expect(waiting).not.toContain("the branch pipeline of the forge provider");
+    expect(waiting).toMatch(/normalized `pipeline` from `forge-provider\.ts read`/);
+    expect(waiting).toContain("not a branch pipeline");
+    expect(waiting).toContain("`current: true`");
   });
 
   test("a cloud run never opens a second merge request", () => {
@@ -1060,7 +1064,7 @@ describe("max review contract", () => {
     const marker = "<!-- code-review-max:mr=<iid> head=<full-head-sha> -->";
     expect(CODE_REVIEW_MAX).toContain(marker);
     expect(MR_REVIEW).toContain(marker);
-    expect(MR_REVIEW).toContain("must exactly match `gl-mr <iid> meta`");
+    expect(MR_REVIEW).toContain("must exactly match the live `read` result");
   });
 
   test("mr-review accepts the stamped max pass but rejects a lightweight built-in review", () => {
@@ -1185,6 +1189,62 @@ describe("interrupted execute recovery", () => {
   test("typing execute remains the approval to build after an interrupted stop", () => {
     expect(SKILL).toMatch(/Typing this verb is the approval to build/);
     expect(AUTO).toMatch(/Never retry a failed stage/);
+  });
+});
+
+describe("normalized forge commands", () => {
+  const genericDocs: [string, string][] = [
+    ["delivery", SKILL],
+    ["execute", EXECUTE],
+    ["address-comments", ADDRESS_COMMENTS],
+    ["code-review-max", CODE_REVIEW_MAX],
+    ["mr-review", MR_REVIEW],
+    ...Object.entries(SPECS),
+  ];
+
+  test("generic skills and workflows never name a provider-native forge helper", () => {
+    for (const [name, doc] of genericDocs) {
+      expect([name, PROVIDER_NATIVE.test(doc)]).toEqual([name, false]);
+    }
+  });
+
+  test("execute and address-comments use exact forge-provider operations", () => {
+    expect(EXECUTE).toContain(`${FORGE_PROVIDER} find`);
+    expect(EXECUTE).toContain(`${FORGE_PROVIDER} create`);
+    expect(EXECUTE).toContain(`${FORGE_PROVIDER} note`);
+    expect(ADDRESS_COMMENTS).toContain(`${FORGE_PROVIDER} find`);
+    expect(ADDRESS_COMMENTS).toContain(`${FORGE_PROVIDER} set-draft`);
+    expect(ADDRESS_COMMENTS).toContain(`${FORGE_PROVIDER} discussions`);
+    expect(ADDRESS_COMMENTS).toContain(`${FORGE_PROVIDER} reply`);
+    expect(ADDRESS_COMMENTS).toMatch(/Never.*mark any thread resolved/i);
+  });
+
+  test("review skills keep evidence order, dry-run, and per-note checkpoints", () => {
+    expect(CODE_REVIEW_MAX.indexOf(`${FORGE_PROVIDER} read`)).toBeLessThan(
+      CODE_REVIEW_MAX.indexOf(`${FORGE_PROVIDER} files`),
+    );
+    expect(CODE_REVIEW_MAX.indexOf(`${FORGE_PROVIDER} files`)).toBeLessThan(
+      CODE_REVIEW_MAX.indexOf(`${FORGE_PROVIDER} diff`),
+    );
+    const phase1 = MR_REVIEW.slice(
+      MR_REVIEW.indexOf("## Phase 1"),
+      MR_REVIEW.indexOf("## Phase 2"),
+    );
+    expect(phase1.indexOf(`${FORGE_PROVIDER} read`)).toBeLessThan(
+      phase1.indexOf(`${FORGE_PROVIDER} commits`),
+    );
+    expect(phase1.indexOf(`${FORGE_PROVIDER} commits`)).toBeLessThan(
+      phase1.indexOf(`${FORGE_PROVIDER} discussions`),
+    );
+    expect(phase1.indexOf(`${FORGE_PROVIDER} discussions`)).toBeLessThan(
+      phase1.indexOf(`${FORGE_PROVIDER} files`),
+    );
+    expect(phase1).not.toContain(`${FORGE_PROVIDER} diff`);
+    expect(MR_REVIEW).toContain('"dryRun": true');
+    expect(MR_REVIEW).toMatch(/three choices:/);
+    expect(MR_REVIEW).toMatch(/If one fails, report the failure and stop/);
+    expect(SPECS["mr-review-to-ready.md"]).toContain("per-note prompts");
+    expect(SKILL).toContain("scripts/forge-provider.ts");
   });
 });
 
