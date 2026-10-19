@@ -65,6 +65,39 @@ The GitHub adapter refuses incomplete file or diff views instead of reviewing
 a partial patch. Increase GitHub's ability to return the full patch, or split
 the change.
 
+## Pipeline is still waiting
+
+Waiting is expected while the exact revision is queued, running, or not visible
+yet. Delivery subscribes to a host event when one is available and ends the
+turn; it does not poll in the background. If no event wakes the run, use the
+resume command it printed:
+
+```text
+/delivery auto <KEY>
+```
+
+Each resume reads forge evidence again. An event payload is only a wake-up
+signal and never substitutes for exact-revision status.
+
+## Merge request was green but the default branch failed
+
+These are separate checkpoints. Resume `/delivery auto <KEY>` so delivery can
+inspect the exact merged revision. If the failure is attributable, within the
+frozen run contract, and under the attempt budget, recovery uses a new reviewed
+change. Delivery does not push to the default branch or revert the merge.
+
+If the failure is transient, unrelated, ambiguous, outside approved scope, or
+over budget, the run stops with the revision, failed checks, sanitized
+evidence, and suggested owner. A provider retry remains a human action; retry it
+in the forge and then resume delivery.
+
+## Pipeline status belongs to another revision
+
+Do not treat it as success. Confirm that the forge provider can read the exact
+change head or merged revision and that credentials permit pipeline evidence.
+GitHub tokens may need access to statuses or check runs. Missing or stale
+evidence fails closed rather than falling back to the branch's latest pipeline.
+
 ## OpenSpec archive fails
 
 Install the OpenSpec CLI on PATH, or `--provider openspec` and rerun setup.

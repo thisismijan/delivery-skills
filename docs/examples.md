@@ -80,12 +80,26 @@ credentials. Confirm **jira**, not github, as the work-item provider. The
 project key belongs to the repository, so run init with `--setting project=`
 in each repository; one machine can serve several projects.
 
-## After a green review
+## From green review through merge
 
-You merge the change. Then:
+Continue or resume the lifecycle with:
 
 ```text
-/delivery archive <KEY>
-/delivery verify <iid>
-/delivery retro <KEY>
+/delivery auto <KEY>
 ```
+
+Before merge, delivery checks the pipeline for the exact change head. If it is
+still running, delivery subscribes to a completion event when the host supports
+that and ends the turn. Otherwise it leaves the same command as the resume
+instruction. A green pipeline returns the change to the human merge boundary.
+
+After you merge, run `/delivery auto <KEY>` again if no event wakes the run.
+Delivery reads the merged revision and checks that exact commit on the default
+branch. Only a passing result proceeds to archive, deployment verification, and
+retro. Do not run archive early based only on the pre-merge pipeline.
+
+For example, if the merged revision fails because its changed configuration is
+invalid, delivery may open a new draft recovery change when the repair is inside
+the approved contract and attempt budget. If a runner outage caused the failure,
+delivery escalates with the failed checks and evidence instead of changing code
+or blindly retrying the provider job.
