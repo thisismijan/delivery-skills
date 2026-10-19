@@ -1,0 +1,7 @@
+{
+  "iid": 13,
+  "title": "Follow-up story",
+  "description": "<!-- delivery-type: story -->\n\nSecond page item.",
+  "state": "opened",
+  "web_url": "https://gitlab.example/acme/app/-/issues/13"
+}

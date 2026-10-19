@@ -1,0 +1,9 @@
+[
+  {
+    "iid": 12,
+    "title": "Keep provider notes",
+    "description": "<!-- delivery-audit-id: run-1:1 -->\n<!-- delivery-type: bug -->\n\nThe selected provider stores one note per audit id.",
+    "state": "opened",
+    "web_url": "https://gitlab.example/acme/app/-/issues/12"
+  }
+]

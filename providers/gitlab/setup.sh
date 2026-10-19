@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
-# Optional GitLab forge provider: install the normalized gitlab-forge adapter
-# plus compatibility helpers gl-mr and gl-note.
+# Optional GitLab provider: install gitlab-forge, gitlab-work-item, and the
+# shared host module they import.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bin_dir="${DELIVERY_BIN_DIR:-$HOME/.local/bin}"
 mkdir -p "$bin_dir"
+cp "$here/gitlab-host.ts" "$bin_dir/gitlab-host.ts"
 cp "$here/gitlab-forge.ts" "$bin_dir/gitlab-forge"
-chmod 0755 "$bin_dir/gitlab-forge"
-for tool in gl-mr gl-note; do
-  cp "$here/$tool" "$bin_dir/$tool"
-  chmod 0755 "$bin_dir/$tool"
-done
-echo "Forge tools -> $bin_dir"
+cp "$here/gitlab-work-item.ts" "$bin_dir/gitlab-work-item"
+chmod 0755 "$bin_dir/gitlab-forge" "$bin_dir/gitlab-work-item"
+echo "GitLab tools -> $bin_dir"

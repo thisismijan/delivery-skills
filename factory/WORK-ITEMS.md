@@ -44,9 +44,11 @@ instead of adding duplicates.
 
 Jira, GitLab issues, GitHub issues, and other remote systems appear only when
 the runtime advertises an available `tracker.item` capability with an exact
-`provider` id and invocation. A forge remote by itself does not enable forge
-issues. If a saved remote provider is unavailable in a later session, delivery
-stops rather than falling back to local files.
+`provider` id and invocation. Selecting the GitLab provider installs
+`gitlab-work-item` and advertises `tracker.item` with `provider: "gitlab"`;
+the operator still confirms that choice on first use. A forge remote by itself
+does not enable forge issues. If a saved remote provider is unavailable in a
+later session, delivery stops rather than falling back to local files.
 
 An executable adapter invocation is `exec:/absolute/path/to/adapter`. The
 adapter receives the operation as its only argument and a version-1 JSON
