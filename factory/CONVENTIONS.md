@@ -4,7 +4,10 @@ The live policy kernel is `skills/delivery/SDLC-CONSTITUTION.md` (machine copy
 `skills/delivery/sdlc-constitution.json`). It outranks this file where they
 disagree. Verify with `scripts/sdlc-constitution.ts preflight`.
 
-Conventions for AI agents (and humans) working in the **spec-driven** repository. Read this before making any change. For *what* this system is, see [`docs/spec-driven-workflow-prd.md`](docs/spec-driven-workflow-prd.md). For *how the work is sequenced*, see [`docs/superpowers/plans/0000-roadmap.md`](docs/superpowers/plans/0000-roadmap.md).
+Conventions for agents and humans working in this repository. Read this before
+making a change. For policy, see `skills/delivery/SDLC-CONSTITUTION.md`. For
+operator setup and tests, see `docs/README.md` and `CONTRIBUTING.md` at the
+pack root.
 
 ---
 

@@ -72,7 +72,7 @@ function unknownAdvertisedCapabilities(provider: ProviderManifest): string[] {
 	];
 }
 
-function gitlabCredentialPresent(
+export function gitlabCredentialPresent(
 	env: Record<string, string | undefined>,
 ): boolean {
 	if (env.GITLAB_TOKEN?.trim()) return true;
@@ -81,7 +81,7 @@ function gitlabCredentialPresent(
 	return Boolean(home && existsSync(join(home, "token")));
 }
 
-function githubCredentialPresent(
+export function githubCredentialPresent(
 	env: Record<string, string | undefined>,
 ): boolean {
 	if (env.GITHUB_TOKEN?.trim() || env.GH_TOKEN?.trim()) return true;
@@ -90,7 +90,7 @@ function githubCredentialPresent(
 	return Boolean(home && existsSync(join(home, "token")));
 }
 
-function jiraCredentialPresent(
+export function jiraCredentialPresent(
 	env: Record<string, string | undefined>,
 ): boolean {
 	const email = env.JIRA_EMAIL?.trim();
@@ -119,7 +119,22 @@ function adapterCapability(
 		: { available: false, mode: "unavailable" };
 }
 
-function credentialState(
+export function toolsForProvider(
+	name: string,
+	capabilities: readonly AdvertisedCapability[],
+): string[] {
+	const mapping = EXECUTABLES[name];
+	if (!mapping) return [];
+	return [
+		...new Set(
+			capabilities
+				.map((capability) => mapping[capability])
+				.filter((tool): tool is string => Boolean(tool)),
+		),
+	];
+}
+
+export function credentialState(
 	name: string,
 	env: Record<string, string | undefined>,
 ): { ready: boolean; reasons: string[] } {

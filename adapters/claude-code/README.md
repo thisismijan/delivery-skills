@@ -10,15 +10,18 @@ bash adapters/claude-code/install.sh
 bash adapters/compat.sh --claude
 ```
 
-The wrapper installs the generic pack, this adapter, and the GitLab review
-provider. It additively installs and verifies the Bash `PreToolUse` mutation
-hook in `${CLAUDE_SETTINGS_FILE:-$HOME/.claude/settings.json}`, preserving
-unrelated settings and writing a `.delivery-backup` before replacement. Reload
-Claude Code, enter the target repository, and run:
+The wrapper installs the generic pack, this adapter, and GitLab as a default
+provider. Extra arguments are forwarded, so `--provider github` or
+`--provider github --provider jira` replace or compose that default. It
+additively installs and verifies the Bash `PreToolUse` mutation hook in
+`${CLAUDE_SETTINGS_FILE:-$HOME/.claude/settings.json}`, preserving unrelated
+settings and writing a `.delivery-backup` before replacement. Reload Claude
+Code, enter the target repository, and run:
 
 ```bash
-bun "${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}/_factory/scripts/doctor.ts"
-bun "${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}/_factory/scripts/delivery-init.ts"
+export FACTORY_ROOT="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}/_factory"
+bun "$FACTORY_ROOT/scripts/doctor.ts"
+bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items gitlab
 ```
 
 This pack replaces the ig-spec Claude plugin. Do not also

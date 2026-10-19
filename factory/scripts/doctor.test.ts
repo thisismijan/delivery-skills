@@ -2,8 +2,14 @@ import { expect, test } from "bun:test";
 import {
 	type DoctorReport,
 	formatDoctorReport,
+	remoteProviderDoctorChecks,
 	workItemDoctorCheck,
 } from "./doctor";
+import {
+	defaultRuntimeManifest,
+	overlayRuntimeManifest,
+	parseRuntimeManifest,
+} from "./runtime-manifest";
 
 test("groups partial readiness without hiding the safe subset", () => {
 	const report: DoctorReport = {
@@ -92,4 +98,107 @@ test("work-item diagnosis distinguishes confirmed and unavailable choices", () =
 		category: "Needs setup",
 		detail: "configure jira or explicitly select another provider",
 	});
+});
+
+test("generic runtime does not demand a GitLab tool", () => {
+	const checks = remoteProviderDoctorChecks(
+		defaultRuntimeManifest(true),
+		{},
+		() => null,
+	);
+	expect(checks.map((check) => check.name).join("\n")).not.toMatch(
+		/gitlab-forge|GitLab credential/,
+	);
+	expect(checks).toEqual(
+		expect.arrayContaining([
+			expect.objectContaining({ name: "Forge and review", ok: false }),
+			expect.objectContaining({ name: "Remote work items", ok: false }),
+		]),
+	);
+});
+
+test("GitHub runtime probes GitHub tools and credentials only", () => {
+	const runtime = overlayRuntimeManifest(
+		defaultRuntimeManifest(true),
+		parseRuntimeManifest({
+			version: 1,
+			capabilities: {
+				"forge.change": {
+					available: true,
+					mode: "adapter",
+					invocation: "exec:/bin/github-forge",
+					provider: "github",
+				},
+				"review.publish": {
+					available: true,
+					mode: "adapter",
+					invocation: "exec:/bin/github-forge",
+					provider: "github",
+				},
+				"tracker.item": {
+					available: true,
+					mode: "adapter",
+					invocation: "exec:/bin/github-tracker",
+					provider: "github",
+				},
+			},
+		}),
+	);
+	const names = remoteProviderDoctorChecks(
+		runtime,
+		{ GITHUB_TOKEN: "ghp-not-printed" },
+		(name) => (name.startsWith("github-") ? `/bin/${name}` : null),
+	).map((check) => `${check.ok ? "ok" : "need"} ${check.name}`);
+	expect(names).toContain("ok github-forge");
+	expect(names).toContain("ok github-tracker");
+	expect(names).toContain("ok GitHub credential");
+	expect(names.join("\n")).not.toMatch(/gitlab|jira/i);
+});
+
+test("mixed GitHub forge and Jira tracker probes both", () => {
+	const runtime = overlayRuntimeManifest(
+		defaultRuntimeManifest(true),
+		parseRuntimeManifest({
+			version: 1,
+			capabilities: {
+				"forge.change": {
+					available: true,
+					mode: "adapter",
+					invocation: "exec:/bin/github-forge",
+					provider: "github",
+				},
+				"review.publish": {
+					available: true,
+					mode: "adapter",
+					invocation: "exec:/bin/github-forge",
+					provider: "github",
+				},
+				"tracker.item": {
+					available: true,
+					mode: "adapter",
+					invocation: "exec:/bin/jira-tracker",
+					provider: "jira",
+				},
+			},
+		}),
+	);
+	const checks = remoteProviderDoctorChecks(
+		runtime,
+		{
+			GITHUB_TOKEN: "secret-github",
+			JIRA_SITE: "https://example.atlassian.net",
+			JIRA_PROJECT: "DEL",
+			JIRA_EMAIL: "ops@example.com",
+			JIRA_API_TOKEN: "secret-jira",
+		},
+		(name) => `/bin/${name}`,
+	);
+	const output = formatDoctorReport({ coreReady: true, checks });
+	expect(output).toContain("github-forge");
+	expect(output).toContain("jira-tracker");
+	expect(output).toContain("GitHub credential");
+	expect(output).toContain("Jira credential");
+	expect(output).not.toContain("gitlab-forge");
+	expect(output).not.toContain("secret-github");
+	expect(output).not.toContain("secret-jira");
 });

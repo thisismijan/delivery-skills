@@ -1,7 +1,12 @@
 import { constants, existsSync } from "node:fs";
 import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type RuntimeManifest, loadRuntimeManifest } from "./runtime-manifest";
+import { credentialState, toolsForProvider } from "./provider-contract";
+import {
+	type CapabilityId,
+	type RuntimeManifest,
+	loadRuntimeManifest,
+} from "./runtime-manifest";
 import { loadConstitution } from "./sdlc-constitution";
 import {
 	type WorkItemSelectionStatus,
@@ -41,11 +46,11 @@ async function commandWorks(command: string[], cwd: string): Promise<boolean> {
 	return (await proc.exited) === 0;
 }
 
-function credentialPresent(env: Record<string, string | undefined>): boolean {
-	if (env.GITLAB_TOKEN?.trim()) return true;
-	if (env.GL_TOKEN_FILE && existsSync(env.GL_TOKEN_FILE)) return true;
-	return Boolean(env.HOME && existsSync(join(env.HOME, "token")));
-}
+const REMOTE_CAPABILITIES = [
+	"forge.change",
+	"review.publish",
+	"tracker.item",
+] as const;
 
 function ready(name: string, detail: string, required = false): DoctorCheck {
 	return { category: "Ready now", name, detail, required, ok: true };
@@ -63,6 +68,90 @@ function limitation(name: string, detail: string): DoctorCheck {
 		required: false,
 		ok: false,
 	};
+}
+
+function providerLabel(name: string): string {
+	if (name === "github") return "GitHub";
+	if (name === "gitlab") return "GitLab";
+	if (name === "jira") return "Jira";
+	return name;
+}
+
+export function remoteProviderDoctorChecks(
+	runtime: RuntimeManifest | null,
+	env: Record<string, string | undefined>,
+	which: Which,
+): DoctorCheck[] {
+	if (!runtime) return [];
+	const grouped = new Map<
+		string,
+		Array<(typeof REMOTE_CAPABILITIES)[number]>
+	>();
+	const unavailable: Array<(typeof REMOTE_CAPABILITIES)[number]> = [];
+	for (const id of REMOTE_CAPABILITIES) {
+		const capability = runtime.capabilities[id as CapabilityId];
+		if (capability?.available && capability.provider) {
+			const current = grouped.get(capability.provider) ?? [];
+			current.push(id);
+			grouped.set(capability.provider, current);
+			continue;
+		}
+		unavailable.push(id);
+	}
+
+	const checks: DoctorCheck[] = [];
+	if (grouped.size === 0) {
+		checks.push(
+			setup(
+				"Forge and review",
+				"install a forge provider with --provider and reinstall",
+			),
+		);
+		checks.push(
+			setup(
+				"Remote work items",
+				"optional; local files work without a tracker provider",
+			),
+		);
+	} else {
+		for (const [name, capabilities] of grouped) {
+			for (const tool of toolsForProvider(name, capabilities)) {
+				const path = which(tool);
+				checks.push(
+					path
+						? ready(tool, path)
+						: setup(tool, `install ${tool} and add its directory to PATH`),
+				);
+			}
+			const credentials = credentialState(name, env);
+			const label = `${providerLabel(name)} credential`;
+			checks.push(
+				credentials.ready
+					? ready(label, "present")
+					: setup(label, credentials.reasons.join("; ")),
+			);
+		}
+		if (
+			unavailable.includes("forge.change") &&
+			unavailable.includes("review.publish")
+		) {
+			checks.push(
+				setup(
+					"Forge and review",
+					"install a forge provider with --provider and reinstall",
+				),
+			);
+		}
+		if (unavailable.includes("tracker.item")) {
+			checks.push(
+				setup(
+					"Remote work items",
+					"optional; confirm local files or install a tracker provider",
+				),
+			);
+		}
+	}
+	return checks;
 }
 
 export function workItemDoctorCheck(
@@ -200,21 +289,7 @@ export async function runDoctor(options: {
 		);
 	}
 
-	for (const tool of ["gitlab-forge", "gitlab-work-item"]) {
-		checks.push(
-			which(tool)
-				? ready(tool, which(tool) ?? "on PATH")
-				: setup(tool, `install ${tool} and add its directory to PATH`),
-		);
-	}
-	checks.push(
-		credentialPresent(env)
-			? ready("GitLab credential", "present")
-			: setup(
-					"GitLab credential",
-					"set GITLAB_TOKEN, GL_TOKEN_FILE, or ~/token",
-				),
-	);
+	checks.push(...remoteProviderDoctorChecks(runtime, env, which));
 	checks.push(
 		which("openspec")
 			? ready("OpenSpec CLI", which("openspec") ?? "on PATH")

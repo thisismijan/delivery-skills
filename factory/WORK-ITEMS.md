@@ -40,27 +40,36 @@ Create inputs require `approved: true` and a stable `auditId`; link inputs
 require `approved: true`. Notes use one `auditId`, so replay updates that note
 instead of adding duplicates.
 
-## Jira and forge issues
+## Remote providers
 
-Jira, GitLab issues, GitHub issues, and other remote systems appear only when
-the runtime advertises an available `tracker.item` capability with an exact
-`provider` id and invocation. Selecting the GitLab provider installs
-`gitlab-work-item` and advertises `tracker.item` with `provider: "gitlab"`;
-the operator still confirms that choice on first use. A forge remote by itself
-does not enable forge issues. If a saved remote provider is unavailable in a
-later session, delivery stops rather than falling back to local files.
+Remote systems appear only when the runtime advertises an available
+`tracker.item` capability with an exact `provider` id and invocation. A forge
+remote by itself does not enable forge issues. If a saved remote provider is
+unavailable later, delivery stops rather than falling back to local files.
+
+| Id | When it appears | Confirm with |
+|----|-----------------|--------------|
+| `github` | GitHub provider ready | `--work-items github` |
+| `gitlab` | GitLab provider ready | `--work-items gitlab` |
+| `jira` | Jira provider ready | `--work-items jira` |
+
+Changing a choice needs `--replace`. Selection does not migrate items.
 
 An executable adapter invocation is `exec:/absolute/path/to/adapter`. The
 adapter receives the operation as its only argument and a version-1 JSON
 envelope on stdin, then writes one normalized work item (or an array for
 `list`) to stdout. Core launches the executable directly without a shell.
 Malformed JSON, non-zero exit, relative paths, and opaque invocations fail
-closed with no fallback. A selected remote adapter that is not installed or
-not ready reports that exact missing bridge instead of inventing an API call.
+closed with no fallback.
 
 ## Custom providers
 
 A custom adapter uses a lowercase provider id and implements normalized
 work-item list, read, create, link, and note operations behind `tracker.item`.
-Credentials stay in the host integration. Human-owned status transitions
-remain outside delivery regardless of provider.
+Readiness overlay currently maps GitHub, GitLab, and Jira in
+`scripts/provider-contract.ts`; a new name needs that mapping. Credentials
+stay in the host integration. Human-owned status transitions remain outside
+delivery regardless of provider.
+
+See [`docs/extending.md`](../docs/extending.md) and
+[`providers/README.md`](../providers/README.md).
