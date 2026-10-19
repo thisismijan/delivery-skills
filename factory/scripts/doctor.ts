@@ -200,18 +200,11 @@ export async function runDoctor(options: {
 		);
 	}
 
-	for (const tool of ["gl-mr", "gl-note"]) {
+	for (const tool of ["gitlab-forge", "gitlab-work-item"]) {
 		checks.push(
 			which(tool)
 				? ready(tool, which(tool) ?? "on PATH")
 				: setup(tool, `install ${tool} and add its directory to PATH`),
-		);
-	}
-	for (const tool of ["curl", "jq", "awk"]) {
-		checks.push(
-			which(tool)
-				? ready(tool, "on PATH")
-				: setup(tool, `install ${tool} for GitLab review helpers`),
 		);
 	}
 	checks.push(

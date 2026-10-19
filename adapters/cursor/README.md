@@ -32,9 +32,9 @@ Cursor-only behaviour:
 - Correctness pass is `/code-review-max`.
 - Native Cursor `/code-review` is rejected by `/mr-review`.
 - Parallel work uses Cursor subagents, not Claude dynamic workflows.
-- `gl-mr` / `gl-note` are installed into `~/.local/bin` by the selected GitLab
-  provider. Ensure that directory is on `PATH`; doctor reports missing tools or
-  credentials without printing secret values.
+- `gitlab-forge` and `gitlab-work-item` are installed into `~/.local/bin` by
+  the selected GitLab provider. Ensure that directory is on `PATH`; doctor
+  reports missing tools or credentials without printing secret values.
 - Cursor is declared **unenforced**. It has no executable hook that can deny a
   tool call, so mutating stages stay blocked until a real enforcement hook
   exists and this declaration is changed with a test. Read-only stages still

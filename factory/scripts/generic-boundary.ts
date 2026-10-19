@@ -20,8 +20,6 @@ export const PROVIDER_SPECIFIC_FILES = [
 	"skills/mr-review/gl-mr",
 	"skills/mr-review/gl-note",
 	"skills/mr-review/cloud-setup.sh",
-	"providers/gitlab/gl-mr",
-	"providers/gitlab/gl-note",
 	"providers/gitlab/cloud-setup.sh",
 ] as const;
 

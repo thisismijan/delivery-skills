@@ -473,9 +473,11 @@ test("explicit --provider installs that provider and generic install includes no
 		expect(selected.stdout).toContain("Provider gitlab: ready");
 		expect(selected.stdout).not.toContain("test-token");
 		expect(await pathExists(join(bin, "gitlab-forge"))).toBe(true);
-		expect(await pathExists(join(bin, "gl-mr"))).toBe(true);
-		expect(await pathExists(join(bin, "gl-note"))).toBe(true);
-		for (const tool of ["gitlab-forge", "gl-mr", "gl-note"]) {
+		expect(await pathExists(join(bin, "gitlab-work-item"))).toBe(true);
+		expect(await pathExists(join(bin, "gitlab-host.ts"))).toBe(true);
+		expect(await pathExists(join(bin, "gl-mr"))).toBe(false);
+		expect(await pathExists(join(bin, "gl-note"))).toBe(false);
+		for (const tool of ["gitlab-forge", "gitlab-work-item", "gitlab-host.ts"]) {
 			const installed = await readFile(join(bin, tool), "utf8");
 			expect(installed).not.toContain(rootDir);
 			expect(installed).not.toContain("DELIVERY_PACK_ROOT");
@@ -502,6 +504,12 @@ test("explicit --provider installs that provider and generic install includes no
 		expect(runtime.capabilities["review.publish"]).toEqual(
 			runtime.capabilities["forge.change"],
 		);
+		expect(runtime.capabilities["tracker.item"]).toEqual({
+			available: true,
+			mode: "adapter",
+			invocation: `exec:${join(bin, "gitlab-work-item")}`,
+			provider: "gitlab",
+		});
 	});
 });
 
