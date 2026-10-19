@@ -62,6 +62,24 @@ async function withInstallRoot(
 	}
 }
 
+test("bun preflight fails closed with the pinned install command when bun is missing", async () => {
+	await withInstallRoot(async (root) => {
+		const dest = join(root, "skills");
+		const { stdout, stderr, exitCode } = await runInstaller(
+			["--skills-dir", dest],
+			{
+				DELIVERY_BIN_DIR: join(root, "bin"),
+				DELIVERY_INSTALL_SKIP_BUN: "",
+				PATH: "/usr/bin:/bin",
+			},
+		);
+		expect(exitCode).not.toBe(0);
+		expect(`${stdout}\n${stderr}`).toContain("bun-v1.4.2");
+		expect(`${stdout}\n${stderr}`).toContain("https://bun.sh/install");
+		expect(await pathExists(dest)).toBe(false);
+	});
+});
+
 test("refuses to install without --skills-dir and does not infer a host", async () => {
 	await withInstallRoot(async (root) => {
 		const cursor = join(root, "cursor-skills");
@@ -421,10 +439,14 @@ test("a direct cursor adapter install does not infer a forge provider", async ()
 		const bin = join(root, "bin");
 		const { stdout, exitCode } = await runInstaller(
 			["--skills-dir", dest, "--adapter", "cursor"],
-			{ DELIVERY_BIN_DIR: bin },
+			{
+				DELIVERY_BIN_DIR: bin,
+				CURSOR_HOOKS_FILE: join(root, "cursor-hooks.json"),
+			},
 		);
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain("Adapter cursor");
+		expect(stdout).toContain("Cursor mutation hook");
 		expect(await pathExists(join(bin, "gl-mr"))).toBe(false);
 		expect(await pathExists(join(bin, "gl-note"))).toBe(false);
 		expect(
@@ -435,7 +457,10 @@ test("a direct cursor adapter install does not infer a forge provider", async ()
 			capabilities: {
 				"forge.change": { available: false },
 				"review.publish": { available: false },
-				"mutation.guard": { enforcement: "unenforced" },
+				"mutation.guard": {
+					available: true,
+					enforcement: "enforced",
+				},
 			},
 		});
 	});

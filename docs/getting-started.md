@@ -1,8 +1,14 @@
 # Getting started
 
-Pinned runtime: Bun `1.4.2` (`factory/package.json` `packageManager`). Put
+Pinned runtime: Bun `1.4.2` (`factory/package.json` `packageManager`). The
+installer checks that version before copying files and prints the exact
+install command when Bun is missing or unmatched. Put
 `${DELIVERY_BIN_DIR:-$HOME/.local/bin}` on `PATH` so installed provider tools
 are visible to doctor.
+
+Cursor can enforce mutating stages after its adapter writes and verifies
+`~/.cursor/hooks.json`. Reload Cursor after install so that hook loads. Until
+doctor shows Mutation guard as ready, only read-only stages run.
 
 ## 1. Clone and install
 
@@ -35,8 +41,9 @@ GitHub pull requests with Jira tickets:
 bash adapters/cursor/install.sh --provider github --provider jira
 ```
 
-Claude Code is the same pattern with `adapters/claude-code/install.sh`. That
-wrapper also installs and verifies a mutation hook; Cursor does not.
+Claude Code is the same pattern with `adapters/claude-code/install.sh`. Both
+host wrappers install and verify a denial hook. Reload the host before
+mutating stages.
 
 ## 2. Reload and diagnose
 
@@ -49,9 +56,10 @@ bun "$FACTORY_ROOT/scripts/doctor.ts"
 ```
 
 Doctor groups **Ready now**, **Needs setup**, **Host limitation**, and
-**Human-owned**. It reports credential presence, never values. Core runtime
-can be ready while optional forge, tracker, or OpenSpec tools still need
-setup.
+**Human-owned**. It reports credential presence, never values. It distinguishes
+**read-only lifecycle** from **full lifecycle**. An unpinned Bun version is a
+setup item, not a read-only blocker. Mutating stages still need a verified
+denial hook. Optional forge, tracker, or OpenSpec tools can remain unset.
 
 ## 3. Confirm work items
 
@@ -66,7 +74,9 @@ tracker as ready. Init without `--work-items` prints the list and exits
 non-zero until you confirm. The choice is stored in
 `.delivery/work-items.json`.
 
-Init also adds `.delivery/` and `.review/` to `.gitignore` once.
+Init also adds `.delivery/` and `.review/` to `.gitignore` once. After
+configuration it reprints only unresolved doctor checks, not the full ready
+and human-owned lists.
 
 ## 4. Run delivery
 
@@ -78,7 +88,7 @@ Init also adds `.delivery/` and `.review/` to `.gitignore` once.
 ```
 
 Read-only stages run with a smaller capability set. Mutating stages need
-`mutation.guard` with `enforcement: "enforced"`. On Cursor that stays a host
-limitation until a real denial hook exists.
+`mutation.guard` with `enforcement: "enforced"` after the host adapter
+verifies its denial hook.
 
 See [workflow](workflow.md) and [examples](examples.md) next.

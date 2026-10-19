@@ -1,7 +1,7 @@
 import {
 	type AssessmentVerdict,
-	MAX_DERIVED_ACCEPTANCE_CRITERIA,
 	type FeasibilityVerdict,
+	MAX_DERIVED_ACCEPTANCE_CRITERIA,
 	parseAssessmentVerdict,
 	parseFeasibilityVerdict,
 } from "./verdicts";

@@ -1,6 +1,9 @@
 import { constants, existsSync } from "node:fs";
 import { access, readFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
+import { bunRuntimeDetail, expectedBunVersion } from "./bun-runtime";
+import { cursorHooksContainGuard } from "./cursor-settings";
 import { credentialState, toolsForProvider } from "./provider-contract";
 import {
 	type CapabilityId,
@@ -34,6 +37,29 @@ export interface DoctorCheck {
 export interface DoctorReport {
 	checks: DoctorCheck[];
 	coreReady: boolean;
+	readOnlyReady: boolean;
+	fullLifecycleReady: boolean;
+}
+
+export interface FormatDoctorOptions {
+	onlyUnresolved?: boolean;
+}
+
+export function doctorReadiness(checks: DoctorCheck[]): {
+	coreReady: boolean;
+	readOnlyReady: boolean;
+	fullLifecycleReady: boolean;
+} {
+	const readOnlyReady = checks.every((check) => !check.required || check.ok);
+	const bun = checks.find((check) => check.name === "Bun runtime");
+	const mutation = checks.find((check) => check.name === "Mutation guard");
+	const fullLifecycleReady =
+		readOnlyReady && (bun?.ok ?? true) && (mutation?.ok ?? false);
+	return {
+		coreReady: readOnlyReady,
+		readOnlyReady,
+		fullLifecycleReady,
+	};
 }
 
 type Which = (name: string) => string | null;
@@ -181,21 +207,17 @@ export async function runDoctor(options: {
 
 	let expectedBun = "";
 	try {
-		const pkg = JSON.parse(
+		expectedBun = expectedBunVersion(
 			await readFile(join(options.factoryRoot, "package.json"), "utf8"),
-		) as { packageManager?: string };
-		expectedBun = pkg.packageManager?.replace(/^bun@/, "") ?? "";
+		);
 	} catch {
 		// The package check below reports the actionable failure.
 	}
+	const bun = bunRuntimeDetail(expectedBun, Bun.version);
 	checks.push(
-		Bun.version === expectedBun
-			? ready("Bun runtime", Bun.version, true)
-			: setup(
-					"Bun runtime",
-					`install Bun ${expectedBun || "from package.json"}; found ${Bun.version}`,
-					true,
-				),
+		bun.exact
+			? ready("Bun runtime", bun.detail, true)
+			: setup("Bun runtime", bun.detail, !bun.present),
 	);
 
 	checks.push(
@@ -271,27 +293,13 @@ export async function runDoctor(options: {
 		}
 	}
 
-	const guard = runtime?.capabilities["mutation.guard"];
-	const evidence = existsSync(
-		join(options.factoryRoot, ".mutation-guard-enforced"),
+	checks.push(
+		await mutationGuardDoctorCheck({
+			factoryRoot: options.factoryRoot,
+			runtime,
+			env,
+		}),
 	);
-	if (guard?.enforcement === "enforced" && evidence) {
-		checks.push(ready("Mutation guard", guard.invocation ?? "verified hook"));
-	} else if (guard?.invocation?.includes("claude-code")) {
-		checks.push(
-			setup(
-				"Mutation guard",
-				"rerun the Claude adapter to install and verify its PreToolUse hook",
-			),
-		);
-	} else {
-		checks.push(
-			limitation(
-				"Mutation guard",
-				"this host has no verified denial hook; mutating stages stay blocked",
-			),
-		);
-	}
 
 	checks.push(...remoteProviderDoctorChecks(runtime, env, which));
 	checks.push(
@@ -316,13 +324,97 @@ export async function runDoctor(options: {
 		});
 	}
 
-	return {
-		checks,
-		coreReady: checks.every((check) => !check.required || check.ok),
-	};
+	return { checks, ...doctorReadiness(checks) };
 }
 
-export function formatDoctorReport(report: DoctorReport): string {
+export async function mutationGuardDoctorCheck(options: {
+	factoryRoot: string;
+	runtime: RuntimeManifest | null;
+	env: Record<string, string | undefined>;
+}): Promise<DoctorCheck> {
+	const guard = options.runtime?.capabilities["mutation.guard"];
+	const evidence = existsSync(
+		join(options.factoryRoot, ".mutation-guard-enforced"),
+	);
+	const invocation = guard?.invocation ?? "";
+	if (invocation.includes("claude-code")) {
+		const settingsPath =
+			options.env.CLAUDE_SETTINGS_FILE ??
+			join(homedir(), ".claude", "settings.json");
+		const live = await fileContains(
+			settingsPath,
+			join(options.factoryRoot, "scripts", "commit-guard.ts"),
+		);
+		return guard?.enforcement === "enforced" && evidence && live
+			? ready("Mutation guard", invocation)
+			: setup(
+					"Mutation guard",
+					"rerun the Claude adapter to install and verify its PreToolUse hook",
+				);
+	}
+	if (invocation.includes("cursor")) {
+		const hooksPath =
+			options.env.CURSOR_HOOKS_FILE ?? join(homedir(), ".cursor", "hooks.json");
+		let live = false;
+		try {
+			live = cursorHooksContainGuard(
+				JSON.parse(await readFile(hooksPath, "utf8")) as unknown,
+				options.factoryRoot,
+			);
+		} catch {
+			live = false;
+		}
+		return guard?.enforcement === "enforced" && evidence && live
+			? ready("Mutation guard", invocation)
+			: setup(
+					"Mutation guard",
+					"rerun the Cursor adapter to install and verify its hooks.json denial hook",
+				);
+	}
+	if (guard?.enforcement === "enforced" && evidence) {
+		return ready("Mutation guard", invocation || "verified hook");
+	}
+	return limitation(
+		"Mutation guard",
+		"this host has no verified denial hook; mutating stages stay blocked",
+	);
+}
+
+async function fileContains(path: string, needle: string): Promise<boolean> {
+	try {
+		return (await readFile(path, "utf8")).includes(needle);
+	} catch {
+		return false;
+	}
+}
+
+export function formatDoctorVerdict(report: DoctorReport): string {
+	const readiness = doctorReadiness(report.checks);
+	if (!readiness.readOnlyReady) {
+		return "Read-only lifecycle is not ready. Fix the required items above.";
+	}
+	if (readiness.fullLifecycleReady) {
+		return "Full lifecycle is ready. Human-owned actions still need an operator.";
+	}
+	const bun = report.checks.find((check) => check.name === "Bun runtime");
+	const mutation = report.checks.find(
+		(check) => check.name === "Mutation guard",
+	);
+	const parts = ["Read-only lifecycle is available."];
+	if (bun && !bun.ok) {
+		parts.push("Install the pinned Bun runtime so gates match package.json.");
+	}
+	if (mutation && !mutation.ok) {
+		parts.push("Mutating stages need a verified denial hook.");
+	}
+	parts.push("Optional setup items remain above.");
+	return parts.join(" ");
+}
+
+export function formatDoctorReport(
+	report: DoctorReport,
+	options: FormatDoctorOptions = {},
+): string {
 	const categories: DoctorCategory[] = [
 		"Ready now",
 		"Needs setup",
@@ -331,7 +423,11 @@ export function formatDoctorReport(report: DoctorReport): string {
 	];
 	const sections = categories
 		.map((category) => {
-			const rows = report.checks.filter((check) => check.category === category);
+			const rows = report.checks.filter((check) => {
+				if (check.category !== category) return false;
+				if (options.onlyUnresolved) return !check.ok;
+				return true;
+			});
 			if (rows.length === 0) return "";
 			return [
 				category.toUpperCase(),
@@ -341,13 +437,9 @@ export function formatDoctorReport(report: DoctorReport): string {
 			].join("\n");
 		})
 		.filter(Boolean);
-	return [
-		"Delivery doctor",
-		...sections,
-		report.coreReady
-			? "Core runtime is ready. Optional capabilities remain stage-specific."
-			: "Core runtime is not ready. Fix the required items above.",
-	].join("\n\n");
+	return ["Delivery doctor", ...sections, formatDoctorVerdict(report)].join(
+		"\n\n",
+	);
 }
 
 if (import.meta.main) {
@@ -358,5 +450,5 @@ if (import.meta.main) {
 		cwd: process.cwd(),
 	});
 	console.log(formatDoctorReport(report));
-	process.exit(report.coreReady ? 0 : 1);
+	process.exit(report.readOnlyReady ? 0 : 1);
 }

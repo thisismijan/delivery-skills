@@ -10,7 +10,7 @@ Add `adapters/<name>/` with:
 - optional `skill-overlay.md`
 
 Mutation may be marked `enforced` only after setup verifies a real denial
-hook. Cursor stays unenforced until that exists.
+hook. Static adapter JSON is not enough.
 
 Generic skills and `factory/RUNTIME.md` must not name the host. See
 [`CONTRIBUTING.md`](../CONTRIBUTING.md).

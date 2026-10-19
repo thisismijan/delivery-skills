@@ -22,7 +22,8 @@ bash adapters/cursor/install.sh --provider github
 bash adapters/cursor/install.sh --provider github --provider jira
 ```
 
-Reload Cursor, enter the target repository, and run:
+Reload Cursor so it loads both the installed skills and `hooks.json`. Enter
+the target repository, and run:
 
 ```bash
 export FACTORY_ROOT="${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}/_factory"
@@ -43,8 +44,12 @@ Cursor-only behaviour:
 - Selected provider tools land in `~/.local/bin`. Put that directory on
   `PATH`. Doctor probes the **selected** provider, not GitLab by default, and
   never prints secret values.
-- Cursor is declared **unenforced**. It has no executable hook that can deny a
-  tool call, so mutating stages stay blocked until a real enforcement hook
-  exists and this declaration is changed with a test. Read-only stages still
-  run. Do not merge, close, force-push, hard-reset, or mutate GitHub, GitLab,
-  or Jira state.
+- Cursor is declared **enforced only after setup verifies** user-level
+  `${CURSOR_HOOKS_FILE:-$HOME/.cursor/hooks.json}`. The hook is the real
+  enforcement: `beforeShellExecution`, `beforeMCPExecution`, and `preToolUse`
+  run `commit-guard.ts --protocol cursor` with `failClosed: true`, so a crash
+  or empty response denies the action. It blocks merge/close, force-push, hard
+  reset, tracker mutation, and equivalent API calls. Reload Cursor after
+  install. Until doctor shows Mutation guard as ready, mutating stages stay
+  blocked. Do not merge, close, force-push, hard-reset, or mutate GitHub,
+  GitLab, or Jira state as a workaround.

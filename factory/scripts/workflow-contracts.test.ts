@@ -54,6 +54,7 @@ const runtime = read("RUNTIME.md");
 const FORGE_PROVIDER = 'bun "${FACTORY_ROOT}/scripts/forge-provider.ts"';
 const PROVIDER_NATIVE = /\b(?:gl-mr|gl-note|glab)\b/;
 const cursorAdapter = read("../adapters/cursor/README.md");
+const cursorHooks = read("../adapters/cursor/hooks.json");
 const claudeAdapter = read("../adapters/claude-code/README.md");
 const claudeSettings = read("../adapters/claude-code/settings.json");
 
@@ -490,9 +491,18 @@ describe("portable mutation boundaries", () => {
 		expect(claudeAdapter).toMatch(/enforced/i);
 	});
 
-	test("Cursor is declared unenforced until a real hook exists", () => {
-		expect(cursorAdapter).toMatch(/unenforced/i);
-		expect(cursorAdapter).toMatch(/mutating stages? (stay |remain )?blocked/i);
+	test("Cursor hook targets the real commit-guard script", () => {
+		const hooks = JSON.parse(cursorHooks) as {
+			hooks: {
+				beforeShellExecution: Array<{ command: string; failClosed?: boolean }>;
+			};
+		};
+		expect(hooks.hooks.beforeShellExecution[0]?.command).toBe(
+			'bun "$DELIVERY_FACTORY_ROOT/scripts/commit-guard.ts" --protocol cursor',
+		);
+		expect(hooks.hooks.beforeShellExecution[0]?.failClosed).toBe(true);
+		expect(cursorAdapter).toMatch(/hooks\.json/i);
+		expect(cursorAdapter).toMatch(/enforced only after setup verifies/i);
 	});
 });
 

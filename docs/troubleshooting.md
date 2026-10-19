@@ -8,9 +8,16 @@ bun "$FACTORY_ROOT/scripts/doctor.ts"
 
 ## Bun missing or wrong version
 
-The installer warns and continues if Bun is skipped. Gates then fail. Install
-Bun `1.4.2` and rerun `bun install --frozen-lockfile` in `factory/` or
-reinstall the pack without `DELIVERY_INSTALL_SKIP_BUN`.
+The installer stops if Bun is missing and prints:
+
+```bash
+curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.2"
+```
+
+Restart the shell, confirm `bun --version`, and rerun install. An older Bun
+earlier on `PATH` (often Homebrew) keeps doctor listing a setup item; put
+`~/.bun/bin` first or uninstall that package. Read-only stages can still run
+on a present but unpinned Bun. `DELIVERY_INSTALL_SKIP_BUN` is for tests only.
 
 ## Tools installed but doctor says missing
 
@@ -19,9 +26,12 @@ directory to `PATH` in the same shell the host uses for subprocesses.
 
 ## Cursor mutating stages blocked
 
-Expected. Cursor has no verified denial hook. Read-only stages still run.
-Install the Claude Code adapter when you need execute, draft, or other
-mutating stages.
+Reload Cursor after install so `~/.cursor/hooks.json` loads. Doctor should
+show Mutation guard as ready. If it still asks you to rerun the Cursor
+adapter, set `CURSOR_HOOKS_FILE` if you keep hooks outside the default path,
+then reinstall. Read-only stages still run while the hook is missing.
+Do not merge, close, force-push, hard-reset, or mutate tracker status from
+the agent.
 
 ## GitHub install still looked like GitLab
 
@@ -34,6 +44,8 @@ manifest. Reinstall, then confirm the report names `github-forge` rather than
 
 `delivery-init.ts` without `--work-items` lists providers and exits until you
 confirm one. Pass `--work-items local-files` (or `github` / `gitlab` / `jira`).
+Init exits 0 when the work-item provider is confirmed and read-only lifecycle
+is ready; remaining optional setup is printed without failing the command.
 
 ## Saved remote provider unavailable
 

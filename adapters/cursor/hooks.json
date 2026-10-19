@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "bun \"$DELIVERY_FACTORY_ROOT/scripts/commit-guard.ts\" --protocol cursor",
+        "failClosed": true
+      }
+    ],
+    "beforeMCPExecution": [
+      {
+        "command": "bun \"$DELIVERY_FACTORY_ROOT/scripts/commit-guard.ts\" --protocol cursor",
+        "failClosed": true
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "bun \"$DELIVERY_FACTORY_ROOT/scripts/commit-guard.ts\" --protocol cursor",
+        "failClosed": true
+      }
+    ]
+  }
+}

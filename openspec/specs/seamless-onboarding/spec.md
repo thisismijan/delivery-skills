@@ -13,6 +13,10 @@ The installer SHALL write a valid complete manifest at `_factory/runtime-manifes
 - **WHEN** the pack is installed without an adapter or provider
 - **THEN** the canonical manifest exists, parses successfully, and does not authorize mutation
 
+#### Scenario: Bun is missing
+- **WHEN** install runs without Bun on PATH
+- **THEN** it stops before copying files and prints the exact install command for the pinned version
+
 #### Scenario: Reinstallation
 - **WHEN** an existing managed installation is upgraded
 - **THEN** the canonical manifest is rebuilt from selected configuration without deleting unmanaged files or run state
@@ -35,16 +39,24 @@ A mutation capability SHALL be marked enforced only after host-specific setup ve
 - **WHEN** the installer additively persists and verifies the checked-in PreToolUse hook
 - **THEN** the manifest marks mutation enforcement active without replacing unrelated settings
 
-#### Scenario: Cursor adapter is installed
-- **WHEN** the Cursor host has no executable mutation-denial hook
-- **THEN** read-only capabilities remain usable and mutating stages remain blocked with a host-limitation explanation
+#### Scenario: Cursor hook installs successfully
+- **WHEN** the installer additively persists and verifies user-level `hooks.json`
+- **THEN** the manifest marks mutation enforcement active without replacing unrelated hooks
+
+#### Scenario: Cursor adapter is installed without verification
+- **WHEN** Cursor setup has not verified a denial hook
+- **THEN** read-only capabilities remain usable and mutating stages remain blocked
 
 ### Requirement: Doctor reconciles live readiness
-The system SHALL provide a doctor command that non-destructively checks installation, target-repository, adapter, provider, and mutation-boundary readiness and groups results as Ready now, Needs setup, Host limitation, or Human-owned.
+The system SHALL provide a doctor command that non-destructively checks installation, target-repository, adapter, provider, and mutation-boundary readiness and groups results as Ready now, Needs setup, Host limitation, or Human-owned. It SHALL distinguish read-only lifecycle from full lifecycle.
 
 #### Scenario: Partially configured host
-- **WHEN** core runtime checks pass but optional tracker or spec tooling is absent
-- **THEN** doctor reports usable stages and exact setup remedies without declaring the whole pack unusable
+- **WHEN** required read-only checks pass but optional tracker or spec tooling is absent
+- **THEN** doctor reports read-only lifecycle available and exact setup remedies without declaring the whole pack unusable
+
+#### Scenario: Unpinned runtime
+- **WHEN** Bun is present but does not match the pinned `packageManager` version
+- **THEN** doctor lists the exact install command as a setup item and still reports read-only lifecycle available
 
 #### Scenario: Secret-backed provider
 - **WHEN** doctor checks provider authentication
@@ -58,7 +70,7 @@ Every mutating stage SHALL read the installed runtime manifest from `$FACTORY_RO
 - **THEN** stage gating rejects the stage and prints the configuration remedy
 
 ### Requirement: Target bootstrap is idempotent
-The system SHALL provide an explicit target-repository bootstrap that adds delivery state paths to `.gitignore` once, verifies local writability, runs doctor, and prints valid first commands without creating remote resources.
+The system SHALL provide an explicit target-repository bootstrap that adds delivery state paths to `.gitignore` once, verifies local writability, reprints unresolved doctor checks, and prints valid first commands without creating remote resources.
 
 #### Scenario: Bootstrap runs twice
 - **WHEN** target bootstrap is invoked repeatedly

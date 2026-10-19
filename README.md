@@ -36,6 +36,8 @@ interface.
 
 What the installer does:
 
+- Checks the pinned Bun version from `factory/package.json` and prints the
+  exact install command when Bun is missing or unmatched.
 - Runs `bun install --frozen-lockfile` in `factory/`, so every machine uses the
   same pinned dependencies.
 - Copies each skill and the runtime into the destination, writing a managed
@@ -73,12 +75,15 @@ reference live under [`docs/README.md`](docs/README.md),
 
    `doctor` separates what is ready, what needs setup, host limitations, and
    actions that always remain human-owned. It reports credential presence only;
-   it never prints credential values. Confirm one listed work-item provider;
+   it never prints credential values. It distinguishes read-only lifecycle
+   from full lifecycle: an unpinned Bun version is a setup item, and mutating
+   stages need a verified denial hook. Confirm one listed work-item provider;
    local files are always available, while Jira, forge issues, and custom
    providers appear only when the runtime substantiates them. The choice is
    stored in `.delivery/work-items.json` and is never inferred from remotes or
    credentials. `delivery-init.ts` idempotently adds `.delivery/` and `.review/`
-   to the target repository's `.gitignore`.
+   to the target repository's `.gitignore`, then reprints only unresolved
+   doctor checks.
 3. Invoke the `delivery` skill with `help`, `doctor`, `init`, or `status`. If the
    runtime exposes slash skills, use `/delivery help`, `/delivery doctor`,
    `/delivery init`, or `/delivery status`.
