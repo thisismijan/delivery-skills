@@ -113,14 +113,144 @@ test("GitLab setup installs gitlab-forge and keeps compatibility tools", async (
 	}
 });
 
-test("Jira remains unavailable until the host tracker probe exists", () => {
-	const jira = evaluateProvider(
-		{ name: "jira", version: 1, kind: "tracker", tools: [] },
-		{ binDir: "/unused", env: {}, which: () => null },
-	);
-	expect(jira.ready).toBe(false);
-	expect(jira.runtime.capabilities["tracker.item"]?.available).toBe(false);
-	expect(jira.reasons.join("\n")).toMatch(/host runtime/);
+const jira = {
+	name: "jira",
+	version: 1,
+	kind: "tracker" as const,
+	tools: ["jira-tracker"],
+};
+
+const jiraSetup = join(
+	import.meta.dir,
+	"..",
+	"..",
+	"providers",
+	"jira",
+	"setup.sh",
+);
+
+test("Jira capabilities advertise exec:absolute path and provider jira", async () => {
+	const root = await mkdtemp(join(tmpdir(), "provider-contract-jira-"));
+	try {
+		await writeFile(join(root, "jira-tracker"), "#!/usr/bin/env bun\n");
+		const ready = evaluateProvider(jira, {
+			binDir: root,
+			env: {
+				JIRA_SITE: "https://acme.atlassian.net",
+				JIRA_PROJECT: "DELIV",
+				JIRA_EMAIL: "ada@example.test",
+				JIRA_API_TOKEN: "present-but-never-reported",
+			},
+			which: (name) => `/usr/bin/${name}`,
+		});
+		expect(ready.ready).toBe(true);
+		expect(ready.runtime.capabilities["tracker.item"]).toEqual({
+			available: true,
+			mode: "adapter",
+			invocation: `exec:${join(root, "jira-tracker")}`,
+			provider: "jira",
+		});
+		expect(JSON.stringify(ready)).not.toContain("present-but-never-reported");
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("missing Jira setup stays unavailable and names remedies", async () => {
+	const root = await mkdtemp(join(tmpdir(), "provider-contract-jira-missing-"));
+	try {
+		const missing = evaluateProvider(jira, {
+			binDir: root,
+			env: {},
+			which: () => null,
+		});
+		expect(missing.ready).toBe(false);
+		expect(missing.runtime.capabilities["tracker.item"]?.available).toBe(false);
+		expect(missing.reasons.join("\n")).toMatch(/jira-tracker/);
+		expect(missing.reasons.join("\n")).toMatch(/bun/);
+		expect(missing.reasons.join("\n")).toMatch(/JIRA_SITE/);
+		expect(missing.reasons.join("\n")).toMatch(/JIRA_PROJECT/);
+		expect(missing.reasons.join("\n")).toMatch(/JIRA_EMAIL/);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("Jira setup installs jira-tracker and advertises tracker.item", async () => {
+	const root = await mkdtemp(join(tmpdir(), "provider-contract-jira-setup-"));
+	try {
+		const bin = join(root, "bin");
+		await mkdir(bin, { recursive: true });
+		const proc = Bun.spawn(["bash", jiraSetup], {
+			env: {
+				...process.env,
+				DELIVERY_BIN_DIR: bin,
+				HOME: root,
+			},
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		const [stdout, stderr, code] = await Promise.all([
+			new Response(proc.stdout).text(),
+			new Response(proc.stderr).text(),
+			proc.exited,
+		]);
+		expect(code).toBe(0);
+		expect(`${stdout}\n${stderr}`).not.toMatch(/JIRA_API_TOKEN=|ATATT/);
+		const installed = Bun.file(join(bin, "jira-tracker"));
+		expect(await installed.exists()).toBe(true);
+		const source = await installed.text();
+		expect(source.startsWith("#!/usr/bin/env bun")).toBe(true);
+		expect(source).not.toContain("DELIVERY_PACK_ROOT");
+		const ready = evaluateProvider(jira, {
+			binDir: bin,
+			env: {
+				JIRA_SITE: "https://acme.atlassian.net",
+				JIRA_PROJECT: "DELIV",
+				JIRA_EMAIL: "ada@example.test",
+				JIRA_API_TOKEN: "present-but-never-reported",
+				HOME: root,
+			},
+			which: (name) => (name === "bun" ? "/usr/bin/bun" : null),
+		});
+		expect(ready.ready).toBe(true);
+		expect(ready.runtime.capabilities["tracker.item"]?.invocation).toBe(
+			`exec:${join(bin, "jira-tracker")}`,
+		);
+		expect(ready.runtime.capabilities["tracker.item"]?.provider).toBe("jira");
+		expect(JSON.stringify(ready)).not.toContain("present-but-never-reported");
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("unknown provider capabilities fail closed", async () => {
+	const root = await mkdtemp(join(tmpdir(), "provider-contract-unknown-"));
+	try {
+		await writeFile(join(root, "gitlab-forge"), "#!/usr/bin/env bun\n");
+		const unknown = evaluateProvider(
+			{
+				name: "gitlab",
+				version: 1,
+				kind: "forge",
+				tools: ["gitlab-forge"],
+				capabilities: ["forge.change", "not-a-capability"],
+			},
+			{
+				binDir: root,
+				env: { GITLAB_TOKEN: "present-but-never-reported" },
+				which: (name) => `/usr/bin/${name}`,
+			},
+		);
+		expect(unknown.ready).toBe(false);
+		expect(unknown.runtime.capabilities["forge.change"]?.available).toBe(false);
+		expect(unknown.reasons.join("\n")).toMatch(
+			/forge\.change, review\.publish, or tracker\.item/,
+		);
+		expect(JSON.stringify(unknown)).not.toContain("present-but-never-reported");
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
 });
 
 test("OpenSpec readiness follows the installed CLI without inventing a runtime capability", async () => {

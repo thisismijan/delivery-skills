@@ -1,0 +1,38 @@
+{
+  "id": "10003",
+  "key": "DELIV-3",
+  "properties": {
+    "delivery.sourceAuditId": { "auditId": "run-1:create" }
+  },
+  "fields": {
+    "summary": "Create through the adapter",
+    "description": {
+      "type": "doc",
+      "version": 1,
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Approved creation should stay idempotent." }
+          ]
+        }
+      ]
+    },
+    "issuetype": { "id": "10001", "name": "Story" },
+    "labels": ["dlv-run-1x3acreate"],
+    "issuelinks": [
+      {
+        "id": "10020",
+        "type": {
+          "id": "10000",
+          "name": "Blocks",
+          "inward": "is blocked by",
+          "outward": "blocks"
+        },
+        "outwardIssue": { "id": "10002", "key": "DELIV-2" }
+      }
+    ],
+    "comment": { "startAt": 0, "maxResults": 0, "total": 0, "comments": [] },
+    "project": { "id": "10000", "key": "DELIV" }
+  }
+}

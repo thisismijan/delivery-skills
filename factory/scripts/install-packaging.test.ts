@@ -505,6 +505,51 @@ test("explicit --provider installs that provider and generic install includes no
 	});
 });
 
+test("explicit --provider jira installs jira-tracker and advertises tracker.item", async () => {
+	await withInstallRoot(async (root) => {
+		const dest = join(root, "skills");
+		const bin = join(root, "bin");
+		const selected = await runInstaller(
+			["--skills-dir", dest, "--provider", "jira"],
+			{
+				DELIVERY_BIN_DIR: bin,
+				JIRA_SITE: "https://acme.atlassian.net",
+				JIRA_PROJECT: "DELIV",
+				JIRA_EMAIL: "ada@example.test",
+				JIRA_API_TOKEN: "test-token",
+				PATH: `${bin}:${process.env.PATH ?? ""}`,
+			},
+		);
+		expect(selected.exitCode).toBe(0);
+		expect(selected.stdout).toContain("Provider jira: ready");
+		expect(selected.stdout).not.toContain("test-token");
+		expect(await pathExists(join(bin, "jira-tracker"))).toBe(true);
+		const installed = await readFile(join(bin, "jira-tracker"), "utf8");
+		expect(installed).not.toContain(rootDir);
+		expect(installed).not.toContain("DELIVERY_PACK_ROOT");
+		expect(installed.startsWith("#!/usr/bin/env bun")).toBe(true);
+		const runtime = JSON.parse(
+			await readFile(join(dest, "_factory", "runtime-manifest.json"), "utf8"),
+		) as {
+			capabilities: Record<
+				string,
+				{
+					available: boolean;
+					mode?: string;
+					invocation?: string;
+					provider?: string;
+				}
+			>;
+		};
+		expect(runtime.capabilities["tracker.item"]).toEqual({
+			available: true,
+			mode: "adapter",
+			invocation: `exec:${join(bin, "jira-tracker")}`,
+			provider: "jira",
+		});
+	});
+});
+
 test("README documents --skills-dir and optional --adapter without named hosts", () => {
 	expect(readme).toContain("./install.sh --skills-dir");
 	expect(readme).toContain("--adapter");

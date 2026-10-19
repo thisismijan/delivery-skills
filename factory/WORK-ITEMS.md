@@ -53,8 +53,8 @@ adapter receives the operation as its only argument and a version-1 JSON
 envelope on stdin, then writes one normalized work item (or an array for
 `list`) to stdout. Core launches the executable directly without a shell.
 Malformed JSON, non-zero exit, relative paths, and opaque invocations fail
-closed with no fallback. Until a remote adapter implements this protocol,
-delivery reports that exact missing bridge instead of inventing an API call.
+closed with no fallback. A selected remote adapter that is not installed or
+not ready reports that exact missing bridge instead of inventing an API call.
 
 ## Custom providers
 
