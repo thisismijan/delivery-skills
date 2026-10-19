@@ -22,7 +22,14 @@ or changes a flag.
    `bun "${FACTORY_ROOT}/scripts/forge-provider.ts" read "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <read-input.json>`.
    Require normalized `state: "merged"`. Otherwise stop: "!<iid> is not
    merged".
-3. **The merge is deployed.** Use normalized `revisions.merged`; if it is
+3. **Default-branch pipeline passed.** Use normalized `revisions.merged`; if it
+   is absent, stop because the merged revision cannot be identified. Follow
+   `pipeline-monitoring.md` and query the normalized `pipeline` operation for
+   that exact revision. Missing or running evidence waits without polling. A
+   failed pipeline fixes forward only when attribution, frozen scope, and the
+   bounded repair budget allow it; otherwise escalate. Do not verify or deploy
+   a revision whose default-branch pipeline has not passed.
+4. **The merge is deployed.** Use normalized `revisions.merged`; if it is
    absent, stop because the deployed revision cannot be identified. Confirm
    that the environment runs a version containing it. Evidence can be a version
    endpoint, an image tag, or the deploy job for that revision. If you cannot
@@ -111,11 +118,14 @@ Follow the human-facing output rules.
 | Stop | Message | Next command |
 |------|---------|--------------|
 | Not merged | !<iid> is not merged | `/delivery ship <iid>` |
+| Default pipeline pending | Pipeline still running at <sha> | Event subscription, or `/delivery auto <KEY>` later |
+| Default pipeline failed | Pipeline failed at <sha> | Follow `pipeline-monitoring.md` |
 | Not deployed | Cannot confirm <sha> is deployed to <env> | `/delivery verify <iid>` after deploy |
 
 ## Never
 
 - Roll back, deploy, restart, or change a flag.
+- Treat the open-change pipeline as default-branch evidence.
 - Write to the environment without the operator's go-ahead.
 - Treat a signal you could not read as healthy.
 - Fix a regression in this session. It goes back through intake.

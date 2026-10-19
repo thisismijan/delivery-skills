@@ -26,7 +26,7 @@ Enterprise. Credentials come from `GITHUB_TOKEN`, `GH_TOKEN`,
 `GH_TOKEN_FILE`, or `~/token` and never from argv. Prefer an env token over
 `~/token` if GitLab might also use that file.
 
-`github-forge` operations: `find`, `read`, `files`, `diff`, `commits`,
+`github-forge` operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`,
 `discussions`, `anchors`, `create`, `set-draft`, `note`, `reply`. Listings
 paginate. Truncated diffs are refused. Draft pull requests are created. The
 adapter does not merge, close, approve, delete, or resolve discussions.

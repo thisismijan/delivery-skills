@@ -7,6 +7,7 @@ import {
 	type GitHubDeps,
 	type GitHubRequest,
 	addedLineAnchors,
+	aggregateCheckRuns,
 	githubNumberFromRef,
 	handleGitHubForgeCli,
 	parseGitHubOrigin,
@@ -130,6 +131,29 @@ test("added-line anchors skip file headers and count from hunk starts", () => {
 	]);
 });
 
+test("check-run aggregation fails on any failure and waits for any running job", () => {
+	const success = {
+		head_sha: HEAD,
+		status: "completed",
+		conclusion: "success",
+		html_url: "https://github.com/acme/app/actions/runs/1",
+	};
+	expect(aggregateCheckRuns([success], HEAD).status).toBe("success");
+	expect(
+		aggregateCheckRuns(
+			[success, { ...success, status: "in_progress", conclusion: null }],
+			HEAD,
+		).status,
+	).toBe("pending");
+	expect(
+		aggregateCheckRuns([success, { ...success, conclusion: "failure" }], HEAD)
+			.status,
+	).toBe("failure");
+	expect(() =>
+		aggregateCheckRuns([{ ...success, head_sha: "other" }], HEAD),
+	).toThrow(/different revision/);
+});
+
 test("explicit repository overrides win over origin", async () => {
 	const { deps, requests } = recordingDeps((request) => {
 		if (request.url.includes("page=1")) return loadFixture("find.json");
@@ -230,6 +254,34 @@ test("read binds revisions and represents missing pipeline evidence explicitly",
 	expect(bare.pipeline).toEqual({ available: false });
 	expect(bare.author).toBe("ada");
 	expect(bare.mergeability).toEqual({ available: false });
+});
+
+test("pipeline reads status for the exact requested revision", async () => {
+	const { deps, requests } = recordingDeps((request) => {
+		if (request.url.includes("/status")) {
+			return loadFixture("combined-status.json");
+		}
+		return loadFixture("empty-check-runs.json");
+	});
+	const result = (await runGitHubForge(
+		"pipeline",
+		envelope({ revision: HEAD }),
+		deps,
+	)) as Record<string, unknown>;
+	expect(result).toMatchObject({
+		version: 1,
+		provider: "github",
+		revision: HEAD,
+		pipeline: {
+			available: true,
+			status: "success",
+			revision: HEAD,
+		},
+	});
+	expect(() => parseForgeOperationResult("pipeline", result)).not.toThrow();
+	expect(requests[0]?.url).toContain(
+		`/commits/${encodeURIComponent(HEAD)}/status`,
+	);
 });
 
 test("files, diff, commits, discussions, and anchors bind the requested change and head revision", async () => {

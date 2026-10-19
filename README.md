@@ -123,7 +123,7 @@ bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
   "$FACTORY_ROOT/runtime-manifest.json" [input.json]
 ```
 
-Operations: `find`, `read`, `files`, `diff`, `commits`, `discussions`,
+Operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
 `anchors`, `create`, `set-draft`, `note`, `reply`. Review evidence is fetched
 one view at a time in the order the review skill names. Notes are dry-run,
 shown, then posted one at a time after human confirmation (or standing
@@ -357,8 +357,10 @@ ambiguous match stops the run instead of guessing.
   secret-like filenames.
 - **Run state is shared safely.** Ledgers use a generation number and refuse a
   stale write instead of overwriting another session's update.
-- **Waiting never polls.** A running pipeline or deploy ends the turn with the
-  command to resume.
+- **Waiting never polls.** A running pipeline uses a host event subscription
+  when available, then ends the turn. Delivery watches both the open-change
+  head and the exact merged revision on the default branch. Attributable,
+  in-scope failures fix forward within a bounded budget; the rest escalate.
 - **Model routing reads the runtime, then the catalogue.** Each run records the
   exact model identifiers the current runtime advertises into
   `.delivery/routing/model-inventory.json`. The workflow still names the

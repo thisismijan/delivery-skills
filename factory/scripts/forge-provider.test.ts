@@ -9,6 +9,7 @@ import {
 	ForgeDiff,
 	ForgeDryRun,
 	ForgeFiles,
+	ForgePipeline,
 	ForgeReceipt,
 	PublishForgeNoteInput,
 	parseForgeOperationInput,
@@ -140,6 +141,7 @@ test("normalized operations exclude merge, close, and thread resolution", () => 
 	expect([...FORGE_OPERATIONS]).toEqual([
 		"find",
 		"read",
+		"pipeline",
 		"files",
 		"diff",
 		"commits",
@@ -181,6 +183,48 @@ test("malformed change, evidence, and receipt schemas fail before adapter execut
 	expect(() =>
 		ForgeReceipt.parse({ version: 1, provider: "sample-forge", ref: "1" }),
 	).toThrow();
+	expect(() =>
+		ForgePipeline.parse({
+			version: 1,
+			provider: "sample-forge",
+			revision: "merge-sha",
+			pipeline: {
+				available: true,
+				status: "success",
+				revision: "different-sha",
+			},
+		}),
+	).toThrow(/requested revision/);
+});
+
+test("pipeline evidence is bound to the exact requested revision", async () => {
+	await withRoot(async (root) => {
+		const { executable } = await recordingAdapter(
+			root,
+			"pipeline",
+			JSON.stringify({
+				version: 1,
+				provider: "sample-forge",
+				revision: "merge-sha",
+				pipeline: {
+					available: true,
+					status: "success",
+					revision: "merge-sha",
+					url: "https://example.invalid/pipelines/1",
+				},
+			}),
+		);
+		const result = await runForgeOperation({
+			operation: "pipeline",
+			repositoryRoot: root,
+			runtime: runtime({ forge: `exec:${executable}` }),
+			input: { revision: "merge-sha" },
+		});
+		expect(result).toMatchObject({
+			revision: "merge-sha",
+			pipeline: { available: true, status: "success" },
+		});
+	});
 });
 
 test("unapproved mutations fail before adapter execution", async () => {

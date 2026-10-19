@@ -34,6 +34,7 @@ export type { GitLabForgeDeps, GitLabRequest, GitLabTarget };
 export const GITLAB_FORGE_OPERATIONS = [
 	"find",
 	"read",
+	"pipeline",
 	"files",
 	"diff",
 	"commits",
@@ -580,6 +581,54 @@ async function handleRead(
 	return loadMergeRequest(deps, token, target, iid, ref);
 }
 
+async function handlePipeline(
+	envelope: unknown,
+	deps: GitLabForgeDeps,
+): Promise<unknown> {
+	const { input, target, token } = await withContext(envelope, deps);
+	const revision = requireText(input, "revision");
+	const query = new URLSearchParams({
+		sha: revision,
+		order_by: "id",
+		sort: "desc",
+	}).toString();
+	const raw = await gitlabGet(
+		deps,
+		token,
+		apiUrl(target, `/pipelines?${query}`),
+	);
+	if (!Array.isArray(raw)) fail("GitLab pipelines response is malformed.");
+	const latest = raw.find(isRecord);
+	if (!latest) {
+		return {
+			version: PROTOCOL_VERSION,
+			provider: PROVIDER_ID,
+			revision,
+			pipeline: { available: false },
+		};
+	}
+	const pipelineRevision = asString(latest.sha)?.trim();
+	const status = asString(latest.status)?.trim();
+	if (!pipelineRevision || !status) {
+		fail("GitLab pipeline evidence is missing status or revision.");
+	}
+	if (pipelineRevision !== revision) {
+		fail("GitLab returned pipeline evidence for a different revision.");
+	}
+	const url = asString(latest.web_url)?.trim();
+	return {
+		version: PROTOCOL_VERSION,
+		provider: PROVIDER_ID,
+		revision,
+		pipeline: {
+			available: true,
+			status,
+			revision: pipelineRevision,
+			...(url ? { url } : {}),
+		},
+	};
+}
+
 async function handleFiles(
 	envelope: unknown,
 	deps: GitLabForgeDeps,
@@ -845,6 +894,8 @@ export async function runGitLabForge(
 			return handleFind(envelope, deps);
 		case "read":
 			return handleRead(envelope, deps);
+		case "pipeline":
+			return handlePipeline(envelope, deps);
 		case "files":
 			return handleFiles(envelope, deps);
 		case "diff":
@@ -884,7 +935,7 @@ export async function handleGitLabForgeCli(options: {
 	const operation = options.argv[0];
 	if (!operation) {
 		options.stderr(
-			"usage: gitlab-forge <find|read|files|diff|commits|discussions|anchors|create|set-draft|note|reply>\n",
+			"usage: gitlab-forge <find|read|pipeline|files|diff|commits|discussions|anchors|create|set-draft|note|reply>\n",
 		);
 		return 2;
 	}

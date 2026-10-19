@@ -16,10 +16,14 @@ from `skills/delivery/SKILL.md`.
    install.
 5. **Auto.** `/delivery auto <key>` creates approved items, fans out
    independent tickets into isolated worktrees, drafts, executes, reviews, and
-   waits for merge.
+   monitors the exact-head pipeline without polling.
 6. **You merge.** Delivery never merges, closes, or resolves threads.
-7. **After merge.** `/delivery archive`, `verify`, `retro`, and optionally
-   `improve` with a separate install/rollback approval.
+7. **After merge.** Delivery monitors the exact merged revision on the default
+   branch. An attributable in-scope failure fixes forward through a new
+   reviewed change within a bounded budget; ambiguous, unrelated, transient,
+   out-of-scope, or exhausted failures escalate. After success it runs
+   `/delivery archive`, `verify`, `retro`, and optionally `improve` with a
+   separate install/rollback approval.
 
 Resume with `/delivery <KEY>` or `/delivery auto <key>`. Do not skip a failed
 gate.
@@ -59,3 +63,8 @@ gate.
 When two options are viable, delivery presents a decision brief: context,
 pros/cons, DSA and system-design notes, and a recommendation. Ask for a missing
 fact directly; do not invent a false choice.
+
+Pipeline waits use host event subscriptions when available and otherwise end
+the turn with one resume command. Delivery never sleeps or repeatedly polls.
+It never treats an MR pipeline as proof that the merged default-branch revision
+passed.

@@ -19,7 +19,7 @@ Cursor and Claude wrappers already pass `--provider gitlab`. Extra
 
 ## Protocol
 
-`gitlab-forge` takes `find`, `read`, `files`, `diff`, `commits`,
+`gitlab-forge` takes `find`, `read`, `pipeline`, `files`, `diff`, `commits`,
 `discussions`, `anchors`, `create`, `set-draft`, `note`, or `reply`.
 `gitlab-work-item` takes `list`, `read`, `create`, `link`, or `note`. Both
 read stdin JSON and write versioned JSON. They do not merge, close, approve,
