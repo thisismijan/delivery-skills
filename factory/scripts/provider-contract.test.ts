@@ -162,7 +162,7 @@ const jiraSetup = join(
 	"setup.sh",
 );
 
-test("Jira stays unavailable until the tracker executable and project settings are present", () => {
+test("Jira stays unavailable until the tracker executable, site and credentials are present", () => {
 	const jira = evaluateProvider(
 		{ name: "jira", version: 1, kind: "tracker", tools: [] },
 		{ binDir: "/unused", env: {}, which: () => null },
@@ -172,7 +172,8 @@ test("Jira stays unavailable until the tracker executable and project settings a
 	expect(jira.reasons.join("\n")).toMatch(/jira-tracker/);
 	expect(jira.reasons.join("\n")).toMatch(/bun/);
 	expect(jira.reasons.join("\n")).toMatch(/JIRA_SITE/);
-	expect(jira.reasons.join("\n")).toMatch(/JIRA_PROJECT/);
+	// The project is per repository, so installing never asks for one.
+	expect(jira.reasons.join("\n")).not.toMatch(/JIRA_PROJECT|project key/);
 	expect(jira.reasons.join("\n")).toMatch(/JIRA_EMAIL/);
 });
 
@@ -186,7 +187,6 @@ test("Jira capabilities advertise exec:absolute path and provider jira", async (
 				binDir: root,
 				env: {
 					JIRA_SITE: "https://acme.atlassian.net",
-					JIRA_PROJECT: "DELIV",
 					JIRA_EMAIL: "ada@example.test",
 					JIRA_API_TOKEN: "present-but-never-reported",
 				},
@@ -238,7 +238,6 @@ test("Jira setup installs jira-tracker and advertises tracker.item", async () =>
 				binDir: bin,
 				env: {
 					JIRA_SITE: "https://acme.atlassian.net",
-					JIRA_PROJECT: "DELIV",
 					JIRA_EMAIL: "ada@example.test",
 					JIRA_API_TOKEN: "present-but-never-reported",
 					HOME: root,

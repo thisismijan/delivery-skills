@@ -10,6 +10,7 @@ import {
 import { loadConstitution } from "./sdlc-constitution";
 import {
 	type WorkItemSelectionStatus,
+	describeSelection,
 	workItemSelectionStatus,
 } from "./work-item-config";
 
@@ -158,7 +159,10 @@ export function workItemDoctorCheck(
 	status: WorkItemSelectionStatus,
 ): DoctorCheck {
 	return status.state === "ready"
-		? ready("Work-item provider", status.selection?.provider.id ?? "confirmed")
+		? ready(
+				"Work-item provider",
+				status.selection ? describeSelection(status.selection) : "confirmed",
+			)
 		: setup(
 				"Work-item provider",
 				status.remedy ?? "confirm a provider with /delivery init",

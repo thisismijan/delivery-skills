@@ -51,13 +51,13 @@ bun "$FACTORY_ROOT/scripts/work-item-provider.ts" \
 |----------|-------------|--------------------|
 | GitHub | `GITHUB_TOKEN`, `GH_TOKEN`, `GH_TOKEN_FILE`, `~/token` | `GH_HOST` / `GITHUB_HOST`, `GH_REPO` / `GITHUB_REPOSITORY` |
 | GitLab | `GITLAB_TOKEN`, `GL_TOKEN_FILE`, `~/token` | `GL_HOST`, `GL_PROJECT` |
-| Jira | `JIRA_SITE`, `JIRA_PROJECT`, email+token or token file | Cloud site URL and project key |
+| Jira | `JIRA_SITE`, email+token or token file | Project key per repository: `delivery-init.ts --work-items jira --setting project=<KEY>` (optional `--setting site=<url>`) |
 
 ## Artifacts (gitignored in the target repo)
 
 | Path | Holds |
 |------|-------|
-| `.delivery/work-items.json` | Confirmed work-item provider |
+| `.delivery/work-items.json` | Confirmed work-item provider and its per-repository settings |
 | `.delivery/work-items/` | Local-files items |
 | `.delivery/runs/` | Ledgers, run contracts, retros |
 | `.delivery/workers/` | Parallel worker journals |

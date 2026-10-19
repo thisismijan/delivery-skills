@@ -27,17 +27,28 @@ Mapped types are Bug, Story, and Task.
 
 ## Configuration
 
+Machine-wide, in the environment:
+
 - `JIRA_SITE` — `https://example.atlassian.net`
-- `JIRA_PROJECT` — project key
 - `JIRA_EMAIL` and `JIRA_API_TOKEN`, or `JIRA_TOKEN` as the API token alias,
   or `JIRA_TOKEN_FILE`, or `~/jira-token`
 
 The token file may be `email:token` on one line or email and token on two
 lines. Restrict it with `chmod 600`. Needed permissions: browse, create,
-comment, and issue link. Doctor and installer name missing site, project, or
+comment, and issue link. Doctor and installer name a missing site or
 credentials without printing secret values.
+
+Per repository, because one machine can serve repositories that file work
+items in different projects: the project key, recorded by init in the
+repository's `.delivery/work-items.json`. Worktrees of that repository use the
+same setting. `JIRA_PROJECT` in the environment is not read.
 
 ```bash
 bun "<skills-dir>/_factory/scripts/doctor.ts"
-bun "<skills-dir>/_factory/scripts/delivery-init.ts" --work-items jira
+bun "<skills-dir>/_factory/scripts/delivery-init.ts" --work-items jira --setting project=DEL
 ```
+
+A repository can also override the site with `--setting site=<url>`.
+Changing a recorded setting needs `--replace`. Until the project is recorded,
+doctor reports the Jira work-item provider under Needs setup with the exact
+init command, and the bridge refuses to run.

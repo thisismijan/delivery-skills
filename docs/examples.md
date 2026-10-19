@@ -66,18 +66,19 @@ The Claude wrapper already selects GitLab. Self-hosted GitLab also needs
 ```bash
 export GITHUB_TOKEN="ghp_…"
 export JIRA_SITE="https://example.atlassian.net"
-export JIRA_PROJECT="DEL"
 export JIRA_EMAIL="you@example.com"
 export JIRA_API_TOKEN="…"
 ./install.sh --skills-dir /path/to/skills \
   --adapter claude-code \
   --provider github --provider jira
 bun "$FACTORY_ROOT/scripts/doctor.ts"
-bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items jira
+bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items jira --setting project=DEL
 ```
 
 Doctor should show GitHub forge tools plus `jira-tracker` and both
-credentials. Confirm **jira**, not github, as the work-item provider.
+credentials. Confirm **jira**, not github, as the work-item provider. The
+project key belongs to the repository, so run init with `--setting project=`
+in each repository; one machine can serve several projects.
 
 ## After a green review
 

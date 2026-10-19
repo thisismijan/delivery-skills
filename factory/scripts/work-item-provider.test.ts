@@ -239,3 +239,43 @@ test("remote protocol fails closed on opaque, malformed, and failed adapters", a
 		await assertFailure(`exec:${failed}`, /exit 9/);
 	});
 });
+
+test("remote executable receives the repository's settings, and none when unset", async () => {
+	await withRoot(async (root) => {
+		const adapter = await fakeAdapter(
+			root,
+			`const request = JSON.parse(await Bun.stdin.text());
+console.log(JSON.stringify({
+  version: 1,
+  provider: request.provider,
+  ref: "REMOTE-1",
+  type: "story",
+  title: "settings" in request ? JSON.stringify(request.settings) : "none",
+  body: "normalized",
+  blockedBy: [],
+  notes: []
+}));`,
+		);
+		const runtime = remoteRuntime(`exec:${adapter}`);
+		const read = () =>
+			runWorkItemOperation({
+				operation: "read",
+				repositoryRoot: root,
+				runtime,
+				input: { ref: "REMOTE-1" },
+			});
+		await configureWorkItemProvider({
+			repositoryRoot: root,
+			providerId: "fake-remote",
+			runtime,
+		});
+		expect(await read()).toMatchObject({ title: "none" });
+		await configureWorkItemProvider({
+			repositoryRoot: root,
+			providerId: "fake-remote",
+			runtime,
+			settings: { project: "ABC" },
+		});
+		expect(await read()).toMatchObject({ title: '{"project":"ABC"}' });
+	});
+});

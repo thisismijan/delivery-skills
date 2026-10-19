@@ -3,7 +3,10 @@ import { join } from "node:path";
 import { loadRuntimeManifest } from "./runtime-manifest";
 import type { RuntimeManifest } from "./runtime-manifest";
 import {
+	type ProviderSettings,
 	configureWorkItemProvider,
+	describeSelection,
+	parseSettingArguments,
 	workItemOptions,
 	workItemSelectionStatus,
 } from "./work-item-config";
@@ -49,6 +52,7 @@ export async function initializeTargetRepository(
 		providerId: string;
 		runtime: RuntimeManifest;
 		replace?: boolean;
+		settings?: ProviderSettings;
 	},
 ): Promise<string> {
 	const root = await repositoryRoot(cwd);
@@ -74,6 +78,7 @@ export async function initializeTargetRepository(
 			providerId: workItems.providerId,
 			runtime: workItems.runtime,
 			replace: workItems.replace,
+			settings: workItems.settings,
 		});
 	}
 	return root;
@@ -99,6 +104,7 @@ if (import.meta.main) {
 						providerId,
 						runtime,
 						replace: args.includes("--replace"),
+						settings: parseSettingArguments(args),
 					}
 				: undefined,
 		);
@@ -117,8 +123,8 @@ if (import.meta.main) {
 			[
 				"",
 				`Target repository initialized: ${root}`,
-				selection.state === "ready"
-					? `Work-item provider: ${selection.selection?.provider.id}`
+				selection.state === "ready" && selection.selection
+					? `Work-item provider: ${describeSelection(selection.selection)}`
 					: "Work-item provider confirmation required:",
 				...(selection.state === "ready"
 					? []

@@ -128,10 +128,22 @@ export function parseJiraSite(raw: string, secrets: string[] = []): string {
 	return `${url.protocol}//${url.host}`;
 }
 
+export const PROJECT_SETTING_REMEDY =
+	"Set this repository's Jira project with delivery init --work-items jira --setting project=<KEY>.";
+
 export function parseJiraProject(raw: string, secrets: string[] = []): string {
 	const project = raw.trim();
+	if (!project) {
+		fail(
+			`No Jira project is set for this repository. ${PROJECT_SETTING_REMEDY}`,
+			secrets,
+		);
+	}
 	if (!/^[A-Z][A-Z0-9_]*$/.test(project)) {
-		fail("JIRA_PROJECT is not a valid project key.", secrets);
+		fail(
+			`The repository's Jira project setting is not a valid project key. ${PROJECT_SETTING_REMEDY}`,
+			secrets,
+		);
 	}
 	return project;
 }
@@ -277,13 +289,20 @@ export async function resolveJiraCredentials(
 	fail("Jira token file must contain email and token.");
 }
 
+// The project is per repository: one machine files work items for repositories in different
+// projects, so it comes only from the repository's settings, never the environment. The site may
+// be overridden per repository too, and otherwise falls back to JIRA_SITE.
 export async function resolveJiraConfig(
 	deps: JiraTrackerDeps,
+	settings: Record<string, string> = {},
 ): Promise<JiraConfig> {
 	const credentials = await resolveJiraCredentials(deps);
 	const secrets = secretsOf(credentials.email, credentials.token);
-	const site = parseJiraSite(deps.env.JIRA_SITE ?? "", secrets);
-	const project = parseJiraProject(deps.env.JIRA_PROJECT ?? "", secrets);
+	const site = parseJiraSite(
+		settings.site ?? deps.env.JIRA_SITE ?? "",
+		secrets,
+	);
+	const project = parseJiraProject(settings.project ?? "", secrets);
 	return { ...credentials, site, project };
 }
 
@@ -585,8 +604,28 @@ async function loadIssue(
 	return normalizeIssue(issue, secrets, trimmed, comments);
 }
 
+function envelopeSettings(
+	raw: Record<string, unknown>,
+	secrets: string[],
+): Record<string, string> {
+	if (raw.settings === undefined) return {};
+	if (!isRecord(raw.settings)) {
+		fail("Jira adapter settings must be an object.", secrets);
+	}
+	const settings: Record<string, string> = {};
+	for (const [key, value] of Object.entries(raw.settings)) {
+		const text = asString(value);
+		if (text === undefined) {
+			fail(`Jira adapter setting ${key} must be text.`, secrets);
+		}
+		settings[key] = text;
+	}
+	return settings;
+}
+
 function envelopeInput(raw: unknown, secrets: string[]): {
 	input: Record<string, unknown>;
+	settings: Record<string, string>;
 } {
 	if (!isRecord(raw)) {
 		fail("Jira adapter expected version-1 JSON on stdin.", secrets);
@@ -598,21 +637,23 @@ function envelopeInput(raw: unknown, secrets: string[]): {
 	if (provider !== undefined && provider !== PROVIDER_ID) {
 		fail("This adapter only serves the jira provider.", secrets);
 	}
+	const settings = envelopeSettings(raw, secrets);
 	const nested = isRecord(raw.input) ? raw.input : undefined;
-	if (nested) return { input: nested };
+	if (nested) return { input: nested, settings };
 	const input: Record<string, unknown> = {};
 	for (const [key, value] of Object.entries(raw)) {
 		if (
 			key === "version" ||
 			key === "provider" ||
 			key === "repositoryRoot" ||
+			key === "settings" ||
 			key === "input"
 		) {
 			continue;
 		}
 		input[key] = value;
 	}
-	return { input };
+	return { input, settings };
 }
 
 function requireApproved(
@@ -961,9 +1002,9 @@ export async function runJiraTracker(
 			"usage: jira-tracker <list|read|create|link|note>",
 		);
 	}
-	const config = await resolveJiraConfig(deps);
+	const { input, settings } = envelopeInput(rawEnvelope, []);
+	const config = await resolveJiraConfig(deps, settings);
 	const secrets = secretsOf(config.email, config.token);
-	const { input } = envelopeInput(rawEnvelope, secrets);
 	switch (operation) {
 		case "list":
 			return handleList(deps, config);
