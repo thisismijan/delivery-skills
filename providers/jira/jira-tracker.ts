@@ -348,15 +348,17 @@ function apiUrl(config: JiraConfig, resource: string): string {
 	return `${config.site}/rest/api/3${resource}`;
 }
 
+// Jira Cloud retired `/search` (it answers 410); `/search/jql` pages by an
+// opaque `nextPageToken` and reports `isLast` instead of `startAt`/`total`.
 function searchUrl(
 	config: JiraConfig,
 	jql: string,
-	startAt: number,
+	nextPageToken: string | undefined,
 	maxResults: number,
 ): string {
-	const url = new URL(apiUrl(config, "/search"));
+	const url = new URL(apiUrl(config, "/search/jql"));
 	url.searchParams.set("jql", jql);
-	url.searchParams.set("startAt", String(startAt));
+	if (nextPageToken) url.searchParams.set("nextPageToken", nextPageToken);
 	url.searchParams.set("maxResults", String(maxResults));
 	url.searchParams.set("fields", ISSUE_FIELDS);
 	return url.toString();
@@ -380,21 +382,21 @@ async function searchIssues(
 	const perPage = deps.perPage ?? PER_PAGE;
 	const maxPages = deps.maxPages ?? MAX_PAGES;
 	const issues: unknown[] = [];
+	let nextPageToken: string | undefined;
 	for (let page = 0; page < maxPages; page += 1) {
-		const startAt = page * perPage;
 		const payload = await jiraCall(
 			deps,
 			config,
 			"GET",
-			searchUrl(config, jql, startAt, perPage),
+			searchUrl(config, jql, nextPageToken, perPage),
 		);
 		if (!isRecord(payload) || !Array.isArray(payload.issues)) {
 			fail("Jira listing was not an issue search result.", secrets);
 		}
 		issues.push(...payload.issues);
-		const total = asNumber(payload.total);
-		if (payload.issues.length < perPage) return issues;
-		if (total !== undefined && issues.length >= total) return issues;
+		// A short page is not the end: only `isLast` or a missing token is.
+		nextPageToken = asString(payload.nextPageToken)?.trim() || undefined;
+		if (payload.isLast === true || !nextPageToken) return issues;
 	}
 	fail("Jira listing exceeded the page limit.", secrets);
 }

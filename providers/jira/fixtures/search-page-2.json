@@ -1,7 +1,4 @@
 {
-  "startAt": 1,
-  "maxResults": 1,
-  "total": 2,
   "issues": [
     {
       "id": "10002",
@@ -15,12 +12,18 @@
             {
               "type": "paragraph",
               "content": [
-                { "type": "text", "text": "A dependency with no blockers." }
+                {
+                  "type": "text",
+                  "text": "A dependency with no blockers."
+                }
               ]
             }
           ]
         },
-        "issuetype": { "id": "10001", "name": "Story" },
+        "issuetype": {
+          "id": "10001",
+          "name": "Story"
+        },
         "labels": [],
         "issuelinks": [],
         "comment": {
@@ -29,8 +32,12 @@
           "total": 0,
           "comments": []
         },
-        "project": { "id": "10000", "key": "DELIV" }
+        "project": {
+          "id": "10000",
+          "key": "DELIV"
+        }
       }
     }
-  ]
+  ],
+  "isLast": true
 }

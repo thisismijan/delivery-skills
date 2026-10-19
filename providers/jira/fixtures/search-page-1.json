@@ -1,13 +1,12 @@
 {
-  "startAt": 0,
-  "maxResults": 1,
-  "total": 2,
   "issues": [
     {
       "id": "10001",
       "key": "DELIV-1",
       "properties": {
-        "delivery.sourceAuditId": { "auditId": "run-1:1" }
+        "delivery.sourceAuditId": {
+          "auditId": "run-1:1"
+        }
       },
       "fields": {
         "summary": "Keep provider notes",
@@ -26,8 +25,13 @@
             }
           ]
         },
-        "issuetype": { "id": "10004", "name": "Bug" },
-        "labels": ["dlv-run-1x3a1"],
+        "issuetype": {
+          "id": "10004",
+          "name": "Bug"
+        },
+        "labels": [
+          "dlv-run-1x3a1"
+        ],
         "issuelinks": [
           {
             "id": "10010",
@@ -37,7 +41,10 @@
               "inward": "is blocked by",
               "outward": "blocks"
             },
-            "outwardIssue": { "id": "10002", "key": "DELIV-2" }
+            "outwardIssue": {
+              "id": "10002",
+              "key": "DELIV-2"
+            }
           }
         ],
         "comment": {
@@ -54,20 +61,33 @@
                   {
                     "type": "paragraph",
                     "content": [
-                      { "type": "text", "text": "delivery-audit-id: draft:ready" }
+                      {
+                        "type": "text",
+                        "text": "delivery-audit-id: draft:ready"
+                      }
                     ]
                   },
                   {
                     "type": "paragraph",
-                    "content": [{ "type": "text", "text": "updated" }]
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "updated"
+                      }
+                    ]
                   }
                 ]
               }
             }
           ]
         },
-        "project": { "id": "10000", "key": "DELIV" }
+        "project": {
+          "id": "10000",
+          "key": "DELIV"
+        }
       }
     }
-  ]
+  ],
+  "nextPageToken": "page-2-token",
+  "isLast": false
 }
