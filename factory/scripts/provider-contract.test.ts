@@ -224,6 +224,117 @@ test("Jira setup installs jira-tracker and advertises tracker.item", async () =>
 	}
 });
 
+const github = {
+	name: "github",
+	version: 1,
+	kind: "forge" as const,
+	capabilities: ["forge.change", "review.publish", "tracker.item"] as const,
+	tools: ["github-forge", "github-tracker"],
+};
+const githubSetup = join(
+	import.meta.dir,
+	"..",
+	"..",
+	"providers",
+	"github",
+	"setup.sh",
+);
+
+test("GitHub capabilities advertise forge, review, and tracker from one provider", async () => {
+	const root = await mkdtemp(join(tmpdir(), "provider-contract-github-"));
+	try {
+		await writeFile(join(root, "github-forge"), "#!/usr/bin/env bun\n");
+		await writeFile(join(root, "github-tracker"), "#!/usr/bin/env bun\n");
+		const ready = evaluateProvider(github, {
+			binDir: root,
+			env: { GITHUB_TOKEN: "present-but-never-reported" },
+			which: (name) => `/usr/bin/${name}`,
+		});
+		expect(ready.ready).toBe(true);
+		expect(ready.runtime.capabilities["forge.change"]).toEqual({
+			available: true,
+			mode: "adapter",
+			invocation: `exec:${join(root, "github-forge")}`,
+			provider: "github",
+		});
+		expect(ready.runtime.capabilities["review.publish"]).toEqual(
+			ready.runtime.capabilities["forge.change"],
+		);
+		expect(ready.runtime.capabilities["tracker.item"]).toEqual({
+			available: true,
+			mode: "adapter",
+			invocation: `exec:${join(root, "github-tracker")}`,
+			provider: "github",
+		});
+		expect(JSON.stringify(ready)).not.toContain("present-but-never-reported");
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("GitHub probes advertised capabilities independently", async () => {
+	const root = await mkdtemp(
+		join(tmpdir(), "provider-contract-github-partial-"),
+	);
+	try {
+		await writeFile(join(root, "github-forge"), "#!/usr/bin/env bun\n");
+		const partial = evaluateProvider(github, {
+			binDir: root,
+			env: { GH_TOKEN: "present-but-never-reported" },
+			which: (name) => `/usr/bin/${name}`,
+		});
+		expect(partial.ready).toBe(false);
+		expect(partial.runtime.capabilities["forge.change"]?.available).toBe(true);
+		expect(partial.runtime.capabilities["tracker.item"]?.available).toBe(false);
+		expect(partial.reasons.join("\n")).toMatch(/github-tracker/);
+		expect(JSON.stringify(partial)).not.toContain("present-but-never-reported");
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("GitHub setup installs both adapters", async () => {
+	const root = await mkdtemp(join(tmpdir(), "provider-contract-github-setup-"));
+	try {
+		const bin = join(root, "bin");
+		await mkdir(bin, { recursive: true });
+		const proc = Bun.spawn(["bash", githubSetup], {
+			env: {
+				...process.env,
+				DELIVERY_BIN_DIR: bin,
+				HOME: root,
+			},
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		const [stdout, stderr, code] = await Promise.all([
+			new Response(proc.stdout).text(),
+			new Response(proc.stderr).text(),
+			proc.exited,
+		]);
+		expect(code).toBe(0);
+		expect(`${stdout}\n${stderr}`).not.toMatch(/GITHUB_TOKEN=|github_pat_/);
+		for (const tool of ["github-forge", "github-tracker", "github-client.ts"]) {
+			expect(await Bun.file(join(bin, tool)).exists()).toBe(true);
+		}
+		const source = await Bun.file(join(bin, "github-forge")).text();
+		expect(source.startsWith("#!/usr/bin/env bun")).toBe(true);
+		expect(source).toContain("./github-client");
+		expect(source).not.toContain("DELIVERY_PACK_ROOT");
+		const ready = evaluateProvider(github, {
+			binDir: bin,
+			env: { GITHUB_TOKEN: "present-but-never-reported", HOME: root },
+			which: (name) => (name === "bun" ? "/usr/bin/bun" : null),
+		});
+		expect(ready.ready).toBe(true);
+		expect(ready.runtime.capabilities["tracker.item"]?.invocation).toBe(
+			`exec:${join(bin, "github-tracker")}`,
+		);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
 test("unknown provider capabilities fail closed", async () => {
 	const root = await mkdtemp(join(tmpdir(), "provider-contract-unknown-"));
 	try {

@@ -1,0 +1,8 @@
+{
+  "id": 8010,
+  "number": 21,
+  "title": "Keep provider notes",
+  "body": "The selected provider stores one note per audit id.\n\n<!-- delivery-source-audit-id: run-1:1 -->\n<!-- delivery-work-item-type: bug -->",
+  "user": { "login": "ada" },
+  "html_url": "https://github.com/acme/app/issues/21"
+}

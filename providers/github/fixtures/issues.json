@@ -1,0 +1,19 @@
+[
+  {
+    "id": 8001,
+    "number": 11,
+    "title": "Keep provider notes",
+    "body": "The selected provider stores one note per audit id.\n\n<!-- delivery-source-audit-id: run-1:1 -->\n<!-- delivery-work-item-type: bug -->",
+    "user": { "login": "ada" },
+    "html_url": "https://github.com/acme/app/issues/11",
+    "labels": [{ "name": "bug" }]
+  },
+  {
+    "id": 8002,
+    "number": 12,
+    "title": "A pull request",
+    "body": "Not a work item.",
+    "pull_request": { "url": "https://api.github.com/repos/acme/app/pulls/12" },
+    "html_url": "https://github.com/acme/app/pull/12"
+  }
+]

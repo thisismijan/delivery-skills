@@ -1,0 +1,7 @@
+{
+  "name": "github",
+  "version": 1,
+  "kind": "forge",
+  "capabilities": ["forge.change", "review.publish", "tracker.item"],
+  "tools": ["github-forge", "github-tracker"]
+}

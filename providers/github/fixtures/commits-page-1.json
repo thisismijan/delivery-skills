@@ -1,0 +1,18 @@
+[
+  {
+    "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "commit": {
+      "message": "Oldest commit\n\nStart the change.",
+      "author": { "name": "Ada Lovelace" }
+    },
+    "author": { "login": "ada" }
+  },
+  {
+    "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "commit": {
+      "message": "Middle commit",
+      "author": { "name": "Ada Lovelace" }
+    },
+    "author": { "login": "ada" }
+  }
+]

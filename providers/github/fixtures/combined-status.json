@@ -1,0 +1,12 @@
+{
+  "state": "success",
+  "sha": "aaa111bbb222ccc333ddd444eee555fff666aaa1",
+  "total_count": 1,
+  "statuses": [
+    {
+      "state": "success",
+      "target_url": "https://github.com/acme/app/actions/runs/88",
+      "context": "ci"
+    }
+  ]
+}
