@@ -34,6 +34,7 @@ export type { GitHubDeps, GitHubRequest } from "./github-client";
 export const GITHUB_FORGE_OPERATIONS = [
 	"find",
 	"read",
+	"pipeline",
 	"files",
 	"diff",
 	"commits",
@@ -349,22 +350,58 @@ async function loadPipeline(
 	);
 	if (isRecord(checks) && (asNumber(checks.total_count) ?? 0) > 0) {
 		const runs = Array.isArray(checks.check_runs) ? checks.check_runs : [];
-		const first = runs.find(isRecord);
-		const status =
-			asString(first?.conclusion)?.trim() ||
-			asString(first?.status)?.trim() ||
-			"pending";
-		const url = asString(first?.html_url)?.trim();
-		const revision = asString(first?.head_sha)?.trim() || head;
+		const aggregate = aggregateCheckRuns(runs, head);
 		return {
 			available: true,
-			status,
-			revision,
-			current: revision === head,
-			...(url ? { url } : {}),
+			status: aggregate.status,
+			revision: head,
+			current: true,
+			...(aggregate.url ? { url: aggregate.url } : {}),
 		};
 	}
 	return { available: false };
+}
+
+export function aggregateCheckRuns(
+	raw: unknown[],
+	revision: string,
+): { status: "success" | "pending" | "failure"; url?: string } {
+	const runs = raw.filter(isRecord);
+	if (runs.length === 0) fail("GitHub check-runs response is malformed.");
+	const failure = new Set([
+		"failure",
+		"cancelled",
+		"timed_out",
+		"action_required",
+		"startup_failure",
+		"stale",
+	]);
+	const success = new Set(["success", "neutral", "skipped"]);
+	let pending = false;
+	let firstUrl: string | undefined;
+	for (const run of runs) {
+		const head = asString(run.head_sha)?.trim();
+		if (head && head !== revision) {
+			fail("GitHub returned check evidence for a different revision.");
+		}
+		firstUrl ||= asString(run.html_url)?.trim();
+		const status = asString(run.status)?.trim();
+		const conclusion = asString(run.conclusion)?.trim();
+		if (conclusion && failure.has(conclusion)) {
+			return { status: "failure", ...(firstUrl ? { url: firstUrl } : {}) };
+		}
+		if (
+			status !== "completed" ||
+			!conclusion ||
+			(!success.has(conclusion) && !failure.has(conclusion))
+		) {
+			pending = true;
+		}
+	}
+	return {
+		status: pending ? "pending" : "success",
+		...(firstUrl ? { url: firstUrl } : {}),
+	};
 }
 
 function firstStatusUrl(combined: Record<string, unknown>): string | undefined {
@@ -540,6 +577,26 @@ async function handleRead(
 	const ref = requireText(input, "ref");
 	const number = githubNumberFromRef(ref);
 	return (await loadPull(deps, token, target, number, ref)).change;
+}
+
+async function handlePipeline(
+	envelope: unknown,
+	deps: GitHubDeps,
+): Promise<unknown> {
+	const { input, target, token } = await withGitHubContext(envelope, deps);
+	const revision = requireText(input, "revision");
+	return {
+		version: PROTOCOL_VERSION,
+		provider: PROVIDER_ID,
+		revision,
+		pipeline: await loadPipeline(deps, token, target, revision).then(
+			(evidence) => {
+				if (evidence.available !== true) return evidence;
+				const { current: _, ...pipeline } = evidence;
+				return pipeline;
+			},
+		),
+	};
 }
 
 async function handleFiles(
@@ -787,6 +844,8 @@ export async function runGitHubForge(
 			return handleFind(envelope, deps);
 		case "read":
 			return handleRead(envelope, deps);
+		case "pipeline":
+			return handlePipeline(envelope, deps);
 		case "files":
 			return handleFiles(envelope, deps);
 		case "diff":
@@ -818,7 +877,7 @@ export async function handleGitHubForgeCli(options: {
 	const operation = options.argv[0];
 	if (!operation) {
 		options.stderr(
-			"usage: github-forge <find|read|files|diff|commits|discussions|anchors|create|set-draft|note|reply>\n",
+			"usage: github-forge <find|read|pipeline|files|diff|commits|discussions|anchors|create|set-draft|note|reply>\n",
 		);
 		return 2;
 	}

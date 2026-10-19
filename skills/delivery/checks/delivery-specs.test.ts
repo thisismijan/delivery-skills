@@ -673,6 +673,21 @@ describe("capabilities", () => {
     expect(waiting).toContain("`current: true`");
   });
 
+  test("pipeline monitoring covers the open head and exact merged revision", () => {
+    const monitoring = SPECS["pipeline-monitoring.md"];
+    expect(monitoring).toContain("the open change pipeline at its exact head revision");
+    expect(monitoring).toContain("the default-branch pipeline at the exact merged");
+    expect(monitoring).toContain('"revision": "<merged revision>"');
+    expect(monitoring).toContain("pipeline-route.ts");
+    expect(monitoring).toMatch(/event subscription/i);
+    expect(monitoring).toMatch(/Never sleep, loop, or repeatedly call status APIs/i);
+    expect(monitoring).toMatch(/Only an attributable failure[\s\S]*inside the frozen run contract[\s\S]*maxFixAttempts/i);
+    expect(monitoring).toMatch(/new draft change/i);
+    expect(monitoring).toMatch(/never performs a human-owned action/i);
+    expect(AUTO).toMatch(/exact `revisions\.merged`[\s\S]*normalized[\s\S]*`pipeline` operation/i);
+    expect(SPECS["post-merge-verify.md"]).toContain("Default-branch pipeline passed");
+  });
+
   test("a cloud run never opens a second merge request", () => {
     expect(section(SKILL, "## One merge request")).toContain("Never open a second one for the same change");
   });

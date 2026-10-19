@@ -34,6 +34,19 @@ operations.
 - **WHEN** the forge reports that a diff is incomplete or overflowed
 - **THEN** the provider refuses the diff instead of returning partial review evidence
 
+### Requirement: Pipeline evidence is revision-bound
+The system SHALL expose a read-only pipeline operation for an exact revision,
+including the merged revision on the default branch. Available evidence SHALL
+name the same revision requested by the caller.
+
+#### Scenario: Default-branch pipeline is queried after merge
+- **WHEN** delivery requests pipeline evidence for the normalized merged revision
+- **THEN** the provider returns status for exactly that revision or explicitly reports that evidence is not available
+
+#### Scenario: Provider returns another revision
+- **WHEN** pipeline output names a revision other than the requested revision
+- **THEN** the operation fails closed and delivery does not treat it as passing evidence
+
 ### Requirement: Mutating forge operations are explicit and approval bounded
 Draft creation, draft-state changes, notes, inline notes, and discussion replies
 SHALL require explicit approved input and SHALL return normalized publication

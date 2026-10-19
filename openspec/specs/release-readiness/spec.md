@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Treats security findings by severity, fails closed when severity cannot be determined, and accepts named risk only for an exact proven head.
+Treats security findings by severity, fails closed when evidence cannot be
+determined, accepts named risk only for an exact proven head, and follows
+pipelines through the open change and exact merged revision.
 
 ## Requirements
 
@@ -54,3 +56,36 @@ The release readiness workflow SHALL state that unverified Critical and High fin
 #### Scenario: Workflow wording is pinned
 - **WHEN** the release readiness workflow is read
 - **THEN** it contains no downgrade of an unproven Critical or High finding, names Critical and High in the NO-GO rule, requires head-scoped operator acceptance, and shows the unverified marker in the brief
+
+### Requirement: Pipelines are monitored through merge
+Delivery SHALL observe the open-change pipeline for the exact current head and,
+after a human merge, the default-branch pipeline for the exact normalized
+merged revision. Waiting SHALL use host event subscriptions when available and
+SHALL NOT busy-poll.
+
+#### Scenario: Open-change pipeline is running
+- **WHEN** current-head pipeline evidence is pending or running
+- **THEN** delivery records the exact revision, subscribes when supported, ends the turn, and re-reads normalized evidence when resumed
+
+#### Scenario: Merge completes
+- **WHEN** the change becomes merged
+- **THEN** delivery requests pipeline evidence for `revisions.merged` and does not reuse the open-change pipeline as default-branch proof
+
+### Requirement: Pipeline failures route safely
+An attributable pipeline failure MAY fix forward only within the frozen run
+contract and bounded repair budget. A transient, unrelated, unknown,
+out-of-scope, contradictory, or exhausted failure SHALL escalate with evidence.
+Delivery SHALL NOT merge, revert, force-push, retry provider CI blindly, or
+push directly to the default branch.
+
+#### Scenario: Open-change failure is attributable
+- **WHEN** evidence attributes the failure to the patch and the repair is in scope and below the budget
+- **THEN** delivery repairs the existing branch and reruns every invalidated gate and review at the new head
+
+#### Scenario: Default-branch failure is attributable
+- **WHEN** the exact merged revision fails and the repair remains approved and below the budget
+- **THEN** delivery creates a new reviewed recovery change and leaves its merge to a human
+
+#### Scenario: Failure cannot be repaired automatically
+- **WHEN** attribution is not proven, scope would expand, provider retry is required, or the budget is exhausted
+- **THEN** delivery escalates with the exact revision, failed checks, sanitized evidence, and recommended next owner

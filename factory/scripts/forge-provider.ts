@@ -31,6 +31,7 @@ const BranchName = z.string().trim().min(1);
 export const FORGE_OPERATIONS = [
 	"find",
 	"read",
+	"pipeline",
 	"files",
 	"diff",
 	"commits",
@@ -118,6 +119,38 @@ export const ForgeChange = z
 	})
 	.strict();
 export type ForgeChange = z.infer<typeof ForgeChange>;
+
+export const ForgePipeline = z
+	.object({
+		version: z.literal(1),
+		provider: ProviderId,
+		revision: Revision,
+		pipeline: z.discriminatedUnion("available", [
+			z.object({ available: z.literal(false) }).strict(),
+			z
+				.object({
+					available: z.literal(true),
+					status: z.string().trim().min(1),
+					revision: Revision,
+					url: z.string().trim().min(1).optional(),
+				})
+				.strict(),
+		]),
+	})
+	.strict()
+	.superRefine((result, ctx) => {
+		if (
+			result.pipeline.available &&
+			result.pipeline.revision !== result.revision
+		) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["pipeline", "revision"],
+				message: "pipeline evidence must match the requested revision",
+			});
+		}
+	});
+export type ForgePipeline = z.infer<typeof ForgePipeline>;
 
 export const ForgeFindResult = z
 	.object({
@@ -256,6 +289,13 @@ export const ReadForgeChangeInput = z
 	.strict();
 export type ReadForgeChangeInput = z.infer<typeof ReadForgeChangeInput>;
 
+export const ReadForgePipelineInput = z
+	.object({
+		revision: Revision,
+	})
+	.strict();
+export type ReadForgePipelineInput = z.infer<typeof ReadForgePipelineInput>;
+
 export const CreateForgeChangeInput = approvedMutation({
 	draft: z.literal(true),
 	title: z.string().trim().min(1),
@@ -334,6 +374,7 @@ export type ForgeDryRun = z.infer<typeof ForgeDryRun>;
 export type ForgeOperationResult =
 	| ForgeFindResult
 	| ForgeChange
+	| ForgePipeline
 	| ForgeFiles
 	| ForgeDiff
 	| ForgeCommits
@@ -378,6 +419,9 @@ function operationSchema(operation: ForgeOperation): z.ZodType {
 		case "find":
 			return FindForgeChangesInput;
 		case "read":
+			return ReadForgeChangeInput;
+		case "pipeline":
+			return ReadForgePipelineInput;
 		case "files":
 		case "diff":
 		case "commits":
@@ -401,6 +445,8 @@ function resultSchema(operation: ForgeOperation): z.ZodType {
 			return ForgeFindResult;
 		case "read":
 			return ForgeChange;
+		case "pipeline":
+			return ForgePipeline;
 		case "files":
 			return ForgeFiles;
 		case "diff":
@@ -433,6 +479,24 @@ function requestedRef(
 		return input.ref;
 	}
 	return undefined;
+}
+
+function assertRequestedRevision(
+	operation: ForgeOperation,
+	input: unknown,
+	result: Exclude<ForgeOperationResult, ForgeDryRun>,
+): void {
+	if (operation !== "pipeline" || !("revision" in result)) return;
+	if (
+		typeof input === "object" &&
+		input !== null &&
+		"revision" in input &&
+		input.revision !== result.revision
+	) {
+		throw new Error(
+			"The forge provider returned pipeline evidence for a different revision.",
+		);
+	}
 }
 
 function assertBoundResult(
@@ -578,6 +642,7 @@ async function invokeForgeAdapter(options: {
 		options.provider,
 		requestedRef(options.operation, options.input),
 	);
+	assertRequestedRevision(options.operation, options.input, result);
 	return result;
 }
 
@@ -646,7 +711,7 @@ if (import.meta.main) {
 		process.argv.slice(2);
 	if (!operation || !repositoryRoot || !manifestPath || !inputPath) {
 		console.error(
-			"usage: forge-provider.ts <find|read|files|diff|commits|discussions|anchors|create|set-draft|note|reply> <repository-root> <runtime-manifest> <input.json>",
+			"usage: forge-provider.ts <find|read|pipeline|files|diff|commits|discussions|anchors|create|set-draft|note|reply> <repository-root> <runtime-manifest> <input.json>",
 		);
 		process.exit(2);
 	}

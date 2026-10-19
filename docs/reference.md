@@ -35,8 +35,11 @@ bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
   "$FACTORY_ROOT/runtime-manifest.json" [input.json]
 ```
 
-Operations: `find`, `read`, `files`, `diff`, `commits`, `discussions`,
+Operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
 `anchors`, `create`, `set-draft`, `note`, `reply`.
+
+`pipeline` takes `{ "revision": "<sha>" }` and returns evidence bound to that
+exact revision. Delivery uses it for the default-branch pipeline after merge.
 
 ## Work-item command
 

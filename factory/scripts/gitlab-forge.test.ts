@@ -225,6 +225,36 @@ test("read verifies merged-results and stale pipeline revisions against the chan
 	expect(outdated.pipeline.current).toBe(false);
 });
 
+test("pipeline reads status for the exact requested revision", async () => {
+	const { deps, requests } = recordingDeps(() => [
+		{
+			id: 91,
+			sha: HEAD,
+			status: "success",
+			web_url: "https://gitlab.example/acme/app/-/pipelines/91",
+		},
+	]);
+	const result = (await runGitLabForge(
+		"pipeline",
+		envelope({ revision: HEAD }),
+		deps,
+	)) as Record<string, unknown>;
+	expect(result).toMatchObject({
+		version: 1,
+		provider: "gitlab",
+		revision: HEAD,
+		pipeline: {
+			available: true,
+			status: "success",
+			revision: HEAD,
+		},
+	});
+	expect(() => parseForgeOperationResult("pipeline", result)).not.toThrow();
+	expect(requests[0]?.url).toContain(
+		`/pipelines?sha=${encodeURIComponent(HEAD)}`,
+	);
+});
+
 test("files, diff, commits, discussions, and anchors bind the requested change and head revision", async () => {
 	const { deps } = recordingDeps((request) => {
 		const path = resource(request.url);

@@ -49,8 +49,9 @@ Check these in order. The first one that fails is a terminal stop.
    branch, detached, and merged-results revision checks. A pipeline with
    `current: false` belongs to older or unrelated evidence and does not count.
    Its status must be `success`.
-   - Running or pending → stop: "pipeline still running at <short sha>; run
-     `/delivery ship <iid>` when it finishes". Do not wait or poll.
+   - Running or pending → follow `pipeline-monitoring.md`. Subscribe to a host
+     CI event when available, record the wait, and end the turn without
+     polling.
    - Failed → continue. It becomes a blocker in step 6.
 5. **No conflicts.** Normalized mergeability must be available and
    `conflicts: false`. Unavailable mergeability is a terminal capability gap;
@@ -172,6 +173,12 @@ Write the plan from how the target repo actually deploys (step 1).
 Otherwise **GO**. A GO always carries a rollback plan. A one-way door's rollback
 plan says what cannot be undone and how the damage is limited instead.
 
+For a failed pipeline, follow `pipeline-monitoring.md` before issuing the final
+NO-GO. An attributable, in-scope failure below the bounded repair budget fixes
+forward on the existing branch and invalidates the prior green, review, and
+readiness evidence. Transient, unrelated, unknown, out-of-scope, or exhausted
+failures escalate with evidence. Never blindly retry provider CI.
+
 Only the operator can move a Critical or High finding to accepted. Record it in
 the ledger's Approvals, scoped to this iid at this head, with their words.
 
@@ -251,7 +258,7 @@ cannot override the gate.
 | MR draft | MR is still draft | `/delivery review <iid>` |
 | No review | Dual Stage 3 review is missing or stale | `/delivery review <iid>` |
 | Stale review | The change moved since it was reviewed | `/delivery review <iid>` |
-| Pipeline running | Pipeline still running at <sha> | `/delivery ship <iid>` later |
+| Pipeline running | Pipeline still running at <sha> | Event subscription, or `/delivery ship <iid>` later |
 | Empty diff | The MR changes nothing | None |
 | Two ledgers | More than one ledger names this key | Operator picks one |
 

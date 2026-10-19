@@ -40,7 +40,7 @@ request on stdin, return version-1 JSON on stdout, and SHALL NOT invoke a
 shell or place credentials on argv.
 
 #### Scenario: Forge operation succeeds
-- **WHEN** the GitHub forge adapter receives a valid find, read, files, diff, commits, discussions, anchors, create, set-draft, note, or reply request
+- **WHEN** the GitHub forge adapter receives a valid find, read, pipeline, files, diff, commits, discussions, anchors, create, set-draft, note, or reply request
 - **THEN** it returns a result that satisfies the existing forge operation schema for that operation
 
 #### Scenario: Tracker operation succeeds
@@ -76,6 +76,10 @@ mergeability gaps explicitly, and refuse truncated diffs.
 #### Scenario: Review evidence is bound to the head revision
 - **WHEN** a caller requests files, diff, commits, discussions, or anchors for a pull request
 - **THEN** each result includes the requested ref and head revision and contains no GitHub-native product fields
+
+#### Scenario: Pipeline evidence is bound to an exact revision
+- **WHEN** a caller requests pipeline evidence for a head or merged revision
+- **THEN** the adapter queries statuses and checks for that revision and returns no evidence for another commit
 
 #### Scenario: Diff is truncated
 - **WHEN** GitHub omits a needed patch or reports fewer files than the change contains

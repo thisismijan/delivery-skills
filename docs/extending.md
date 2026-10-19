@@ -36,7 +36,7 @@ must not invoke a shell or put secrets on argv. A tracker envelope carries
 `delivery-init.ts --setting key=value`; settings are plain configuration, never
 credentials.
 
-Forge operations: `find`, `read`, `files`, `diff`, `commits`, `discussions`,
+Forge operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
 `anchors`, `create`, `set-draft`, `note`, `reply`. Tracker operations:
 `list`, `read`, `create`, `link`, `note`. Merge, close, status, and delete
 stay human-owned.

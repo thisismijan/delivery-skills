@@ -98,7 +98,7 @@ bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
   "$FACTORY_ROOT/runtime-manifest.json" [input.json]
 ```
 
-Operations are `find`, `read`, `files`, `diff`, `commits`, `discussions`,
+Operations are `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
 `anchors`, `create`, `set-draft`, `note`, and `reply`. Inputs are JSON files.
 `note` and `reply` name a body file under the target repository's `.review/`
 directory; the command checks that path before any adapter. Mutations require

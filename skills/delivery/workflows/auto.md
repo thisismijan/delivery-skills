@@ -3,9 +3,11 @@
 `/delivery auto` runs the whole lifecycle from wherever a run is. Approval of
 the groomed ticket or slice plan is standing authorization to draft, build,
 review, publish review notes, archive, verify, write the retro, and prepare
-evidence-backed improvement candidates for that run. It is not authorization
-to merge, accept a release risk, install an improvement candidate, or override
-a failed gate.
+evidence-backed improvement candidates for that run. It also authorizes bounded
+fix-forward work when a pipeline failure is attributable and the repair stays
+inside the frozen scope and permitted writes. It is not authorization to merge,
+accept a release risk, retry provider CI, install an improvement candidate,
+override a failed gate, or expand scope.
 
 The full-epic `/delivery <idea-or-file>` path enters this same continuous mode
 as soon as the operator approves the groomed plan. The operator does not need
@@ -84,7 +86,7 @@ Between steps, do not ask whether to continue. Continue.
 | `[ready !N]` | Release readiness | Nothing |
 | `[no-go !N]` | Classify the readiness blockers: address code/comment blockers then run ship again; wait on pipeline/conflicts; ask only for operator-owned risk acceptance | Whether to accept an operator-owned risk |
 | `[go !N]` | The operator merges | The merge |
-| `[merged !N]` | Archive the change, wait for the deploy, then verify | Nothing |
+| `[merged !N]` | Follow `pipeline-monitoring.md` for the exact merged revision; after the default-branch pipeline passes, archive, wait for deploy, then verify | Nothing |
 | `[verified !N]` | The key is done. Choose the next key; when none is left, retro | Nothing |
 | `[regressed !N]` | Nothing. Show the rollback recommendation or the bug report | Nothing; the operator decides |
 | `[retro done]` | Prepare an improvement candidate for any accepted lesson targeting delivery; otherwise the run is done | Installing the exact candidate |
@@ -171,7 +173,11 @@ step.
 - **For a pipeline, a build, or a deploy.** Observe it once. For a forge
   change, use the normalized `pipeline` from `forge-provider.ts read` for its
   ref, not a branch pipeline. Require `current: true`. If it is still running,
-  set `[waiting: <what>]`, end the turn, and give the resume command. Do not sleep or poll in the same turn.
+  follow `pipeline-monitoring.md`: reuse or create a matching host event
+  subscription when available, set `[waiting: <what>]`, and end the turn. After
+  merge, query the exact `revisions.merged` value with the normalized
+  `pipeline` operation; the open-change pipeline does not prove the
+  default-branch pipeline passed. Do not sleep or poll in the same turn.
 - **For a person** (a merge, a reporter, an answer): do not poll. Set
   `[waiting: <what>]`, ask, and end the turn. Their reply resumes the loop.
 - **Never retry a failed stage.** A failure is a terminal stop, exactly as when
