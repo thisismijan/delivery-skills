@@ -616,7 +616,22 @@ test("README documents --skills-dir and optional --adapter without named hosts",
 	expect(readme).toContain("./install.sh --skills-dir");
 	expect(readme).toContain("--adapter");
 	expect(readme).toContain("--provider");
+	expect(readme).toContain("docs/README.md");
 	expect(readme).not.toMatch(/\bCursor\b/);
 	expect(readme).not.toMatch(/\bClaude\b/);
 	expect(readme).not.toMatch(/ig-spec/);
+});
+
+test("installer help lists adapters and repeatable providers", async () => {
+	const { stdout, stderr, exitCode } = await runInstaller(["--help"], {
+		DELIVERY_BIN_DIR: "/tmp",
+	});
+	expect(exitCode).toBe(0);
+	expect(stderr).toBe("");
+	expect(stdout).toContain("--skills-dir");
+	expect(stdout).toContain("--provider may be repeated");
+	expect(stdout).toMatch(/adapters:.*cursor/);
+	expect(stdout).toMatch(/providers:.*github/);
+	expect(stdout).toMatch(/providers:.*gitlab/);
+	expect(stdout).toMatch(/providers:.*jira/);
 });

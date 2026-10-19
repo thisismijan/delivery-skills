@@ -9,8 +9,35 @@ skills_dir=""
 adapter=""
 providers=()
 
+list_dirs() {
+  local dir="$1"
+  local names=()
+  local entry
+  shopt -s nullglob
+  for entry in "$dir"/*/; do
+    names+=("$(basename "$entry")")
+  done
+  shopt -u nullglob
+  printf '%s' "${names[*]}"
+}
+
 usage() {
-  echo "usage: $0 --skills-dir <path> [--adapter <name>] [--provider <name>]" >&2
+  local dest="${1:-stderr}"
+  local message
+  message="$(cat <<EOF
+usage: $0 --skills-dir <path> [--adapter <name>] [--provider <name>]...
+       --help
+
+--provider may be repeated. Later selections overlay per capability.
+adapters: $(list_dirs "$adapters_root")
+providers: $(list_dirs "$providers_root")
+EOF
+)"
+  if [[ "$dest" == "stdout" ]]; then
+    echo "$message"
+    exit 0
+  fi
+  echo "$message" >&2
   exit 2
 }
 
@@ -30,6 +57,9 @@ while [[ $# -gt 0 ]]; do
       [[ $# -ge 2 ]] || usage
       providers+=("$2")
       shift 2
+      ;;
+    --help|-h)
+      usage stdout
       ;;
     --cursor|--claude|--store|--all)
       echo "named host flags live in adapters/compat.sh; pass --skills-dir" >&2

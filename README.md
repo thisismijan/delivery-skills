@@ -51,11 +51,16 @@ What the installer does:
 
 Reload the host session so the installed skills are picked up.
 
+Host adapters, provider catalogs, workflow, examples, troubleshooting, and
+reference live under [`docs/README.md`](docs/README.md),
+[`adapters/`](adapters/README.md), and [`providers/`](providers/README.md).
+
 ## Quick start
 
-1. Install the pack into a skills directory your runtime loads. Prefer its
-   named adapter wrapper when one exists; the adapter README gives the exact
-   command and host limitation.
+1. Install Bun `1.4.2` and the pack into a skills directory your runtime
+   loads. Prefer a named adapter wrapper when one exists; see
+   [`adapters/`](adapters/README.md). Put
+   `${DELIVERY_BIN_DIR:-$HOME/.local/bin}` on `PATH`.
 2. Reload the host, enter the repository to deliver, and run:
 
    ```bash
@@ -394,6 +399,7 @@ fresh session after `/code-review-max`. A new head always needs a new max pass.
 ## Layout
 
 ```text
+docs/                      # operator guides (start at docs/README.md)
 skills/                    # generic skills any capable host can load
 skills/delivery/SDLC-CONSTITUTION.md  # policy kernel loaded by every stage
 factory/                   # gate scripts and subagent prompts
@@ -406,6 +412,8 @@ Self-improvement (`/delivery improve`) edits `skills/delivery` only, after
 approval. Factory changes are ordinary commits in this repository.
 
 ## Tests
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ```bash
 cd factory

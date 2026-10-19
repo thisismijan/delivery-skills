@@ -3,31 +3,42 @@
 Selected with `./install.sh --skills-dir <path> --provider gitlab`.
 
 Setup installs `gitlab-forge` and `gitlab-work-item` into
-`${DELIVERY_BIN_DIR:-$HOME/.local/bin}` together with the shared host module
-they import. One selection advertises `exec:<absolute-path>` with
-`provider: "gitlab"` for `forge.change`, `review.publish`, and `tracker.item`.
-Generic workflows call `forge-provider.ts` and `work-item-provider.ts`; they
-never call provider-native helpers.
+`${DELIVERY_BIN_DIR:-$HOME/.local/bin}` together with the shared host module.
+One selection advertises `provider: "gitlab"` for `forge.change`,
+`review.publish`, and `tracker.item` when both executables, Bun, and a
+credential are present.
 
-`gitlab-forge` takes one operation argument (`find`, `read`, `files`, `diff`,
-`commits`, `discussions`, `anchors`, `create`, `set-draft`, `note`, or
-`reply`) and a version-1 JSON request on stdin. `gitlab-work-item` takes
-`list`, `read`, `create`, `link`, or `note` and the work-item envelope on
-stdin. Both derive host and project from the repository origin, read
-credentials from `GITLAB_TOKEN`, `GL_TOKEN_FILE`, or `~/token` (never argv),
-and print versioned JSON. They do not merge, close, approve, delete, resolve
-discussions, or transition issue status.
+Add that bin directory to `PATH`. Mix with Jira:
 
-Forge, review-publication, and tracker capabilities become available only when
-both executables, `bun`, and a credential are present. Installing this provider
-does not select GitLab issues as the repository work-item source; confirm that
-choice with `/delivery init`.
+```bash
+./install.sh --skills-dir <path> --provider gitlab --provider jira
+```
 
-Provide a credential with `GITLAB_TOKEN`, `GL_TOKEN_FILE`, or `~/token`, then
-run:
+Cursor and Claude wrappers already pass `--provider gitlab`. Extra
+`--provider` flags still overlay.
+
+## Protocol
+
+`gitlab-forge` takes `find`, `read`, `files`, `diff`, `commits`,
+`discussions`, `anchors`, `create`, `set-draft`, `note`, or `reply`.
+`gitlab-work-item` takes `list`, `read`, `create`, `link`, or `note`. Both
+read stdin JSON and write versioned JSON. They do not merge, close, approve,
+delete, resolve discussions, or transition issue status.
+
+Host and project come from origin. Override with `GL_HOST` and `GL_PROJECT`
+for self-hosted GitLab when origin is not enough. Credentials:
+`GITLAB_TOKEN`, `GL_TOKEN_FILE`, or `~/token` (never argv). Publishing notes
+needs an `api` token, not `read_api`.
+
+`providers/gitlab/cloud-setup.sh` is an extra Cloud helper that also requires
+`GITLAB_TOKEN`. Ordinary installs use `setup.sh` via `--provider gitlab`.
+
+## First use
 
 ```bash
 bun "<skills-dir>/_factory/scripts/doctor.ts"
+bun "<skills-dir>/_factory/scripts/delivery-init.ts" --work-items gitlab
 ```
 
-Doctor reports whether a credential is present but never prints its value.
+Installing this provider does not select GitLab issues as the work-item
+source. Confirm that with init. Doctor reports credential presence only.

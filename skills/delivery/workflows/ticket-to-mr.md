@@ -4,7 +4,7 @@ Take one work item through OpenSpec draft, human spec approval, and execute
 until a ready merge request exists. Compose `/draft` and `/execute`;
 do not reimplement assessors, gates, or holdout.
 
-Terms: see [`NOTES.md`](../NOTES.md).
+Terms in [`NOTES.md`](NOTES.md) are historical reference only.
 
 ## Loop
 
@@ -18,15 +18,16 @@ the runtime or the runtime session with cwd = **target repo** and this pack inst
 
 One ticket per run (one cwd / worktree / the runtime session). For an epic's
 children, see [`epic-to-backlog`](epic-to-backlog.md) and
-[`delivery-orchestrator`](delivery-orchestrator.md): every ready-now key gets
-its own worktree run; true blockers merge before their dependents start. Do
-not share one dirty worktree across parallel tickets.
+[`auto`](auto.md): every ready-now key gets its own worktree run; true
+blockers merge before their dependents start. Do not share one dirty
+worktree across parallel tickets.
 
 ## Preconditions
 
 - Target repo has `openspec/` initialized (expanded profile) — required before
   draft can author a change
-- tracker provider authorized; `tracker_base_url` configured on the plugin
+- a work-item provider confirmed in the target repository
+  (`scripts/work-item-config.ts` / `/delivery init`)
 - `scripts/forge-provider.ts` can `read` against the runtime manifest
 - Bun available for gate scripts
 - Ticket body is expected to be draft-ready (from groom or equivalent); weak

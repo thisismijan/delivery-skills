@@ -2,36 +2,42 @@
 
 Selected with `./install.sh --skills-dir <path> --provider jira`.
 
-Setup installs `jira-tracker` into `${DELIVERY_BIN_DIR:-$HOME/.local/bin}`
-and advertises it as `exec:<absolute-path>` with `provider: "jira"` for
-`tracker.item`. Delivery still confirms that provider on first use; installing
-this package does not infer Jira from credentials or issue keys.
+This package is **Cloud only** and advertises `tracker.item`. It does not
+provide forge or review. Pair it with GitHub or GitLab:
 
-`jira-tracker` takes one operation argument (`list`, `read`, `create`, `link`,
-or `note`) and a version-1 JSON request on stdin. It talks to Jira Cloud over
-HTTPS, reads site, project, and credentials from the environment or a file
-(never argv), and prints versioned normalized work items. It does not
-transition status or delete issues.
+```bash
+./install.sh --skills-dir <path> --provider github --provider jira
+```
 
-Create and link require `approved: true`. Create reuses an existing issue with
-the same audit id when the content matches. Notes keep one comment per audit
-id.
+Setup installs `jira-tracker` into `${DELIVERY_BIN_DIR:-$HOME/.local/bin}`.
+Add that directory to `PATH`. Installing the package does not infer Jira from
+credentials or issue keys.
 
-Work-item capabilities become available only when `jira-tracker`, `bun`,
-`JIRA_SITE`, `JIRA_PROJECT`, and a credential are present.
+## Protocol
 
-Provide Cloud configuration with:
+`jira-tracker` takes `list`, `read`, `create`, `link`, or `note` and a
+version-1 JSON envelope on stdin. It talks to Jira Cloud over HTTPS. It does
+not transition status or delete issues.
 
-- `JIRA_SITE` - `https://example.atlassian.net`
-- `JIRA_PROJECT` - project key
-- `JIRA_EMAIL` and `JIRA_API_TOKEN`, or `JIRA_TOKEN_FILE`, or `~/jira-token`
+Create and link require `approved: true`. Create reuses an existing issue
+with the same audit id when content matches. Notes keep one comment per audit
+id. Link uses the `Blocks` issue-link type; the project must allow that link.
+
+Mapped types are Bug, Story, and Task.
+
+## Configuration
+
+- `JIRA_SITE` — `https://example.atlassian.net`
+- `JIRA_PROJECT` — project key
+- `JIRA_EMAIL` and `JIRA_API_TOKEN`, or `JIRA_TOKEN` as the API token alias,
+  or `JIRA_TOKEN_FILE`, or `~/jira-token`
 
 The token file may be `email:token` on one line or email and token on two
-lines. Installer and provider status name missing site, project, or
-credentials without printing secret values. Selecting this provider does not
-create or change Jira issues by itself. Confirm it as the repository
-work-item provider on first use, then run:
+lines. Restrict it with `chmod 600`. Needed permissions: browse, create,
+comment, and issue link. Doctor and installer name missing site, project, or
+credentials without printing secret values.
 
 ```bash
 bun "<skills-dir>/_factory/scripts/doctor.ts"
+bun "<skills-dir>/_factory/scripts/delivery-init.ts" --work-items jira
 ```
