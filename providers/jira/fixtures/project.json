@@ -1,0 +1,10 @@
+{
+  "id": "10000",
+  "key": "DELIV",
+  "name": "Delivery",
+  "issueTypes": [
+    { "id": "10001", "name": "Story" },
+    { "id": "10002", "name": "Task" },
+    { "id": "10004", "name": "Bug" }
+  ]
+}

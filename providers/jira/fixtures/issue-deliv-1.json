@@ -1,0 +1,76 @@
+{
+  "id": "10001",
+  "key": "DELIV-1",
+  "properties": {
+    "delivery.sourceAuditId": { "auditId": "run-1:1" }
+  },
+  "fields": {
+    "summary": "Keep provider notes",
+    "description": {
+      "type": "doc",
+      "version": 1,
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The selected provider stores one note per audit id."
+            }
+          ]
+        }
+      ]
+    },
+    "issuetype": { "id": "10004", "name": "Bug" },
+    "labels": ["dlv-run-1x3a1"],
+    "issuelinks": [
+      {
+        "id": "10010",
+        "type": {
+          "id": "10000",
+          "name": "Blocks",
+          "inward": "is blocked by",
+          "outward": "blocks"
+        },
+        "outwardIssue": { "id": "10002", "key": "DELIV-2" }
+      },
+      {
+        "id": "10011",
+        "type": {
+          "id": "10001",
+          "name": "Relates",
+          "inward": "relates to",
+          "outward": "relates to"
+        },
+        "outwardIssue": { "id": "10003", "key": "DELIV-9" }
+      }
+    ],
+    "comment": {
+      "startAt": 0,
+      "maxResults": 1,
+      "total": 1,
+      "comments": [
+        {
+          "id": "10100",
+          "body": {
+            "type": "doc",
+            "version": 1,
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  { "type": "text", "text": "delivery-audit-id: draft:ready" }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "content": [{ "type": "text", "text": "updated" }]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "project": { "id": "10000", "key": "DELIV" }
+  }
+}

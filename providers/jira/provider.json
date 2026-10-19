@@ -2,5 +2,5 @@
   "name": "jira",
   "version": 1,
   "kind": "tracker",
-  "tools": []
+  "tools": ["jira-tracker"]
 }

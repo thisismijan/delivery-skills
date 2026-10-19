@@ -1,0 +1,17 @@
+{
+  "id": "10200",
+  "body": {
+    "type": "doc",
+    "version": 1,
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [{ "type": "text", "text": "delivery-audit-id: draft:ready" }]
+      },
+      {
+        "type": "paragraph",
+        "content": [{ "type": "text", "text": "first" }]
+      }
+    ]
+  }
+}
