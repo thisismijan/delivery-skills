@@ -50,5 +50,5 @@ Output **only** a single JSON object (no prose, no code fences) that validates a
 - `scopeFit`: whether this is one complete, small-context ticket. `too_large` is a terminal split request even when the ticket is otherwise clear.
 - `splitRecommendation`: empty for `atomic`; for `too_large`, list concrete, ordered vertical tickets, each with one outcome. Do not return vague advice such as "split this".
 - `gaps`: the specific questions/missing pieces (drives the clarification comment). Empty array if `quality` is `good`.
-- `derivedAcceptanceCriteria`: the testable criteria the spec and its tests will target. Populate whenever `quality` is `good`.
+- `derivedAcceptanceCriteria`: the testable criteria the spec and its tests will target. Populate whenever `quality` is `good`, with at least one and at most three entries; a `good` verdict outside that range fails validation and stops the run. Each entry is an observable behaviour. A constraint or boundary (a matching rule, where a control sits, what is out of scope) is not a criterion of its own: fold it into the behaviour it qualifies, or leave it to the ticket's scope. If more than three distinct behaviours remain, the ticket holds more than one cluster, so set `scopeFit` to `too_large` rather than listing them all.
 - Enums must match exactly. No additional keys.

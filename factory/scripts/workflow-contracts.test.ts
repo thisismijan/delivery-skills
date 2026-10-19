@@ -16,6 +16,7 @@ import {
 	CONSTITUTION_VERSION,
 	loadConstitution,
 } from "./sdlc-constitution";
+import { MAX_DERIVED_ACCEPTANCE_CRITERIA } from "./verdicts";
 
 const ROOT = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
@@ -312,6 +313,17 @@ describe("small-context ticket scope", () => {
 			/No spec is authored for an oversized ticket/i,
 		);
 		expect(draftContract).toMatch(/SPLIT_REQUIRED/i);
+	});
+
+	test("assessor states the criteria cap the verdict enforces and keeps constraints out of it", () => {
+		const words = ["zero", "one", "two", "three", "four", "five"];
+		const cap = words[MAX_DERIVED_ACCEPTANCE_CRITERIA];
+		const field = plain(
+			ticketAssessor.match(/^- `derivedAcceptanceCriteria`:.*$/m)?.[0] ?? "",
+		);
+		expect(field).toContain(`at most ${cap}`);
+		expect(field).toMatch(/constraint/i);
+		expect(field).toMatch(/too_large/);
 	});
 });
 

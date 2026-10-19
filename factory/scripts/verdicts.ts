@@ -28,6 +28,10 @@ export const ReviewVerdict = z
 	});
 export type ReviewVerdict = z.infer<typeof ReviewVerdict>;
 
+// The most acceptance criteria a good ticket may carry. The assessor prompt states this cap and a
+// contract test reads it from here, so the prompt cannot drift from what is enforced.
+export const MAX_DERIVED_ACCEPTANCE_CRITERIA = 3;
+
 export const AssessmentVerdict = z
 	.object({
 		quality: z.enum(["good", "needs_clarification", "reject"]),
@@ -61,7 +65,8 @@ export const AssessmentVerdict = z
 		if (
 			verdict.quality === "good" &&
 			(verdict.derivedAcceptanceCriteria.length === 0 ||
-				verdict.derivedAcceptanceCriteria.length > 3 ||
+				verdict.derivedAcceptanceCriteria.length >
+					MAX_DERIVED_ACCEPTANCE_CRITERIA ||
 				verdict.derivedAcceptanceCriteria.some(
 					(criterion) => criterion.trim().length === 0,
 				))
