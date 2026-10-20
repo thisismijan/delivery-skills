@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { DEFAULT_MAX_PARALLEL_WORKTREES } from "./config";
 import { FAST_SAFETY_FLOORS } from "./fast-dispatch";
 import {
 	invokeProvider,
@@ -185,9 +186,13 @@ describe("continuous delivery authorization", () => {
 
 	test("parallel workers use isolated worktrees and coordinator-owned state", () => {
 		const contract = plain(auto);
-		expect(contract).toMatch(/automatically fan out the entire ready wave/i);
-		expect(contract).toMatch(/one detached git worktree per key/i);
-		expect(contract).toMatch(/Start all workers before awaiting any one/i);
+		expect(contract).toMatch(/maxParallelWorktrees/i);
+		expect(contract).toMatch(/MAX_PARALLEL_WORKTREES/);
+		expect(contract).toContain(`default ${DEFAULT_MAX_PARALLEL_WORKTREES}`);
+		expect(contract).toMatch(/one detached git worktree per dispatched key/i);
+		expect(contract).toMatch(
+			/Start every worker in the current batch before awaiting any one/i,
+		);
 		expect(contract).toMatch(/coordinator remains the only writer/i);
 		expect(auto).toContain("DELIVERY_WORKER_JOURNAL");
 		expect(ledger).toContain("### Parallel worker journals");

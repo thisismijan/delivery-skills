@@ -383,8 +383,9 @@ tree, say they need committing; do not commit them.
    slices** (at most ~25% of a context window for the complete ticket,
    including tests and review; blockers only when real - see that workflow).
 2. Compute the **ready-now** set (blocked-by empty / already merged). If more
-   than one key, follow auto's isolated-worktree fan-out and start the entire
-   wave concurrently. Do not ask whether to use serial execution. If isolated
+   than one key, follow auto's isolated-worktree fan-out and start at most
+   `maxParallelWorktrees` keys concurrently (from `scripts/config.ts`, default
+   4). Do not ask whether to use serial execution. If isolated
    mutating dispatch is unavailable, stop with the capability remedy and
    runnable fan-out commands rather than silently executing the wave in
    sequence.
@@ -612,7 +613,8 @@ hide uncertainty in a confident recommendation. Ask exactly one final question.
 - Use each stage's checkpoints only. No extra confirms inside factory
   substeps.
 - In continuous mode, multiple ready-now keys are automatically dispatched in
-  isolated worktrees. Serial is only for true blockers. Missing isolated
+  isolated worktrees, at most `maxParallelWorktrees` at a time. Serial is only
+  for true blockers. Missing isolated
   dispatch stops with runnable fan-out commands instead of falling back to
   sequential execution.
 - Dependents wait on **merged** blockers, not ready MRs.

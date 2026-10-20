@@ -112,14 +112,19 @@ already-merged product change.
 - One key in scope: that key.
 - An epic: the keys whose blockers are all merged and that are not done, stopped,
   or handed off.
-- More than one key can start now: automatically fan out the entire ready wave.
+- More than one key can start now: automatically fan out the ready wave in
+  batches of at most `maxParallelWorktrees` concurrent worktrees. Read that
+  limit from `bun "${FACTORY_ROOT}/scripts/config.ts"` (`MAX_PARALLEL_WORKTREES`,
+  default 4). Remaining ready keys wait for a free slot; they stay ready-now.
   Serial execution is allowed only for a real blocking edge recorded in the
   approved plan.
   1. Resolve one absolute shared `DELIVERY_STATE_ROOT` from the primary
      worktree. The coordinator remains the only writer of the run ledger.
-     Reserve the whole wave in one compare-and-swap write before dispatch.
-  2. Create one detached git worktree per key from the recorded base. Keep
-     worktrees outside one another. Never reuse a dirty or occupied path.
+     Choose the current batch with
+     `bun "${FACTORY_ROOT}/scripts/config.ts" ready-wave '<keys-json>'`.
+     Reserve only that batch in one compare-and-swap write before dispatch.
+  2. Create one detached git worktree per dispatched key from the recorded base.
+     Keep worktrees outside one another. Never reuse a dirty or occupied path.
      Use argv-equivalent execution, not a shell-built string:
      `git worktree add --detach <path> <full-base-sha>`. The worker creates the
      deterministic ticket branch before its first commit.
@@ -131,10 +136,11 @@ already-merged product change.
      its own journal through `ledger-store.ts`; it never mutates the run ledger.
   4. Give each worker the fan-out brief and forbid merge, tracker transitions,
      sibling worktrees, and work outside its key.
-  5. Start all workers before awaiting any one of them. Reconcile each result
-     from its journal, git, and forge, not from prose. After the wave settles,
-     apply validated key updates to the run ledger in one coordinator
-     compare-and-swap write. A malformed, missing, or conflicting result stops
+  5. Start every worker in the current batch before awaiting any one of them.
+     Reconcile each result from its journal, git, and forge, not from prose.
+     After the batch settles, apply validated key updates to the run ledger in
+     one coordinator compare-and-swap write, then dispatch the next batch of
+     remaining ready keys. A malformed, missing, or conflicting result stops
      that key without cancelling successful siblings.
   6. Append `dispatched <KEY> to <worktree>` for each key. Remove a worktree only
      after its branch and artifacts are durably pushed and the worker has
