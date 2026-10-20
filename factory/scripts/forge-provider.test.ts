@@ -625,7 +625,7 @@ test("plan prefers recorded session tools over a missing adapter", async () => {
 			transport: "mcp",
 			provider: "gitlab",
 			tool: { name: "get_merge_request" },
-			arguments: { merge_request_iid: "12", iid: "12" },
+			arguments: { merge_request_iid: "12" },
 		});
 	});
 });

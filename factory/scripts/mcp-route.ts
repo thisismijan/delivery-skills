@@ -131,9 +131,16 @@ export function addMcpProviderContext(
 		settings?: Record<string, string>;
 	},
 ): McpOperationPlan {
-	const argumentsWithContext = { ...plan.arguments };
+	let argumentsWithContext = { ...plan.arguments };
 	if (plan.provider === "gitlab" && context.repository) {
 		argumentsWithContext.project_id ??= context.repository.projectPath;
+		if (
+			"merge_request_iid" in argumentsWithContext ||
+			"issue_iid" in argumentsWithContext
+		) {
+			const { iid: _unused, ...strictArguments } = argumentsWithContext;
+			argumentsWithContext = strictArguments;
+		}
 	}
 	if (plan.provider === "github" && context.repository) {
 		argumentsWithContext.owner ??= context.repository.owner;
