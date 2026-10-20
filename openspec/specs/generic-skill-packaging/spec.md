@@ -41,3 +41,10 @@ Reinstalling the pack MUST preserve target-repository run state and MUST replace
 #### Scenario: Existing state and unmanaged files are present
 - **WHEN** the generic installer updates a destination
 - **THEN** it preserves unmanaged files and all target-repository delivery state
+
+### Requirement: Concurrent installs do not race dependency preparation
+The installer SHALL serialize preparation and copying of the shared Bun dependency tree while allowing each destination to activate independently.
+
+#### Scenario: Two hosts install from one checkout
+- **WHEN** two installer processes start against different skills directories at the same time
+- **THEN** both complete without package-link collisions or partial destinations

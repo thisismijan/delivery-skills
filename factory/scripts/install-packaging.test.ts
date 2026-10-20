@@ -218,6 +218,25 @@ test("a production install ships dependencies and its primary CLIs run", async (
 	});
 });
 
+test("concurrent production installs serialize Bun dependency preparation", async () => {
+	await withInstallRoot(async (root) => {
+		const [first, second] = await Promise.all([
+			runInstaller(["--skills-dir", join(root, "skills-a")], {
+				DELIVERY_BIN_DIR: join(root, "bin-a"),
+				DELIVERY_INSTALL_SKIP_BUN: "",
+			}),
+			runInstaller(["--skills-dir", join(root, "skills-b")], {
+				DELIVERY_BIN_DIR: join(root, "bin-b"),
+				DELIVERY_INSTALL_SKIP_BUN: "",
+			}),
+		]);
+		expect(first.exitCode).toBe(0);
+		expect(second.exitCode).toBe(0);
+		expect(first.stderr).not.toContain("EEXIST");
+		expect(second.stderr).not.toContain("EEXIST");
+	});
+});
+
 test("reinstall replaces managed files and preserves unmanaged files and state", async () => {
 	await withInstallRoot(async (root) => {
 		const dest = join(root, "skills");

@@ -139,6 +139,26 @@ if [[ -z "${DELIVERY_INSTALL_SKIP_BUN:-}" ]]; then
     echo "If an older bun is earlier on PATH, put ~/.bun/bin first or uninstall that package." >&2
     echo "Continuing with ${found_bun}; doctor will keep this as a setup item." >&2
   fi
+  bun_install_lock="$root/factory/.delivery-bun-install.lock"
+  bun_install_lock_acquired=0
+  release_bun_install_lock() {
+    if [[ "$bun_install_lock_acquired" -eq 1 ]]; then
+      rmdir "$bun_install_lock" 2>/dev/null || true
+      bun_install_lock_acquired=0
+    fi
+  }
+  trap release_bun_install_lock EXIT
+  for _ in {1..300}; do
+    if mkdir "$bun_install_lock" 2>/dev/null; then
+      bun_install_lock_acquired=1
+      break
+    fi
+    sleep 0.1
+  done
+  if [[ "$bun_install_lock_acquired" -ne 1 ]]; then
+    echo "Another delivery install is still preparing Bun dependencies; retry after it finishes." >&2
+    exit 1
+  fi
   (cd "$root/factory" && bun install --frozen-lockfile)
 fi
 
@@ -196,6 +216,9 @@ adapter_runtime=""
 provider_runtime=""
 composed_runtime=""
 cleanup() {
+  if declare -F release_bun_install_lock >/dev/null 2>&1; then
+    release_bun_install_lock
+  fi
   if [[ -n "$staging" && -d "$staging" ]]; then
     rm -rf -- "$staging"
   fi
@@ -230,6 +253,9 @@ for skill in "$root/skills"/*; do
 done
 
 copy_factory "$staging/_factory"
+if declare -F release_bun_install_lock >/dev/null 2>&1; then
+  release_bun_install_lock
+fi
 if [[ -n "${DELIVERY_INSTALL_SKIP_BUN:-}" ]]; then
   cp "$root/factory/default-runtime-manifest.json" \
     "$staging/_factory/runtime-manifest.json"
