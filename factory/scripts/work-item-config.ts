@@ -1,6 +1,8 @@
 import { lstat, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
+import { loadMcpInventory } from "./mcp-inventory";
+import { routeMcpInventory, trackerProvidersFromMcp } from "./mcp-route";
 import { REQUIRED_REPOSITORY_SETTINGS } from "./provider-contract";
 import { type RuntimeManifest, loadRuntimeManifest } from "./runtime-manifest";
 
@@ -58,7 +60,10 @@ export interface WorkItemSelectionStatus {
 	remedy?: string;
 }
 
-export function workItemOptions(runtime: RuntimeManifest): WorkItemOption[] {
+export function workItemOptions(
+	runtime: RuntimeManifest,
+	mcpProviders: readonly string[] = [],
+): WorkItemOption[] {
 	const options: WorkItemOption[] = [
 		{
 			id: LOCAL_WORK_ITEM_PROVIDER,
@@ -66,13 +71,25 @@ export function workItemOptions(runtime: RuntimeManifest): WorkItemOption[] {
 			label: "Local files in .delivery/work-items",
 		},
 	];
+	const seen = new Set<string>([LOCAL_WORK_ITEM_PROVIDER]);
 	const tracker = runtime.capabilities["tracker.item"];
 	if (tracker?.available && tracker.provider && tracker.invocation) {
+		seen.add(tracker.provider);
 		options.push({
 			id: tracker.provider,
 			kind: "remote",
 			label: `${tracker.provider} through the configured runtime provider`,
 			invocation: tracker.invocation,
+		});
+	}
+	for (const provider of mcpProviders) {
+		if (seen.has(provider)) continue;
+		seen.add(provider);
+		options.push({
+			id: provider,
+			kind: "remote",
+			label: `${provider} through session tools`,
+			invocation: "mcp",
 		});
 	}
 	return options;
@@ -151,8 +168,11 @@ export async function workItemSelectionStatus(
 				"confirm a work-item provider with /delivery init before starting lifecycle work",
 		};
 	}
+	const mcpProviders = trackerProvidersFromMcp(
+		routeMcpInventory(await loadMcpInventory(repositoryRoot)),
+	);
 	if (
-		!workItemOptions(runtime).some(
+		!workItemOptions(runtime, mcpProviders).some(
 			(option) =>
 				option.id === selection.provider.id &&
 				option.kind === selection.provider.kind,
@@ -197,7 +217,10 @@ export async function configureWorkItemProvider(options: {
 	settings?: ProviderSettings;
 }): Promise<WorkItemSelection> {
 	const requested = ProviderSettings.parse(options.settings ?? {});
-	const available = workItemOptions(options.runtime);
+	const mcpProviders = trackerProvidersFromMcp(
+		routeMcpInventory(await loadMcpInventory(options.repositoryRoot)),
+	);
+	const available = workItemOptions(options.runtime, mcpProviders);
 	const selected = available.find((option) => option.id === options.providerId);
 	if (!selected) {
 		throw new Error(
@@ -277,8 +300,11 @@ function sameSettings(
 	);
 }
 
-function formatOptions(runtime: RuntimeManifest): string {
-	return workItemOptions(runtime)
+function formatOptions(
+	runtime: RuntimeManifest,
+	mcpProviders: readonly string[] = [],
+): string {
+	return workItemOptions(runtime, mcpProviders)
 		.map((option) => `${option.id}\t${option.label}`)
 		.join("\n");
 }
@@ -288,7 +314,13 @@ if (import.meta.main) {
 	const [command, first, second, third] = args;
 	try {
 		if (command === "options" && first) {
-			console.log(formatOptions(await loadRuntimeManifest(first)));
+			const inventory = await loadMcpInventory(process.cwd());
+			console.log(
+				formatOptions(
+					await loadRuntimeManifest(first),
+					trackerProvidersFromMcp(routeMcpInventory(inventory)),
+				),
+			);
 		} else if (command === "check" && first && second) {
 			const status = await workItemSelectionStatus(
 				first,

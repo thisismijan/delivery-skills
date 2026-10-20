@@ -55,6 +55,10 @@ test("always offers local files and only substantiated remote providers", () => 
 		"local-files",
 		"jira",
 	]);
+	expect(workItemOptions(generic, ["jira"]).map((option) => option.id)).toEqual(
+		["local-files", "jira"],
+	);
+	expect(workItemOptions(generic, ["jira"])[1]?.invocation).toBe("mcp");
 });
 
 test("configures local files idempotently without a remote capability", async () => {

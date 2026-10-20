@@ -1260,6 +1260,9 @@ describe("normalized forge commands", () => {
     expect(MR_REVIEW).toMatch(/If one fails, report the failure and stop/);
     expect(SPECS["mr-review-to-ready.md"]).toContain("per-note prompts");
     expect(SKILL).toContain("scripts/forge-provider.ts");
+    expect(SKILL).toContain("forge-provider.ts plan");
+    expect(SKILL).toContain("forge-provider.ts normalize");
+    expect(SKILL).toContain("mcp-inventory.ts");
   });
 });
 

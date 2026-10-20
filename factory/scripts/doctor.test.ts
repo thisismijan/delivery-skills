@@ -5,6 +5,7 @@ import {
 	formatDoctorReport,
 	formatDoctorVerdict,
 	remoteProviderDoctorChecks,
+	sessionToolDoctorChecks,
 	workItemDoctorCheck,
 } from "./doctor";
 import {
@@ -117,6 +118,36 @@ test("work-item diagnosis distinguishes confirmed and unavailable choices", () =
 			},
 		}),
 	).toMatchObject({ category: "Ready now", detail: "jira (project=MDF)" });
+});
+
+test("authenticated session tools are ready without CLI adapters", () => {
+	const checks = sessionToolDoctorChecks({
+		families: [
+			{
+				provider: "jira",
+				kind: "tracker",
+				authenticated: true,
+				capabilities: ["tracker.item"],
+				operations: {
+					read: {
+						transport: "mcp",
+						provider: "jira",
+						capability: "tracker.item",
+						operation: "read",
+						tool: { server: "Atlassian", name: "getJiraIssue" },
+						arguments: {},
+					},
+				},
+				missingOperations: ["list", "create", "link", "note"],
+			},
+		],
+	});
+	expect(checks[0]).toMatchObject({
+		ok: true,
+		name: "Jira session tools",
+	});
+	expect(checks[0]?.detail).toContain("read");
+	expect(checks[0]?.detail).toContain("remaining");
 });
 
 test("generic runtime does not demand a GitLab tool", () => {

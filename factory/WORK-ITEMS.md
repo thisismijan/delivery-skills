@@ -42,8 +42,9 @@ instead of adding duplicates.
 
 ## Remote providers
 
-Remote systems appear only when the runtime advertises an available
-`tracker.item` capability with an exact `provider` id and invocation. A forge
+Remote systems appear when the runtime advertises an available
+`tracker.item` capability with an exact `provider` id and invocation, or when
+recorded session tools map the complete tracker operations. A forge
 remote by itself does not enable forge issues. If a saved remote provider is
 unavailable later, delivery stops rather than falling back to local files.
 

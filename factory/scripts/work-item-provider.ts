@@ -9,6 +9,9 @@ import {
 } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { z } from "zod";
+import { loadMcpInventory } from "./mcp-inventory";
+import { mapMcpWorkItemResult } from "./mcp-normalize";
+import { planMcpOperation, routeMcpInventory } from "./mcp-route";
 import { type RuntimeManifest, loadRuntimeManifest } from "./runtime-manifest";
 import {
 	readWorkItemSelection,
@@ -365,6 +368,91 @@ async function invokeRemoteProvider(options: {
 		: WorkItem.parse(parsed);
 }
 
+export async function planWorkItemOperation(options: {
+	operation: WorkItemOperation;
+	repositoryRoot: string;
+	runtime: RuntimeManifest;
+	input?: OperationInput;
+}): Promise<
+	| {
+			transport: "mcp";
+			provider: string;
+			operation: WorkItemOperation;
+			tool: { server: string; name: string };
+			arguments: Record<string, unknown>;
+	  }
+	| {
+			transport: "local-files" | "adapter";
+			provider: string;
+			operation: WorkItemOperation;
+	  }
+> {
+	const input = operationSchema(options.operation).parse(options.input ?? {});
+	const status = await workItemSelectionStatus(
+		options.repositoryRoot,
+		options.runtime,
+	);
+	if (status.state !== "ready" || !status.selection) {
+		throw new Error(status.remedy ?? "work-item provider is not ready");
+	}
+	if (status.selection.provider.kind === "local-files") {
+		return {
+			transport: "local-files",
+			provider: "local-files",
+			operation: options.operation,
+		};
+	}
+	const provider = status.selection.provider.id;
+	const inventory = await loadMcpInventory(options.repositoryRoot);
+	const planned = planMcpOperation({
+		route: routeMcpInventory(inventory),
+		kind: "tracker",
+		operation: options.operation,
+		provider,
+		input: {
+			...(typeof input === "object" && input !== null
+				? (input as Record<string, unknown>)
+				: {}),
+			settings: status.selection.provider.settings ?? {},
+		},
+	});
+	if (planned) {
+		return {
+			transport: "mcp",
+			provider,
+			operation: options.operation,
+			tool: planned.tool,
+			arguments: planned.arguments,
+		};
+	}
+	return {
+		transport: "adapter",
+		provider,
+		operation: options.operation,
+	};
+}
+
+export function normalizeWorkItemSessionResult(options: {
+	provider: string;
+	operation: WorkItemOperation;
+	raw: unknown;
+}): WorkItem | WorkItem[] {
+	try {
+		return options.operation === "list"
+			? z.array(WorkItem).parse(options.raw)
+			: WorkItem.parse(options.raw);
+	} catch {
+		const mapped = mapMcpWorkItemResult({
+			provider: options.provider,
+			operation: options.operation,
+			raw: options.raw,
+		});
+		return options.operation === "list"
+			? z.array(WorkItem).parse(mapped)
+			: WorkItem.parse(mapped);
+	}
+}
+
 export async function runWorkItemOperation(options: {
 	operation: WorkItemOperation;
 	repositoryRoot: string;
@@ -396,15 +484,28 @@ export async function runWorkItemOperation(options: {
 				return noteLocalWorkItem(options.repositoryRoot, input);
 		}
 	}
+	const provider = status.selection.provider.id;
+	const inventory = await loadMcpInventory(options.repositoryRoot);
+	if (
+		planMcpOperation({
+			route: routeMcpInventory(inventory),
+			kind: "tracker",
+			operation: options.operation,
+			provider,
+			input: {},
+		})
+	) {
+		throw new Error(
+			`Use session tools for ${provider} ${options.operation}, then work-item-provider.ts normalize.`,
+		);
+	}
 	const tracker = options.runtime.capabilities["tracker.item"];
 	if (
 		!tracker?.available ||
-		tracker.provider !== status.selection.provider.id ||
+		tracker.provider !== provider ||
 		!tracker.invocation
 	) {
-		throw new Error(
-			`selected provider '${status.selection.provider.id}' is not available`,
-		);
+		throw new Error(`selected provider '${provider}' is not available`);
 	}
 	return invokeRemoteProvider({
 		provider: status.selection.provider.id,
@@ -419,25 +520,67 @@ export async function runWorkItemOperation(options: {
 if (import.meta.main) {
 	const [operation, repositoryRoot, manifestPath, inputPath] =
 		process.argv.slice(2);
-	if (
-		!["list", "read", "create", "link", "note"].includes(operation ?? "") ||
-		!repositoryRoot ||
-		!manifestPath ||
-		(operation !== "list" && !inputPath)
-	) {
-		console.error(
-			"usage: work-item-provider.ts <list|read|create|link|note> <repository-root> <runtime-manifest> [input.json]",
-		);
-		process.exit(2);
-	}
 	try {
-		const result = await runWorkItemOperation({
-			operation: operation as WorkItemOperation,
-			repositoryRoot,
-			runtime: await loadRuntimeManifest(manifestPath),
-			input: inputPath ? await Bun.file(inputPath).json() : {},
-		});
-		console.log(JSON.stringify(result, null, 2));
+		if (operation === "plan") {
+			const plannedOp = repositoryRoot as WorkItemOperation;
+			const repo = manifestPath;
+			const runtimePath = inputPath;
+			const planInput = process.argv[6];
+			if (
+				!["list", "read", "create", "link", "note"].includes(plannedOp) ||
+				!repo ||
+				!runtimePath
+			) {
+				throw new Error(
+					"usage: work-item-provider.ts plan <operation> <repository-root> <runtime-manifest> [input.json]",
+				);
+			}
+			const result = await planWorkItemOperation({
+				operation: plannedOp,
+				repositoryRoot: repo,
+				runtime: await loadRuntimeManifest(runtimePath),
+				input: planInput ? await Bun.file(planInput).json() : {},
+			});
+			console.log(JSON.stringify(result, null, 2));
+		} else if (operation === "normalize") {
+			const normalizedOp = repositoryRoot as WorkItemOperation;
+			const provider = manifestPath;
+			const rawPath = inputPath;
+			if (
+				!["list", "read", "create", "link", "note"].includes(normalizedOp) ||
+				!provider ||
+				!rawPath
+			) {
+				throw new Error(
+					"usage: work-item-provider.ts normalize <operation> <provider> <raw.json>",
+				);
+			}
+			const result = normalizeWorkItemSessionResult({
+				provider,
+				operation: normalizedOp,
+				raw: await Bun.file(rawPath).json(),
+			});
+			console.log(JSON.stringify(result, null, 2));
+		} else {
+			if (
+				!["list", "read", "create", "link", "note"].includes(operation ?? "") ||
+				!repositoryRoot ||
+				!manifestPath ||
+				(operation !== "list" && !inputPath)
+			) {
+				console.error(
+					"usage: work-item-provider.ts <list|read|create|link|note> <repository-root> <runtime-manifest> [input.json]",
+				);
+				process.exit(2);
+			}
+			const result = await runWorkItemOperation({
+				operation: operation as WorkItemOperation,
+				repositoryRoot,
+				runtime: await loadRuntimeManifest(manifestPath),
+				input: inputPath ? await Bun.file(inputPath).json() : {},
+			});
+			console.log(JSON.stringify(result, null, 2));
+		}
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));
 		process.exit(1);

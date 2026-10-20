@@ -36,10 +36,21 @@ bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
 ```
 
 Operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
-`anchors`, `create`, `set-draft`, `note`, `reply`.
+`anchors`, `create`, `set-draft`, `note`, `reply`. Also `plan` and `normalize`
+for session-tool transport.
 
 `pipeline` takes `{ "revision": "<sha>" }` and returns evidence bound to that
 exact revision. Delivery uses it for the default-branch pipeline after merge.
+
+## Session tools
+
+`/delivery doctor` writes `.delivery/runtime/mcp-inventory.json` from the host
+tools visible in the current session. `mcp-route.ts` maps those tools onto the
+portable forge and work-item operations. Authenticated session tools do not
+need the matching CLI binary or env token for the operations they cover.
+
+Never call a host tool that merges, closes, approves, deletes, resolves a
+thread, or transitions work-item status.
 
 ## Work-item command
 

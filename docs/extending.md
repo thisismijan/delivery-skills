@@ -41,6 +41,11 @@ Forge operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discu
 `list`, `read`, `create`, `link`, `note`. Merge, close, status, and delete
 stay human-owned.
 
+Session-tool aliases live in `factory/scripts/mcp-catalogues.ts`. Add tool
+names there when a host integration uses a new identifier for the same
+portable operation. Do not map merge, close, approve, delete, thread
+resolution, or status-transition tools.
+
 ## Readiness mapping today
 
 `factory/scripts/provider-contract.ts` only overlays GitHub, GitLab, and Jira

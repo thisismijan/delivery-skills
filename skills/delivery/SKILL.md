@@ -338,9 +338,14 @@ tree, say they need committing; do not commit them.
 
 ### Entry P — Setup
 
-- **Doctor** is read-only. Run
-  `bun "${FACTORY_ROOT}/scripts/doctor.ts"` in the target repository and print
-  its complete Ready now, Needs setup, Host limitation, and Human-owned report.
+- **Doctor** is read-only. First record every host integration tool this
+  session exposes (server name and tool name, including tools that only offer
+  authentication) to `.delivery/runtime/mcp-inventory.json` with
+  `bun "${FACTORY_ROOT}/scripts/mcp-inventory.ts" write "$(git rev-parse --show-toplevel)" <inventory.json>`.
+  Then run `bun "${FACTORY_ROOT}/scripts/doctor.ts"` in the target repository
+  and print its complete Ready now, Needs setup, Host limitation, and
+  Human-owned report. Doctor treats authenticated session tools as a live
+  forge or tracker transport when they map the portable operations.
 - **Initialize** is an explicit local mutation. First gate `init` with
   `${FACTORY_ROOT}/runtime-manifest.json`. Run `work-item-config.ts options`,
   explain the available choices with the **Human decision brief**, and wait for
@@ -614,8 +619,12 @@ hide uncertainty in a confident recommendation. Ask exactly one final question.
   Never close a change or resolve threads. Create work items only from approved, verified groom drafts in continuous
   mode, with the run-and-slice audit marker and idempotency check.
 - Generic stages call only `bun "${FACTORY_ROOT}/scripts/forge-provider.ts"
-  <operation> <repoRoot> "${FACTORY_ROOT}/runtime-manifest.json" [input.json]`.
-  Never call a provider-native helper.
+  <operation> <repoRoot> "${FACTORY_ROOT}/runtime-manifest.json" [input.json]`,
+  after `forge-provider.ts plan` for that same operation. If the plan returns
+  `transport: "mcp"`, call only the named host tool, then
+  `forge-provider.ts normalize`. Work items use the same plan/normalize pair
+  on `work-item-provider.ts`. Never call a provider-native helper or an
+  unplanned host tool.
 - `/openspec-archive` runs only after the product MR is merged. Its explicit
   single-step verb is approval for that one archive; continuous mode archives
   under the recorded run authorization and never merges its follow-up change.

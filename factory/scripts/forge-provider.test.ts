@@ -14,6 +14,7 @@ import {
 	PublishForgeNoteInput,
 	parseForgeOperationInput,
 	parseForgeOperationResult,
+	planForgeOperation,
 	runForgeOperation,
 } from "./forge-provider";
 import {
@@ -594,5 +595,37 @@ test("approved publication sends the checked body to the review adapter", async 
 			input: { body: "Holdout review passed.\n", ref: "change-1" },
 		});
 		expect(envelope.input.bodyPath).toBeUndefined();
+	});
+});
+
+test("plan prefers recorded session tools over a missing adapter", async () => {
+	await withRoot(async (root) => {
+		await mkdir(join(root, ".delivery", "runtime"), { recursive: true });
+		await writeFile(
+			join(root, ".delivery", "runtime", "mcp-inventory.json"),
+			`${JSON.stringify({
+				version: 1,
+				recordedAt: "2026-10-20T09:00:00.000Z",
+				tools: [
+					{
+						server: "GitLab",
+						name: "get_merge_request",
+						status: "ready",
+					},
+				],
+			})}\n`,
+		);
+		const planned = await planForgeOperation({
+			operation: "read",
+			repositoryRoot: root,
+			runtime: defaultRuntimeManifest(true),
+			input: { ref: "12" },
+		});
+		expect(planned).toMatchObject({
+			transport: "mcp",
+			provider: "gitlab",
+			tool: { name: "get_merge_request" },
+			arguments: { merge_request_iid: "12", iid: "12" },
+		});
 	});
 });

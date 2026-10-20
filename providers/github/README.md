@@ -52,3 +52,7 @@ bun "<skills-dir>/_factory/scripts/delivery-init.ts" --work-items github
 
 Origin and credentials are not consent to use GitHub issues. Confirm that
 choice explicitly if issues should be the work-item source.
+
+If the host exposes GitHub session tools, `/delivery doctor` records them and
+prefers those tools for mapped pull-request and issue operations. Merge,
+close, approve, and review-submit stay unused.

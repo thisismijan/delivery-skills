@@ -1,6 +1,9 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { z } from "zod";
+import { loadMcpInventory } from "./mcp-inventory";
+import { mapMcpForgeResult } from "./mcp-normalize";
+import { mcpFamily, planMcpOperation, routeMcpInventory } from "./mcp-route";
 import { checkNotePublication } from "./note-publication";
 import {
 	type RuntimeManifest,
@@ -646,6 +649,114 @@ async function invokeForgeAdapter(options: {
 	return result;
 }
 
+export async function planForgeOperation(options: {
+	operation: string;
+	repositoryRoot: string;
+	runtime: RuntimeManifest;
+	input?: unknown;
+}): Promise<
+	| {
+			transport: "mcp";
+			provider: string;
+			operation: ForgeOperation;
+			tool: { server: string; name: string };
+			arguments: Record<string, unknown>;
+	  }
+	| { transport: "adapter"; provider: string; operation: ForgeOperation }
+> {
+	if (HUMAN_OWNED_OPERATIONS.has(options.operation)) {
+		throw new Error(
+			"Merge, close, and discussion resolution stay with a human.",
+		);
+	}
+	if (!isForgeOperation(options.operation)) {
+		throw new Error(`Unsupported forge operation '${options.operation}'.`);
+	}
+	const input = parseForgeOperationInput(options.operation, options.input);
+	const advertised = lookupCapability(options.runtime, "forge.change");
+	const inventory = await loadMcpInventory(options.repositoryRoot);
+	const route = routeMcpInventory(inventory);
+	const provider =
+		advertised?.available && advertised.provider
+			? advertised.provider
+			: mcpFamily(route, "forge")?.provider;
+	if (!provider) {
+		throw new Error(missingCapability("forge.change").remedy);
+	}
+	if (PUBLICATION_OPERATIONS.has(options.operation)) {
+		const review = lookupCapability(options.runtime, "review.publish");
+		if (review?.available && review.provider && review.provider !== provider) {
+			throw new Error(
+				"Change inspection and review publication name different providers. Advertise the same provider on both capabilities in the runtime manifest.",
+			);
+		}
+	}
+	let body: string | undefined;
+	if (options.operation === "note" || options.operation === "reply") {
+		const publication = input as { bodyPath: string };
+		body = resolvePublicationBody(publication.bodyPath, options.repositoryRoot);
+	}
+	const request = adapterInput(options.operation, input, body);
+	const planned = planMcpOperation({
+		route,
+		kind: "forge",
+		operation: options.operation,
+		provider,
+		input: {
+			...((typeof request === "object" && request !== null
+				? request
+				: {}) as Record<string, unknown>),
+		},
+	});
+	if (planned) {
+		return {
+			transport: "mcp",
+			provider,
+			operation: options.operation,
+			tool: planned.tool,
+			arguments: planned.arguments,
+		};
+	}
+	if (!advertised?.available || !advertised.invocation) {
+		throw new Error(missingCapability("forge.change").remedy);
+	}
+	executablePath(advertised.invocation);
+	return {
+		transport: "adapter",
+		provider,
+		operation: options.operation,
+	};
+}
+
+export function normalizeForgeSessionResult(options: {
+	operation: string;
+	provider: string;
+	raw: unknown;
+	input?: unknown;
+}): Exclude<ForgeOperationResult, ForgeDryRun> {
+	if (!isForgeOperation(options.operation)) {
+		throw new Error(`Unsupported forge operation '${options.operation}'.`);
+	}
+	try {
+		return parseForgeOperationResult(options.operation, options.raw);
+	} catch {
+		const mapped = mapMcpForgeResult({
+			provider: options.provider,
+			operation: options.operation,
+			raw: options.raw,
+			input: options.input,
+		});
+		const result = parseForgeOperationResult(options.operation, mapped);
+		assertBoundResult(
+			result,
+			options.provider,
+			requestedRef(options.operation, options.input),
+		);
+		assertRequestedRevision(options.operation, options.input, result);
+		return result;
+	}
+}
+
 export async function runForgeOperation(options: {
 	operation: string;
 	repositoryRoot: string;
@@ -709,20 +820,56 @@ export async function runForgeOperation(options: {
 if (import.meta.main) {
 	const [operation, repositoryRoot, manifestPath, inputPath] =
 		process.argv.slice(2);
-	if (!operation || !repositoryRoot || !manifestPath || !inputPath) {
-		console.error(
-			"usage: forge-provider.ts <find|read|pipeline|files|diff|commits|discussions|anchors|create|set-draft|note|reply> <repository-root> <runtime-manifest> <input.json>",
-		);
-		process.exit(2);
-	}
 	try {
-		const result = await runForgeOperation({
-			operation,
-			repositoryRoot,
-			runtime: await loadRuntimeManifest(manifestPath),
-			input: await Bun.file(inputPath).json(),
-		});
-		console.log(JSON.stringify(result, null, 2));
+		if (operation === "plan") {
+			const plannedOp = repositoryRoot;
+			const repo = manifestPath;
+			const runtimePath = inputPath;
+			const planInput = process.argv[6];
+			if (!plannedOp || !repo || !runtimePath || !planInput) {
+				throw new Error(
+					"usage: forge-provider.ts plan <operation> <repository-root> <runtime-manifest> <input.json>",
+				);
+			}
+			const result = await planForgeOperation({
+				operation: plannedOp,
+				repositoryRoot: repo,
+				runtime: await loadRuntimeManifest(runtimePath),
+				input: await Bun.file(planInput).json(),
+			});
+			console.log(JSON.stringify(result, null, 2));
+		} else if (operation === "normalize") {
+			const normalizedOp = repositoryRoot;
+			const provider = manifestPath;
+			const rawPath = inputPath;
+			const originalInput = process.argv[6];
+			if (!normalizedOp || !provider || !rawPath) {
+				throw new Error(
+					"usage: forge-provider.ts normalize <operation> <provider> <raw.json> [input.json]",
+				);
+			}
+			const result = normalizeForgeSessionResult({
+				operation: normalizedOp,
+				provider,
+				raw: await Bun.file(rawPath).json(),
+				input: originalInput ? await Bun.file(originalInput).json() : undefined,
+			});
+			console.log(JSON.stringify(result, null, 2));
+		} else {
+			if (!operation || !repositoryRoot || !manifestPath || !inputPath) {
+				console.error(
+					"usage: forge-provider.ts <find|read|pipeline|files|diff|commits|discussions|anchors|create|set-draft|note|reply> <repository-root> <runtime-manifest> <input.json>",
+				);
+				process.exit(2);
+			}
+			const result = await runForgeOperation({
+				operation,
+				repositoryRoot,
+				runtime: await loadRuntimeManifest(manifestPath),
+				input: await Bun.file(inputPath).json(),
+			});
+			console.log(JSON.stringify(result, null, 2));
+		}
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));
 		process.exit(1);

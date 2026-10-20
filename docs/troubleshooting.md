@@ -19,6 +19,14 @@ earlier on `PATH` (often Homebrew) keeps doctor listing a setup item; put
 `~/.bun/bin` first or uninstall that package. Read-only stages can still run
 on a present but unpinned Bun. `DELIVERY_INSTALL_SKIP_BUN` is for tests only.
 
+## Session tools present but doctor still wants CLI adapters
+
+Run `/delivery doctor` from the host that exposes those tools so it can write
+`.delivery/runtime/mcp-inventory.json`. Doctor cannot see session tools from a
+plain terminal unless that file already exists. Authenticate a server that only
+exposes `mcp_auth`, then rerun doctor. Remaining operations that the session
+does not map still need the CLI adapter.
+
 ## Tools installed but doctor says missing
 
 Provider binaries land in `${DELIVERY_BIN_DIR:-$HOME/.local/bin}`. Add that

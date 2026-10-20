@@ -174,11 +174,11 @@ const MISSING_REMEDIES: Record<CapabilityId, string> = {
 	"model.inventory":
 		"Record the models this runtime advertises, then advertise model.inventory in the runtime manifest.",
 	"forge.change":
-		"Install a forge adapter or keep work local, then advertise forge.change in the runtime manifest if merge-request operations are required.",
+		"Install a forge adapter, record session integration tools, or keep work local, then advertise forge.change in the runtime manifest if merge-request operations are required.",
 	"tracker.item":
-		"Install a tracker adapter or use local work items, then advertise tracker.item in the runtime manifest if issue operations are required.",
+		"Install a tracker adapter, record session integration tools, or use local work items, then advertise tracker.item in the runtime manifest if issue operations are required.",
 	"review.publish":
-		"Install a review adapter, then advertise review.publish in the runtime manifest if published review notes are required.",
+		"Install a review adapter or record session integration tools, then advertise review.publish in the runtime manifest if published review notes are required.",
 	"mutation.guard":
 		"Configure an enforceable mutation boundary, then advertise mutation.guard with enforced mode in the runtime manifest.",
 };
