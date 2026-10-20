@@ -7,6 +7,21 @@ setDefaultTimeout(60_000);
 
 const ROOT = process.env.DELIVERY_SKILL_ROOT ?? join(import.meta.dir, "..");
 const SKILLS_ROOT = process.env.DELIVERY_SKILLS_ROOT ?? join(import.meta.dir, "..", "..");
+function defaultMaxParallelWorktrees(): number {
+	const candidates = [
+		join(SKILLS_ROOT, "..", "factory", "scripts", "config.ts"),
+		join(SKILLS_ROOT, "_factory", "scripts", "config.ts"),
+	];
+	for (const path of candidates) {
+		if (!existsSync(path)) continue;
+		const match = readFileSync(path, "utf8").match(
+			/export const DEFAULT_MAX_PARALLEL_WORKTREES = (\d+);/,
+		);
+		if (match?.[1]) return Number(match[1]);
+	}
+	throw new Error("DEFAULT_MAX_PARALLEL_WORKTREES not found");
+}
+const DEFAULT_MAX_PARALLEL_WORKTREES = defaultMaxParallelWorktrees();
 const HISTORICAL_INDEPENDENCE = process.env.DELIVERY_HISTORICAL_INDEPENDENCE === "1";
 const SKILL_PATH = existsSync(join(ROOT, "SKILL.md")) ? join(ROOT, "SKILL.md") : join(ROOT, "delivery-SKILL.proposed.md");
 const SKILL = readFileSync(SKILL_PATH, "utf8");
@@ -542,9 +557,16 @@ describe("auto", () => {
 
   test("ready waves dispatch concurrently in isolated worktrees", () => {
     const choosing = section(AUTO, "### Choosing a key");
-    expect(choosing).toContain("automatically fan out the entire ready wave");
-    expect(choosing).toContain("one detached git worktree per key");
-    expect(choosing).toContain("Start all workers before awaiting any one");
+    expect(choosing).toContain("maxParallelWorktrees");
+    expect(choosing).toContain("MAX_PARALLEL_WORKTREES");
+    expect(choosing).toContain('scripts/config.ts" ready-wave');
+    expect(choosing).toContain(`default ${DEFAULT_MAX_PARALLEL_WORKTREES}`);
+    expect(SKILL).toContain("maxParallelWorktrees");
+    expect(SKILL).toMatch(
+      new RegExp(`scripts/config.ts[\\s\\S]*default\\s+${DEFAULT_MAX_PARALLEL_WORKTREES}`),
+    );
+    expect(choosing).toContain("one detached git worktree per dispatched key");
+    expect(choosing).toContain("Start every worker in the current batch before awaiting any one");
     expect(choosing).toContain("DELIVERY_WORKER_JOURNAL");
     expect(choosing).toContain("coordinator remains the only writer");
     expect(choosing).toMatch(/Do not silently run[\s\S]*sequentially/);

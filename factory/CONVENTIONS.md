@@ -125,7 +125,7 @@ Unlike test durability, this rubric is **deliberately not a review gate**: `hold
 
 ## Hardening (N6)
 
-- **Config is the single source for knobs**: `scripts/config.ts` validates and defaults everything (`MAX_FIX_ATTEMPTS` default 2); malformed config throws (fail closed).
+- **Config is the single source for knobs**: `scripts/config.ts` validates and defaults everything (`MAX_FIX_ATTEMPTS` default 2, `MAX_PARALLEL_WORKTREES` default 4); malformed config throws (fail closed).
 - **`scripts/find-change.ts` is the only change-locator**: both commands use it; **more than one match is `ambiguous` → escalate**, never guess.
 - **Re-draft replaces in place**: re-running `/draft` on a key with an existing change re-proposes over the same folder, not a duplicate.
 - **The complexity signal is recorded, not re-judged**: `scripts/change-meta.ts` writes the feasibility `complexitySignal` (and any frontier justification) to the committed change metadata file during draft; `/execute` **reads** it there to pick the implementation model (`select-model.ts`) and must never re-estimate complexity itself. A missing/corrupt meta file falls back to the standard tier (no defended case → standard), never a guess. The signal stays out of human-facing tracker or merge-request text (Rule 2).

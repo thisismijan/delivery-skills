@@ -164,7 +164,8 @@ After approval, it automatically:
    through the repository's confirmed provider.
 2. Finds every ticket whose real blockers are already merged.
 3. Starts independent tickets concurrently, one isolated git worktree and
-   worker per ticket. True blockers remain ordered.
+   worker per ticket, at most `maxParallelWorktrees` at a time (default 4,
+   override with `MAX_PARALLEL_WORKTREES`). True blockers remain ordered.
 4. Drafts the change contract, selects test seams, builds test-first, runs all
    gates, performs both review passes, publishes review notes, and monitors the
    merge request pipeline at its exact head revision.
@@ -376,10 +377,11 @@ ambiguous match stops the run instead of guessing.
 - **Tickets are atomic.** Each ticket is one vertical outcome with one to three
   Given/When/Then acceptance criteria, small enough for one fresh session.
   Oversized tickets stop at draft with a proposed split.
-- **Independent tickets run concurrently.** Auto reserves each ready wave,
-  starts one isolated worktree worker per ticket, and lets the coordinator
-  serialize validated journal results into the shared ledger. It never silently
-  falls back to sequential execution.
+- **Independent tickets run concurrently.** Auto reserves each ready batch of
+  at most `maxParallelWorktrees` tickets (default 4), starts one isolated
+  worktree worker per ticket, and lets the coordinator serialize validated
+  journal results into the shared ledger. It never silently falls back to
+  sequential execution.
 - **Tests come first.** The red gate runs a JSON argv command (never a shell
   string), requires exit code 1, and requires the output to name every new test
   file. A missing command, a timeout, or zero tests is not a red result.

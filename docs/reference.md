@@ -22,6 +22,8 @@ Environment:
 | `CLAUDE_SKILLS_DIR` | Claude wrapper destination |
 | `CLAUDE_SETTINGS_FILE` | Claude settings for the mutation hook |
 | `CURSOR_HOOKS_FILE` | Cursor `hooks.json` for the mutation hook |
+| `MAX_FIX_ATTEMPTS` | Bounded repair attempts (`scripts/config.ts`, default 2) |
+| `MAX_PARALLEL_WORKTREES` | Concurrent isolated auto worktrees (`scripts/config.ts`, default 4) |
 
 ## Runtime capabilities
 
