@@ -63,10 +63,14 @@ function lastSegment(value: string): string {
 	return value.split(/__|\//).pop() ?? value;
 }
 
-export function toolKeys(name: string): string[] {
-	const base = lastSegment(name)
+function exactToolKey(name: string): string {
+	return lastSegment(name)
 		.toLowerCase()
 		.replace(/[^a-z0-9]/g, "");
+}
+
+export function toolKeys(name: string): string[] {
+	const base = exactToolKey(name);
 	const stripped = base
 		.replace(/^(mcp)+/, "")
 		.replace(/^(gitlab|github|jira|atlassian)+/g, "");
@@ -79,6 +83,14 @@ function keysOf(names: readonly string[]): Set<string> {
 
 function serverKeys(server: string): string[] {
 	return toolKeys(server);
+}
+
+function serverMatches(
+	catalogue: McpFamilyCatalogue,
+	tool: McpToolRecord,
+): boolean {
+	const wantedServers = keysOf(catalogue.servers);
+	return serverKeys(tool.server).some((key) => wantedServers.has(key));
 }
 
 function lookupValue(source: unknown, path: string): unknown {
@@ -185,22 +197,7 @@ function familyMatches(
 	catalogue: McpFamilyCatalogue,
 	tools: readonly McpToolRecord[],
 ): boolean {
-	const wantedServers = keysOf(catalogue.servers);
-	if (
-		tools.some((tool) =>
-			serverKeys(tool.server).some((key) => wantedServers.has(key)),
-		)
-	) {
-		return true;
-	}
-	const distinctive = keysOf(
-		Object.values(catalogue.operations).flatMap((binding) => [
-			...binding.tools,
-		]),
-	);
-	return tools.some((tool) =>
-		toolKeys(tool.name).some((key) => distinctive.has(key) && key.length > 6),
-	);
+	return tools.some((tool) => serverMatches(catalogue, tool));
 }
 
 function readyTools(tools: readonly McpToolRecord[]): McpToolRecord[] {
@@ -214,12 +211,14 @@ function matchTool(
 	forbidden: ReadonlySet<string>,
 	available: readonly McpToolRecord[],
 ): McpMatchedTool | undefined {
-	const wanted = keysOf(bindingTools);
-	for (const tool of available) {
-		const keys = toolKeys(tool.name);
-		if (keys.some((key) => forbidden.has(key))) continue;
-		if (keys.some((key) => wanted.has(key))) {
-			return { server: tool.server, name: tool.name };
+	for (const wantedName of bindingTools) {
+		const wanted = exactToolKey(wantedName);
+		for (const tool of available) {
+			const keys = toolKeys(tool.name);
+			if (keys.some((key) => forbidden.has(key))) continue;
+			if (exactToolKey(tool.name) === wanted) {
+				return { server: tool.server, name: tool.name };
+			}
 		}
 	}
 	return undefined;
@@ -233,13 +232,11 @@ export function routeMcpInventory(
 	const families: McpFamilyRoute[] = [];
 	for (const catalogue of catalogues) {
 		const related = inventory.tools.filter((tool) =>
-			familyMatches(catalogue, [tool]),
+			serverMatches(catalogue, tool),
 		);
 		if (!familyMatches(catalogue, inventory.tools)) continue;
 		const authenticated = readyTools(related).length > 0;
-		const available = readyTools(
-			related.length > 0 ? related : inventory.tools,
-		);
+		const available = readyTools(related);
 		const forbidden = keysOf(catalogue.forbidden);
 		const operations: Record<string, McpOperationPlan> = {};
 		const missingOperations: string[] = [];
@@ -308,9 +305,22 @@ export function planMcpOperation(options: {
 	const family = mcpFamily(options.route, options.kind, options.provider);
 	const planned = family?.operations[options.operation];
 	if (!planned) return undefined;
+	let input = options.input ?? {};
+	if (
+		options.kind === "tracker" &&
+		options.operation === "link" &&
+		Array.isArray(input.blockedBy)
+	) {
+		if (input.blockedBy.length !== 1) {
+			throw new Error(
+				"Plan one work-item link call per blocker; blockedBy must contain exactly one reference.",
+			);
+		}
+		input = { ...input, blockedBy: input.blockedBy[0] };
+	}
 	return {
 		...planned,
-		arguments: interpolateArguments(planned.arguments, options.input ?? {}),
+		arguments: interpolateArguments(planned.arguments, input),
 	};
 }
 
