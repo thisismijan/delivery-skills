@@ -11,6 +11,7 @@ import {
 	routeMcpInventory,
 } from "./mcp-route";
 import { checkNotePublication } from "./note-publication";
+import { providerFailureMessage } from "./provider-error";
 import {
 	type RuntimeManifest,
 	loadRuntimeManifest,
@@ -637,14 +638,19 @@ async function invokeForgeAdapter(options: {
 		}),
 	);
 	proc.stdin.end();
-	const [stdout, , code] = await Promise.all([
+	const [stdout, stderr, code] = await Promise.all([
 		new Response(proc.stdout).text(),
 		new Response(proc.stderr).text(),
 		proc.exited,
 	]);
 	if (code !== 0) {
 		throw new Error(
-			`The forge provider failed ${options.operation} (exit ${code}).`,
+			providerFailureMessage({
+				subject: "The forge provider",
+				operation: options.operation,
+				code,
+				stderr,
+			}),
 		);
 	}
 	let parsed: unknown;

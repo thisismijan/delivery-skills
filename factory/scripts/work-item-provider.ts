@@ -17,6 +17,7 @@ import {
 	repositoryIdentity,
 	routeMcpInventory,
 } from "./mcp-route";
+import { providerFailureMessage } from "./provider-error";
 import { type RuntimeManifest, loadRuntimeManifest } from "./runtime-manifest";
 import {
 	readWorkItemSelection,
@@ -368,14 +369,19 @@ async function invokeRemoteProvider(options: {
 		}),
 	);
 	proc.stdin.end();
-	const [stdout, , code] = await Promise.all([
+	const [stdout, stderr, code] = await Promise.all([
 		new Response(proc.stdout).text(),
 		new Response(proc.stderr).text(),
 		proc.exited,
 	]);
 	if (code !== 0) {
 		throw new Error(
-			`provider '${options.provider}' failed ${options.operation} (exit ${code})`,
+			providerFailureMessage({
+				subject: `Provider '${options.provider}'`,
+				operation: options.operation,
+				code,
+				stderr,
+			}),
 		);
 	}
 	const parsed = JSON.parse(stdout) as unknown;

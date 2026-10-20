@@ -406,6 +406,14 @@ process.exit(9);`,
 				input: { ref: "change-1" },
 			}),
 		).rejects.not.toThrow(/secret-value|token=/);
+		await expect(
+			runForgeOperation({
+				operation: "read",
+				repositoryRoot: root,
+				runtime: runtime({ forge: `exec:${failed}` }),
+				input: { ref: "change-1" },
+			}),
+		).rejects.toThrow(/\[credential redacted\]/);
 
 		const malformed = await fakeAdapter(
 			root,
