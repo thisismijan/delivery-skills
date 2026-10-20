@@ -90,7 +90,7 @@ bun "$FACTORY_ROOT/scripts/work-item-provider.ts" \
 |----------|-------------|--------------------|
 | GitHub | `GITHUB_TOKEN`, `GH_TOKEN`, `GH_TOKEN_FILE`, `~/token` | `GH_HOST` / `GITHUB_HOST`, `GH_REPO` / `GITHUB_REPOSITORY` |
 | GitLab | `GITLAB_TOKEN`, `GL_TOKEN_FILE`, `~/token` | `GL_HOST`, `GL_PROJECT` |
-| Jira | `JIRA_SITE`, email+token or token file | Project key per repository: `delivery-init.ts --work-items jira --setting project=<KEY>` (optional `--setting site=<url>`) |
+| Jira | `JIRA_SITE`, email+token or token file | Project key per repository: `delivery-init.ts --work-items jira --setting project=<KEY>`; MCP transport also records `--setting site=<url>` for `cloudId` |
 
 ## Artifacts (gitignored in the target repo)
 

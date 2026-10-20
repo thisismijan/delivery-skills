@@ -109,7 +109,7 @@ test("--skills-dir installs generic skills and runtime beside them", async () =>
 		expect(stdout).toContain(`Runtime -> ${dest}/_factory`);
 		expect(stdout).toContain("Reload the host session");
 		expect(stdout).toContain(
-			`Then run: bun "${dest}/_factory/scripts/doctor.ts"`,
+			`From the target git repository, run: bun "${dest}/_factory/scripts/doctor.ts"`,
 		);
 		expect(stdout).not.toMatch(/Cursor|Claude|ig-spec/i);
 		expect(await readFile(join(dest, "groom", "SKILL.md"), "utf8")).toContain(
@@ -215,6 +215,25 @@ test("a production install ships dependencies and its primary CLIs run", async (
 		expect(doctorOutput).toContain("NEEDS SETUP");
 		expect(doctorOutput).toContain("HOST LIMITATION");
 		expect(doctorOutput).toContain("HUMAN-OWNED");
+	});
+});
+
+test("concurrent production installs serialize Bun dependency preparation", async () => {
+	await withInstallRoot(async (root) => {
+		const [first, second] = await Promise.all([
+			runInstaller(["--skills-dir", join(root, "skills-a")], {
+				DELIVERY_BIN_DIR: join(root, "bin-a"),
+				DELIVERY_INSTALL_SKIP_BUN: "",
+			}),
+			runInstaller(["--skills-dir", join(root, "skills-b")], {
+				DELIVERY_BIN_DIR: join(root, "bin-b"),
+				DELIVERY_INSTALL_SKIP_BUN: "",
+			}),
+		]);
+		expect(first.exitCode).toBe(0);
+		expect(second.exitCode).toBe(0);
+		expect(first.stderr).not.toContain("EEXIST");
+		expect(second.stderr).not.toContain("EEXIST");
 	});
 });
 

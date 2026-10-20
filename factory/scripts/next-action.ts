@@ -324,7 +324,7 @@ export function selectNextAction(
 	const status = input.status ?? "";
 	if (statusMatches(status, "[groomed]") && input.blockersMerged !== true) {
 		return stopped(
-			"Draft cannot start until every recorded blocker is merged.",
+			"Draft needs blocker evidence. Pass blockersMerged: true when blockedBy is empty or every recorded blocker is merged.",
 		);
 	}
 	if (statusMatches(status, "[no-go <x>]")) {

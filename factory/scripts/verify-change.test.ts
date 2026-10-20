@@ -57,6 +57,10 @@ test("tasks not tests-first -> warning and fail-closed result", async () => {
 
 test("isTestsFirst pure logic", () => {
 	expect(isTestsFirst("- write test\n- implement")).toBe(true);
+	expect(isTestsFirst("## Tests\n- add failing tests\n## Implementation")).toBe(
+		true,
+	);
+	expect(isTestsFirst("## Specs\n## Implementation")).toBe(true);
 	expect(isTestsFirst("- implement\n- write test")).toBe(false);
 	expect(isTestsFirst("- ship it")).toBe(false);
 });

@@ -55,3 +55,11 @@ When the host exposes integration tools, delivery SHALL record them, map them on
 #### Scenario: Session tool output is product-shaped
 - **WHEN** a mapped host tool returns native JSON rather than the portable schema
 - **THEN** delivery normalizes and validates it before use, and refuses malformed evidence
+
+#### Scenario: Session tool needs a service locator
+- **WHEN** a mapped tool requires a repository path, owner and repository, or cloud site identifier
+- **THEN** the plan supplies that locator from the git remote or confirmed repository settings instead of guessing or omitting it
+
+#### Scenario: Multiple integration servers are present
+- **WHEN** the recorded inventory contains tools from more than one server
+- **THEN** each operation uses a tool from its own provider family and never borrows a same-named tool from another server

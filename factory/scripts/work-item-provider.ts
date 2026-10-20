@@ -11,7 +11,12 @@ import { isAbsolute, join } from "node:path";
 import { z } from "zod";
 import { loadMcpInventory } from "./mcp-inventory";
 import { mapMcpWorkItemResult } from "./mcp-normalize";
-import { planMcpOperation, routeMcpInventory } from "./mcp-route";
+import {
+	addMcpProviderContext,
+	planMcpOperation,
+	repositoryIdentity,
+	routeMcpInventory,
+} from "./mcp-route";
 import { type RuntimeManifest, loadRuntimeManifest } from "./runtime-manifest";
 import {
 	readWorkItemSelection,
@@ -55,6 +60,17 @@ export const WorkItem = z
 	})
 	.strict();
 export type WorkItem = z.infer<typeof WorkItem>;
+
+export const WorkItemReceipt = z
+	.object({
+		version: z.literal(1),
+		provider: z.string().min(1),
+		operation: z.enum(["create", "link", "note"]),
+		ref: Reference,
+		noteId: Reference.optional(),
+	})
+	.strict();
+export type WorkItemReceipt = z.infer<typeof WorkItemReceipt>;
 
 export const CreateWorkItemInput = z
 	.object({
@@ -404,7 +420,7 @@ export async function planWorkItemOperation(options: {
 	}
 	const provider = status.selection.provider.id;
 	const inventory = await loadMcpInventory(options.repositoryRoot);
-	const planned = planMcpOperation({
+	const rawPlan = planMcpOperation({
 		route: routeMcpInventory(inventory),
 		kind: "tracker",
 		operation: options.operation,
@@ -416,6 +432,12 @@ export async function planWorkItemOperation(options: {
 			settings: status.selection.provider.settings ?? {},
 		},
 	});
+	const planned = rawPlan
+		? addMcpProviderContext(rawPlan, {
+				repository: await repositoryIdentity(options.repositoryRoot),
+				settings: status.selection.provider.settings,
+			})
+		: undefined;
 	if (planned) {
 		return {
 			transport: "mcp",
@@ -436,20 +458,24 @@ export function normalizeWorkItemSessionResult(options: {
 	provider: string;
 	operation: WorkItemOperation;
 	raw: unknown;
-}): WorkItem | WorkItem[] {
+	input?: unknown;
+}): WorkItem | WorkItem[] | WorkItemReceipt {
+	const resultSchema =
+		options.operation === "list"
+			? z.array(WorkItem)
+			: options.operation === "read"
+				? WorkItem
+				: WorkItemReceipt;
 	try {
-		return options.operation === "list"
-			? z.array(WorkItem).parse(options.raw)
-			: WorkItem.parse(options.raw);
+		return resultSchema.parse(options.raw);
 	} catch {
 		const mapped = mapMcpWorkItemResult({
 			provider: options.provider,
 			operation: options.operation,
 			raw: options.raw,
+			input: options.input,
 		});
-		return options.operation === "list"
-			? z.array(WorkItem).parse(mapped)
-			: WorkItem.parse(mapped);
+		return resultSchema.parse(mapped);
 	}
 }
 
@@ -546,19 +572,21 @@ if (import.meta.main) {
 			const normalizedOp = repositoryRoot as WorkItemOperation;
 			const provider = manifestPath;
 			const rawPath = inputPath;
+			const originalInput = process.argv[6];
 			if (
 				!["list", "read", "create", "link", "note"].includes(normalizedOp) ||
 				!provider ||
 				!rawPath
 			) {
 				throw new Error(
-					"usage: work-item-provider.ts normalize <operation> <provider> <raw.json>",
+					"usage: work-item-provider.ts normalize <operation> <provider> <raw.json> [input.json]",
 				);
 			}
 			const result = normalizeWorkItemSessionResult({
 				provider,
 				operation: normalizedOp,
 				raw: await Bun.file(rawPath).json(),
+				input: originalInput ? await Bun.file(originalInput).json() : undefined,
 			});
 			console.log(JSON.stringify(result, null, 2));
 		} else {

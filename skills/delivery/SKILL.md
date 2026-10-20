@@ -107,6 +107,9 @@ bun "${FACTORY_ROOT}/scripts/next-action.ts" <args> <status|-> <context.json>
 Pass `-` when there is no ledger. The context records execute-recovery
 evidence, continuous authorization, blocker state, NO-GO classification, and
 remaining run keys. Missing context fails closed for a guarded transition. An
+empty `blockedBy` list is already satisfied: pass `"blockersMerged": true`
+when the ticket records no blockers, or after every recorded blocker has
+merged. Pass `false` while any recorded blocker remains. An
 illegal or unknown stop does not write the ledger. An explicit verb that is
 allowed still runs only that step.
 

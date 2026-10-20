@@ -30,6 +30,10 @@ operations.
 - **WHEN** a review requests each evidence view for a change
 - **THEN** each result is schema-validated and bound to the requested change and head revision
 
+#### Scenario: Session-tool evidence lacks the read head
+- **WHEN** a session tool returns files, diff, commits, discussions, or anchors without an input bound to the full head revision from the preceding normalized change read
+- **THEN** normalization fails instead of inventing a revision label
+
 #### Scenario: Diff is truncated
 - **WHEN** the forge reports that a diff is incomplete or overflowed
 - **THEN** the provider refuses the diff instead of returning partial review evidence

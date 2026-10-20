@@ -29,7 +29,9 @@ async function isNonEmptyDir(path: string): Promise<boolean> {
 // Heuristic: a test-related task line appears before an implementation task line.
 export function isTestsFirst(tasksMd: string): boolean {
 	const lines = tasksMd.split("\n").map((l) => l.toLowerCase());
-	const firstTest = lines.findIndex((l) => /\b(test|spec)\b/.test(l));
+	const firstTest = lines.findIndex((l) =>
+		/\b(test|tests|testing|spec|specs)\b/.test(l),
+	);
 	const firstImpl = lines.findIndex((l) =>
 		/\b(implement|implementation)\b/.test(l),
 	);

@@ -29,7 +29,6 @@ describe("decideCommand", () => {
 
 	test.each([
 		"transitionJiraIssue KEY-1",
-		"createJiraIssue",
 		"editJiraIssue KEY-1",
 		"curl -X POST https://acme.atlassian.net/rest/api/3/issue",
 		"curl --request PUT https://jira.example/rest/api/2/issue/KEY-1",
@@ -62,5 +61,11 @@ describe("decideCommand", () => {
 		"glab mr create --draft",
 	])("allows read-only %s", (command) => {
 		expect(decideCommand(command).blocked).toBe(false);
+	});
+
+	test("allows planned Jira creation while keeping status changes human-owned", () => {
+		expect(decideCommand('createJiraIssue {"projectKey":"DEL"}').blocked).toBe(
+			false,
+		);
 	});
 });

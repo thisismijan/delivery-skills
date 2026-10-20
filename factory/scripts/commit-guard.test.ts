@@ -79,6 +79,13 @@ describe("mutation guard", () => {
 		"git push --force-with-lease origin topic",
 		"git reset --hard HEAD~1",
 		"transitionJiraIssue",
+		"accept_merge_request",
+		'save_merge_request_review {"method":"approve"}',
+		'save_merge_request_review {"method":"resolve_discussion"}',
+		'save_merge_request {"state_event":"close"}',
+		'save_work_item {"state":"closed"}',
+		'executeWrite {"name":"editJiraIssue"}',
+		'executeDestructive {"name":"deleteJiraIssue"}',
 	])("blocks %s", (command) => {
 		expect(isForbiddenMutation(command).blocked).toBe(true);
 	});
@@ -88,6 +95,10 @@ describe("mutation guard", () => {
 		"glab mr update 12 --ready",
 		"git push -u origin topic",
 		'git commit -m "fix: safe"',
+		'createJiraIssue {"projectKey":"DEL"}',
+		'addOrEditJiraIssueComment {"issueIdOrKey":"DEL-1"}',
+		'addGraphContext {"objectIdentifier":"DEL-1"}',
+		'save_merge_request {"title":"Draft: safe change"}',
 	])("allows %s", (command) => {
 		expect(isForbiddenMutation(command).blocked).toBe(false);
 	});

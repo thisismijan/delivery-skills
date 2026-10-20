@@ -16,16 +16,18 @@ bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items local-files
 ```
 
 Doctor should show read-only lifecycle ready. Forge and remote work items remain
-**Needs setup**; that is expected. `/delivery` still grooms into `.delivery/work-items/`
-keys such as `LOCAL-1`. Execute cannot open a pull request until you add a
-forge provider.
+**Needs setup**; that is expected. The generic install is a read-only bootstrap:
+it can groom and create local keys such as `LOCAL-1`, but draft, execute, and
+auto stay blocked until a host adapter verifies its denial hook. Reinstall with
+`--adapter cursor` or `--adapter claude-code`, then rerun doctor. Execute also
+cannot open a pull request until you add a forge provider.
 
 `.delivery/work-items.json` looks like:
 
 ```json
 {
   "version": 1,
-  "provider": { "id": "local-files", "kind": "local-files" }
+  "provider": { "id": "local-files", "kind": "local-files" },
   "confirmed": true
 }
 ```

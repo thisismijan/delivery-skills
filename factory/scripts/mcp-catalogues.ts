@@ -19,12 +19,7 @@ export interface McpFamilyCatalogue {
 
 const GITLAB_FORGE_OPERATIONS: Record<string, McpOperationBinding> = {
 	find: {
-		tools: [
-			"list_merge_requests",
-			"gitlab_list_merge_requests",
-			"list_mrs",
-			"search_merge_requests",
-		],
+		tools: ["gitlab_list_merge_requests", "list_mrs", "search_merge_requests"],
 		arguments: { source_branch: "{{sourceBranch}}", state: "opened" },
 	},
 	read: {
@@ -38,7 +33,6 @@ const GITLAB_FORGE_OPERATIONS: Record<string, McpOperationBinding> = {
 	},
 	pipeline: {
 		tools: [
-			"get_pipeline",
 			"list_pipelines",
 			"get_pipeline_jobs",
 			"get_commit_statuses",

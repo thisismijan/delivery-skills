@@ -3,7 +3,13 @@ import { isAbsolute, join } from "node:path";
 import { z } from "zod";
 import { loadMcpInventory } from "./mcp-inventory";
 import { mapMcpForgeResult } from "./mcp-normalize";
-import { mcpFamily, planMcpOperation, routeMcpInventory } from "./mcp-route";
+import {
+	addMcpProviderContext,
+	mcpFamily,
+	planMcpOperation,
+	repositoryIdentity,
+	routeMcpInventory,
+} from "./mcp-route";
 import { checkNotePublication } from "./note-publication";
 import {
 	type RuntimeManifest,
@@ -292,6 +298,14 @@ export const ReadForgeChangeInput = z
 	.strict();
 export type ReadForgeChangeInput = z.infer<typeof ReadForgeChangeInput>;
 
+export const ReadForgeEvidenceInput = z
+	.object({
+		ref: ChangeRef,
+		headRevision: Revision.optional(),
+	})
+	.strict();
+export type ReadForgeEvidenceInput = z.infer<typeof ReadForgeEvidenceInput>;
+
 export const ReadForgePipelineInput = z
 	.object({
 		revision: Revision,
@@ -430,7 +444,7 @@ function operationSchema(operation: ForgeOperation): z.ZodType {
 		case "commits":
 		case "discussions":
 		case "anchors":
-			return ReadForgeChangeInput;
+			return ReadForgeEvidenceInput;
 		case "create":
 			return CreateForgeChangeInput;
 		case "set-draft":
@@ -697,7 +711,7 @@ export async function planForgeOperation(options: {
 		body = resolvePublicationBody(publication.bodyPath, options.repositoryRoot);
 	}
 	const request = adapterInput(options.operation, input, body);
-	const planned = planMcpOperation({
+	const rawPlan = planMcpOperation({
 		route,
 		kind: "forge",
 		operation: options.operation,
@@ -708,6 +722,11 @@ export async function planForgeOperation(options: {
 				: {}) as Record<string, unknown>),
 		},
 	});
+	const planned = rawPlan
+		? addMcpProviderContext(rawPlan, {
+				repository: await repositoryIdentity(options.repositoryRoot),
+			})
+		: undefined;
 	if (planned) {
 		return {
 			transport: "mcp",

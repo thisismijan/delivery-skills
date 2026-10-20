@@ -34,14 +34,43 @@ export interface McpRouteResult {
 	families: McpFamilyRoute[];
 }
 
+export interface RepositoryIdentity {
+	host: string;
+	owner: string;
+	repository: string;
+	projectPath: string;
+}
+
+const REQUIRED_OPERATIONS = {
+	forge: [
+		"find",
+		"read",
+		"pipeline",
+		"files",
+		"diff",
+		"commits",
+		"discussions",
+		"anchors",
+		"create",
+		"set-draft",
+		"note",
+		"reply",
+	],
+	tracker: ["list", "read", "create", "link", "note"],
+} as const;
+
 function lastSegment(value: string): string {
 	return value.split(/__|\//).pop() ?? value;
 }
 
-export function toolKeys(name: string): string[] {
-	const base = lastSegment(name)
+function exactToolKey(name: string): string {
+	return lastSegment(name)
 		.toLowerCase()
 		.replace(/[^a-z0-9]/g, "");
+}
+
+export function toolKeys(name: string): string[] {
+	const base = exactToolKey(name);
 	const stripped = base
 		.replace(/^(mcp)+/, "")
 		.replace(/^(gitlab|github|jira|atlassian)+/g, "");
@@ -56,6 +85,14 @@ function serverKeys(server: string): string[] {
 	return toolKeys(server);
 }
 
+function serverMatches(
+	catalogue: McpFamilyCatalogue,
+	tool: McpToolRecord,
+): boolean {
+	const wantedServers = keysOf(catalogue.servers);
+	return serverKeys(tool.server).some((key) => wantedServers.has(key));
+}
+
 function lookupValue(source: unknown, path: string): unknown {
 	const parts = path.split(".");
 	let current: unknown = source;
@@ -64,6 +101,67 @@ function lookupValue(source: unknown, path: string): unknown {
 		current = (current as Record<string, unknown>)[part];
 	}
 	return current;
+}
+
+export function parseRepositoryIdentity(
+	remote: string,
+): RepositoryIdentity | null {
+	const trimmed = remote.trim();
+	const match = trimmed.match(
+		/^(?:https?:\/\/|ssh:\/\/git@|git@)([^/:]+)(?::\d+)?[/:](.+?)(?:\.git)?$/,
+	);
+	if (!match) return null;
+	const host = match[1];
+	const projectPath = match[2]?.replace(/\.git$/, "").replace(/^\/+/, "");
+	if (!host || !projectPath || !projectPath.includes("/")) return null;
+	const parts = projectPath.split("/");
+	const repository = parts.at(-1);
+	const owner = parts.slice(0, -1).join("/");
+	if (!repository || !owner) return null;
+	return { host, owner, repository, projectPath };
+}
+
+export async function repositoryIdentity(
+	repositoryRoot: string,
+): Promise<RepositoryIdentity | null> {
+	const proc = Bun.spawn(["git", "remote", "get-url", "origin"], {
+		cwd: repositoryRoot,
+		stdout: "pipe",
+		stderr: "ignore",
+	});
+	const [stdout, code] = await Promise.all([
+		new Response(proc.stdout).text(),
+		proc.exited,
+	]);
+	return code === 0 ? parseRepositoryIdentity(stdout) : null;
+}
+
+export function addMcpProviderContext(
+	plan: McpOperationPlan,
+	context: {
+		repository?: RepositoryIdentity | null;
+		settings?: Record<string, string>;
+	},
+): McpOperationPlan {
+	let argumentsWithContext = { ...plan.arguments };
+	if (plan.provider === "gitlab" && context.repository) {
+		argumentsWithContext.project_id ??= context.repository.projectPath;
+		if (
+			"merge_request_iid" in argumentsWithContext ||
+			"issue_iid" in argumentsWithContext
+		) {
+			const { iid: _unused, ...strictArguments } = argumentsWithContext;
+			argumentsWithContext = strictArguments;
+		}
+	}
+	if (plan.provider === "github" && context.repository) {
+		argumentsWithContext.owner ??= context.repository.owner;
+		argumentsWithContext.repo ??= context.repository.repository;
+	}
+	if (plan.provider === "jira" && context.settings?.site) {
+		argumentsWithContext.cloudId ??= context.settings.site;
+	}
+	return { ...plan, arguments: argumentsWithContext };
 }
 
 export function interpolateArguments(
@@ -99,22 +197,7 @@ function familyMatches(
 	catalogue: McpFamilyCatalogue,
 	tools: readonly McpToolRecord[],
 ): boolean {
-	const wantedServers = keysOf(catalogue.servers);
-	if (
-		tools.some((tool) =>
-			serverKeys(tool.server).some((key) => wantedServers.has(key)),
-		)
-	) {
-		return true;
-	}
-	const distinctive = keysOf(
-		Object.values(catalogue.operations).flatMap((binding) => [
-			...binding.tools,
-		]),
-	);
-	return tools.some((tool) =>
-		toolKeys(tool.name).some((key) => distinctive.has(key) && key.length > 6),
-	);
+	return tools.some((tool) => serverMatches(catalogue, tool));
 }
 
 function readyTools(tools: readonly McpToolRecord[]): McpToolRecord[] {
@@ -128,12 +211,14 @@ function matchTool(
 	forbidden: ReadonlySet<string>,
 	available: readonly McpToolRecord[],
 ): McpMatchedTool | undefined {
-	const wanted = keysOf(bindingTools);
-	for (const tool of available) {
-		const keys = toolKeys(tool.name);
-		if (keys.some((key) => forbidden.has(key))) continue;
-		if (keys.some((key) => wanted.has(key))) {
-			return { server: tool.server, name: tool.name };
+	for (const wantedName of bindingTools) {
+		const wanted = exactToolKey(wantedName);
+		for (const tool of available) {
+			const keys = toolKeys(tool.name);
+			if (keys.some((key) => forbidden.has(key))) continue;
+			if (exactToolKey(tool.name) === wanted) {
+				return { server: tool.server, name: tool.name };
+			}
 		}
 	}
 	return undefined;
@@ -146,16 +231,12 @@ export function routeMcpInventory(
 	if (!inventory) return { families: [] };
 	const families: McpFamilyRoute[] = [];
 	for (const catalogue of catalogues) {
-		const related = inventory.tools.filter(
-			(tool) =>
-				familyMatches(catalogue, [tool]) ||
-				familyMatches(catalogue, inventory.tools),
+		const related = inventory.tools.filter((tool) =>
+			serverMatches(catalogue, tool),
 		);
 		if (!familyMatches(catalogue, inventory.tools)) continue;
 		const authenticated = readyTools(related).length > 0;
-		const available = readyTools(
-			related.length > 0 ? related : inventory.tools,
-		);
+		const available = readyTools(related);
 		const forbidden = keysOf(catalogue.forbidden);
 		const operations: Record<string, McpOperationPlan> = {};
 		const missingOperations: string[] = [];
@@ -205,6 +286,15 @@ export function mcpFamily(
 	);
 }
 
+export function mcpFamilyComplete(family: McpFamilyRoute): boolean {
+	return (
+		family.authenticated &&
+		REQUIRED_OPERATIONS[family.kind].every(
+			(operation) => family.operations[operation],
+		)
+	);
+}
+
 export function planMcpOperation(options: {
 	route: McpRouteResult;
 	kind: "forge" | "tracker";
@@ -215,9 +305,22 @@ export function planMcpOperation(options: {
 	const family = mcpFamily(options.route, options.kind, options.provider);
 	const planned = family?.operations[options.operation];
 	if (!planned) return undefined;
+	let input = options.input ?? {};
+	if (
+		options.kind === "tracker" &&
+		options.operation === "link" &&
+		Array.isArray(input.blockedBy)
+	) {
+		if (input.blockedBy.length !== 1) {
+			throw new Error(
+				"Plan one work-item link call per blocker; blockedBy must contain exactly one reference.",
+			);
+		}
+		input = { ...input, blockedBy: input.blockedBy[0] };
+	}
 	return {
 		...planned,
-		arguments: interpolateArguments(planned.arguments, options.input ?? {}),
+		arguments: interpolateArguments(planned.arguments, input),
 	};
 }
 
@@ -226,12 +329,7 @@ export function trackerProvidersFromMcp(route: McpRouteResult): string[] {
 		...new Set(
 			route.families
 				.filter(
-					(family) =>
-						family.kind === "tracker" &&
-						family.authenticated &&
-						["list", "read", "create", "link", "note"].every(
-							(operation) => family.operations[operation],
-						),
+					(family) => family.kind === "tracker" && mcpFamilyComplete(family),
 				)
 				.map((family) => family.provider),
 		),

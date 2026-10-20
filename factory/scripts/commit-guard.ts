@@ -47,7 +47,8 @@ export function isAttributionViolation(command: string): GuardResult {
 	return { blocked: false };
 }
 
-const MERGE_CLOSE_REASON = "Merge and close are human-owned actions.";
+const MERGE_CLOSE_REASON =
+	"Merge, close, approval, and thread resolution are human-owned actions.";
 const JIRA_REASON =
 	"Jira status and destructive changes are human-owned actions.";
 const FORCE_REASON = "Force-pushing is not permitted.";
@@ -108,7 +109,21 @@ const COMMAND_DENY_LIST: Array<{ pattern: RegExp; reason: string }> = [
 	},
 	{
 		pattern:
-			/\b(?:transitionJiraIssue|createJiraIssue|editJiraIssue|executeDestructive)\b/i,
+			/\b(?:transitionJiraIssue|editJiraIssue|executeWrite|executeDestructive)\b/i,
+		reason: JIRA_REASON,
+	},
+	{
+		pattern: /\b(?:accept_merge_request|save_merge_request_review)\b/i,
+		reason: MERGE_CLOSE_REASON,
+	},
+	{
+		pattern:
+			/\bsave_merge_request\b[^\n]*(?:"state_event"\s*:\s*"close"|state_event[=:]\s*close)/i,
+		reason: MERGE_CLOSE_REASON,
+	},
+	{
+		pattern:
+			/\bsave_work_item\b[^\n]*(?:"(?:state|status)"\s*:|(?:state|status)[=:])/i,
 		reason: JIRA_REASON,
 	},
 ];

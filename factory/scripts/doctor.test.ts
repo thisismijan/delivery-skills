@@ -120,7 +120,7 @@ test("work-item diagnosis distinguishes confirmed and unavailable choices", () =
 	).toMatchObject({ category: "Ready now", detail: "jira (project=MDF)" });
 });
 
-test("authenticated session tools are ready without CLI adapters", () => {
+test("partial session tools remain a setup item", () => {
 	const checks = sessionToolDoctorChecks({
 		families: [
 			{
@@ -143,11 +143,50 @@ test("authenticated session tools are ready without CLI adapters", () => {
 		],
 	});
 	expect(checks[0]).toMatchObject({
-		ok: true,
+		ok: false,
 		name: "Jira session tools",
 	});
 	expect(checks[0]?.detail).toContain("read");
-	expect(checks[0]?.detail).toContain("remaining");
+	expect(checks[0]?.detail).toContain("still need");
+});
+
+test("complete session tools satisfy remote tracker diagnosis", () => {
+	const operations = Object.fromEntries(
+		["list", "read", "create", "link", "note"].map((operation) => [
+			operation,
+			{
+				transport: "mcp" as const,
+				provider: "jira",
+				capability: "tracker.item" as const,
+				operation,
+				tool: { server: "Atlassian", name: operation },
+				arguments: {},
+			},
+		]),
+	);
+	const route = {
+		families: [
+			{
+				provider: "jira",
+				kind: "tracker" as const,
+				authenticated: true,
+				capabilities: ["tracker.item" as const],
+				operations,
+				missingOperations: [],
+			},
+		],
+	};
+	expect(sessionToolDoctorChecks(route)[0]).toMatchObject({
+		ok: true,
+		name: "Jira session tools",
+	});
+	const remote = remoteProviderDoctorChecks(
+		defaultRuntimeManifest(true),
+		{},
+		() => null,
+		route,
+	);
+	expect(remote.map((check) => check.name)).not.toContain("Remote work items");
 });
 
 test("generic runtime does not demand a GitLab tool", () => {

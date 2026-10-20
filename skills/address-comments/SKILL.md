@@ -69,7 +69,11 @@ This command consumes the review comments on the **existing** MR for this ticket
    bun "${FACTORY_ROOT}/scripts/config.ts"
    ```
 
-4. **Gather and scope comments.** Write `{ "ref": "<change-ref>" }` to `<reviewDir>/discussions-input.json`, then fetch discussion threads with the exact forge command:
+4. **Gather and scope comments.** Read the full head revision from the
+   normalized change returned by `find`. Write
+   `{ "ref": "<change-ref>", "headRevision": "<full-head-sha>" }` to
+   `<reviewDir>/discussions-input.json`, then fetch discussion threads with the
+   exact forge command:
    ```
    bun "${FACTORY_ROOT}/scripts/forge-provider.ts" discussions "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/discussions-input.json" \
      | bun "${FACTORY_ROOT}/scripts/forge-comments.ts" \
