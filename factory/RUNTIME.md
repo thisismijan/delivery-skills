@@ -114,7 +114,10 @@ bun "$FACTORY_ROOT/scripts/forge-provider.ts" normalize <operation> \
 ```
 
 Work items use the same plan/normalize pair on
-`scripts/work-item-provider.ts`. Record available host tools at doctor and at
+`scripts/work-item-provider.ts`, including the original input file when
+normalizing a mutation. A create, link, or note returns a receipt; read the
+affected item afterwards when later decisions need its current fields or
+dependencies. Record available host tools at doctor and at
 the start of a run with `scripts/mcp-inventory.ts`. Never call a host tool that
 the plan did not name. Never call a tool that merges, closes, approves, deletes,
 resolves threads, or transitions work-item status.

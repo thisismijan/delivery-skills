@@ -18,13 +18,38 @@ function asBoolean(value: unknown): boolean | undefined {
 	return typeof value === "boolean" ? value : undefined;
 }
 
+function asIdentifier(value: unknown): string | undefined {
+	return (
+		asString(value) ??
+		(typeof value === "number" && Number.isFinite(value)
+			? String(value)
+			: undefined)
+	);
+}
+
 function unwrap(value: unknown): unknown {
 	if (!isRecord(value)) return value;
+	if (Array.isArray(value.content)) {
+		const text = value.content
+			.filter(isRecord)
+			.map((entry) => asString(entry.text))
+			.filter((entry): entry is string => entry !== undefined)
+			.join("");
+		if (text) {
+			try {
+				return unwrap(JSON.parse(text) as unknown);
+			} catch {
+				// Non-JSON text remains available to the operation-specific mapper.
+			}
+		}
+	}
 	for (const key of [
 		"result",
 		"data",
 		"content",
 		"issue",
+		"workItem",
+		"work_item",
 		"merge_request",
 		"mergeRequest",
 		"pull_request",
@@ -58,6 +83,7 @@ function authorOf(value: unknown): string {
 		asString(value.login) ||
 		asString(value.username) ||
 		asString(value.displayName) ||
+		asString(value.author_name) ||
 		"unknown"
 	);
 }
@@ -309,6 +335,7 @@ function commitsResult(
 			sha,
 			author: authorOf(
 				value.author ??
+					value.author_name ??
 					(isRecord(value.commit) ? value.commit.author : undefined) ??
 					value.committer,
 			),
@@ -343,8 +370,8 @@ function discussionsResult(
 		}
 		const notes = Array.isArray(value.notes) ? value.notes : [value];
 		const id =
-			asString(value.id) ??
-			asString(value.node_id) ??
+			asIdentifier(value.id) ??
+			asIdentifier(value.node_id) ??
 			`discussion-${index + 1}`;
 		return {
 			id: String(id),
@@ -353,9 +380,16 @@ function discussionsResult(
 				if (!isRecord(note)) {
 					throw new Error("Session tool discussion note was malformed.");
 				}
-				const noteId = asString(note.id) ?? `${id}:${noteIndex + 1}`;
-				const anchorPath = asString(note.path) || asString(note.file_path);
-				const line = asNumber(note.line) ?? asNumber(note.new_line);
+				const noteId = asIdentifier(note.id) ?? `${id}:${noteIndex + 1}`;
+				const position = isRecord(note.position) ? note.position : undefined;
+				const anchorPath =
+					asString(note.path) ||
+					asString(note.file_path) ||
+					asString(position?.new_path);
+				const line =
+					asNumber(note.line) ??
+					asNumber(note.new_line) ??
+					asNumber(position?.new_line);
 				return {
 					id: String(noteId),
 					author: authorOf(note.author ?? note.user),
@@ -619,14 +653,62 @@ function workItemFromUnknown(provider: string, raw: unknown): unknown {
 	};
 }
 
+function workItemReceipt(
+	provider: string,
+	operation: "create" | "link" | "note",
+	raw: unknown,
+	input: unknown,
+): unknown {
+	const value = unwrap(raw);
+	const record = isRecord(value) ? value : {};
+	const ref =
+		operation === "create"
+			? (asIdentifier(record.key) ??
+				asIdentifier(record.ref) ??
+				asIdentifier(record.iid) ??
+				requestedString(input, "ref"))
+			: (requestedString(input, "ref") ??
+				asIdentifier(record.key) ??
+				asIdentifier(record.ref));
+	if (!ref) {
+		throw new Error(
+			"Session tool mutation output is missing the affected work-item reference.",
+		);
+	}
+	const noteId =
+		asIdentifier(record.commentId) ??
+		asIdentifier(record.comment_id) ??
+		(operation === "note" ? asIdentifier(record.id) : undefined);
+	return {
+		version: 1,
+		provider,
+		operation,
+		ref,
+		...(noteId ? { noteId } : {}),
+	};
+}
+
 export function mapMcpWorkItemResult(options: {
 	provider: string;
 	operation: "list" | "read" | "create" | "link" | "note";
 	raw: unknown;
+	input?: unknown;
 }): unknown {
 	if (options.operation === "list") {
 		return listOf(options.raw, ["issues", "items", "values", "workItems"]).map(
 			(item) => workItemFromUnknown(options.provider, item),
+		);
+	}
+	if (
+		options.operation === "create" ||
+		options.operation === "link" ||
+		options.operation === "note"
+	) {
+		return workItemReceipt(
+			options.provider,
+			options.operation,
+			options.raw,
+			options.input,
 		);
 	}
 	return workItemFromUnknown(options.provider, options.raw);
