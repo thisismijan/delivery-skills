@@ -64,8 +64,8 @@ describe("decideCommand", () => {
 	});
 
 	test("allows planned Jira creation while keeping status changes human-owned", () => {
-		expect(
-			decideCommand('createJiraIssue {"projectKey":"DEL"}').blocked,
-		).toBe(false);
+		expect(decideCommand('createJiraIssue {"projectKey":"DEL"}').blocked).toBe(
+			false,
+		);
 	});
 });
