@@ -119,6 +119,11 @@ the start of a run with `scripts/mcp-inventory.ts`. Never call a host tool that
 the plan did not name. Never call a tool that merges, closes, approves, deletes,
 resolves threads, or transitions work-item status.
 
+After a normalized `read`, include its exact full head revision as
+`headRevision` in every `files`, `diff`, `commits`, `discussions`, and
+`anchors` input. Session-tool evidence without that binding is refused instead
+of being labelled with a placeholder.
+
 Operations are `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
 `anchors`, `create`, `set-draft`, `note`, and `reply`. Inputs are JSON files.
 `note` and `reply` name a body file under the target repository's `.review/`

@@ -298,6 +298,14 @@ export const ReadForgeChangeInput = z
 	.strict();
 export type ReadForgeChangeInput = z.infer<typeof ReadForgeChangeInput>;
 
+export const ReadForgeEvidenceInput = z
+	.object({
+		ref: ChangeRef,
+		headRevision: Revision.optional(),
+	})
+	.strict();
+export type ReadForgeEvidenceInput = z.infer<typeof ReadForgeEvidenceInput>;
+
 export const ReadForgePipelineInput = z
 	.object({
 		revision: Revision,
@@ -436,7 +444,7 @@ function operationSchema(operation: ForgeOperation): z.ZodType {
 		case "commits":
 		case "discussions":
 		case "anchors":
-			return ReadForgeChangeInput;
+			return ReadForgeEvidenceInput;
 		case "create":
 			return CreateForgeChangeInput;
 		case "set-draft":

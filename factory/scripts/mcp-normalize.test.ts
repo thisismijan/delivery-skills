@@ -58,3 +58,36 @@ test("maps a Jira issue payload onto a portable work item", () => {
 		title: "Record session tools",
 	});
 });
+
+test("review evidence is bound to the preceding change head", () => {
+	const raw = [
+		{
+			filename: "src/cart.ts",
+			status: "modified",
+			additions: 4,
+			deletions: 1,
+		},
+	];
+	expect(() =>
+		mapMcpForgeResult({
+			provider: "github",
+			operation: "files",
+			raw,
+			input: { ref: "12" },
+		}),
+	).toThrow(/headRevision/);
+	expect(
+		parseForgeOperationResult(
+			"files",
+			mapMcpForgeResult({
+				provider: "github",
+				operation: "files",
+				raw,
+				input: { ref: "12", headRevision: "abc123" },
+			}),
+		),
+	).toMatchObject({
+		ref: "12",
+		headRevision: "abc123",
+	});
+});

@@ -465,7 +465,16 @@ export function mapMcpForgeResult(options: {
 	input?: unknown;
 }): unknown {
 	const ref = requestedString(options.input, "ref");
-	const revision = requestedString(options.input, "revision") ?? "unknown";
+	const revision = requestedString(options.input, "revision");
+	const headRevision = requestedString(options.input, "headRevision");
+	const requireHeadRevision = (): string => {
+		if (!headRevision) {
+			throw new Error(
+				"Session-tool review evidence needs headRevision from the preceding normalized change read.",
+			);
+		}
+		return headRevision;
+	};
 	switch (options.operation) {
 		case "find":
 			return {
@@ -482,40 +491,43 @@ export function mapMcpForgeResult(options: {
 		case "read":
 			return forgeChange(options.provider, options.raw);
 		case "pipeline":
+			if (!revision) {
+				throw new Error("Session-tool pipeline evidence needs a revision.");
+			}
 			return pipelineStatus(options.raw, revision, options.provider);
 		case "files":
 			return filesResult(
 				options.provider,
 				ref ?? "unknown",
-				revision === "unknown" ? "head" : revision,
+				requireHeadRevision(),
 				options.raw,
 			);
 		case "diff":
 			return diffResult(
 				options.provider,
 				ref ?? "unknown",
-				revision === "unknown" ? "head" : revision,
+				requireHeadRevision(),
 				options.raw,
 			);
 		case "commits":
 			return commitsResult(
 				options.provider,
 				ref ?? "unknown",
-				revision === "unknown" ? "head" : revision,
+				requireHeadRevision(),
 				options.raw,
 			);
 		case "discussions":
 			return discussionsResult(
 				options.provider,
 				ref ?? "unknown",
-				revision === "unknown" ? "head" : revision,
+				requireHeadRevision(),
 				options.raw,
 			);
 		case "anchors":
 			return anchorsResult(
 				options.provider,
 				ref ?? "unknown",
-				revision === "unknown" ? "head" : revision,
+				requireHeadRevision(),
 				options.raw,
 			);
 		case "create":

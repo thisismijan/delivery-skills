@@ -29,7 +29,11 @@ report to this conversation; they do not publish anything.
 Stop at the first failure:
 
 1. Parse the skill arguments as a change ref, accepting `840` or `!840` and nothing else. Strip a leading `!`. That value is `<ref>` (the CLI user alias for the opaque change reference).
-2. Write `{ "ref": "<ref>" }` to `.review/mr-<ref>/read-input.json`, then run these exact commands, in this order. Every one must succeed:
+2. Write `{ "ref": "<ref>" }` to `.review/mr-<ref>/read-input.json`, then run
+   `read`. Replace that file with
+   `{ "ref": "<ref>", "headRevision": "<full-head-sha-from-read>" }` before
+   requesting any review evidence. Then run the remaining exact commands in
+   this order. Every one must succeed:
    ```
    bun "${FACTORY_ROOT}/scripts/forge-provider.ts" read "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" ".review/mr-<ref>/read-input.json"
    bun "${FACTORY_ROOT}/scripts/forge-provider.ts" files "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" ".review/mr-<ref>/read-input.json"
