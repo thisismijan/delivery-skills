@@ -657,6 +657,9 @@ describe("normalized forge workflow commands", () => {
 		expect(runtime).toContain(
 			'bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot>',
 		);
+		expect(runtime).toContain('forge-provider.ts" plan');
+		expect(runtime).toContain('forge-provider.ts" normalize');
 		expect(conventions).toContain("scripts/forge-provider.ts");
+		expect(conventions).toMatch(/unplanned host tool/i);
 	});
 });

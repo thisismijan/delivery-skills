@@ -44,3 +44,14 @@ Forge, tracker, review, subprocess, and subagent operations SHALL be addressed b
 #### Scenario: Provider returns a normalized result
 - **WHEN** an adapter invokes its native integration
 - **THEN** it returns the normalized core result for that capability
+
+### Requirement: Session tools may satisfy provider operations
+When the host exposes integration tools, delivery SHALL record them, map them onto the portable forge and work-item operations, prefer a mapped tool over a CLI adapter, and schema-validate the result. It SHALL NOT call an unmapped tool or a tool that merges, closes, approves, deletes, resolves discussions, or transitions work-item status.
+
+#### Scenario: Authenticated session tools cover a tracker
+- **WHEN** the recorded inventory maps list, read, create, link, and note onto host tools
+- **THEN** doctor offers that tracker as a work-item provider without requiring the CLI adapter
+
+#### Scenario: Session tool output is product-shaped
+- **WHEN** a mapped host tool returns native JSON rather than the portable schema
+- **THEN** delivery normalizes and validates it before use, and refuses malformed evidence

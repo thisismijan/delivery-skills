@@ -42,3 +42,7 @@ bun "<skills-dir>/_factory/scripts/delivery-init.ts" --work-items gitlab
 
 Installing this provider does not select GitLab issues as the work-item
 source. Confirm that with init. Doctor reports credential presence only.
+
+If the host exposes GitLab session tools, `/delivery doctor` records them and
+prefers those tools for mapped merge-request and issue operations. Merge,
+close, approve, and thread resolution stay unused.

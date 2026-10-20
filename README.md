@@ -109,8 +109,10 @@ A host can run this pack when it can:
   provider after plan approval. Missing providers stop at that boundary and
   keep completed artifacts.
 - Run forge change and review operations through
-  `scripts/forge-provider.ts`. Generic skills never call a provider-native
-  helper.
+  `scripts/forge-provider.ts`. When the host exposes matching session tools
+  (MCP or equivalent), delivery plans those tools first and validates their
+  output through the same operations. Generic skills never call a
+  provider-native helper.
 
 Portability means any host that satisfies those capabilities. It does not mean
 the pack invents tools a host does not expose.
@@ -130,6 +132,11 @@ one view at a time in the order the review skill names. Notes are dry-run,
 shown, then posted one at a time after human confirmation (or standing
 continuous-delivery authorization). Merge, close, and thread resolution stay
 human-owned. Provider-native helpers are not generic workflow commands.
+
+If the current session exposes matching integration tools, `/delivery doctor`
+records them and later stages prefer those tools over CLI adapters. The result
+is still schema-validated. A host tool that merges, closes, approves, deletes,
+or changes work-item status is never used.
 
 ## Use
 

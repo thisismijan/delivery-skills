@@ -98,6 +98,27 @@ bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
   "$FACTORY_ROOT/runtime-manifest.json" [input.json]
 ```
 
+Before that subprocess, plan the transport:
+
+```
+bun "$FACTORY_ROOT/scripts/forge-provider.ts" plan <operation> <repoRoot> \
+  "$FACTORY_ROOT/runtime-manifest.json" [input.json]
+```
+
+If the plan names `transport: "mcp"`, call only the returned host tool with the
+returned arguments, write the raw JSON, then normalize:
+
+```
+bun "$FACTORY_ROOT/scripts/forge-provider.ts" normalize <operation> \
+  <provider> <raw.json> [input.json]
+```
+
+Work items use the same plan/normalize pair on
+`scripts/work-item-provider.ts`. Record available host tools at doctor and at
+the start of a run with `scripts/mcp-inventory.ts`. Never call a host tool that
+the plan did not name. Never call a tool that merges, closes, approves, deletes,
+resolves threads, or transitions work-item status.
+
 Operations are `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
 `anchors`, `create`, `set-draft`, `note`, and `reply`. Inputs are JSON files.
 `note` and `reply` name a body file under the target repository's `.review/`
@@ -108,7 +129,8 @@ approve, or thread resolution; humans own those actions.
 
 `forge.change` and `review.publish` must advertise the same provider. A
 missing, mismatched, or failed capability is a terminal stop with a
-configuration remedy.
+configuration remedy. Session tools may satisfy those capabilities when the
+recorded inventory maps every required operation.
 
 ## Runtime model inventory
 

@@ -56,13 +56,13 @@ It runs inside an interactive skill-capable runtime session. The target repo hol
 
 ## Hard rules
 
-1. **Read-only MCP for reasoning.** Agents may use MCP tools to *read* (fetch tickets, related issues, code). **Writes (tracker comment, branch, MR) happen only at explicit gated steps** in the commands, never as an incidental agent action. The **holdout reviewer gets no write tools.** (The tracker provider has no attachment/upload tool, so the spec is delivered as a tracker comment linking to the git branch, never as a file attachment.)
+1. **Session tools stay on the portable operations.** Agents may use host MCP tools when `forge-provider.ts plan` or `work-item-provider.ts plan` names them. Reads and gated writes still go through those operations, then `normalize`. Never call an unplanned host tool. Never merge, close, approve, delete, resolve threads, or transition work-item status through MCP. The **holdout reviewer gets no write tools.** (The tracker provider has no attachment/upload tool, so the spec is delivered as a tracker comment linking to the git branch, never as a file attachment.)
 2. **Tests-first, enforced.** The red gate is a deterministic script (`scripts/test-gate.ts`): new tests must actually FAIL before any implementation. "The agent says they failed" is not acceptable. If they pass before code exists, stop + escalate.
 3. **Holdout review.** The reviewer is a **fresh frontier subagent** with restricted tools that sees the ticket, the spec, the diff, the tests, and the results, never the implementer's reasoning, plan, or commit rationale.
 4. **Model policy.** Standard tier by default; **review always frontier**; implementation may use frontier only with a high complexity signal **and** a recorded, non-empty justification. The runtime inventory supplies the exact identifiers.
 5. **Verdicts are validated.** The review verdict is parsed/validated (Zod) before the approve decision; malformed → fail closed (stop + escalate).
 6. **The factory never merges, archives, closes, or resolves threads.** It creates the draft change and posts the review outcome through `scripts/forge-provider.ts`. A human performs the merge (and the post-merge `/openspec-archive`). `review-route.ts` returns `approve` (not `merge`) on a satisfied review. Generic skills never call a provider-native helper.
-7. **Humans own tracker status.** MCP usage is `fetch` + `comment` only, with **no status transitions, and no attachments** (the tracker provider exposes neither). The spec is linked from a comment; the git branch holds it.
+7. **Humans own tracker status.** Session-tool usage is list/read/create/link/comment only, with **no status transitions, and no attachments** (the tracker provider exposes neither). The spec is linked from a comment; the git branch holds it.
 8. **Fail closed.** Missing spec on disk, tests that didn't run, missing artifacts, exhausted fix attempts → stop + escalate. The happy path must be positively proven.
 
 ## Human-facing output rules (every run)

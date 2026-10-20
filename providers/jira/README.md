@@ -52,3 +52,7 @@ A repository can also override the site with `--setting site=<url>`.
 Changing a recorded setting needs `--replace`. Until the project is recorded,
 doctor reports the Jira work-item provider under Needs setup with the exact
 init command, and the bridge refuses to run.
+
+If the host exposes Atlassian or Jira session tools, `/delivery doctor`
+records them. Authenticated mappings cover list, read, create, link, and note
+without `jira-tracker` on PATH. Status transitions stay unused.

@@ -4,6 +4,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { bunRuntimeDetail, expectedBunVersion } from "./bun-runtime";
 import { cursorHooksContainGuard } from "./cursor-settings";
+import { loadMcpInventory } from "./mcp-inventory";
+import { type McpRouteResult, routeMcpInventory } from "./mcp-route";
 import { credentialState, toolsForProvider } from "./provider-contract";
 import {
 	type CapabilityId,
@@ -104,10 +106,38 @@ function providerLabel(name: string): string {
 	return name;
 }
 
+export function sessionToolDoctorChecks(route: McpRouteResult): DoctorCheck[] {
+	if (route.families.length === 0) {
+		return [
+			setup(
+				"Session tools",
+				"optional; record host integration tools during /delivery doctor to use them instead of CLI adapters",
+			),
+		];
+	}
+	return route.families.map((family) => {
+		const covered = Object.keys(family.operations).sort().join(", ");
+		const missing = family.missingOperations.join(", ");
+		if (!family.authenticated) {
+			return setup(
+				`${providerLabel(family.provider)} session tools`,
+				"authenticate the host integration, then rerun doctor",
+			);
+		}
+		return ready(
+			`${providerLabel(family.provider)} session tools`,
+			missing
+				? `${family.kind} via host tools for ${covered}; remaining: ${missing}`
+				: `${family.kind} via host tools (${covered})`,
+		);
+	});
+}
+
 export function remoteProviderDoctorChecks(
 	runtime: RuntimeManifest | null,
 	env: Record<string, string | undefined>,
 	which: Which,
+	route: McpRouteResult = { families: [] },
 ): DoctorCheck[] {
 	if (!runtime) return [];
 	const grouped = new Map<
@@ -150,13 +180,25 @@ export function remoteProviderDoctorChecks(
 						: setup(tool, `install ${tool} and add its directory to PATH`),
 				);
 			}
-			const credentials = credentialState(name, env);
-			const label = `${providerLabel(name)} credential`;
-			checks.push(
-				credentials.ready
-					? ready(label, "present")
-					: setup(label, credentials.reasons.join("; ")),
+			const mcpReady = route.families.some(
+				(family) => family.provider === name && family.authenticated,
 			);
+			if (mcpReady) {
+				checks.push(
+					ready(
+						`${providerLabel(name)} credential`,
+						"session tools are authenticated",
+					),
+				);
+			} else {
+				const credentials = credentialState(name, env);
+				const label = `${providerLabel(name)} credential`;
+				checks.push(
+					credentials.ready
+						? ready(label, "present")
+						: setup(label, credentials.reasons.join("; ")),
+				);
+			}
 		}
 		if (
 			unavailable.includes("forge.change") &&
@@ -301,7 +343,11 @@ export async function runDoctor(options: {
 		}),
 	);
 
-	checks.push(...remoteProviderDoctorChecks(runtime, env, which));
+	const route = routeMcpInventory(
+		await loadMcpInventory(options.cwd).catch(() => null),
+	);
+	checks.push(...sessionToolDoctorChecks(route));
+	checks.push(...remoteProviderDoctorChecks(runtime, env, which, route));
 	checks.push(
 		which("openspec")
 			? ready("OpenSpec CLI", which("openspec") ?? "on PATH")

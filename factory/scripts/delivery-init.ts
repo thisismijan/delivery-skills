@@ -1,6 +1,8 @@
 import { lstat, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type DoctorReport, formatDoctorReport, runDoctor } from "./doctor";
+import { loadMcpInventory } from "./mcp-inventory";
+import { routeMcpInventory, trackerProvidersFromMcp } from "./mcp-route";
 import { loadRuntimeManifest } from "./runtime-manifest";
 import type { RuntimeManifest } from "./runtime-manifest";
 import {
@@ -91,6 +93,7 @@ export function formatInitHandoff(options: {
 	selection: WorkItemSelectionStatus;
 	runtime: RuntimeManifest;
 	doctor: DoctorReport;
+	mcpProviders?: readonly string[];
 }): string {
 	const unresolved = formatDoctorReport(options.doctor, {
 		onlyUnresolved: true,
@@ -104,7 +107,7 @@ export function formatInitHandoff(options: {
 			: "Work-item provider confirmation required:",
 		...(options.selection.state === "ready"
 			? []
-			: workItemOptions(options.runtime).map(
+			: workItemOptions(options.runtime, options.mcpProviders).map(
 					(option) => `  ${option.id}: ${option.label}`,
 				)),
 		...(options.selection.state === "ready"
@@ -154,6 +157,9 @@ if (import.meta.main) {
 				selection,
 				runtime,
 				doctor,
+				mcpProviders: trackerProvidersFromMcp(
+					routeMcpInventory(await loadMcpInventory(root)),
+				),
 			}),
 		);
 		process.exit(doctor.readOnlyReady && selection.state === "ready" ? 0 : 1);

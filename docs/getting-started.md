@@ -60,6 +60,8 @@ Doctor groups **Ready now**, **Needs setup**, **Host limitation**, and
 **read-only lifecycle** from **full lifecycle**. An unpinned Bun version is a
 setup item, not a read-only blocker. Mutating stages still need a verified
 denial hook. Optional forge, tracker, or OpenSpec tools can remain unset.
+If the host has GitHub, GitLab, or Atlassian session tools, doctor records
+them and treats authenticated mappings as a live transport.
 
 ## 3. Confirm work items
 

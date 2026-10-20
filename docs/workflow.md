@@ -68,6 +68,10 @@ job, reverting, and merging remain human decisions.
   you reload Cursor. Until doctor shows Mutation guard as ready, only
   read-only discovery, diagnosis, and review briefing run. Do not merge,
   close, force-push, hard-reset, or mutate tracker state from the agent.
+- **Session tools:** if the host exposes GitHub, GitLab, or Atlassian MCP
+  tools, `/delivery doctor` records them and later stages prefer those tools
+  for mapped operations. Merge, close, approve, and work-item status stay
+  unused even when the host offers them.
 
 ## Stops that always need a human
 
