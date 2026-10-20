@@ -362,10 +362,19 @@ export async function runDoctor(options: {
 		}),
 	);
 
-	const route = routeMcpInventory(
-		await loadMcpInventory(options.cwd).catch(() => null),
-	);
-	checks.push(...sessionToolDoctorChecks(route));
+	let route: McpRouteResult = { families: [] };
+	try {
+		route = routeMcpInventory(await loadMcpInventory(options.cwd));
+		checks.push(...sessionToolDoctorChecks(route));
+	} catch (error) {
+		checks.push(
+			setup(
+				"Session tools",
+				`repair .delivery/runtime/mcp-inventory.json; ${error instanceof Error ? error.message : String(error)}`,
+				true,
+			),
+		);
+	}
 	checks.push(...remoteProviderDoctorChecks(runtime, env, which, route));
 	checks.push(
 		which("openspec")
@@ -441,7 +450,7 @@ export async function mutationGuardDoctorCheck(options: {
 	}
 	return limitation(
 		"Mutation guard",
-		"this host has no verified denial hook; mutating stages stay blocked",
+		"mutating stages stay blocked; reinstall with --adapter cursor or --adapter claude-code to install and verify a denial hook",
 	);
 }
 

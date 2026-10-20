@@ -403,9 +403,13 @@ describe("selectNextAction executing recovery", () => {
 
 describe("guarded transitions", () => {
 	test("groomed work cannot draft until every blocker is merged", () => {
-		expect(selectNextAction({ args: KEY, status: "[groomed]" })).toMatchObject({
+		const missing = selectNextAction({ args: KEY, status: "[groomed]" });
+		expect(missing).toMatchObject({
 			kind: "stop",
 		});
+		expect(missing.kind === "stop" ? missing.reason : "").toMatch(
+			/blockersMerged.*blockedBy/,
+		);
 		expect(
 			selectNextAction({
 				args: KEY,

@@ -124,9 +124,13 @@ selection.
    ```
    bun "${FACTORY_ROOT}/scripts/find-change.ts" <work-item-key> openspec/changes
    ```
-   If it reports `ambiguous` → stop + escalate. If it reports a unique `match` → **replace that change in place** (re-run `/opsx:propose` over the same folder) rather than creating a duplicate. Otherwise author a new one. All factory comments use the `scripts/audit.ts` prefix.
+   If it reports `ambiguous` → stop + escalate. If it reports a unique `match` → **update that change in place** rather than creating a duplicate. Otherwise create it with:
+   ```
+   openspec new change <changeName>
+   ```
+   All factory comments use the `scripts/audit.ts` prefix.
 
-7. **Author the OpenSpec change.** Run `/opsx:propose` to scaffold `openspec/changes/<changeName>/` (`proposal.md`, `specs/`, `design.md`, `tasks.md`), grounded in the ticket, the `derivedAcceptanceCriteria` from the assessment, and the feasibility `approachSketch`. Every derived acceptance criterion must map to a scenario in `specs/`; order `tasks.md` **tests-first**. Do **not** write implementation code here.
+7. **Author the OpenSpec change.** Use `openspec instructions <artifact> --change <changeName>` for `proposal`, `specs`, `design`, and `tasks`, then write each instructed artifact under `openspec/changes/<changeName>/`. Ground them in the ticket, the `derivedAcceptanceCriteria` from the assessment, and the feasibility `approachSketch`. Every derived acceptance criterion must map to a scenario under the delta headings required by the installed OpenSpec CLI; order `tasks.md` **tests-first**. Do **not** rely on `/opsx:propose`, because the generic pack does not install host-specific OpenSpec slash commands. Do **not** write implementation code here.
 
    **Specify the smallest complete change.** Reuse the target repository's
    stable contracts, seams, capabilities, and established patterns before
@@ -181,8 +185,9 @@ selection.
 8. **Verify artifacts (fail closed).** Run:
    ```
    bun "${FACTORY_ROOT}/scripts/verify-change.ts" openspec/changes/<changeName>
+   openspec validate <changeName> --strict
    ```
-   - **Non-zero exit** (missing artifacts) → post a provider note naming what is missing and **stop + escalate**. Do not post the spec-ready note.
+   - **Either non-zero exit** (missing or invalid artifacts) → post a provider note naming what is missing or invalid and **stop + escalate**. Do not post the spec-ready note.
    - A `tasks.md not tests-first` result is a blocking failure, not advisory → fix `tasks.md` and re-run until clean.
 
 9. **Commit the spec to a branch.** Commit the change folder to a branch named `<changeName>` in the target repo (the spec is versioned and reviewable). Code is NOT written here.

@@ -109,7 +109,7 @@ test("--skills-dir installs generic skills and runtime beside them", async () =>
 		expect(stdout).toContain(`Runtime -> ${dest}/_factory`);
 		expect(stdout).toContain("Reload the host session");
 		expect(stdout).toContain(
-			`Then run: bun "${dest}/_factory/scripts/doctor.ts"`,
+			`From the target git repository, run: bun "${dest}/_factory/scripts/doctor.ts"`,
 		);
 		expect(stdout).not.toMatch(/Cursor|Claude|ig-spec/i);
 		expect(await readFile(join(dest, "groom", "SKILL.md"), "utf8")).toContain(
