@@ -11,7 +11,12 @@ import { isAbsolute, join } from "node:path";
 import { z } from "zod";
 import { loadMcpInventory } from "./mcp-inventory";
 import { mapMcpWorkItemResult } from "./mcp-normalize";
-import { planMcpOperation, routeMcpInventory } from "./mcp-route";
+import {
+	addMcpProviderContext,
+	planMcpOperation,
+	repositoryIdentity,
+	routeMcpInventory,
+} from "./mcp-route";
 import { type RuntimeManifest, loadRuntimeManifest } from "./runtime-manifest";
 import {
 	readWorkItemSelection,
@@ -404,7 +409,7 @@ export async function planWorkItemOperation(options: {
 	}
 	const provider = status.selection.provider.id;
 	const inventory = await loadMcpInventory(options.repositoryRoot);
-	const planned = planMcpOperation({
+	const rawPlan = planMcpOperation({
 		route: routeMcpInventory(inventory),
 		kind: "tracker",
 		operation: options.operation,
@@ -416,6 +421,12 @@ export async function planWorkItemOperation(options: {
 			settings: status.selection.provider.settings ?? {},
 		},
 	});
+	const planned = rawPlan
+		? addMcpProviderContext(rawPlan, {
+				repository: await repositoryIdentity(options.repositoryRoot),
+				settings: status.selection.provider.settings,
+			})
+		: undefined;
 	if (planned) {
 		return {
 			transport: "mcp",

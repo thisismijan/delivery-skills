@@ -76,6 +76,13 @@ tracker as ready. Init without `--work-items` prints the list and exits
 non-zero until you confirm. The choice is stored in
 `.delivery/work-items.json`.
 
+For Jira through Atlassian session tools, record both repository settings:
+
+```bash
+bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items jira \
+  --setting project=DEL --setting site=https://example.atlassian.net
+```
+
 Init also adds `.delivery/` and `.review/` to `.gitignore` once. After
 configuration it reprints only unresolved doctor checks, not the full ready
 and human-owned lists.

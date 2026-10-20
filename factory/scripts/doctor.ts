@@ -5,7 +5,11 @@ import { join } from "node:path";
 import { bunRuntimeDetail, expectedBunVersion } from "./bun-runtime";
 import { cursorHooksContainGuard } from "./cursor-settings";
 import { loadMcpInventory } from "./mcp-inventory";
-import { type McpRouteResult, routeMcpInventory } from "./mcp-route";
+import {
+	type McpRouteResult,
+	mcpFamilyComplete,
+	routeMcpInventory,
+} from "./mcp-route";
 import { credentialState, toolsForProvider } from "./provider-contract";
 import {
 	type CapabilityId,
@@ -124,12 +128,15 @@ export function sessionToolDoctorChecks(route: McpRouteResult): DoctorCheck[] {
 				"authenticate the host integration, then rerun doctor",
 			);
 		}
-		return ready(
-			`${providerLabel(family.provider)} session tools`,
-			missing
-				? `${family.kind} via host tools for ${covered}; remaining: ${missing}`
-				: `${family.kind} via host tools (${covered})`,
-		);
+		return mcpFamilyComplete(family)
+			? ready(
+					`${providerLabel(family.provider)} session tools`,
+					`${family.kind} via host tools (${covered})`,
+				)
+			: setup(
+					`${providerLabel(family.provider)} session tools`,
+					`${family.kind} host tools cover ${covered}; still need ${missing}`,
+				);
 	});
 }
 
@@ -145,6 +152,10 @@ export function remoteProviderDoctorChecks(
 		Array<(typeof REMOTE_CAPABILITIES)[number]>
 	>();
 	const unavailable: Array<(typeof REMOTE_CAPABILITIES)[number]> = [];
+	const completeFamilies = route.families.filter(mcpFamilyComplete);
+	const mcpCapabilities = new Set(
+		completeFamilies.flatMap((family) => family.capabilities),
+	);
 	for (const id of REMOTE_CAPABILITIES) {
 		const capability = runtime.capabilities[id as CapabilityId];
 		if (capability?.available && capability.provider) {
@@ -153,23 +164,31 @@ export function remoteProviderDoctorChecks(
 			grouped.set(capability.provider, current);
 			continue;
 		}
+		if (mcpCapabilities.has(id)) continue;
 		unavailable.push(id);
 	}
 
 	const checks: DoctorCheck[] = [];
 	if (grouped.size === 0) {
-		checks.push(
-			setup(
-				"Forge and review",
-				"install a forge provider with --provider and reinstall",
-			),
-		);
-		checks.push(
-			setup(
-				"Remote work items",
-				"optional; local files work without a tracker provider",
-			),
-		);
+		if (
+			unavailable.includes("forge.change") ||
+			unavailable.includes("review.publish")
+		) {
+			checks.push(
+				setup(
+					"Forge and review",
+					"install a forge provider with --provider and reinstall",
+				),
+			);
+		}
+		if (unavailable.includes("tracker.item")) {
+			checks.push(
+				setup(
+					"Remote work items",
+					"optional; local files work without a tracker provider",
+				),
+			);
+		}
 	} else {
 		for (const [name, capabilities] of grouped) {
 			for (const tool of toolsForProvider(name, capabilities)) {
@@ -201,7 +220,7 @@ export function remoteProviderDoctorChecks(
 			}
 		}
 		if (
-			unavailable.includes("forge.change") &&
+			unavailable.includes("forge.change") ||
 			unavailable.includes("review.publish")
 		) {
 			checks.push(

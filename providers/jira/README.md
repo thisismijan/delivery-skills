@@ -55,4 +55,6 @@ init command, and the bridge refuses to run.
 
 If the host exposes Atlassian or Jira session tools, `/delivery doctor`
 records them. Authenticated mappings cover list, read, create, link, and note
-without `jira-tracker` on PATH. Status transitions stay unused.
+without `jira-tracker` on PATH. Record the site URL with
+`--setting site=https://example.atlassian.net`; host tools use it as `cloudId`.
+Status transitions stay unused.

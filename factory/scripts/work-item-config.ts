@@ -185,7 +185,12 @@ export async function workItemSelectionStatus(
 		};
 	}
 	const recorded = selection.provider.settings ?? {};
-	const required = REQUIRED_REPOSITORY_SETTINGS[selection.provider.id] ?? [];
+	const required = [
+		...(REQUIRED_REPOSITORY_SETTINGS[selection.provider.id] ?? []),
+		...(selection.provider.id === "jira" && mcpProviders.includes("jira")
+			? ["site"]
+			: []),
+	];
 	const missing = required.filter((key) => !recorded[key]);
 	if (missing.length > 0) {
 		return {

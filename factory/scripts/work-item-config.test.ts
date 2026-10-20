@@ -61,6 +61,52 @@ test("always offers local files and only substantiated remote providers", () => 
 	expect(workItemOptions(generic, ["jira"])[1]?.invocation).toBe("mcp");
 });
 
+test("MCP Jira records its site because host tools require cloudId", async () => {
+	await withRepository(async (root) => {
+		const runtimeDir = join(root, ".delivery", "runtime");
+		await mkdir(runtimeDir, { recursive: true });
+		await writeFile(
+			join(runtimeDir, "mcp-inventory.json"),
+			JSON.stringify({
+				version: 1,
+				recordedAt: "2026-10-20T12:45:00.000Z",
+				tools: [
+					{ server: "Atlassian", name: "getJiraIssue" },
+					{ server: "Atlassian", name: "searchJiraIssuesUsingJql" },
+					{ server: "Atlassian", name: "createJiraIssue" },
+					{ server: "Atlassian", name: "addGraphContext" },
+					{
+						server: "Atlassian",
+						name: "addOrEditJiraIssueComment",
+					},
+				],
+			}),
+		);
+		await configureWorkItemProvider({
+			repositoryRoot: root,
+			providerId: "jira",
+			runtime: generic,
+			settings: { project: "DEL" },
+		});
+		expect(await workItemSelectionStatus(root, generic)).toMatchObject({
+			state: "unavailable",
+			remedy: expect.stringContaining("--setting site=<value>"),
+		});
+		await configureWorkItemProvider({
+			repositoryRoot: root,
+			providerId: "jira",
+			runtime: generic,
+			settings: {
+				project: "DEL",
+				site: "https://example.atlassian.net",
+			},
+		});
+		expect(await workItemSelectionStatus(root, generic)).toMatchObject({
+			state: "ready",
+		});
+	});
+});
+
 test("configures local files idempotently without a remote capability", async () => {
 	await withRepository(async (root) => {
 		const first = await configureWorkItemProvider({
