@@ -197,6 +197,26 @@ test("a production install ships dependencies and its primary CLIs run", async (
 			verb: "execute",
 		});
 
+		const readyWave = Bun.spawn(
+			[
+				"bun",
+				join(dest, "_factory", "scripts", "config.ts"),
+				"ready-wave",
+				JSON.stringify(["WORK-1", "WORK-2", "WORK-3"]),
+			],
+			{
+				env: { ...process.env, MAX_PARALLEL_WORKTREES: "2" },
+				stdout: "pipe",
+				stderr: "pipe",
+			},
+		);
+		expect(await readyWave.exited).toBe(0);
+		expect(JSON.parse(await new Response(readyWave.stdout).text())).toEqual({
+			dispatch: ["WORK-1", "WORK-2"],
+			queued: ["WORK-3"],
+			maxParallelWorktrees: 2,
+		});
+
 		const doctor = Bun.spawn(
 			["bun", join(dest, "_factory", "scripts", "doctor.ts")],
 			{

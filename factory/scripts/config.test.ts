@@ -52,6 +52,12 @@ test("throws on a non-numeric parallel worktree count", () => {
 	expect(() => loadConfig({ MAX_PARALLEL_WORKTREES: "abc" })).toThrow();
 });
 
+test("throws on an unsafe parallel worktree count", () => {
+	expect(() =>
+		loadConfig({ MAX_PARALLEL_WORKTREES: "9007199254740992" }),
+	).toThrow();
+});
+
 test("selectReadyWave dispatches at most the configured limit and preserves order", () => {
 	expect(selectReadyWave(["A", "B", "C", "D", "E"], 4)).toEqual({
 		dispatch: ["A", "B", "C", "D"],
@@ -65,7 +71,11 @@ test("selectReadyWave dispatches at most the configured limit and preserves orde
 });
 
 test("selectReadyWave refuses a non-positive limit", () => {
-	expect(() => selectReadyWave(["A"], 0)).toThrow(/positive integer/);
+	expect(() => selectReadyWave(["A"], 0)).toThrow(/positive safe integer/);
+});
+
+test("selectReadyWave refuses duplicate keys", () => {
+	expect(() => selectReadyWave(["A", "A"], 4)).toThrow(/unique/);
 });
 
 test("the ready-wave CLI uses the configured limit", async () => {
@@ -88,4 +98,15 @@ test("the ready-wave CLI uses the configured limit", async () => {
 		queued: ["K3", "K4", "K5"],
 		maxParallelWorktrees: 2,
 	});
+});
+
+test("the ready-wave CLI fails closed without a key list", async () => {
+	const proc = Bun.spawn(
+		["bun", join(import.meta.dir, "config.ts"), "ready-wave"],
+		{ stdout: "pipe", stderr: "pipe" },
+	);
+	expect(await proc.exited).toBe(1);
+	expect(await new Response(proc.stderr).text()).toContain(
+		"requires a JSON array of keys",
+	);
 });

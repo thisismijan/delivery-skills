@@ -115,7 +115,8 @@ already-merged product change.
 - More than one key can start now: automatically fan out the ready wave in
   batches of at most `maxParallelWorktrees` concurrent worktrees. Read that
   limit from `bun "${FACTORY_ROOT}/scripts/config.ts"` (`MAX_PARALLEL_WORKTREES`,
-  default 4). Remaining ready keys wait for a free slot; they stay ready-now.
+  default 4). Remaining ready keys stay ready-now until the current batch
+  settles, then the coordinator dispatches the next batch.
   Serial execution is allowed only for a real blocking edge recorded in the
   approved plan.
   1. Resolve one absolute shared `DELIVERY_STATE_ROOT` from the primary
