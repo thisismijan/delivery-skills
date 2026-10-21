@@ -14,6 +14,7 @@ const ConfigSchema = z.object({
 	maxParallelWorktrees: z.coerce
 		.number()
 		.int()
+		.safe()
 		.positive()
 		.default(DEFAULT_MAX_PARALLEL_WORKTREES),
 	modelDefault: z.enum(["sonnet", "opus"]).default("sonnet"),
@@ -27,8 +28,11 @@ export function selectReadyWave<T>(
 	keys: readonly T[],
 	maxParallelWorktrees: number,
 ): { dispatch: T[]; queued: T[] } {
-	if (!Number.isInteger(maxParallelWorktrees) || maxParallelWorktrees < 1) {
-		throw new Error("maxParallelWorktrees must be a positive integer");
+	if (!Number.isSafeInteger(maxParallelWorktrees) || maxParallelWorktrees < 1) {
+		throw new Error("maxParallelWorktrees must be a positive safe integer");
+	}
+	if (new Set(keys).size !== keys.length) {
+		throw new Error("ready-wave keys must be unique");
 	}
 	return {
 		dispatch: keys.slice(0, maxParallelWorktrees),
@@ -54,9 +58,12 @@ if (import.meta.main) {
 	try {
 		const command = process.argv[2];
 		if (command === "ready-wave") {
+			if (process.argv[3] === undefined) {
+				throw new Error("ready-wave requires a JSON array of keys");
+			}
 			const keys = z
 				.array(z.string().min(1))
-				.parse(JSON.parse(process.argv[3] ?? "[]"));
+				.parse(JSON.parse(process.argv[3]));
 			const config = loadConfig();
 			console.log(
 				JSON.stringify(
