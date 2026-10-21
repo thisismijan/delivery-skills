@@ -36,6 +36,7 @@ const addressComments = read("../skills/address-comments/SKILL.md");
 const groom = read("../skills/groom/SKILL.md");
 const delivery = read("../skills/delivery/SKILL.md");
 const auto = read("../skills/delivery/workflows/auto.md");
+const epicToBacklog = read("../skills/delivery/workflows/epic-to-backlog.md");
 const ledger = read("../skills/delivery/workflows/delivery-ledger.md");
 const mrReview = read("../skills/mr-review/SKILL.md");
 const codeReviewMax = read("../skills/code-review-max/SKILL.md");
@@ -58,6 +59,9 @@ const cursorAdapter = read("../adapters/cursor/README.md");
 const cursorHooks = read("../adapters/cursor/hooks.json");
 const claudeAdapter = read("../adapters/claude-code/README.md");
 const claudeSettings = read("../adapters/claude-code/settings.json");
+const rootReadme = read("../README.md");
+const workflowDocs = read("../docs/workflow.md");
+const referenceDocs = read("../docs/reference.md");
 
 describe("test epistemology", () => {
 	test("writer and holdout require public behaviour and independent expectations", () => {
@@ -199,6 +203,27 @@ describe("continuous delivery authorization", () => {
 		expect(ledger).toMatch(
 			/worker must not search for or\s+mutate the run ledger/i,
 		);
+	});
+
+	test("every live workflow and operator doc states the configured worktree cap", () => {
+		for (const document of [auto, delivery, epicToBacklog, rootReadme]) {
+			expect(plain(document)).toMatch(/maxParallelWorktrees/i);
+		}
+		for (const document of [
+			auto,
+			epicToBacklog,
+			rootReadme,
+			workflowDocs,
+			referenceDocs,
+		]) {
+			expect(plain(document)).toMatch(/MAX_PARALLEL_WORKTREES/);
+			expect(plain(document)).toMatch(
+				new RegExp(
+					`default\\s+${DEFAULT_MAX_PARALLEL_WORKTREES}|at most\\s+${DEFAULT_MAX_PARALLEL_WORKTREES}`,
+					"i",
+				),
+			);
+		}
 	});
 
 	test("high complexity records a sketch and rejected alternative", () => {

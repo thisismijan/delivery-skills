@@ -3,6 +3,14 @@ import { z } from "zod";
 export const DEFAULT_MAX_FIX_ATTEMPTS = 2;
 export const DEFAULT_MAX_PARALLEL_WORKTREES = 4;
 
+const MaxParallelWorktrees = z.preprocess((value) => {
+	if (value === undefined) return DEFAULT_MAX_PARALLEL_WORKTREES;
+	if (typeof value === "string" && /^[1-9]\d*$/.test(value)) {
+		return Number(value);
+	}
+	return value;
+}, z.number().int().safe().positive());
+
 const ConfigSchema = z.object({
 	commandDraft: z.literal("/draft").default("/draft"),
 	commandExecute: z.literal("/execute").default("/execute"),
@@ -11,12 +19,7 @@ const ConfigSchema = z.object({
 		.int()
 		.positive()
 		.default(DEFAULT_MAX_FIX_ATTEMPTS),
-	maxParallelWorktrees: z.coerce
-		.number()
-		.int()
-		.safe()
-		.positive()
-		.default(DEFAULT_MAX_PARALLEL_WORKTREES),
+	maxParallelWorktrees: MaxParallelWorktrees,
 	modelDefault: z.enum(["sonnet", "opus"]).default("sonnet"),
 	codeHost: z.string().min(1).optional(),
 	specTool: z.string().min(1).optional(),
@@ -62,7 +65,7 @@ if (import.meta.main) {
 				throw new Error("ready-wave requires a JSON array of keys");
 			}
 			const keys = z
-				.array(z.string().min(1))
+				.array(z.string().trim().min(1))
 				.parse(JSON.parse(process.argv[3]));
 			const config = loadConfig();
 			console.log(

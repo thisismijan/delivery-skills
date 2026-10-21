@@ -52,6 +52,12 @@ test("throws on a non-numeric parallel worktree count", () => {
 	expect(() => loadConfig({ MAX_PARALLEL_WORKTREES: "abc" })).toThrow();
 });
 
+test("throws on a non-decimal parallel worktree count", () => {
+	for (const value of ["0x10", "1e2", "+4", " 4 ", "4.0"]) {
+		expect(() => loadConfig({ MAX_PARALLEL_WORKTREES: value })).toThrow();
+	}
+});
+
 test("throws on an unsafe parallel worktree count", () => {
 	expect(() =>
 		loadConfig({ MAX_PARALLEL_WORKTREES: "9007199254740992" }),
@@ -109,4 +115,36 @@ test("the ready-wave CLI fails closed without a key list", async () => {
 	expect(await new Response(proc.stderr).text()).toContain(
 		"requires a JSON array of keys",
 	);
+});
+
+test("the ready-wave CLI trims keys before batching", async () => {
+	const proc = Bun.spawn(
+		[
+			"bun",
+			join(import.meta.dir, "config.ts"),
+			"ready-wave",
+			JSON.stringify([" WORK-1 ", "WORK-2"]),
+		],
+		{ stdout: "pipe", stderr: "pipe" },
+	);
+	expect(await proc.exited).toBe(0);
+	expect(JSON.parse(await new Response(proc.stdout).text())).toMatchObject({
+		dispatch: ["WORK-1", "WORK-2"],
+		queued: [],
+	});
+});
+
+test("the ready-wave CLI rejects blank and normalized duplicate keys", async () => {
+	for (const keys of [[" "], ["WORK-1", " WORK-1 "]]) {
+		const proc = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "config.ts"),
+				"ready-wave",
+				JSON.stringify(keys),
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await proc.exited).toBe(1);
+	}
 });

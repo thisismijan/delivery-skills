@@ -15,7 +15,7 @@ from `skills/delivery/SKILL.md`.
    It does not authorize merge, tracker status, risk acceptance, or skill
    install.
 5. **Auto.** `/delivery auto <key>` creates approved items, fans out
-   independent tickets into isolated worktrees (at most four at a time unless
+   independent tickets into isolated worktrees (at most 4 at a time unless
    you set `MAX_PARALLEL_WORKTREES`), drafts, executes, reviews, and
    monitors the exact-head pipeline without polling.
 6. **You merge.** Delivery never merges, closes, or resolves threads.
