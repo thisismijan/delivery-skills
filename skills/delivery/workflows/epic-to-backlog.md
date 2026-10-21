@@ -58,14 +58,17 @@ workflow must not weaken:
 - Write nothing before the operator explicitly approves the slice breakdown
 - Every final draft passes `verify-ticket.ts`
 
-**Slicing preference (operator + groom grilling):** maximize parallel worktrees.
-A first ticket that blocks the rest is **one possible shape**, not the default.
+**Slicing preference (operator + groom grilling):** maximize independent
+tickets. Execution still obeys auto's `maxParallelWorktrees` cap from
+`MAX_PARALLEL_WORKTREES` (default 4). A first ticket that blocks the rest is
+**one possible shape**, not the default.
 
 Order of preference:
 
-1. **All parallel** — every slice blocked-by nothing (or only external/pre-existing
-   work). Operator fans out immediately: one worktree per ticket. Prefer this
-   whenever the codebase allows.
+1. **All independent** — every slice blocked-by nothing (or only
+   external/pre-existing work). Auto dispatches these ready tickets in capped
+   batches, eventually using one worktree per ticket. Prefer this whenever the
+   codebase allows.
 2. **Blockers only when real** — if a shared seam/schema/contract truly must
    land first, add the smallest blocker set, then a parallel wave of everything
    that depends only on that set (and not on each other).
@@ -133,8 +136,9 @@ Present a **brief** only (not the full draft bodies in the chat dump):
 
 - Numbered list under each wave: draft filename, title, blocked-by
 - One-line reminder: each draft = one work item = later one `/draft`
-  or `/delivery <KEY>`; each parallel-wave ticket gets **one worktree** (start
-  immediately if blocked-by is empty; otherwise after blockers are merged);
+  or `/delivery <KEY>`; each parallel-wave ticket gets **one worktree** when a
+  `maxParallelWorktrees` slot is available (eligible immediately if blocked-by
+  is empty; otherwise after blockers are merged);
   each ticket sized for **~25% of a session context window**
 - Link/path to optional `prd.md` if present
 - In continuous mode, use the confirmed provider to create exactly one work item
@@ -187,7 +191,8 @@ stop; do not poll the provider.
 Next workflow: [`ticket-to-mr`](ticket-to-mr.md) / [`delivery-orchestrator`](delivery-orchestrator.md)
 per the dependency graph:
 
-- If wave 0 is all parallel (no blockers): fan out immediately.
+- If wave 0 has no blockers: dispatch it immediately in
+  `maxParallelWorktrees`-sized batches.
 - If some slices are blockers: finish those to **merge** first, then fan out
   everything they unblock.
 - Never start a ticket whose blockers are not yet merged.
