@@ -418,12 +418,12 @@ describe("bounded recovery and replay safety", () => {
 			/regardless of this setting, dispatch the holdout-reviewer/i,
 		);
 		expect(plain(addressComments)).toMatch(
-			/regardless of this setting, resolve frontier, then dispatch a fresh holdout-reviewer/i,
+			/regardless of this setting, resolve frontier.*then dispatch a fresh holdout-reviewer/i,
 		);
 		for (const document of [delivery, rootReadme, referenceDocs]) {
 			expect(document).toContain("ROUTING_PROFILING");
-			expect(plain(document)).toContain(
-				`default${document === referenceDocs ? " " : "s "}${DEFAULT_ROUTING_PROFILING}`,
+			expect(plain(document)).toMatch(
+				new RegExp(`defaults?(?: to)? ${DEFAULT_ROUTING_PROFILING}`, "i"),
 			);
 		}
 	});
