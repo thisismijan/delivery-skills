@@ -1104,6 +1104,19 @@ describe("max review contract", () => {
     expect(CODE_REVIEW_MAX).toContain("No candidate is a finding merely because several reviewers repeated it.");
   });
 
+  test("review lenses use the standard tier and reduce only proven small reversible changes", () => {
+    expect(CODE_REVIEW_MAX).toContain("model-catalogue.ts");
+    expect(CODE_REVIEW_MAX).toContain("resolve standard");
+    expect(CODE_REVIEW_MAX).toContain("exact model identifier");
+    expect(CODE_REVIEW_MAX).toMatch(/at most 2 files/);
+    expect(CODE_REVIEW_MAX).toMatch(/fewer than 50 changed lines/);
+    expect(CODE_REVIEW_MAX).toContain("two-way door");
+    expect(CODE_REVIEW_MAX).toMatch(/run lenses 1 and 2/i);
+    expect(CODE_REVIEW_MAX).toMatch(/full review.*all four lenses/i);
+    expect(CODE_REVIEW_MAX).toMatch(/unknown classification/i);
+    expect(CODE_REVIEW_MAX).toMatch(/never applies to auth.*migrations.*public contracts.*configuration.*infrastructure.*one-way/is);
+  });
+
   test("the handoff marker binds findings to an MR head", () => {
     const marker = "<!-- code-review-max:mr=<iid> head=<full-head-sha> -->";
     expect(CODE_REVIEW_MAX).toContain(marker);
@@ -1181,6 +1194,15 @@ describe("stage 3 readiness", () => {
       /`approve`[\s\S]{0,800}glab mr update <mr> --ready/,
     );
     expect(ADDRESS_COMMENTS).toMatch(/approve[\s\S]{0,500}draft/i);
+  });
+
+  test("address-comments skips duplicate holdout work only when the head is unchanged", () => {
+    expect(ADDRESS_COMMENTS).toContain("git rev-parse HEAD");
+    expect(ADDRESS_COMMENTS).toMatch(/head still equals the step 2 revision/i);
+    expect(ADDRESS_COMMENTS).toMatch(/no `re-review-pending\.json` existed on entry/i);
+    expect(ADDRESS_COMMENTS).toMatch(/skip the cumulative gates and\s+holdout re-review/i);
+    expect(ADDRESS_COMMENTS).toMatch(/Stage 3 still runs\s+`\/code-review-max` and `\/mr-review`/i);
+    expect(ADDRESS_COMMENTS).toMatch(/Otherwise, run one full green gate/i);
   });
 
   test("ship does not treat a conductor-written review row as Stage 3 passing", () => {

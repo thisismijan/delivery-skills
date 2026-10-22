@@ -193,7 +193,12 @@ re-run the gate. Do not reuse it.
    observation does not identify a defensible next action within
    `maxFixAttempts`, stop and escalate.
 
-9. **Self-review.** The `implementer` reviews its own diff against `specs/` and `tasks.md`, and marks `tasks.md` items done.
+9. **Reconcile implementation state without another model call.** Use the
+   implementer's existing handoff and the successful green, lint, and typecheck
+   artifacts to check the diff against `specs/` and `tasks.md`, then mark only
+   the proven `tasks.md` items done. Do not dispatch the implementer or another
+   subagent for this bookkeeping step. A missing or ambiguous proof remains
+   unchecked and escalates rather than being inferred.
 
 10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the required capability: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ semantic `opus`, therefore `frontier`), then resolve the exact available frontier model. When `routingProfiling` is exactly `always`, dispatch `task-profile-controller` with that frontier model, validate with `task-profile.ts`, then persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"`. In that mode, start a usage timer before the holdout reviewer:
    ```

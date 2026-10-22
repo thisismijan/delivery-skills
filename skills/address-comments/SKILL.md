@@ -137,7 +137,17 @@ This command consumes the review comments on the **existing** MR for this ticket
 
    - **`outdated`** (skip): no reply, no code change. (Tracked only in the final counts.)
 
-7. **Persist re-review state, then reply.** First write `<reviewDir>/re-review-pending.json` with the change ref, current head SHA, comment ids, and gate artifact paths. Its presence means step 8 must run even when re-entry finds zero in-scope comments. Then, for each in-scope comment **except** those routed `skip`, post **exactly one** reply **on that comment's own thread** (not a new general note), wrapping the body with the audit prefix from `scripts/audit.ts`:
+7. **Persist re-review state when code changed, then reply.** Compare
+   `git rev-parse HEAD` with the full head revision recorded in step 2. If they
+   differ, or `<reviewDir>/re-review-pending.json` already existed on entry,
+   write `<reviewDir>/re-review-pending.json` with the change ref, current head
+   SHA, comment ids, and gate artifact paths. Its presence means step 8 must run
+   even when re-entry finds zero in-scope comments. If the revisions are equal
+   and no pending marker existed, do not create one: replies and disputes did
+   not change the code under review. Then, for each in-scope comment **except**
+   those routed `skip`, post **exactly one** reply **on that comment's own
+   thread** (not a new general note), wrapping the body with the audit prefix
+   from `scripts/audit.ts`:
    ```
    bun "${FACTORY_ROOT}/scripts/audit.ts" address-comments "<reply body>"
    ```
@@ -151,7 +161,23 @@ This command consumes the review comments on the **existing** MR for this ticket
    - disputed (`nitpick`/`false-positive`): give the reasoned rationale and "disputed — human decides".
    For N assessed (non-skipped) comments, post exactly N replies — none silently ignored. **Never** mark any thread resolved.
 
-8. **Cumulative gates and holdout re-review (quality gate for this round; Stage 3 dual review is the only authority that may undraft).** Run one full green gate, lint, and typecheck in parallel over the cumulative branch, persist all results, and stop on any failure. Prepare the reviewer's inputs as files (it is read-only): write the **cumulative** branch diff against the default branch (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`) and gather every per-comment and cumulative gate artifact. Confirm the reviewer model:
+8. **Cumulative gates and holdout re-review when code changed (quality gate
+   for this round; Stage 3 dual review is the only authority that may
+   undraft).** If the head still equals the step 2 revision and no
+   `re-review-pending.json` existed on entry, skip the cumulative gates and
+   holdout re-review because their code input is unchanged. Post the single
+   provider summary note with the change URL, state that no code changed, and
+   include the answered/disputed/skipped counts in plain language. Leave the
+   change draft, set status to `[addressed !N]`, and stop. Stage 3 still runs
+   `/code-review-max` and `/mr-review` and remains the only authority that may
+   undraft.
+
+   Otherwise, run one full green gate, lint, and typecheck in parallel over the
+   cumulative branch, persist all results, and stop on any failure. Prepare the
+   reviewer's inputs as files (it is read-only): write the **cumulative** branch
+   diff against the default branch (`git diff <default-branch>...HEAD >
+   <reviewDir>/diff.patch`) and gather every per-comment and cumulative gate
+   artifact. Confirm the reviewer model:
    ```
    bun "${FACTORY_ROOT}/scripts/select-model.ts" review   # -> opus
    # Only when routingProfiling is exactly always: resolve frontier and dispatch task-profile-controller read-only first.

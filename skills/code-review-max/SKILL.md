@@ -70,9 +70,31 @@ rebuild it. This worktree-local artifact lets the second pass run in a fresh con
 
 ## Parallel review
 
-Start four fresh read-only subagents in one parallel batch. They may use read,
-search, and read-only git commands. They must not edit, comment, post, commit,
-or push.
+Read the exact model identifiers the current runtime advertises and ensure
+`.delivery/routing/model-inventory.json` records them as Phase 1 of the
+delivery skill specifies. Resolve the `standard` capability:
+```
+bun "${FACTORY_ROOT}/scripts/model-catalogue.ts" resolve standard \
+  .delivery/routing/model-inventory.json
+```
+Pass that exact model identifier to every review-lens subagent. These lenses
+produce independently adjudicated candidates, so a frontier model is not
+required for them; the main conversation still verifies every candidate.
+
+Classify the pinned diff before dispatch:
+
+- A **small reversible change** touches at most 2 files, has fewer than 50
+  changed lines, is a two-way door, and touches none of Data, Contract, Config,
+  Auth, or Infra. Use the changed paths and diff, not the change description,
+  to prove every condition.
+- Anything else is a **full review**, including an unknown classification.
+
+Start fresh read-only subagents in one parallel batch. For a small reversible
+change, run lenses 1 and 2. For a full review, run all four lenses. They may use
+read, search, and read-only git commands. They must not edit, comment, post,
+commit, or push. The reduced pass never applies to auth, migrations, public
+contracts, configuration, infrastructure, one-way changes, or an incomplete
+diff.
 
 1. **Correctness and security**
    - Trace changed control and data flow.

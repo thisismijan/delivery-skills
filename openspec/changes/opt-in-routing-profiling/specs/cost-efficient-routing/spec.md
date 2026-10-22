@@ -39,3 +39,51 @@ frontier holdout reviewer, or any quality gate.
 - **WHEN** a task runs with profiling set to `always`
 - **THEN** its shadow recommendation is recorded but never dispatched for that
   task
+
+### Requirement: Review fan-out is proportional to demonstrated risk
+
+The max correctness review SHALL run independently adjudicated lens workers on
+the resolved standard-tier model. It SHALL run the correctness/security and
+tests/specification lenses for a change only when the pinned diff touches at
+most two files, has fewer than 50 changed lines, is reversible by reverting,
+and touches none of Data, Contract, Config, Auth, or Infra. It SHALL run all
+four lenses for every other change and when classification is uncertain.
+
+#### Scenario: Small reversible change uses the essential lenses
+- **WHEN** a two-file, 40-line, two-way change touches none of the excluded
+  surfaces
+- **THEN** correctness/security and tests/specification run on the standard
+  tier
+- **AND** every candidate is still adjudicated against the pinned code
+
+#### Scenario: Risky change retains the full review
+- **WHEN** a change touches auth, migrations, a public contract, configuration,
+  infrastructure, or a one-way operation
+- **THEN** all four review lenses run
+
+#### Scenario: Unknown classification retains the full review
+- **WHEN** any small-change condition cannot be proved from the pinned diff
+- **THEN** all four review lenses run
+
+### Requirement: Unchanged code is not sent through duplicate holdout review
+
+The address-comments workflow SHALL compare the branch head before and after
+comment processing. When the head is unchanged and no pending re-review marker
+existed on entry, it SHALL skip cumulative gates and frontier holdout re-review,
+leave the merge request draft, and require Stage 3 dual review. A changed head
+or existing pending marker SHALL retain cumulative gates and fresh holdout.
+
+#### Scenario: Replies do not change the head
+- **WHEN** comments are answered or disputed without a commit and no pending
+  re-review exists
+- **THEN** duplicate cumulative gates and holdout re-review are skipped
+- **AND** Stage 3 dual review remains required
+
+#### Scenario: A fix changes the head
+- **WHEN** addressing a comment creates a commit
+- **THEN** cumulative gates and fresh frontier holdout re-review still run
+
+#### Scenario: A pending review resumes
+- **WHEN** a pending re-review marker exists on entry even though the current
+  round creates no commit
+- **THEN** cumulative gates and fresh frontier holdout re-review still run

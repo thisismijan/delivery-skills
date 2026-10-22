@@ -429,6 +429,13 @@ ambiguous match stops the run instead of guessing.
   Public rankings and unscored fixtures never promote. This setting changes
   diagnostic collection only: live model selection, holdout review, and every
   quality gate remain unchanged.
+- **Review spend follows demonstrated risk.** Independently adjudicated review
+  lenses use the standard model tier. A proven small, reversible change runs
+  the correctness/security and tests/specification lenses; larger, one-way,
+  sensitive, or uncertain changes retain all four lenses. Reply-only comment
+  rounds do not send an unchanged commit through duplicate gates and frontier
+  holdout review. Any changed commit still does, and Stage 3 dual review remains
+  mandatory before readiness.
 - **Retro teaches the engineering journey.** It writes a chronological
   postmortem covering the problem, attempted models, counterexamples, design
   evolution, final invariants, DSA complexity, and system-design trade-offs. It
