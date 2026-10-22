@@ -26,7 +26,7 @@ This command implements the approved change and, **only after the holdout review
 - **Tests first.** Write tests before implementation and prove they fail (red gate). Never modify tests to make them pass.
 - **No pressure bypass.** Time pressure never permits skipping the red gate, green gate, holdout review, or operator-owned action.
 - **Review before the MR.** The holdout review runs against the **committed branch diff + gate results** — there is no MR yet. **An MR is opened only after the review returns `approve`.** Never open an MR for un-reviewed, changes-requested, rejected, or escalated work.
-- **Open the change as soon as the first holdout review is satisfied.** The first `approve` opens the draft change in the same step. Never hold it back for extra local review rounds or a manual pass first: review bots (automated reviewers configured with `DELIVERY_REVIEW_BOTS`) comment only on a posted change, so holding it back only delays their findings, sometimes until after the change is queued.
+- **Open the change as soon as the first holdout review is satisfied, then check back on it.** The first `approve` opens the draft change in the same step; never hold it back for extra local review rounds. Reviewers, people or automated, often comment only once a change is posted. Release readiness reads those comments before the change is reported ready, and any unanswered one is answered in one `/address-comments` round.
 - **Gated writes only:** the only writes are the branch commit/push, the change (created post-approval), and notes (on the change and the selected work item). **The factory NEVER merges, closes, or resolves threads, and never changes work-item status; humans own merge, close, thread resolution, and status.**
 - **Fail closed:** no matching spec, more than one match, a gate that didn't run, or a gate failure with attempts exhausted → stop + escalate. Never open an MR on un-green code.
 - **Mutation boundary.** Run `canStartStage` before any write, using the runtime's mutation-guard identifier:
@@ -211,7 +211,7 @@ re-run the gate. Do not reuse it.
     bun "${FACTORY_ROOT}/scripts/review-route.ts" "<reviewDir>/holdout-verdict.json" <attempt> <maxAttempts>
     ```
     `maxAttempts` comes from `bun "${FACTORY_ROOT}/scripts/config.ts"` (`maxFixAttempts`, default 2); `attempt` starts at 1 and increments each fix loop. **Non-zero exit = malformed verdict → stop + escalate** (fail closed). Then act on `action`:
-    - **`approve`** → **now open a draft change**, immediately, with no further local review round first (see the hard rule on opening early). Push the branch (`git push -u origin <changeName>`). **Build the title with the title helper so it always opens with the work-item reference** (Rule 3):
+    - **`approve`** → **now open a draft change**, immediately, with no further local review round first (see the hard rule on opening early and checking back). Push the branch (`git push -u origin <changeName>`). **Build the title with the title helper so it always opens with the work-item reference** (Rule 3):
       ```
       bun "${FACTORY_ROOT}/scripts/mr-title.ts" <work-item-key> "<ticket summary>"
       ```

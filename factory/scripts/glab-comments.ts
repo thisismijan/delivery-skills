@@ -147,91 +147,16 @@ export function excludeHandledThreads(
 	});
 }
 
-export const DEFAULT_FACTORY_AUTHORS = "factory,delivery-bot";
-
-// Comma-separated identity list. `fallback` applies only when the variable is
-// unset; an empty value is an explicit empty list.
-export function parseAuthorList(
-	value: string | undefined,
-	fallback = "",
-): Set<string> {
-	return new Set(
-		(value ?? fallback)
-			.split(",")
-			.map((author) => author.trim())
-			.filter(Boolean),
-	);
-}
-
-// Review bots are automated reviewers that comment only after a change is
-// posted. Their notes are review input, never the factory's own audit trail, so
-// a bot identity is removed from the factory authors even when listed in both.
-export function scopeAuthors(
-	env: Record<string, string | undefined> = process.env,
-): { factory: Set<string>; reviewBots: Set<string> } {
-	const reviewBots = parseAuthorList(env.DELIVERY_REVIEW_BOTS);
-	const factory = parseAuthorList(
-		env.DELIVERY_FACTORY_AUTHORS,
-		DEFAULT_FACTORY_AUTHORS,
-	);
-	for (const bot of reviewBots) factory.delete(bot);
-	return { factory, reviewBots };
-}
-
-export interface UnansweredBotThread {
-	discussionId: string;
-	noteId: string | number;
-	author: string;
-}
-
-export interface ReviewBotStatus {
-	configured: boolean; // at least one review-bot identity is configured
-	botHasCommented: boolean; // any configured bot authored a note on the change
-	unanswered: UnansweredBotThread[];
-}
-
-// A review-bot thread is one a configured bot started. It is unanswered while
-// no other author has replied after the bot's last note in it.
-export function reviewBotThreads(
-	comments: MrComment[],
-	reviewBots: ReadonlySet<string>,
-): ReviewBotStatus {
-	const threads = new Map<string, MrComment[]>();
-	for (const comment of comments) {
-		const notes = threads.get(comment.discussionId) ?? [];
-		notes.push(comment);
-		threads.set(comment.discussionId, notes);
-	}
-	const unanswered: UnansweredBotThread[] = [];
-	for (const [discussionId, notes] of threads) {
-		const first = notes[0];
-		if (!first || !reviewBots.has(first.author)) continue;
-		let lastBot = 0;
-		notes.forEach((note, index) => {
-			if (reviewBots.has(note.author)) lastBot = index;
-		});
-		const replied = notes
-			.slice(lastBot + 1)
-			.some((note) => !reviewBots.has(note.author));
-		const last = notes[lastBot] ?? first;
-		if (!replied) {
-			unanswered.push({ discussionId, noteId: last.id, author: last.author });
-		}
-	}
-	return {
-		configured: reviewBots.size > 0,
-		botHasCommented: comments.some((comment) => reviewBots.has(comment.author)),
-		unanswered,
-	};
-}
-
 if (import.meta.main) {
 	const input = await new Response(Bun.stdin.stream()).text();
 	try {
-		const comments = excludeHandledThreads(
-			parseMrComments(input),
-			scopeAuthors().factory,
+		const authors = new Set(
+			(process.env.DELIVERY_FACTORY_AUTHORS ?? "factory,delivery-bot")
+				.split(",")
+				.map((author) => author.trim())
+				.filter(Boolean),
 		);
+		const comments = excludeHandledThreads(parseMrComments(input), authors);
 		console.log(JSON.stringify(comments));
 	} catch (e) {
 		console.error(e instanceof Error ? e.message : String(e));

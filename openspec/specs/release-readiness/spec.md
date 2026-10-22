@@ -90,29 +90,20 @@ push directly to the default branch.
 - **WHEN** attribution is not proven, scope would expand, provider retry is required, or the budget is exhausted
 - **THEN** delivery escalates with the exact revision, failed checks, sanitized evidence, and recommended next owner
 
-### Requirement: Review-bot threads are answered before a change is queued
-Delivery SHALL read the threads of every configured review bot before reporting a change ready to merge or queue, and SHALL treat an unanswered one as a NO-GO comment blocker.
-A review bot is an automated reviewer that comments only after a change is
-posted; its forge author names come from `DELIVERY_REVIEW_BOTS`, and an empty
-list turns the check off. A thread is unanswered when a configured bot started
-it and no other author replied after the bot's last note.
+### Requirement: Comments on an open change are answered before it is queued
+Delivery SHALL check back on a change after opening it and SHALL treat any unanswered comment on it as a NO-GO comment blocker before reporting it ready to merge or queue.
+Comments come from people or automated reviewers who often comment only once a
+change is posted. A comment is unanswered when the address-comments scoping
+still returns it and the run did not publish it itself.
 
 #### Scenario: The change is opened early
 - **WHEN** the first holdout review of an execute run returns approve
-- **THEN** execute opens the draft change in that step, without further local review rounds, so review bots can comment
+- **THEN** execute opens the draft change in that step, without further local review rounds
 
-#### Scenario: A review bot has an unanswered thread
-- **WHEN** release readiness or a pre-queue check finds an unanswered review-bot thread at the current head
-- **THEN** the verdict is NO-GO with the thread listed as a comment blocker, and no risk acceptance can clear it
+#### Scenario: A comment on the change is unanswered
+- **WHEN** release readiness, or the check before a GO change is queued, finds an unanswered comment at the current head
+- **THEN** the verdict is NO-GO with the comment listed as a comment blocker, and no risk acceptance can clear it
 
-#### Scenario: The review bot has not commented yet
-- **WHEN** a review bot is configured and has no note on the change yet
-- **THEN** delivery records a `review bot <head>` wait once for that head and ends the turn without polling, and the next pass at the same head continues and says the bot had not commented
-
-#### Scenario: Review-bot threads are fixed together
-- **WHEN** a NO-GO lists review-bot threads
-- **THEN** one address-comments round handles every open review-bot thread with the usual test-first and green gates, counts as one review round, replies once per thread under the operator's own forge identity, and resolves none
-
-#### Scenario: A bot identity is also listed as a factory author
-- **WHEN** an identity appears in both `DELIVERY_REVIEW_BOTS` and `DELIVERY_FACTORY_AUTHORS`
-- **THEN** comment scoping treats it only as a review bot, so its threads stay in scope
+#### Scenario: Open comments are fixed together
+- **WHEN** a NO-GO lists unanswered comments
+- **THEN** one address-comments round handles every open comment with the usual test-first and green gates, counts as one review round, replies once per thread under the operator's own forge identity, and resolves none

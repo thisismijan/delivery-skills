@@ -33,25 +33,6 @@ needs an `api` token, not `read_api`.
 `providers/gitlab/cloud-setup.sh` is an extra Cloud helper that also requires
 `GITLAB_TOKEN`. Ordinary installs use `setup.sh` via `--provider gitlab`.
 
-## Review bots
-
-A review bot posts merge request threads only after the merge request is
-posted. Delivery must answer those threads before the change is queued on a
-merge train. Configure the bot identities in the shell that runs delivery.
-The GitLab provider reports a note's author as the user's display name,
-falling back to the username, so list both forms. For example, for Krzysztof
-Lupa's review bot, which posts as GitLab user `Krzysztof.Lupa`:
-
-```bash
-export DELIVERY_REVIEW_BOTS="Krzysztof Lupa,Krzysztof.Lupa"
-export DELIVERY_FACTORY_AUTHORS="factory,delivery-bot,<your display name>"
-```
-
-Replies are posted with your own token, so they appear under your GitLab
-account. Adding your display name to `DELIVERY_FACTORY_AUTHORS` lets a rerun of
-`/address-comments` recognise the threads you already answered. Leaving
-`DELIVERY_REVIEW_BOTS` empty turns the check off.
-
 ## First use
 
 ```bash
