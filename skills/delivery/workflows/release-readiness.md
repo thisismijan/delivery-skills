@@ -56,6 +56,17 @@ Check these in order. The first one that fails is a terminal stop.
 5. **No conflicts.** Normalized mergeability must be available and
    `conflicts: false`. Unavailable mergeability is a terminal capability gap;
    conflicts become a blocker in step 6.
+6. **Comments on the change are answered.** Once the MR is open, others
+   (people or automated reviewers) may comment on it. Write
+   `{ "ref": "<ref>", "headRevision": "<full-head-sha>" }` to
+   `<discussions-input.json>`, then read the comments with the same scoping
+   `/address-comments` uses:
+   ```
+   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" discussions "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <discussions-input.json> \
+     | bun "${FACTORY_ROOT}/scripts/forge-comments.ts"
+   ```
+   Non-zero exit is a terminal stop. Every returned comment that this run did
+   not publish itself is unanswered and becomes a comment blocker in step 6.
 
 ## Steps
 
@@ -167,6 +178,9 @@ Write the plan from how the target repo actually deploys (step 1).
 - Unaccepted Critical and High findings, unverified ones included.
 - The pipeline failed at the current head.
 - The MR has conflicts.
+- A comment on the change is unanswered (precondition 6). This is a comment
+  blocker: it is fixed in one `/address-comments` round, never accepted as a
+  risk.
 - A one-way door with no rollback procedure, unless the operator has accepted
   that specific risk.
 
@@ -196,6 +210,9 @@ verdict unless the change itself stays the same.
 
 ### Must fix before merging
 - <finding: what happens, where, evidence> <unverified>
+
+### Comments to answer
+- <comment: who asked for what, where>
 
 ### Should fix
 - <finding>
@@ -238,6 +255,7 @@ cannot override the gate.
 | Merges | Nothing here. Recommend `/delivery verify <iid>` after deploy |
 | Accepts a risk | Record the approval, recompute the verdict, reissue the brief |
 | Wants a fix | Recommend `/address-comments <KEY>` or a new factory round, then `/delivery ship <iid>` again |
+| Queues the change | Read the comments on the change again first (precondition 6). A new unanswered one turns GO into NO-GO |
 | Asks to post the brief on the MR | Post it as one MR comment |
 
 ## Ledger writes
@@ -245,7 +263,8 @@ cannot override the gate.
 - Verdicts: one `readiness` row with head, base, patch-id, GO or NO-GO, and who
   produced it.
 - Keys: status `[go !N]` or `[no-go !N]`.
-- Decisions: the door call and the reason for the verdict.
+- Decisions: the door call, the reason for the verdict, and the number of
+  unanswered comments at the checked head.
 - Approvals: every accepted risk.
 - Stops: any terminal stop from the preconditions.
 

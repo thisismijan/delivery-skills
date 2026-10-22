@@ -83,9 +83,9 @@ Between steps, do not ask whether to continue. Continue.
 | `[executing]` | Recover: review once a matching merge request exists; wait while a live owner still builds; resume execute directly after an interruption because continuous authorization is already recorded | Nothing |
 | `[reviewed-blocked !N]` | Address comments, then review the new head | Nothing |
 | `[addressed !N]` | Review the new head | Nothing |
-| `[ready !N]` | Release readiness | Nothing |
-| `[no-go !N]` | Classify the readiness blockers: address code/comment blockers then run ship again; wait on pipeline/conflicts; ask only for operator-owned risk acceptance | Whether to accept an operator-owned risk |
-| `[go !N]` | The operator merges | The merge |
+| `[ready !N]` | Release readiness, which reads the comments on the change before any GO | Nothing |
+| `[no-go !N]` | Classify the readiness blockers: address code/comment blockers (every unanswered comment on the change is a comment blocker, fixed in one batched round) then run ship again; wait on pipeline/conflicts; ask only for operator-owned risk acceptance | Whether to accept an operator-owned risk |
+| `[go !N]` | The operator merges. Before it is queued, read the comments on the change again; a new unanswered one turns it to `[no-go !N]` | The merge |
 | `[merged !N]` | Follow `pipeline-monitoring.md` for the exact merged revision; after the default-branch pipeline passes, archive, wait for deploy, then verify | Nothing |
 | `[verified !N]` | The key is done. Choose the next key; when none is left, retro | Nothing |
 | `[regressed !N]` | Nothing. Show the rollback recommendation or the bug report | Nothing; the operator decides |
@@ -95,7 +95,9 @@ Between steps, do not ask whether to continue. Continue.
 
 **Review rounds.** Review, then address-comments, then review again counts as one
 round. After three rounds without `[ready !N]`, stop and ask the operator how to
-proceed.
+proceed. Unanswered comments are answered by one `/address-comments` round
+that takes every open comment on the change together, never one round per
+thread, and that round counts as one review round.
 
 **Archive.** Resolve the change with `factory/scripts/find-change.ts`; exactly
 one match is required, so `MDF-1234` can never select `MDF-12345`. If it is

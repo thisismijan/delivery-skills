@@ -1288,3 +1288,47 @@ describe("normalized forge commands", () => {
   });
 });
 
+
+describe("comments on an open change", () => {
+  const readiness = SPECS["release-readiness.md"];
+  const scoping = 'bun "${FACTORY_ROOT}/scripts/forge-comments.ts"';
+
+  test("execute opens the draft change on the first satisfied holdout review, then checks back", () => {
+    expect(EXECUTE).toMatch(/Open the change as soon as the first holdout review is satisfied, then check back on it/);
+    expect(EXECUTE).toMatch(/never hold it back for extra local review rounds/);
+    expect(EXECUTE).toMatch(/people or automated, often comment only once a change is posted/);
+    expect(SPECS["ticket-to-mr.md"]).toMatch(/opens on the \*\*first\*\* holdout `approve`/);
+    expect(SPECS["ticket-to-mr.md"]).toMatch(/Check back on it/);
+  });
+
+  test("release readiness reads the change's comments with address-comments scoping and blocks on unanswered ones", () => {
+    const pre = section(readiness, "## Preconditions");
+    expect(pre).toMatch(/Comments on the change are answered/);
+    expect(pre).toContain(`${FORGE_PROVIDER} discussions`);
+    expect(pre).toContain(scoping);
+    expect(ADDRESS_COMMENTS).toContain(scoping);
+    expect(pre).toMatch(/becomes a comment blocker in step 6/);
+    const decide = section(readiness, "### 6. Decide");
+    expect(decide).toMatch(/comment on the change is unanswered[\s\S]*comment\s+blocker/);
+    expect(decide).toMatch(/never accepted as a\s+risk/);
+    expect(readiness).toMatch(/\| Queues the change \| Read the comments on the change again first/);
+  });
+
+  test("auto routes ready, no-go and go through the comment check", () => {
+    const table = section(AUTO, "### Next step by status");
+    const next = (tag: string) => cells(table.split("\n").find((l) => l.startsWith(`| \`${tag}\``)) ?? "")[2];
+    expect(next("[ready !N]")).toMatch(/reads the comments on the change before any GO/);
+    expect(next("[no-go !N]")).toMatch(/unanswered comment on the change is a comment blocker, fixed in one batched round/);
+    expect(next("[go !N]")).toMatch(/Before it is queued, read the comments on the change again/);
+    expect(AUTO).toMatch(/never one round per\s+thread, and that round counts as one review round/);
+  });
+
+  test("address-comments batches open comments, replies as the operator, and never resolves", () => {
+    expect(ADDRESS_COMMENTS).toMatch(/Every open comment on the change, from people or automated reviewers, is handled in this one round/);
+    expect(ADDRESS_COMMENTS).toMatch(/never one round per thread/);
+    expect(ADDRESS_COMMENTS).toMatch(/forge identity of the operator running this skill/);
+    expect(ADDRESS_COMMENTS).toMatch(/Never post as another person or through a separate bot account/);
+    expect(SKILL).toMatch(/After the MR opens, check back on it\. No GO, and no queueing, while a comment/);
+    expect(SKILL).toMatch(/threads are\s+never resolved/);
+  });
+});

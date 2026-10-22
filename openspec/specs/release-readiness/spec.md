@@ -89,3 +89,21 @@ push directly to the default branch.
 #### Scenario: Failure cannot be repaired automatically
 - **WHEN** attribution is not proven, scope would expand, provider retry is required, or the budget is exhausted
 - **THEN** delivery escalates with the exact revision, failed checks, sanitized evidence, and recommended next owner
+
+### Requirement: Comments on an open change are answered before it is queued
+Delivery SHALL check back on a change after opening it and SHALL treat any unanswered comment on it as a NO-GO comment blocker before reporting it ready to merge or queue.
+Comments come from people or automated reviewers who often comment only once a
+change is posted. A comment is unanswered when the address-comments scoping
+still returns it and the run did not publish it itself.
+
+#### Scenario: The change is opened early
+- **WHEN** the first holdout review of an execute run returns approve
+- **THEN** execute opens the draft change in that step, without further local review rounds
+
+#### Scenario: A comment on the change is unanswered
+- **WHEN** release readiness, or the check before a GO change is queued, finds an unanswered comment at the current head
+- **THEN** the verdict is NO-GO with the comment listed as a comment blocker, and no risk acceptance can clear it
+
+#### Scenario: Open comments are fixed together
+- **WHEN** a NO-GO lists unanswered comments
+- **THEN** one address-comments round handles every open comment with the usual test-first and green gates, counts as one review round, replies once per thread under the operator's own forge identity, and resolves none

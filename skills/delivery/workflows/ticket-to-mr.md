@@ -87,6 +87,10 @@ Factory behavior this workflow must not override:
 
 - Tests first → red gate → implement → green (+ lint/types) → Opus holdout
 - Draft MR opened **only** on holdout `approve`; Stage 3 marks it ready
+- The draft MR opens on the **first** holdout `approve`, never held back for
+  extra local review rounds, because reviewers often comment only on a posted
+  change. Check back on it: comments others make are answered before the
+  change is reported ready (`release-readiness.md`)
 - On changes-requested: bounded fix loop, still no MR until approve
 - On reject / exhausted attempts: push branch, escalate, **no** MR
 - Never merge, never tracker status transition
