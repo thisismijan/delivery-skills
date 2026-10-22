@@ -393,6 +393,32 @@ describe("bounded recovery and replay safety", () => {
 		}
 	});
 
+	test("review cost controls preserve the high-risk and changed-code paths", () => {
+		const maxReview = plain(codeReviewMax);
+		expect(maxReview).toMatch(/resolve standard/);
+		expect(maxReview).toMatch(/small reversible change.*at most 2 files/i);
+		expect(maxReview).toMatch(/small reversible change.*lenses 1 and 2/i);
+		expect(maxReview).toMatch(/full review.*all four lenses/i);
+		expect(maxReview).toMatch(/unknown classification/i);
+		expect(maxReview).toMatch(/review-fanout\.ts/);
+		expect(maxReview).toMatch(/lenses array is authoritative/i);
+		expect(maxReview).toMatch(/non-zero exit stops the review/i);
+
+		const comments = plain(addressComments);
+		expect(comments).toMatch(
+			/head still equals the step 2 revision.*no re-review-pending\.json existed on entry.*skip the cumulative gates and holdout re-review/i,
+		);
+		expect(comments).toMatch(
+			/otherwise, run one full green gate.*dispatch a fresh holdout-reviewer/i,
+		);
+		expect(comments).toMatch(
+			/stage 3 still runs \/code-review-max and \/mr-review/i,
+		);
+		expect(plain(execute)).toMatch(
+			/reconcile implementation state without another model call.*do not dispatch the implementer or another subagent/i,
+		);
+	});
+
 	test("shadow routing is opt-in and never changes live dispatch", () => {
 		expect(execute).toContain("select-model.ts");
 		expect(execute).toContain("shadow-route.ts");

@@ -2,7 +2,12 @@
 
 ## Purpose
 
-Define the behaviour of `/address-comments`, which resolves an existing MR's review comments with tests-first/holdout rigor: classify every comment, action/dispute/answer/skip per class, reply on every assessed thread, then gate the result on a single cumulative Opus holdout re-review. The factory never merges, closes, or resolves threads.
+Define the behaviour of `/address-comments`, which resolves an existing MR's
+review comments with tests-first/holdout rigor: classify every comment,
+action/dispute/answer/skip per class, reply on every assessed thread, then gate
+every code-changing result on a single cumulative Opus holdout re-review.
+Reply-only rounds leave the merge request draft for mandatory Stage 3 review.
+The factory never merges, closes, or resolves threads.
 
 ## Requirements
 
@@ -96,13 +101,36 @@ For N assessed comments, the command SHALL post exactly N replies (actioned, ans
 - **THEN** no thread is marked resolved regardless of outcome
 
 ### Requirement: Cumulative holdout re-review gates the result
-After all actionable comments are addressed, the command SHALL persist re-review-pending state before posting replies, run cumulative green, lint, and typecheck gates, then dispatch a fresh Opus `holdout-reviewer` over the cumulative updated diff and every append-only gate artifact. Re-entry with a pending marker SHALL still perform holdout even when no comments remain. On `approve` the MR SHALL remain draft, status SHALL become `[addressed !N]`, and a single Jira summary comment posted. On anything else the command MUST fail closed, leaving the MR draft and unblessed. Holdout MUST NOT undraft the merge request.
+After all actionable comments are addressed, the command SHALL compare the
+current head with the head recorded before comment processing. When the head
+changed, it SHALL persist re-review-pending state before posting replies, run
+cumulative green, lint, and typecheck gates, then dispatch a fresh Opus
+`holdout-reviewer` over the cumulative updated diff and every append-only gate
+artifact. Re-entry with a pending marker SHALL still perform holdout even when
+no comments remain. When the head did not change and no pending marker existed
+on entry, the command SHALL skip duplicate gates and holdout, leave the MR
+draft, record `[addressed !N]`, and continue to the mandatory Stage 3 dual
+review. On holdout `approve` the MR SHALL remain draft, status SHALL become
+`[addressed !N]`, and a single Jira summary comment posted. On anything else
+the command MUST fail closed, leaving the MR draft and unblessed. Holdout MUST
+NOT undraft the merge request.
 
 #### Scenario: Approved re-review leaves the MR draft
 - **WHEN** the cumulative holdout re-review returns `approve` on a new head
 - **THEN** the MR remains draft
 - **AND** status becomes `[addressed !N]`
 - **AND** a single Jira summary comment with the MR link and actioned/disputed/skipped counts is posted
+
+#### Scenario: Reply-only round does not review an unchanged head twice
+- **WHEN** all assessed comments are answered, disputed, or skipped without a
+  code commit and no re-review marker existed on entry
+- **THEN** cumulative gates and holdout re-review are skipped
+- **AND** the MR remains draft with status `[addressed !N]`
+- **AND** Stage 3 dual review remains required before the MR can be ready
+
+#### Scenario: Pending re-review survives re-entry
+- **WHEN** a re-review marker existed on entry and no comments remain
+- **THEN** cumulative gates and holdout re-review still run
 
 #### Scenario: Non-approve re-review fails closed
 - **WHEN** the cumulative holdout re-review returns anything other than `approve`

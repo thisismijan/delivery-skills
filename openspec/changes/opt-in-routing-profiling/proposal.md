@@ -11,15 +11,20 @@ cost should be incurred only when an operator is collecting routing evidence.
   evidence-collection mode.
 - Skip profiling agents and their dependent routing telemetry when profiling is
   off.
+- Run independently adjudicated review lenses on the standard tier, using two
+  essential lenses for proven small reversible changes and all four for
+  everything else.
+- Skip duplicate comment-round gates and holdout review when no commit changed
+  the already-reviewed head.
 - Keep live model selection, implementation, holdout review, and all quality
-  gates unchanged in both modes.
+  gates unchanged for code-changing and higher-risk work.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `cost-efficient-routing`: opt-in diagnostic profiling that does not alter
-  live dispatch or quality controls.
+- `cost-efficient-routing`: opt-in diagnostic profiling and bounded review
+  fan-out that do not weaken code-changing or higher-risk delivery paths.
 
 ### Modified Capabilities
 
