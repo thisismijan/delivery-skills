@@ -89,6 +89,17 @@ Classify the pinned diff before dispatch:
   to prove every condition.
 - Anything else is a **full review**, including an unknown classification.
 
+Write the measured counts, reversibility decision, whether every classification
+field was proved, and normalized surfaces to
+`.review/mr-<iid>/<full-head-sha>/review-fanout-input.json`, then run:
+```
+bun "${FACTORY_ROOT}/scripts/review-fanout.ts" \
+  ".review/mr-<iid>/<full-head-sha>/review-fanout-input.json"
+```
+The returned `lenses` array is authoritative. Invalid input or a non-zero exit
+stops the review; never guess a reduced fan-out. Persist the result beside the
+input.
+
 Start fresh read-only subagents in one parallel batch. For a small reversible
 change, run lenses 1 and 2. For a full review, run all four lenses. They may use
 read, search, and read-only git commands. They must not edit, comment, post,

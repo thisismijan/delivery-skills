@@ -1108,6 +1108,9 @@ describe("max review contract", () => {
     expect(CODE_REVIEW_MAX).toContain("model-catalogue.ts");
     expect(CODE_REVIEW_MAX).toContain("resolve standard");
     expect(CODE_REVIEW_MAX).toContain("exact model identifier");
+    expect(CODE_REVIEW_MAX).toContain("review-fanout.ts");
+    expect(CODE_REVIEW_MAX).toContain("authoritative");
+    expect(CODE_REVIEW_MAX).toMatch(/Invalid input or a non-zero exit\s+stops the review/i);
     expect(CODE_REVIEW_MAX).toMatch(/at most 2 files/);
     expect(CODE_REVIEW_MAX).toMatch(/fewer than 50\s+changed lines/);
     expect(CODE_REVIEW_MAX).toContain("two-way door");

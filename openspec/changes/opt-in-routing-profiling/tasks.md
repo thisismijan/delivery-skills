@@ -20,9 +20,11 @@
 - [x] 4.1 Pin independently adjudicated max-review lenses to the standard tier.
 - [x] 4.2 Run two essential lenses only for proven small reversible changes,
   retaining all four for risky or unknown changes.
-- [x] 4.3 Skip duplicate address-comments holdout work only when the head did
+- [x] 4.3 Enforce small-change boundaries with a deterministic, fail-closed
+  fan-out helper and boundary tests.
+- [x] 4.4 Skip duplicate address-comments holdout work only when the head did
   not change and no pending re-review exists.
-- [x] 4.4 Make execute bookkeeping explicitly reuse existing evidence without
+- [x] 4.5 Make execute bookkeeping explicitly reuse existing evidence without
   another model call.
 
 ## 5. Verification

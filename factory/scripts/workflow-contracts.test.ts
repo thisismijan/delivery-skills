@@ -400,6 +400,9 @@ describe("bounded recovery and replay safety", () => {
 		expect(maxReview).toMatch(/small reversible change.*lenses 1 and 2/i);
 		expect(maxReview).toMatch(/full review.*all four lenses/i);
 		expect(maxReview).toMatch(/unknown classification/i);
+		expect(maxReview).toMatch(/review-fanout\.ts/);
+		expect(maxReview).toMatch(/lenses array is authoritative/i);
+		expect(maxReview).toMatch(/non-zero exit stops the review/i);
 
 		const comments = plain(addressComments);
 		expect(comments).toMatch(

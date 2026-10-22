@@ -49,7 +49,9 @@ A proven small reversible change runs the correctness/security and
 tests/specification lenses. The reliability/operations and repository/blast
 radius lenses remain mandatory when the change exceeds two files or 49 lines,
 is one-way, touches Data, Contract, Config, Auth, or Infra, or cannot be
-classified. This reduces routine fan-out without weakening risky changes.
+classified. `review-fanout.ts` applies those boundaries deterministically and
+fails closed on malformed or unknown input. This reduces routine fan-out
+without weakening risky changes.
 
 ### Re-review code only when the code changed
 

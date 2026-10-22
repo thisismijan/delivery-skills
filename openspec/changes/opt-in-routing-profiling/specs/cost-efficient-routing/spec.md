@@ -47,7 +47,8 @@ the resolved standard-tier model. It SHALL run the correctness/security and
 tests/specification lenses for a change only when the pinned diff touches at
 most two files, has fewer than 50 changed lines, is reversible by reverting,
 and touches none of Data, Contract, Config, Auth, or Infra. It SHALL run all
-four lenses for every other change and when classification is uncertain.
+four lenses for every other change and when classification is uncertain. A
+deterministic helper SHALL enforce these boundaries and reject malformed input.
 
 #### Scenario: Small reversible change uses the essential lenses
 - **WHEN** a two-file, 40-line, two-way change touches none of the excluded
