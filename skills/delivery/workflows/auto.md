@@ -83,9 +83,9 @@ Between steps, do not ask whether to continue. Continue.
 | `[executing]` | Recover: review once a matching merge request exists; wait while a live owner still builds; resume execute directly after an interruption because continuous authorization is already recorded | Nothing |
 | `[reviewed-blocked !N]` | Address comments, then review the new head | Nothing |
 | `[addressed !N]` | Review the new head | Nothing |
-| `[ready !N]` | Release readiness | Nothing |
-| `[no-go !N]` | Classify the readiness blockers: address code/comment blockers then run ship again; wait on pipeline/conflicts; ask only for operator-owned risk acceptance | Whether to accept an operator-owned risk |
-| `[go !N]` | The operator merges | The merge |
+| `[ready !N]` | Release readiness, which reads configured review-bot threads before any GO | Nothing |
+| `[no-go !N]` | Classify the readiness blockers: address code/comment blockers (every unanswered review-bot thread is a comment blocker, fixed in one batched round) then run ship again; wait on pipeline/conflicts; ask only for operator-owned risk acceptance | Whether to accept an operator-owned risk |
+| `[go !N]` | The operator merges. Before it is queued, read the review-bot threads again; a new unanswered one turns it to `[no-go !N]` | The merge |
 | `[merged !N]` | Follow `pipeline-monitoring.md` for the exact merged revision; after the default-branch pipeline passes, archive, wait for deploy, then verify | Nothing |
 | `[verified !N]` | The key is done. Choose the next key; when none is left, retro | Nothing |
 | `[regressed !N]` | Nothing. Show the rollback recommendation or the bug report | Nothing; the operator decides |
@@ -95,7 +95,9 @@ Between steps, do not ask whether to continue. Continue.
 
 **Review rounds.** Review, then address-comments, then review again counts as one
 round. After three rounds without `[ready !N]`, stop and ask the operator how to
-proceed.
+proceed. A review-bot NO-GO is answered by one `/address-comments` round that
+takes every open review-bot thread on the change together, never one round per
+thread, and that round counts as one review round.
 
 **Archive.** Resolve the change with `factory/scripts/find-change.ts`; exactly
 one match is required, so `MDF-1234` can never select `MDF-12345`. If it is
@@ -185,6 +187,11 @@ step.
   merge, query the exact `revisions.merged` value with the normalized
   `pipeline` operation; the open-change pipeline does not prove the
   default-branch pipeline passed. Do not sleep or poll in the same turn.
+- **For a review bot.** A review bot is automation, not a person: when
+  release readiness finds no note from it at the current head, set
+  `[waiting: <what>]` with `review bot <head>` and end the turn. That wait happens at most once per
+  head; the next pass at the same head continues without it. Do not sleep or
+  poll for it.
 - **For a person** (a merge, a reporter, an answer): do not poll. Set
   `[waiting: <what>]`, ask, and end the turn. Their reply resumes the loop.
 - **Never retry a failed stage.** A failure is a terminal stop, exactly as when

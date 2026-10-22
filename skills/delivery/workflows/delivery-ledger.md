@@ -210,4 +210,4 @@ The Keys table's Status column uses only these tags.
 | `[regressed !N]` | Stage 5 | Deployed change broke something; brief in the ledger |
 | `[retro done]` | Stage 6 | Lessons recorded |
 | `[stopped: <reason>]` | Any | Terminal stop; reason and next command in Stops |
-| `[waiting: <what>]` | Auto | Waiting on a pipeline, a deploy, or a person; resume with `/delivery auto <KEY>` |
+| `[waiting: <what>]` | Auto | Waiting on a pipeline, a deploy, a review bot (once per head), or a person; resume with `/delivery auto <KEY>` |

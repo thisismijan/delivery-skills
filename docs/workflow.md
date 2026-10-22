@@ -46,6 +46,29 @@ has not been exhausted. Transient, unrelated, ambiguous, out-of-scope, and
 exhausted failures stop with an evidence-backed escalation. Retrying a provider
 job, reverting, and merging remain human decisions.
 
+## Review bots
+
+Some teams run a review bot: an automated reviewer that posts threads only
+after a change is posted. Set `DELIVERY_REVIEW_BOTS` to its forge author
+names (comma-separated; empty turns this off) and delivery treats its threads
+as review input that must be answered before the change is queued:
+
+- Execute opens the draft change on the first satisfied holdout review, so the
+  bot sees the change as early as possible.
+- Release readiness reads the bot's threads at the current head. An unanswered
+  one (started by the bot, no reply after its last note) is a NO-GO comment
+  blocker. Readiness checks again before you queue a GO change.
+- If the bot has not commented yet, delivery waits once for that head
+  (`[waiting: <what>]` with `review bot <head>`), ends the turn, and continues on the next pass.
+  It never polls and never blocks forever on a bot that skips a change.
+- `/address-comments` fixes every open bot thread in one round, with the usual
+  test-first and green gates, replies once per thread under your own forge
+  identity, and never resolves a thread. That round counts as one of the
+  three review rounds.
+
+See [the GitLab provider guide](../providers/gitlab/README.md) for an example
+configuration.
+
 ## Verbs
 
 | Command | Role |

@@ -24,6 +24,8 @@ Environment:
 | `CURSOR_HOOKS_FILE` | Cursor `hooks.json` for the mutation hook |
 | `MAX_FIX_ATTEMPTS` | Bounded repair attempts (`scripts/config.ts`, default 2) |
 | `MAX_PARALLEL_WORKTREES` | Concurrent isolated auto worktrees (`scripts/config.ts`, default 4) |
+| `DELIVERY_FACTORY_AUTHORS` | Comma-separated forge authors whose audit replies mark a thread as handled (`scripts/forge-comments.ts`, default `factory,delivery-bot`). Include the operator who runs address-comments |
+| `DELIVERY_REVIEW_BOTS` | Comma-separated forge authors of review bots: automated reviewers that comment only after a change is posted (`scripts/forge-comments.ts`, default empty, which turns the check off). Their unanswered threads block release readiness |
 
 ## Runtime capabilities
 

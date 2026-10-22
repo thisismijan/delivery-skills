@@ -1288,3 +1288,78 @@ describe("normalized forge commands", () => {
   });
 });
 
+
+describe("review-bot threads", () => {
+  // The knob and the command mode are read from the factory source, so the
+  // specs cannot drift from what the scripts actually read and accept.
+  function factorySource(name: string): string {
+    for (const root of [
+      join(SKILLS_ROOT, "..", "factory", "scripts"),
+      join(SKILLS_ROOT, "_factory", "scripts"),
+    ]) {
+      const path = join(root, name);
+      if (existsSync(path)) return readFileSync(path, "utf8");
+    }
+    throw new Error(`${name} not found`);
+  }
+  const knob = factorySource("glab-comments.ts").match(/env\.(DELIVERY_REVIEW_BOTS)\b/)?.[1] ?? "";
+  const mode = factorySource("forge-comments.ts").match(/mode === "([a-z-]+)"/)?.[1] ?? "";
+  const readiness = SPECS["release-readiness.md"];
+  const command = `bun "\${FACTORY_ROOT}/scripts/forge-comments.ts" ${mode}`;
+
+  test("the factory scripts define the review-bot knob and command mode", () => {
+    expect(knob).toBe("DELIVERY_REVIEW_BOTS");
+    expect(mode).toBe("review-bots");
+  });
+
+  test("execute opens the draft change on the first satisfied holdout review", () => {
+    expect(EXECUTE).toMatch(/Open the change as soon as the first holdout review is satisfied/);
+    expect(EXECUTE).toMatch(/Never hold it back for extra local review rounds/);
+    expect(EXECUTE).toMatch(/review bots[^.]*comment only on a posted change/i);
+    expect(EXECUTE).toContain(knob);
+    expect(SPECS["ticket-to-mr.md"]).toMatch(/opens on the \*\*first\*\* holdout `approve`/);
+  });
+
+  test("release readiness reads review-bot threads before a GO and blocks on unanswered ones", () => {
+    const pre = section(readiness, "## Preconditions");
+    expect(pre).toContain(knob);
+    expect(pre).toContain(`${FORGE_PROVIDER} discussions`);
+    expect(pre).toContain(command);
+    expect(pre).toMatch(/started it and nobody else has replied after\s+the bot's last note/);
+    const decide = section(readiness, "### 6. Decide");
+    expect(decide).toMatch(/review bot has an unanswered thread[\s\S]*comment blocker/);
+    expect(decide).toMatch(/never\s+accepted as a risk/);
+    expect(readiness).toMatch(/\| Queues the change \| Read the review-bot threads again first/);
+  });
+
+  test("a bot that has not commented yet gets one turn-ending wait per head", () => {
+    const pre = section(readiness, "## Preconditions");
+    expect(pre).toContain("`botHasCommented: false`");
+    expect(pre).toMatch(/Wait at most once per head: record\s+`\[waiting: <what>\]` with `review bot <head>`/);
+    expect(pre).toMatch(/end the turn\s+without sleeping or polling/);
+    expect(pre).toMatch(/the wait is\s+spent: continue/);
+    const waiting = section(AUTO, "## Waiting");
+    expect(waiting).toMatch(/\*\*For a review bot\.\*\* A review bot is automation, not a person/);
+    expect(waiting).toMatch(/at most once per\s+head/);
+  });
+
+  test("auto routes ready, no-go and go through the review-bot check", () => {
+    const table = section(AUTO, "### Next step by status");
+    const next = (tag: string) => cells(table.split("\n").find((l) => l.startsWith(`| \`${tag}\``)) ?? "")[2];
+    expect(next("[ready !N]")).toMatch(/review-bot threads before any GO/);
+    expect(next("[no-go !N]")).toMatch(/unanswered review-bot thread is a comment blocker, fixed in one batched round/);
+    expect(next("[go !N]")).toMatch(/Before it is queued, read the review-bot threads again/);
+    expect(AUTO).toMatch(/never one round per\s+thread, and that round counts as one review round/);
+  });
+
+  test("address-comments batches bot threads, replies as the operator, and never resolves", () => {
+    expect(ADDRESS_COMMENTS).toMatch(/Every open review-bot thread on the change is handled in this one round, never one round per thread/);
+    expect(ADDRESS_COMMENTS).toMatch(/same classification, test-first, and green discipline/);
+    expect(ADDRESS_COMMENTS).toMatch(/forge identity of the operator running this skill/);
+    expect(ADDRESS_COMMENTS).toMatch(/Never post as another person or through a separate bot account/);
+    expect(ADDRESS_COMMENTS).toMatch(/A bot identity is never treated as a factory author/);
+    expect(ADDRESS_COMMENTS).toContain(knob);
+    expect(SKILL).toMatch(/No GO, and no queueing, while a configured review bot/);
+    expect(SKILL).toMatch(/threads are never resolved/);
+  });
+});

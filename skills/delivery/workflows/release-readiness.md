@@ -56,6 +56,29 @@ Check these in order. The first one that fails is a terminal stop.
 5. **No conflicts.** Normalized mergeability must be available and
    `conflicts: false`. Unavailable mergeability is a terminal capability gap;
    conflicts become a blocker in step 6.
+6. **Review-bot threads are read.** A review bot is an automated reviewer
+   that comments only after a change is posted. Its identities come from
+   `DELIVERY_REVIEW_BOTS` (comma-separated forge authors; empty, the default,
+   turns this check off). Write
+   `{ "ref": "<ref>", "headRevision": "<full-head-sha>" }` to
+   `<discussions-input.json>`, then read the change's threads at that head and
+   summarize them:
+   ```
+   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" discussions "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <discussions-input.json> \
+     | bun "${FACTORY_ROOT}/scripts/forge-comments.ts" review-bots
+   ```
+   Non-zero exit is a terminal stop. A thread is an unanswered review-bot
+   thread when a configured bot started it and nobody else has replied after
+   the bot's last note in it.
+   - `configured: false` → continue.
+   - `botHasCommented: false` → no configured bot has a note on the change
+     yet; it may still be reviewing. Wait at most once per head: record
+     `[waiting: <what>]` with `review bot <head>` as the value, end the turn
+     without sleeping or polling, and resume with `/delivery ship <iid>`.
+     When a later pass finds the same head and still no bot note, the wait is
+     spent: continue, and say in the brief that the review bot had not
+     commented at <short head>.
+   - Every entry in `unanswered` becomes a comment blocker in step 6.
 
 ## Steps
 
@@ -167,6 +190,9 @@ Write the plan from how the target repo actually deploys (step 1).
 - Unaccepted Critical and High findings, unverified ones included.
 - The pipeline failed at the current head.
 - The MR has conflicts.
+- A configured review bot has an unanswered thread (precondition 6). This is
+  a comment blocker: it is fixed in one `/address-comments` round, never
+  accepted as a risk.
 - A one-way door with no rollback procedure, unless the operator has accepted
   that specific risk.
 
@@ -196,6 +222,9 @@ verdict unless the change itself stays the same.
 
 ### Must fix before merging
 - <finding: what happens, where, evidence> <unverified>
+
+### Review-bot threads to answer
+- <thread: what the bot asked for, where>
 
 ### Should fix
 - <finding>
@@ -238,14 +267,17 @@ cannot override the gate.
 | Merges | Nothing here. Recommend `/delivery verify <iid>` after deploy |
 | Accepts a risk | Record the approval, recompute the verdict, reissue the brief |
 | Wants a fix | Recommend `/address-comments <KEY>` or a new factory round, then `/delivery ship <iid>` again |
+| Queues the change | Read the review-bot threads again first (precondition 6). A new unanswered thread turns GO into NO-GO |
 | Asks to post the brief on the MR | Post it as one MR comment |
 
 ## Ledger writes
 
 - Verdicts: one `readiness` row with head, base, patch-id, GO or NO-GO, and who
   produced it.
-- Keys: status `[go !N]` or `[no-go !N]`.
-- Decisions: the door call and the reason for the verdict.
+- Keys: status `[go !N]` or `[no-go !N]`, or `[waiting: <what>]` with
+  `review bot <head>` while the one review-bot wait for that head is open.
+- Decisions: the door call, the reason for the verdict, and each review-bot
+  check with the head, the unanswered thread count, and any spent wait.
 - Approvals: every accepted risk.
 - Stops: any terminal stop from the preconditions.
 
@@ -259,6 +291,7 @@ cannot override the gate.
 | No review | Dual Stage 3 review is missing or stale | `/delivery review <iid>` |
 | Stale review | The change moved since it was reviewed | `/delivery review <iid>` |
 | Pipeline running | Pipeline still running at <sha> | Event subscription, or `/delivery ship <iid>` later |
+| Review bot pending | The review bot has not commented at <sha> yet | `/delivery ship <iid>` later (one wait per head) |
 | Empty diff | The MR changes nothing | None |
 | Two ledgers | More than one ledger names this key | Operator picks one |
 

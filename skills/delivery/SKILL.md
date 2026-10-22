@@ -680,6 +680,10 @@ Run in the **target repo** cwd with this delivery pack loaded. This is everythin
   retries something that failed.
 - No GO without a rollback plan. A Critical finding means NO-GO unless the
   operator accepts the risk in writing, and the ledger records it.
+- No GO, and no queueing, while a configured review bot (`DELIVERY_REVIEW_BOTS`)
+  has an unanswered thread on the change. It is a comment blocker, answered in
+  one batched `/address-comments` round by the operator's own forge identity;
+  threads are never resolved.
 - Retro proposes; it never edits this delivery pack, the factory, contributor rules, or
   this skill in the same session.
 - The delivery skill changes only through `improve.md`, from an isolated,
