@@ -24,6 +24,7 @@ Environment:
 | `CURSOR_HOOKS_FILE` | Cursor `hooks.json` for the mutation hook |
 | `MAX_FIX_ATTEMPTS` | Bounded repair attempts (`scripts/config.ts`, default 2) |
 | `MAX_PARALLEL_WORKTREES` | Concurrent isolated auto worktrees (`scripts/config.ts`, default 4) |
+| `ROUTING_PROFILING` | Diagnostic shadow-routing evidence (`always` to enable; default `off`). Does not change live model selection or quality gates |
 
 ## Runtime capabilities
 

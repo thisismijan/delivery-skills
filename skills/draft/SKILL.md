@@ -151,16 +151,22 @@ selection.
    ```
    Pass the justification argument **only** when `complexitySignal` is `high` and you can name the specific complexity (concurrency/locking, intricate algorithm, cross-cutting refactor); otherwise omit it. This writes `the change metadata file written by change-meta.ts`, which is committed with the change folder in step 9.
 
-   **Profile then shadow-route the remaining draft work.** Resolve `frontier`
-   against the runtime inventory, then dispatch the `task-profile-controller`
-   with that exact available model (tools: `Read, Grep, Glob` only) and a
-   compact evidence bundle for the OpenSpec authoring task. Persist its JSON to
-   `<reviewDir>/author-profile.json` and validate it:
+   **Optionally profile and shadow-route the remaining draft work.** Read
+   `routingProfiling` from:
+   ```
+   bun "${FACTORY_ROOT}/scripts/config.ts"
+   ```
+   Its default is `off`. Only when `routingProfiling` is exactly `always`,
+   resolve `frontier` against the runtime inventory and dispatch the
+   `task-profile-controller` with that exact available model (tools:
+   `Read, Grep, Glob` only) and a compact evidence bundle for the OpenSpec
+   authoring task. Persist its JSON to `<reviewDir>/author-profile.json` and
+   validate it:
    ```
    bun "${FACTORY_ROOT}/scripts/task-profile.ts" "<reviewDir>/author-profile.json"
    bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/author-profile.json" sonnet "<reviewDir>/author-shadow.json"
    ```
-   Record the decision; **do not change the model used to author**. Live dispatch stays Sonnet unless an existing factory rule already says otherwise. The shadow file is evidence only. Start a usage timer before authoring, then capture usage after `verify-change.ts` returns. Do not invent token or cost figures:
+   In `always` mode, record the decision; **do not change the model used to author**. Live dispatch stays Sonnet unless an existing factory rule already says otherwise. The shadow file is evidence only. Start a usage timer before authoring, then capture usage after `verify-change.ts` returns. Do not invent token or cost figures:
    ```
    bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/author-usage-timer.json"
    ```
@@ -180,7 +186,11 @@ selection.
    persistence refuses a missing outcome. The usage file comes from
    `capture-usage.ts`. It always records wall time, uses host tokens and cost
    when present, and otherwise records character counts of those artifacts.
-   Never write `{ "source": "unavailable" }` by hand.
+   Never write `{ "source": "unavailable" }` by hand. When
+   `routingProfiling` is `off`, skip this entire profiling, usage-capture,
+   routing-persistence, and scorecard block and continue to verification.
+   This setting only removes diagnostic work; it never changes authoring
+   dispatch or weakens a quality gate.
 
 8. **Verify artifacts (fail closed).** Run:
    ```

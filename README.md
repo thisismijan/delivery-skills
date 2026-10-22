@@ -408,8 +408,10 @@ ambiguous match stops the run instead of guessing.
   exact model identifiers the current runtime advertises into
   `.delivery/routing/model-inventory.json`. The workflow still names the
   required capability (standard or frontier). The catalogue then picks an
-  exact advertised identifier for that capability. A cheaper shadow
-  recommendation is recorded, never dispatched. Each recorded task captures
+  exact advertised identifier for that capability. Diagnostic shadow profiling
+  defaults off to avoid frontier calls that cannot affect live dispatch. Set
+  `ROUTING_PROFILING=always` to collect evaluation evidence; only then is a
+  cheaper shadow recommendation recorded, never dispatched. Each recorded task captures
   wall time automatically, overlays host token and cost figures when the
   runtime writes them, and otherwise stores character counts of named
   artifacts. After each task, the run scorecard refreshes with actual gate,
@@ -424,7 +426,9 @@ ambiguous match stops the run instead of guessing.
   migration, concurrency, distributed-state, weak-verification, holdout review,
   and irreversible work on the frontier recommendation. Live availability stays
   unchanged without an exact operator promotion approval naming the candidate.
-  Public rankings and unscored fixtures never promote.
+  Public rankings and unscored fixtures never promote. This setting changes
+  diagnostic collection only: live model selection, holdout review, and every
+  quality gate remain unchanged.
 - **Retro teaches the engineering journey.** It writes a chronological
   postmortem covering the problem, attempted models, counterexamples, design
   evolution, final invariants, DSA complexity, and system-design trade-offs. It

@@ -84,7 +84,9 @@ This command consumes the review comments on the **existing** MR for this ticket
    Non-zero exit or unparseable output → **stop + escalate**. The provider result is normalized JSON bound to the requested change and head revision. `forge-comments.ts` flattens it to one entry per non-system note, carries each parent `discussionId` (needed to reply on its thread), and applies `excludeHandledThreads`: if an authenticated factory note in a discussion starts with the audit prefix, the **entire discussion** is excluded. Removing only the factory reply would leave the original human note in scope and cause a duplicate action on re-entry. The resulting comments are **in scope**.
 
 5. **Classify (single batch, read-only).** Resolve `standard` against the runtime
-   model inventory. Start a usage timer, then dispatch **exactly one**
+   model inventory. Read `routingProfiling` from
+   `bun "${FACTORY_ROOT}/scripts/config.ts"` (default `off`). When it is exactly
+   `always`, start a usage timer. Then dispatch **exactly one**
    `comment-assessor` subagent with that exact available model (tools
    `Read, Grep, Glob` only), the in-scope comments (each with its `commentId`
    and `discussionId`), the diff, and `<changeDir>` (spec + tasks). Keep each
@@ -96,13 +98,13 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    bun "${FACTORY_ROOT}/scripts/verdicts.ts" classification "<reviewDir>/classification.json" "<reviewDir>/expected-comment-ids.json"
    ```
-   A malformed or missing verdict → **stop + escalate** and action no comments. If there are zero in-scope comments the verdict is `[]` — nothing to action; go to step 8 only if any prior change was made, otherwise stop cleanly. After a valid verdict, resolve `frontier` and dispatch `task-profile-controller` with that exact available model for the classify task, validate with `task-profile.ts`, persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-shadow.json"`. Finish capture after the outcome file exists:
+   A malformed or missing verdict → **stop + escalate** and action no comments. If there are zero in-scope comments the verdict is `[]` — nothing to action; go to step 8 only if any prior change was made, otherwise stop cleanly. After a valid verdict, only when `routingProfiling` is `always`, resolve `frontier` and dispatch `task-profile-controller` with that exact available model for the classify task, validate with `task-profile.ts`, persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-shadow.json"`, and finish capture after the outcome file exists:
    ```
    bun "${FACTORY_ROOT}/scripts/capture-usage.ts" finish "<reviewDir>/classify-usage-timer.json" "<reviewDir>/classify-usage.json" --input "<reviewDir>/classify-profile.json" --output "<reviewDir>/classify-outcome.json"
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-outcome.json" "<reviewDir>/classify-usage.json" <controller-model> <standard-model>
    bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
    ```
-   Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. `classify-outcome.json` records whether classification completed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Classification still used the current semantic standard route; the shadow file must not change that.
+   Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. `classify-outcome.json` records whether classification completed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Classification still used the current semantic standard route; the shadow file must not change that. When `routingProfiling` is `off`, skip the timer, profile, usage capture, routing persistence, and scorecard commands. This setting only removes diagnostic work; it never changes classification dispatch or weakens a quality gate.
 
 6. **Route each comment.** For every entry, derive its action group:
    ```
@@ -152,7 +154,7 @@ This command consumes the review comments on the **existing** MR for this ticket
 8. **Cumulative gates and holdout re-review (quality gate for this round; Stage 3 dual review is the only authority that may undraft).** Run one full green gate, lint, and typecheck in parallel over the cumulative branch, persist all results, and stop on any failure. Prepare the reviewer's inputs as files (it is read-only): write the **cumulative** branch diff against the default branch (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`) and gather every per-comment and cumulative gate artifact. Confirm the reviewer model:
    ```
    bun "${FACTORY_ROOT}/scripts/select-model.ts" review   # -> opus
-   # Resolve frontier and dispatch task-profile-controller read-only first.
+   # Only when routingProfiling is exactly always: resolve frontier and dispatch task-profile-controller read-only first.
    bun "${FACTORY_ROOT}/scripts/task-profile.ts" "<reviewDir>/review-profile.json"
    bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"
    bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/review-usage-timer.json"
@@ -160,12 +162,15 @@ This command consumes the review comments on the **existing** MR for this ticket
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-outcome.json" "<reviewDir>/review-usage.json" <frontier-model> <frontier-model>
    bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
    ```
-   Refresh the run scorecard after each persisted task. It reports measured
+   Only in `always` mode, refresh the run scorecard after each persisted task. It reports measured
    live usage and outcomes, while shadow quality and savings remain explicitly
    unevaluated until a paired benchmark exists. Pass
    `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that
-   file. Never write `{ "source": "unavailable" }` by hand.
-   Resolve `frontier`, then dispatch a **fresh** `holdout-reviewer` subagent
+   file. Never write `{ "source": "unavailable" }` by hand. When
+   `routingProfiling` is `off`, skip the timer, profile, usage-capture,
+   routing-persistence, and scorecard commands.
+   Regardless of this setting, resolve `frontier`, then dispatch a **fresh**
+   `holdout-reviewer` subagent
    with that exact available model over the **cumulative** diff (not
    per-comment) and **only**: the work item, `<changeDir>` (the spec), the
    diff file, the test files, and the gate results. Do **not** pass any

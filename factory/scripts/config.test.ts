@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
 	DEFAULT_MAX_FIX_ATTEMPTS,
 	DEFAULT_MAX_PARALLEL_WORKTREES,
+	DEFAULT_ROUTING_PROFILING,
 	loadConfig,
 	selectReadyWave,
 } from "./config";
@@ -13,6 +14,7 @@ test("defaults when env is empty", () => {
 	expect(c.maxParallelWorktrees).toBe(DEFAULT_MAX_PARALLEL_WORKTREES);
 	expect(c.maxParallelWorktrees).toBe(4);
 	expect(c.modelDefault).toBe("sonnet");
+	expect(c.routingProfiling).toBe(DEFAULT_ROUTING_PROFILING);
 	expect(c.codeHost).toBeUndefined();
 	expect(c.specTool).toBeUndefined();
 });
@@ -36,6 +38,16 @@ test("throws on a non-positive fix-attempt count (fail closed)", () => {
 
 test("throws on a non-numeric fix-attempt count", () => {
 	expect(() => loadConfig({ MAX_FIX_ATTEMPTS: "abc" })).toThrow();
+});
+
+test("enables routing profiling only when explicitly requested", () => {
+	expect(loadConfig({ ROUTING_PROFILING: "always" }).routingProfiling).toBe(
+		"always",
+	);
+});
+
+test("throws on an unknown routing profiling mode (fail closed)", () => {
+	expect(() => loadConfig({ ROUTING_PROFILING: "sometimes" })).toThrow();
 });
 
 test("reads MAX_PARALLEL_WORKTREES from env", () => {
