@@ -1,13 +1,17 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
-import { REVIEW_LENSES, planReviewFanout } from "./review-fanout";
+import {
+	REVIEW_LENSES,
+	type ReviewFanoutInput,
+	planReviewFanout,
+} from "./review-fanout";
 
-const smallInput = {
+const smallInput: ReviewFanoutInput = {
 	changedFiles: 2,
 	changedLines: 49,
 	reversible: true,
 	classificationComplete: true,
-	surfaces: ["user-facing"] as const,
+	surfaces: ["user-facing"],
 };
 
 test("small reversible changes use the two essential lenses", () => {
@@ -32,7 +36,13 @@ test("every threshold boundary fails to the full review", () => {
 });
 
 test("every sensitive surface forces all four lenses", () => {
-	for (const surface of ["data", "contract", "config", "auth", "infra"] as const) {
+	for (const surface of [
+		"data",
+		"contract",
+		"config",
+		"auth",
+		"infra",
+	] as const) {
 		const plan = planReviewFanout({ ...smallInput, surfaces: [surface] });
 		expect(plan.mode).toBe("full");
 		expect(plan.lenses).toEqual([...REVIEW_LENSES]);
@@ -41,9 +51,7 @@ test("every sensitive surface forces all four lenses", () => {
 });
 
 test("invalid and unknown classifications fail closed", () => {
-	expect(() =>
-		planReviewFanout({ ...smallInput, changedFiles: -1 }),
-	).toThrow();
+	expect(() => planReviewFanout({ ...smallInput, changedFiles: -1 })).toThrow();
 	expect(() =>
 		planReviewFanout({
 			...smallInput,

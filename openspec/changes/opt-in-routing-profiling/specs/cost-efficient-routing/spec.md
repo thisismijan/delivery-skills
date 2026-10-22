@@ -42,20 +42,17 @@ frontier holdout reviewer, or any quality gate.
 
 ### Requirement: Review fan-out is proportional to demonstrated risk
 
-The max correctness review SHALL run independently adjudicated lens workers on
-the resolved standard-tier model. It SHALL run the correctness/security and
-tests/specification lenses for a change only when the pinned diff touches at
-most two files, has fewer than 50 changed lines, is reversible by reverting,
-and touches none of Data, Contract, Config, Auth, or Infra. It SHALL run all
-four lenses for every other change and when classification is uncertain. A
-deterministic helper SHALL enforce these boundaries and reject malformed input.
+The max correctness review SHALL run the correctness/security and
+tests/specification lenses only when the pinned diff touches at most two files,
+has fewer than 50 changed lines, is reversible, and touches none of Data,
+Contract, Config, Auth, or Infra. Every other change SHALL run all four lenses.
+A deterministic helper SHALL enforce the boundaries and reject malformed input.
 
 #### Scenario: Small reversible change uses the essential lenses
 - **WHEN** a two-file, 40-line, two-way change touches none of the excluded
   surfaces
 - **THEN** correctness/security and tests/specification run on the standard
   tier
-- **AND** every candidate is still adjudicated against the pinned code
 
 #### Scenario: Risky change retains the full review
 - **WHEN** a change touches auth, migrations, a public contract, configuration,
@@ -65,6 +62,17 @@ deterministic helper SHALL enforce these boundaries and reject malformed input.
 #### Scenario: Unknown classification retains the full review
 - **WHEN** any small-change condition cannot be proved from the pinned diff
 - **THEN** all four review lenses run
+
+### Requirement: Review-lens candidates use the standard tier
+
+Every max-review lens worker SHALL use the exact resolved standard-tier model.
+The main conversation SHALL independently adjudicate every candidate finding
+against the pinned code before it affects the verdict.
+
+#### Scenario: A lens reports a candidate finding
+- **WHEN** any small or full-review lens returns a candidate
+- **THEN** the standard-tier model identity is recorded for that worker
+- **AND** the main conversation verifies the candidate against pinned evidence
 
 ### Requirement: Unchanged code is not sent through duplicate holdout review
 

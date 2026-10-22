@@ -29,5 +29,5 @@
 
 ## 5. Verification
 
-- [ ] 5.1 Run focused configuration and workflow contract tests.
-- [ ] 5.2 Run delivery checks, the factory suite, and repository checks.
+- [x] 5.1 Run focused configuration and workflow contract tests.
+- [x] 5.2 Run delivery checks, the factory suite, and repository checks.
