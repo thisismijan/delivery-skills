@@ -525,8 +525,11 @@ Keep the lifecycle portable across conforming runtimes.
   orchestration never bypasses permission, correctness, security, failure, or
   rollback rules. Continuous authorization replaces repeated progression
   confirmations; it does not replace evidence gates.
-- **Shadow model routing.** A frontier-level read-only `task-profile-controller`
-  classifies each task. Factory stages persist that profile, gate outcomes,
+- **Shadow model routing.** Diagnostic profiling is opt-in. Read
+  `routingProfiling` from `bun "${FACTORY_ROOT}/scripts/config.ts"`; it defaults
+  to `off` and is enabled only when `ROUTING_PROFILING=always`. In that mode, a
+  frontier-level read-only `task-profile-controller` classifies each task.
+  Factory stages persist that profile, gate outcomes,
   repairs, escalations, context size, wall time, and token, cost, or character
   counts under
   `.delivery/routing/`. `capture-usage.ts` records those figures; do not guess
@@ -540,7 +543,10 @@ Keep the lifecycle portable across conforming runtimes.
   Named safety floors block auth, migration, concurrency, distributed-state,
   weak-verification, and holdout work. Live availability stays unchanged
   without an exact operator promotion approval. Public rankings never promote.
-  Changing the catalogue does not change this run.
+  Changing the catalogue does not change this run. With profiling off, skip
+  the controller call and routing telemetry only. Live model selection,
+  implementation, and holdout review remain unchanged, and every quality gate
+  still runs.
 
 ## Human decision brief
 

@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_MAX_PARALLEL_WORKTREES } from "./config";
+import {
+	DEFAULT_MAX_PARALLEL_WORKTREES,
+	DEFAULT_ROUTING_PROFILING,
+} from "./config";
 import { FAST_SAFETY_FLOORS } from "./fast-dispatch";
 import {
 	invokeProvider,
@@ -390,7 +393,7 @@ describe("bounded recovery and replay safety", () => {
 		}
 	});
 
-	test("shadow routing records a cheaper tier without changing live dispatch", () => {
+	test("shadow routing is opt-in and never changes live dispatch", () => {
 		expect(execute).toContain("select-model.ts");
 		expect(execute).toContain("shadow-route.ts");
 		expect(execute).toContain("task-profile-controller");
@@ -404,6 +407,25 @@ describe("bounded recovery and replay safety", () => {
 		expect(draft).toContain("task-profile-controller");
 		expect(addressComments).toContain("semantic standard route");
 		expect(addressComments).toContain("task-profile-controller");
+		for (const skill of [draft, execute, addressComments]) {
+			const contract = plain(skill);
+			expect(contract).toMatch(
+				/only when (?:it|routingProfiling) is (?:exactly )?always/i,
+			);
+			expect(contract).toMatch(/routingProfiling.*off.*skip/i);
+		}
+		expect(plain(execute)).toMatch(
+			/regardless of this setting, dispatch the holdout-reviewer/i,
+		);
+		expect(plain(addressComments)).toMatch(
+			/regardless of this setting, resolve frontier, then dispatch a fresh holdout-reviewer/i,
+		);
+		for (const document of [delivery, rootReadme, referenceDocs]) {
+			expect(document).toContain("ROUTING_PROFILING");
+			expect(plain(document)).toContain(
+				`default${document === referenceDocs ? " " : "s "}${DEFAULT_ROUTING_PROFILING}`,
+			);
+		}
 	});
 
 	test("the profile controller is frontier-level and read-only", () => {

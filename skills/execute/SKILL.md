@@ -123,12 +123,19 @@ re-run the gate. Do not reuse it.
    ```
    If the meta read exits non-zero (a change drafted before this file existed, or a corrupt file), **do not guess** — treat it as no defended case and use `sonnet` (PRD §9: absent a recorded, defended complexity case, Sonnet). Map `sonnet` to the `standard` capability and `opus` to `frontier`, then resolve that tier against `.delivery/routing/model-inventory.json`. The resolver's exact model identifier is the implementation worker. If the semantic selection prints `opus`, the recorded justification must appear in the MR description.
 
-   **Profile then shadow-route implementation.** Resolve `frontier`, then dispatch the `task-profile-controller` subagent with that exact available model (tools: `Read, Grep, Glob` only) and a compact bundle of the spec, feasibility meta, and blast radius. Persist its JSON to `<reviewDir>/implement-profile.json` and validate it:
+   **Optionally profile and shadow-route implementation.** Read
+   `routingProfiling` from
+   `bun "${FACTORY_ROOT}/scripts/config.ts"` (default `off`). Only when it is
+   exactly `always`, resolve `frontier`, then dispatch the
+   `task-profile-controller` subagent with that exact available model (tools:
+   `Read, Grep, Glob` only) and a compact bundle of the spec, feasibility meta,
+   and blast radius. Persist its JSON to
+   `<reviewDir>/implement-profile.json` and validate it:
    ```
    bun "${FACTORY_ROOT}/scripts/task-profile.ts" "<reviewDir>/implement-profile.json"
    bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/implement-profile.json" <live-model> "<reviewDir>/implement-shadow.json"
    ```
-   Persist that JSON. **Dispatch still uses the live `select-model.ts`
+   In `always` mode, persist that JSON. **Dispatch still uses the live `select-model.ts`
    capability and the exact model returned by `model-catalogue.ts`.** A cheaper
    `shadowTier` is a recommendation for later evaluation, never this run's
    worker. Start a usage timer before the implementer runs:
@@ -151,7 +158,11 @@ re-run the gate. Do not reuse it.
    from `capture-usage.ts`. It always records wall time, uses host tokens and
    cost when present, and otherwise records character counts of those
    artifacts. Never write `{ "source": "unavailable" }` by hand.
-   Persist both exact resolved model identifiers.
+   Persist both exact resolved model identifiers. When `routingProfiling` is
+   `off`, skip this entire profiling, usage-capture, routing-persistence, and
+   scorecard block and dispatch the same implementation worker directly. This
+   setting only removes diagnostic work; it never changes the live model or
+   weakens a quality gate.
    Do not dispatch a catalogue fast model unless `fast-dispatch.ts` later
    reports that the exact candidate on representative-run reversible, strongly
    verified work has cleared the 90 percent bar. Named safety floors still
@@ -184,7 +195,7 @@ re-run the gate. Do not reuse it.
 
 9. **Self-review.** The `implementer` reviews its own diff against `specs/` and `tasks.md`, and marks `tasks.md` items done.
 
-10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the required capability: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ semantic `opus`, therefore `frontier`), then resolve the exact available frontier model. Dispatch `task-profile-controller` with that frontier model, validate with `task-profile.ts`, then persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"`. Start a usage timer before the holdout reviewer:
+10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the required capability: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ semantic `opus`, therefore `frontier`), then resolve the exact available frontier model. When `routingProfiling` is exactly `always`, dispatch `task-profile-controller` with that frontier model, validate with `task-profile.ts`, then persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"`. In that mode, start a usage timer before the holdout reviewer:
    ```
    bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/review-usage-timer.json"
    ```
@@ -194,12 +205,14 @@ re-run the gate. Do not reuse it.
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-outcome.json" "<reviewDir>/review-usage.json" <frontier-model> <frontier-model>
    bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
    ```
-   Refresh the run scorecard after each persisted task. It reports measured
+   In `always` mode, refresh the run scorecard after each persisted task. It reports measured
    live usage and outcomes, but labels shadow quality and savings unevaluated
    until a paired benchmark exists. `review-outcome.json` records the holdout
    verdict's terminal result, repairs, and escalations. Do not omit it;
    persistence refuses a missing outcome. Never write
-   `{ "source": "unavailable" }` by hand. Dispatch the `holdout-reviewer`
+   `{ "source": "unavailable" }` by hand. When `routingProfiling` is `off`,
+   skip the profile, usage-capture, routing-persistence, and scorecard commands.
+   Regardless of this setting, dispatch the `holdout-reviewer`
    subagent with the same resolved frontier model and **only**: the work item,
    `<changeDir>` (the spec), the diff file, the test files, all gate-result
    files, and the **skip report** (`<reviewDir>/skips.md`). **Do not pass the

@@ -903,6 +903,11 @@ describe("shadow model routing", () => {
 		const policy = section(SKILL, "## Orchestration policy");
 		expect(policy).toContain("Shadow model routing");
 		expect(policy).toContain("task-profile-controller");
+		expect(policy).toContain("ROUTING_PROFILING=always");
+		expect(policy).toContain("defaults");
+		expect(policy).toContain("off");
+		expect(policy).toContain("every quality gate");
+		expect(policy).toContain("still runs");
 		expect(policy).toContain(".delivery/routing/");
 		expect(policy).toContain("90 percent");
 		expect(policy).toContain("never dispatched");
@@ -1050,6 +1055,8 @@ describe("portable factory pack", () => {
   test("the README describes runtime model inventory and shadow routing", () => {
     expect(readme).toContain("model-inventory.json");
     expect(readme).toContain("evaluation-only");
+    expect(readme).toContain("ROUTING_PROFILING=always");
+    expect(readme).toContain("defaults off");
     expect(readme).toContain("90 percent");
     expect(readme).toContain("recorded, never dispatched");
     expect(readme).toContain("factory/model-catalogue.json");
