@@ -195,6 +195,8 @@ re-run the gate. Do not reuse it.
    ```
    If any of the three fail, dispatch the `implementer` again to fix the source (not the tests). Loop a small bounded number of times (the formal ceiling is N6), then **stop + escalate**.
 
+   When the implementer's handoff lists a failing test under **Test contradicts spec**, do not dispatch the implementer for that test. Dispatch the `test-writer` once with the work item, the spec scenario, and that line, to correct only the named test to the spec's contract. It never removes or loosens any other assertion. Then re-run the green gate. The holdout review still checks every test against the spec. A second contradiction on the same test stops and escalates.
+
    **Premise checkpoint:** after **two failures that share the same
    assumption**, **state the premise** and run **one discriminating observation**
    that could disprove it. There is **no third fix** before this check. If the

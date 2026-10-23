@@ -394,6 +394,29 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(delivery)).toMatch(/never discard/i);
 	});
 
+	test("a test that contradicts the spec goes back to the test writer, not another implementer fix", () => {
+		for (const agent of [implementer, implementerOpus]) {
+			expect(agent).toContain(
+				"- **Test contradicts spec:** `none`, or one line per failing test",
+			);
+			expect(plain(agent)).toMatch(/leave the source matching the spec/i);
+		}
+		const route = plain(execute);
+		expect(route).toMatch(
+			/lists a failing test under test contradicts spec , do not dispatch the implementer for that test/i,
+		);
+		expect(route).toMatch(/dispatch the test-writer once/i);
+		expect(route).toMatch(/never removes or loosens any other assertion/i);
+		expect(route).toMatch(
+			/a second contradiction on the same test stops and escalates/i,
+		);
+		const sentBack = plain(testWriter);
+		expect(sentBack).toMatch(
+			/re-derive the expected value from the spec scenario yourself/i,
+		);
+		expect(sentBack).toMatch(/if the test is right, change nothing/i);
+	});
+
 	test("repeated failures force a premise check before a third fix", () => {
 		for (const skill of [execute, addressComments]) {
 			const contract = plain(skill);
@@ -414,23 +437,35 @@ describe("bounded recovery and replay safety", () => {
 		expect(maxReview).toMatch(/review-fanout\.ts/);
 		expect(maxReview).toMatch(/lenses array is authoritative/i);
 		expect(maxReview).toMatch(/non-zero exit stops the review/i);
-		expect(maxReview).toMatch(/review-fanout\.ts" measure <base-sha> <head-sha>/);
+		expect(maxReview).toMatch(
+			/review-fanout\.ts" measure <base-sha> <head-sha>/,
+		);
 		expect(maxReview).toMatch(/classify surfaces from its paths only/i);
 		expect(maxReview).toMatch(/review-fanout\.ts" adjudication/);
 		expect(maxReview).toMatch(/standard ?: every candidate is low/i);
 		expect(maxReview).toMatch(/it may raise a severity/i);
-		expect(maxReview).toMatch(/small reversible or contained change, run lenses 1 and 2/i);
-		expect(maxReview).toMatch(/contained change is reversible, touches at most 6 files with fewer than 400 changed lines/i);
+		expect(maxReview).toMatch(
+			/small reversible or contained change, run lenses 1 and 2/i,
+		);
+		expect(maxReview).toMatch(
+			/contained change is reversible, touches at most 6 files with fewer than 400 changed lines/i,
+		);
 		expect(maxReview).toMatch(/bound every command's output/i);
 		expect(maxReview).toMatch(
 			/main ?: a candidate is medium or above\. the main conversation adjudicates/i,
 		);
-		expect(maxReview).toMatch(/give lenses this brief and the pinned diff, not a bundled review packet/i);
+		expect(maxReview).toMatch(
+			/give lenses this brief and the pinned diff, not a bundled review packet/i,
+		);
 		expect(plain(codeReviewMax)).toMatch(
 			/review-packet\.ts" --ticket <work-item file> --spec <change dir> --diff <pinned diff> --evidence <lens 1 candidates> \.\.\. --out \.review\/mr-<iid>\/<full-head-sha>\/adjudication-packet\.md/,
 		);
-		expect(maxReview).toMatch(/reads that packet first instead of opening each input on its own/i);
-		expect(maxReview).toMatch(/reads the cited code of several candidates in one command/i);
+		expect(maxReview).toMatch(
+			/reads that packet first instead of opening each input on its own/i,
+		);
+		expect(maxReview).toMatch(
+			/reads the cited code of several candidates in one command/i,
+		);
 		expect(plain(execute)).toMatch(
 			/review-packet\.ts" --ticket <work-item-file> --spec <changeDir> --out <reviewDir>\/test-packet\.md/,
 		);
@@ -439,7 +474,9 @@ describe("bounded recovery and replay safety", () => {
 			/review-packet\.ts" --ticket <work-item-file> --spec .* --diff <reviewDir>\/diff\.patch --evidence <artifact>\.\.\. --out <reviewDir>\/review-packet\.md/,
 		);
 		expect(plain(holdoutReviewer)).toMatch(/review packet ?, read it first/i);
-		expect(plain(holdoutReviewer)).toMatch(/open another file only to settle something the packet cannot/i);
+		expect(plain(holdoutReviewer)).toMatch(
+			/open another file only to settle something the packet cannot/i,
+		);
 		expect(plain(execute)).toMatch(
 			/review-packet\.ts" --ticket <work-item-file> --spec .* --diff <reviewDir>\/implement-diff\.patch --evidence <red-gate-artifact> --out <reviewDir>\/implement-packet\.md/,
 		);

@@ -72,6 +72,7 @@ Report a compact handoff with exactly these headings:
 - **Skipped:** adjacent features or cleanup deliberately outside the approved spec, or `none`.
 - **Not checked:** commands or runtime behaviour you could not verify with your tools.
 - **Residual risks:** concrete remaining risk, or `none`.
+- **Test contradicts spec:** `none`, or one line per failing test whose expectation contradicts the approved spec: the test name, the spec scenario it contradicts, and the value the spec gives. Leave the source matching the spec. The command sends these tests back to the test writer instead of asking you to fix again.
 
 Do not claim the green gate passed: you cannot run it. The command records the
 real gate result separately.

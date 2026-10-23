@@ -50,6 +50,14 @@ Default to **no comment**. In a test, the test name and the assertion are the do
 ## After you
 The command runs the **red gate** next: your tests are expected to **fail** (the implementation does not exist yet). If they pass already, that signals vacuous tests or a no-op change and the run stops. So write tests that genuinely depend on the behaviour the spec describes.
 
+## A test sent back
+
+After the green gate, the command may send back a test that the implementer
+reports contradicts the approved spec. Re-derive the expected value from the
+spec scenario yourself. If the spec does give a different value, correct only
+that expectation. If the test is right, change nothing and say so under
+**Residual risks**. Never remove or loosen any other assertion.
+
 Before reporting, perform two mental mutation checks: name one behaviour-breaking edit that would make each test fail, and confirm a purely internal refactor would still pass. Do not put this reasoning in test comments.
 
 Report a compact handoff with exactly these headings:
