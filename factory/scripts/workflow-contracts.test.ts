@@ -419,6 +419,9 @@ describe("bounded recovery and replay safety", () => {
 		expect(maxReview).toMatch(/review-fanout\.ts" adjudication/);
 		expect(maxReview).toMatch(/standard ?: every candidate is low/i);
 		expect(maxReview).toMatch(/it may raise a severity/i);
+		expect(maxReview).toMatch(/small reversible or contained change, run lenses 1 and 2/i);
+		expect(maxReview).toMatch(/contained change is reversible, touches at most 6 files with fewer than 400 changed lines/i);
+		expect(maxReview).toMatch(/bound every command's output/i);
 		expect(maxReview).toMatch(
 			/main ?: a candidate is medium or above\. the main conversation adjudicates/i,
 		);

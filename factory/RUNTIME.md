@@ -191,8 +191,10 @@ Independently adjudicated `/code-review-max` lenses use the resolved
 `standard` model. Write measured counts and surfaces to
 `.review/mr-<iid>/<full-head-sha>/review-fanout-input.json`, then run
 `bun "$FACTORY_ROOT/scripts/review-fanout.ts" <that file>`. The returned
-`lenses` array is authoritative. A small reversible change runs two essential
-lenses; risky, one-way, sensitive, or unknown classification runs all four.
+`lenses` array is authoritative. A small reversible change, or a contained one
+(reversible, at most 6 files and under 400 lines, no sensitive surface or
+dependency change), runs two essential lenses; larger, one-way, sensitive, or
+unknown classification runs all four.
 Invalid input is a terminal stop. Counts come from
 `review-fanout.ts measure <base> <head>`, which leaves out OpenSpec and
 delivery artefacts. `review-fanout.ts adjudication <candidates.json>` decides

@@ -38,9 +38,14 @@ bun "$FACTORY_ROOT/scripts/review-fanout.ts" <input.json>
 
 `review-fanout.ts` decides which `/code-review-max` lenses to start from
 measured file and line counts, reversibility, classification completeness, and
-surfaces. A proven small reversible change returns the two essential lenses;
-every other input, including incomplete classification, returns all four. The
-returned `lenses` array is authoritative.
+surfaces. A proven small reversible change, or a contained one (reversible, at
+most 6 files and fewer than 400 lines, no sensitive surface or dependency
+change), returns the two essential lenses; every other input, including
+incomplete classification, returns all four. The returned `lenses` array is
+authoritative. `review-fanout.ts measure <base> <head>` produces the counts
+from code paths only. `review-fanout.ts adjudication <candidates.json>`
+returns `none` when no lens raised a candidate, `standard` when every
+candidate is Low, and `main` when any is Medium or above.
 
 ## Runtime capabilities
 

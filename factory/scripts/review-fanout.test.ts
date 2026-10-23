@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 import {
+	CONTAINED_MAX_FILES,
+	CONTAINED_MAX_LINES,
 	REVIEW_LENSES,
 	type ReviewFanoutInput,
 	measureReviewableDiff,
@@ -24,12 +26,29 @@ test("small reversible changes use the two essential lenses", () => {
 	});
 });
 
-test("every threshold boundary fails to the full review", () => {
+test("a reversible non-sensitive change within the contained bounds runs the two essential lenses", () => {
 	for (const input of [
 		{ ...smallInput, changedFiles: 3 },
 		{ ...smallInput, changedLines: 50 },
+		{
+			...smallInput,
+			changedFiles: CONTAINED_MAX_FILES,
+			changedLines: CONTAINED_MAX_LINES - 1,
+		},
+	]) {
+		const plan = planReviewFanout(input);
+		expect(plan.mode).toBe("contained");
+		expect(plan.lenses).toEqual(["correctness-security", "tests-specification"]);
+	}
+});
+
+test("every threshold boundary fails to the full review", () => {
+	for (const input of [
+		{ ...smallInput, changedFiles: CONTAINED_MAX_FILES + 1 },
+		{ ...smallInput, changedLines: CONTAINED_MAX_LINES },
 		{ ...smallInput, reversible: false },
 		{ ...smallInput, classificationComplete: false },
+		{ ...smallInput, changedFiles: 3, surfaces: ["dependencies"] as const },
 	]) {
 		const plan = planReviewFanout(input);
 		expect(plan.mode).toBe("full");

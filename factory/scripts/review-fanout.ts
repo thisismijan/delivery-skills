@@ -37,8 +37,14 @@ export const ReviewFanoutInput = z.object({
 
 export type ReviewFanoutInput = z.infer<typeof ReviewFanoutInput>;
 
+// Measured across benchmark loops: every blocking finding on a reversible,
+// non-sensitive change came from the first two lenses, so the other two run
+// only where their surfaces (rollout, dependencies, blast radius) are present.
+export const CONTAINED_MAX_FILES = 6;
+export const CONTAINED_MAX_LINES = 400;
+
 export interface ReviewFanoutPlan {
-	mode: "small" | "full";
+	mode: "small" | "contained" | "full";
 	lenses: (typeof REVIEW_LENSES)[number][];
 	reason: string;
 }
@@ -63,14 +69,36 @@ export function planReviewFanout(input: ReviewFanoutInput): ReviewFanoutPlan {
 		};
 	}
 
+	const dependencies = parsed.surfaces.includes("dependencies");
+	const contained =
+		parsed.classificationComplete &&
+		parsed.changedFiles <= CONTAINED_MAX_FILES &&
+		parsed.changedLines < CONTAINED_MAX_LINES &&
+		parsed.reversible &&
+		sensitive.length === 0 &&
+		!dependencies;
+
+	if (contained) {
+		return {
+			mode: "contained",
+			lenses: [...REVIEW_LENSES.slice(0, 2)],
+			reason: `reversible change within ${CONTAINED_MAX_FILES} files and ${CONTAINED_MAX_LINES} lines with no sensitive surface or dependency change`,
+		};
+	}
+
 	const reasons = [
 		!parsed.classificationComplete ? "classification incomplete" : undefined,
-		parsed.changedFiles > 2 ? "more than 2 changed files" : undefined,
-		parsed.changedLines >= 50 ? "at least 50 changed lines" : undefined,
+		parsed.changedFiles > CONTAINED_MAX_FILES
+			? `more than ${CONTAINED_MAX_FILES} changed files`
+			: undefined,
+		parsed.changedLines >= CONTAINED_MAX_LINES
+			? `at least ${CONTAINED_MAX_LINES} changed lines`
+			: undefined,
 		!parsed.reversible ? "one-way change" : undefined,
 		sensitive.length > 0
 			? `sensitive surfaces: ${sensitive.join(", ")}`
 			: undefined,
+		dependencies ? "dependency change" : undefined,
 	].filter((reason): reason is string => reason !== undefined);
 
 	return {

@@ -87,6 +87,9 @@ Classify the pinned diff before dispatch:
   changed lines, is a two-way door, and touches none of Data, Contract, Config,
   Auth, or Infra. Use the changed paths and diff, not the change description,
   to prove every condition.
+- A **contained change** is reversible, touches at most 6 files with fewer
+  than 400 changed lines, and touches none of Data, Contract, Config, Auth,
+  Infra, or Dependencies. It also runs lenses 1 and 2.
 - Anything else is a **full review**, including an unknown classification.
 
 Measure the counts with
@@ -108,11 +111,14 @@ stops the review; never guess a reduced fan-out. Persist the result beside the
 input.
 
 Start fresh read-only subagents in one parallel batch. For a small reversible
-change, run lenses 1 and 2. For a full review, run all four lenses. They may use
-read, search, and read-only git commands. They must not edit, comment, post,
-commit, or push. The reduced pass never applies to auth, migrations, public
-contracts, configuration, infrastructure, one-way changes, or an incomplete
-diff.
+or contained change, run lenses 1 and 2.
+For a full review, run all four lenses. They may use read, search, and
+read-only git commands. They must not
+edit, comment, post, commit, or push. The reduced pass never applies to auth,
+migrations, public contracts, configuration, infrastructure, one-way changes,
+or an incomplete diff. Bound every command's output, for example with
+`| head -c 8000`: output is re-read on every later step, so one unbounded
+reproduction can cost more than the rest of the review.
 
 1. **Correctness and security**
    - Trace changed control and data flow.
@@ -176,7 +182,8 @@ Whoever adjudicates owns the verdict. For every candidate:
    the claim.
 2. Confirm the line exists in the head diff or explain why an unchanged line is
    the correct anchor.
-3. Run the cheapest focused test or reproduction when practical.
+3. Run the cheapest focused test or reproduction when practical, with its
+   output bounded as the lenses' is.
 4. Search for an existing guard that clears the risk.
 5. Drop duplicates and anything already raised in the change discussions.
 6. Drop claims that depend only on a name, comment, or reviewer assertion.
