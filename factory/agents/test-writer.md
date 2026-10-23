@@ -10,6 +10,8 @@ You write **tests only** for an approved OpenSpec change, before any implementat
 ## Inputs
 - The change's `specs/` (requirements + scenarios) and `tasks.md` (ordered tests-first).
 
+When the command gives you a **packet**, read it first: it holds the work item and every file of the change. Open other files only for what the packet cannot show, such as the existing tests and the code under test. Every extra read is re-read on each later step.
+
 ## What to do
 - Write tests that exercise **each scenario / acceptance criterion** in `specs/`, following the tests-first items in `tasks.md`.
 - Use the **target repo's** test framework and conventions (match the existing tests in the repo).
@@ -47,6 +49,14 @@ Default to **no comment**. In a test, the test name and the assertion are the do
 
 ## After you
 The command runs the **red gate** next: your tests are expected to **fail** (the implementation does not exist yet). If they pass already, that signals vacuous tests or a no-op change and the run stops. So write tests that genuinely depend on the behaviour the spec describes.
+
+## A test sent back
+
+After the green gate, the command may send back a test that the implementer
+reports contradicts the approved spec. Re-derive the expected value from the
+spec scenario yourself. If the spec does give a different value, correct only
+that expectation. If the test is right, change nothing and say so under
+**Residual risks**. Never remove or loosen any other assertion.
 
 Before reporting, perform two mental mutation checks: name one behaviour-breaking edit that would make each test fail, and confirm a purely internal refactor would still pass. Do not put this reasoning in test comments.
 

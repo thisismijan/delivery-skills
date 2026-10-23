@@ -39,8 +39,11 @@ shadow recommendation is recorded, never dispatched.
 `/code-review-max` starts independently adjudicated lenses on the standard
 tier. `review-fanout.ts` chooses two essential lenses for a proven small
 reversible change (at most 2 files, fewer than 50 changed lines, two-way, no
-Data/Contract/Config/Auth/Infra) and all four lenses otherwise. Invalid input
-fails closed.
+Data/Contract/Config/Auth/Infra) or a contained one (at most 6 files, fewer
+than 400 lines, two-way, none of those surfaces and no dependency change), and
+all four lenses otherwise. Invalid input fails closed. Only a candidate at
+Medium or above is verified by the main conversation; all-Low candidates go to
+one standard-tier subagent.
 
 `/address-comments` still classifies every in-scope comment. A round that
 changes the commit still runs cumulative gates and frontier holdout review. A

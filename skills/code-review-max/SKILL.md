@@ -64,6 +64,12 @@ Give every reviewer the same immutable brief:
 Do not give reviewers the author's reasoning as evidence. A statement in the
 change description is a claim to verify.
 
+Give lenses this brief and the pinned diff, not a bundled review packet. Each
+lens reads the code it checks anyway, so a packet's spec and evidence text only
+adds context that every later step re-reads. The adjudicator is different: it
+has to read the work item, spec, diff and every lens's candidates, so it gets
+the adjudication packet below instead.
+
 Persist the brief at `.review/mr-<iid>/<full-head-sha>/brief.md`. Reuse it only
 when its ref and full head SHA still match live `read` metadata; otherwise
 rebuild it. This worktree-local artifact lets the second pass run in a fresh conversation on any conforming runtime.
@@ -87,7 +93,17 @@ Classify the pinned diff before dispatch:
   changed lines, is a two-way door, and touches none of Data, Contract, Config,
   Auth, or Infra. Use the changed paths and diff, not the change description,
   to prove every condition.
+- A **contained change** is reversible, touches at most 6 files with fewer
+  than 400 changed lines, and touches none of Data, Contract, Config, Auth,
+  Infra, or Dependencies. It also runs lenses 1 and 2.
 - Anything else is a **full review**, including an unknown classification.
+
+Measure the counts with
+`bun "${FACTORY_ROOT}/scripts/review-fanout.ts" measure <base-sha> <head-sha>`.
+It leaves out the change's own OpenSpec, `.delivery/` and `.review/` files,
+which are not code and are reviewed against it, and reports what it left out.
+Classify surfaces from its `paths` only, so a spec's `.openspec.yaml` is never
+a Config surface.
 
 Write the measured counts, reversibility decision, whether every classification
 field was proved, and normalized surfaces to
@@ -101,11 +117,14 @@ stops the review; never guess a reduced fan-out. Persist the result beside the
 input.
 
 Start fresh read-only subagents in one parallel batch. For a small reversible
-change, run lenses 1 and 2. For a full review, run all four lenses. They may use
-read, search, and read-only git commands. They must not edit, comment, post,
-commit, or push. The reduced pass never applies to auth, migrations, public
-contracts, configuration, infrastructure, one-way changes, or an incomplete
-diff.
+or contained change, run lenses 1 and 2.
+For a full review, run all four lenses. They may use read, search, and
+read-only git commands. They must not
+edit, comment, post, commit, or push. The reduced pass never applies to auth,
+migrations, public contracts, configuration, infrastructure, one-way changes,
+or an incomplete diff. Bound every command's output, for example with
+`| head -c 8000`: output is re-read on every later step, so one unbounded
+reproduction can cost more than the rest of the review.
 
 1. **Correctness and security**
    - Trace changed control and data flow.
@@ -149,13 +168,35 @@ style preferences, or speculative future requirements.
 
 ## Adjudicate every candidate
 
-The main conversation owns the verdict. For every candidate:
+Write each lens's candidate severities to
+`.review/mr-<iid>/<full-head-sha>/lens-candidates.json` as
+`{"candidates":[{"severity":"Low"}, ...]}` and run
+`bun "${FACTORY_ROOT}/scripts/review-fanout.ts" adjudication <that file>`. The
+returned `mode` is authoritative:
+
+- `none`: no lens returned a candidate. Write the output below with
+  `No findings.` and a `PASS` verdict; there is nothing to verify.
+- `standard`: every candidate is Low. Dispatch one fresh read-only subagent on
+  the resolved `standard` model to apply this section and the Severity rules.
+  It may raise a severity, and it still blocks when several Low findings share
+  one root cause that makes the change unsafe.
+- `main`: a candidate is Medium or above. The main conversation adjudicates.
+
+Before adjudicating, bundle the work item, the change spec, the pinned diff and
+every lens's candidates into one packet:
+`bun "${FACTORY_ROOT}/scripts/review-packet.ts" --ticket <work-item file> --spec <change dir> --diff <pinned diff> --evidence <lens 1 candidates> ... --out .review/mr-<iid>/<full-head-sha>/adjudication-packet.md`.
+Whoever adjudicates reads that packet first instead of opening each input on
+its own, then reads the cited code of several candidates in one command where
+it can. Every separate read is re-read on each later step.
+
+Whoever adjudicates owns the verdict. For every candidate:
 
 1. Read the cited code at the pinned head and enough surrounding code to verify
    the claim.
 2. Confirm the line exists in the head diff or explain why an unchanged line is
    the correct anchor.
-3. Run the cheapest focused test or reproduction when practical.
+3. Run the cheapest focused test or reproduction when practical, with its
+   output bounded as the lenses' is.
 4. Search for an existing guard that clears the risk.
 5. Drop duplicates and anything already raised in the change discussions.
 6. Drop claims that depend only on a name, comment, or reviewer assertion.

@@ -22,8 +22,15 @@ Your **only** output is the single `AssessmentVerdict` JSON object described bel
 
 Set `scopeFit: "too_large"` when the ticket contains independently deployable
 outcomes, multiple acceptance-criteria clusters, multiple unrelated code areas,
-or a feature bundled with a migration, refactor, or second consumer. When in
-doubt, prefer a split. Do not split by frontend/backend/database layer; propose
+or a feature bundled with a migration, refactor, or second consumer. Behaviours
+that extend the same public function, type, or class in one cohesive code area
+are one cluster, even when there are several of them: fold them into at most
+three criteria rather than splitting. Validation, error cases, and edge cases of
+a behaviour belong to that behaviour. Split only when you can name two outcomes
+that touch different public contracts or code areas and are each useful alone.
+Every split runs its own full pipeline and reviews, so an unnecessary split
+multiplies cost and creates overlapping tickets whose later slices find their
+behaviour already delivered. Do not split by frontend/backend/database layer; propose
 thin end-to-end tickets that each leave the system in a useful state. An
 expand-contract migration may be separate only when compatibility makes that
 sequence real.

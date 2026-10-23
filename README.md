@@ -386,9 +386,28 @@ The correctness review pins the advertised model list, resolves the standard
 tier, then asks `review-fanout.ts` which lenses to start. A small reversible
 change is at most 2 files, fewer than 50 changed lines, a two-way door, and
 none of Data, Contract, Config, Auth, or Infra. That case runs correctness and
-security plus tests and specification. Larger, one-way, sensitive, or
-uncertain changes retain all four lenses. Invalid input fails closed rather
-than guessing a cheaper pass.
+security plus tests and specification. So does a contained change: reversible,
+at most 6 files and fewer than 400 lines, with no sensitive surface or
+dependency change. Larger, one-way, sensitive, or uncertain changes retain all
+four lenses. Invalid input fails closed rather than guessing a cheaper pass.
+Counts leave out the change's own OpenSpec and delivery files. When no lens
+raises a candidate there is nothing to verify; when every candidate is Low,
+one standard-tier subagent verifies them; a Medium or higher candidate is
+verified by the main conversation.
+
+A subagent re-reads its whole conversation on every step, so each file it
+opens separately costs again on every later step. `review-packet.ts` bundles
+what a role needs into one file. The test writer gets the work item and spec;
+the implementer adds the diff so far and the gate result it answers; the
+holdout reviewer adds the complete diff and gate evidence; the adjudicator adds
+every lens's candidates. Review lenses keep the plain brief and diff, because
+they read the code they check anyway.
+
+When the implementer reports that a failing test contradicts the approved spec,
+execute sends that one test back to the test writer instead of spending another
+implementer fix on it. The test writer re-derives the value from the spec and
+changes nothing if the test was right. The holdout review still checks every
+test.
 
 See [workflow](docs/workflow.md) and [reference](docs/reference.md) for the
 operator knobs.
@@ -455,7 +474,8 @@ ambiguous match stops the run instead of guessing.
   fixtures never promote.
 - **Review spend follows demonstrated risk.** Independently adjudicated review
   lenses use the standard model tier. `review-fanout.ts` chooses two essential
-  lenses for a proven small reversible change and all four lenses otherwise.
+  lenses for a proven small reversible or contained change and all four lenses
+  otherwise.
   Reply-only comment rounds do not send an unchanged commit through duplicate
   gates and frontier holdout review. Any changed commit still does, and dual
   review remains mandatory before readiness.

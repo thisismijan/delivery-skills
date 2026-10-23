@@ -95,7 +95,9 @@ re-run the gate. Do not reuse it.
 4. **Write tests first.** Resolve `standard` against
    `.delivery/routing/model-inventory.json`, then dispatch the `test-writer`
    subagent with that exact available model, `<changeDir>/specs/`, and
-   `<changeDir>/tasks.md`. It writes test files only. It writes **durable** tests
+   `<changeDir>/tasks.md`, bundled with the work item into one file by
+   `bun "${FACTORY_ROOT}/scripts/review-packet.ts" --ticket <work-item-file> --spec <changeDir> --out <reviewDir>/test-packet.md`
+   and given to it as its starting input. It writes test files only. It writes **durable** tests
    and **skips** inherently transient (point-in-time migration) scenarios,
    reporting each skip with a reason (see "Test durability" in `CONVENTIONS.md`).
    Capture its complete compact handoff verbatim to
@@ -171,7 +173,13 @@ re-run the gate. Do not reuse it.
    unscored fixture as live availability. That change needs an exact operator
    promotion approval naming the candidate.
 
-7. **Implement to green.** Dispatch the `implementer` subagent using the exact
+7. **Implement to green.** Bundle the work item, the change's spec files, the
+   failing tests and the red gate into one file:
+   `git diff <default-branch>...HEAD > <reviewDir>/implement-diff.patch`, then
+   `bun "${FACTORY_ROOT}/scripts/review-packet.ts" --ticket <work-item-file> --spec openspec/changes/<changeName> --diff <reviewDir>/implement-diff.patch --evidence <red-gate-artifact> --out <reviewDir>/implement-packet.md`.
+   Rebuild it before every fix dispatch, with the failing gate artifact or the
+   review findings as the evidence. Dispatch the `implementer` subagent with the
+   packet as its starting input, using the exact
    runtime model resolved in step 6. Override the prompt's static model. If the
    host cannot override a plugin agent's model, use the existing
    `implementer-opus` fallback only for the semantic frontier case. Capture its
@@ -187,6 +195,8 @@ re-run the gate. Do not reuse it.
    ```
    If any of the three fail, dispatch the `implementer` again to fix the source (not the tests). Loop a small bounded number of times (the formal ceiling is N6), then **stop + escalate**.
 
+   When the implementer's handoff lists a failing test under **Test contradicts spec**, do not dispatch the implementer for that test. Dispatch the `test-writer` once with the work item, the spec scenario, and that line, to correct only the named test to the spec's contract. It never removes or loosens any other assertion. Then re-run the green gate. The holdout review still checks every test against the spec. A second contradiction on the same test stops and escalates.
+
    **Premise checkpoint:** after **two failures that share the same
    assumption**, **state the premise** and run **one discriminating observation**
    that could disprove it. There is **no third fix** before this check. If the
@@ -200,7 +210,7 @@ re-run the gate. Do not reuse it.
    subagent for this bookkeeping step. A missing or ambiguous proof remains
    unchecked and escalates rather than being inferred.
 
-10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the required capability: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ semantic `opus`, therefore `frontier`), then resolve the exact available frontier model. When `routingProfiling` is exactly `always`, dispatch `task-profile-controller` with that frontier model, validate with `task-profile.ts`, then persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"`. In that mode, start a usage timer before the holdout reviewer:
+10. **Holdout review (before any MR exists).** The reviewer is read-only (tools: `Read, Grep, Glob` — no Bash/git/MCP), so **the command prepares its inputs as files**: write the branch diff against the default branch to a file (`git diff <default-branch>...HEAD > <reviewDir>/diff.patch`). Pass the complete set of append-only red, green, lint, and typecheck artifacts from steps 5 and 8. Bundle them with the work item, the change's spec files, and the complete diff into one file with `bun "${FACTORY_ROOT}/scripts/review-packet.ts" --ticket <work-item-file> --spec openspec/changes/<changeName> --diff <reviewDir>/diff.patch --evidence <artifact>... --out <reviewDir>/review-packet.md` and give the reviewer that packet as its starting input; the separate files stay available to it. Do NOT re-run gates or roll back implementation to reconstruct evidence. Confirm the required capability: `bun "${FACTORY_ROOT}/scripts/select-model.ts" review` (→ semantic `opus`, therefore `frontier`), then resolve the exact available frontier model. When `routingProfiling` is exactly `always`, dispatch `task-profile-controller` with that frontier model, validate with `task-profile.ts`, then persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"`. In that mode, start a usage timer before the holdout reviewer:
    ```
    bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/review-usage-timer.json"
    ```
