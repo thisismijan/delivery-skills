@@ -395,6 +395,20 @@ raises a candidate there is nothing to verify; when every candidate is Low,
 one standard-tier subagent verifies them; a Medium or higher candidate is
 verified by the main conversation.
 
+A subagent re-reads its whole conversation on every step, so each file it
+opens separately costs again on every later step. `review-packet.ts` bundles
+what a role needs into one file. The test writer gets the work item and spec;
+the implementer adds the diff so far and the gate result it answers; the
+holdout reviewer adds the complete diff and gate evidence; the adjudicator adds
+every lens's candidates. Review lenses keep the plain brief and diff, because
+they read the code they check anyway.
+
+When the implementer reports that a failing test contradicts the approved spec,
+execute sends that one test back to the test writer instead of spending another
+implementer fix on it. The test writer re-derives the value from the spec and
+changes nothing if the test was right. The holdout review still checks every
+test.
+
 See [workflow](docs/workflow.md) and [reference](docs/reference.md) for the
 operator knobs.
 

@@ -31,6 +31,7 @@ Environment:
 ```text
 bun "$FACTORY_ROOT/scripts/config.ts"
 bun "$FACTORY_ROOT/scripts/review-fanout.ts" <input.json>
+bun "$FACTORY_ROOT/scripts/review-packet.ts" --ticket <file> --spec <change-dir> [--diff <file>] [--evidence <file>]... --out <file>
 ```
 
 `config.ts` prints the validated knobs, including `maxParallelWorktrees` and
@@ -46,6 +47,11 @@ authoritative. `review-fanout.ts measure <base> <head>` produces the counts
 from code paths only. `review-fanout.ts adjudication <candidates.json>`
 returns `none` when no lens raised a candidate, `standard` when every
 candidate is Low, and `main` when any is Medium or above.
+
+`review-packet.ts` writes one Markdown packet holding the work item, every
+spec file under the change directory, the diff when given, and the last 6000
+characters of each evidence file. Without `--diff` it builds the test writer's
+packet; an empty diff file fails, because a review needs the complete diff.
 
 ## Runtime capabilities
 
