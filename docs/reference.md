@@ -24,7 +24,23 @@ Environment:
 | `CURSOR_HOOKS_FILE` | Cursor `hooks.json` for the mutation hook |
 | `MAX_FIX_ATTEMPTS` | Bounded repair attempts (`scripts/config.ts`, default 2) |
 | `MAX_PARALLEL_WORKTREES` | Concurrent isolated auto worktrees (`scripts/config.ts`, default 4) |
-| `ROUTING_PROFILING` | Diagnostic shadow-routing evidence (`always` to enable; default `off`). Does not change live model selection or quality gates |
+| `ROUTING_PROFILING` | Diagnostic shadow-routing evidence. Defaults to `off`. Set `always` to collect evaluation evidence. Does not change live model selection, holdout review of new or changed code, or quality gates |
+
+## Cost-control scripts
+
+```text
+bun "$FACTORY_ROOT/scripts/config.ts"
+bun "$FACTORY_ROOT/scripts/review-fanout.ts" <input.json>
+```
+
+`config.ts` prints the validated knobs, including `maxParallelWorktrees` and
+`routingProfiling`. Unknown `ROUTING_PROFILING` values fail closed.
+
+`review-fanout.ts` decides which `/code-review-max` lenses to start from
+measured file and line counts, reversibility, classification completeness, and
+surfaces. A proven small reversible change returns the two essential lenses;
+every other input, including incomplete classification, returns all four. The
+returned `lenses` array is authoritative.
 
 ## Runtime capabilities
 
