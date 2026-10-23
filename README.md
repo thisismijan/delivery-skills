@@ -154,8 +154,12 @@ are packaging sugar for hosts that load skills that way.
 ## Continuous delivery
 
 Use `/delivery <idea-or-PRD>` for new work or `/delivery auto <key>` to resume
-existing work. The skill grills the product decisions and presents the final
-atomic ticket plan. Your approval of that plan is the single routine delivery
+existing work. The skill decides simple, reversible, and discoverable work itself. It only
+stops you for product intent or a hard-to-reverse trade-off. Those stops open
+with the options and trade-offs first. After you pick, it shows its own
+recommendation and why, and you can change your mind. It then presents the
+final atomic ticket plan.
+Your approval of that plan is the single routine delivery
 authorization for the run.
 
 After approval, it automatically:
@@ -368,6 +372,30 @@ Human-owned stops, in order:
    approval.
 2. Merge, or explicit acceptance of a release risk.
 3. Installing or rolling back an exact delivery-skill candidate.
+
+## Learning while the factory runs
+
+The factory is meant to make the operator a stronger engineer, even when they
+are not writing the code.
+
+- **The factory takes simple decisions.** Facts, one viable path, and cheap
+  reversible defaults are decided, logged as agent-owned, and not asked.
+- **Escalate only what you must own.** Product intent, irreversible trade-offs,
+  merge, release risk, and skill install stop for you. Everything else
+  continues.
+- **When it does stop, decide before you see a preferred answer.** The brief
+  opens with evidence, options, and trade-offs. The recommendation comes after
+  you pick, with a chance to switch.
+- **Ground every trade-off in this codebase.** An escalated question names the
+  module, file, or domain term the choice will touch.
+- **Keep a decision log.** Grooming writes `decisions.md` for both agent-owned
+  decisions and your picks. The closing summary recaps it. Retro reads it when
+  it reconstructs the engineering story.
+- **Look back as a case study.** After merge, retro writes an engineering
+  postmortem: the problem, the attempts, what disproved them, and the data
+  structure and system-design lessons.
+
+A failed gate is never dressed up as an option.
 
 ## Cost controls
 

@@ -157,10 +157,11 @@ already-merged product change.
 
 ## When to ask
 
-Ask only when one of these comes up:
+Ask only when one of these comes up, and only when the factory cannot decide
+it as a simple, reversible, or discoverable choice:
 
-1. Product decisions during discovery or grooming, followed by approval of the
-   final ticket or slice plan.
+1. Product intent during discovery or grooming that the codebase cannot
+   answer, followed by approval of the final ticket or slice plan.
 2. Accepting a risk on a NO-GO.
 3. The merge. It is always the operator's.
 4. Installing an evaluated delivery improvement candidate. Retro acceptance is
@@ -168,14 +169,18 @@ Ask only when one of these comes up:
 5. Anything a stage stops on because required evidence is missing or
    contradictory.
 
-Ask one question at a time, with a recommended answer, worded so that "yes"
-accepts it. When two or more viable product, recovery, risk-response, or
-improvement choices remain, first follow `SKILL.md`'s **Human decision brief**.
-Contradictory or unattributable recovery evidence remains a stop, not an option.
-Record the answer in the ledger.
+The factory decides facts, single viable paths, and local cheap reversible
+defaults itself. Never ask for a fact you can look up, and never ask whether
+to go on to the next step.
 
-Never ask for a fact you can look up, and never ask whether to go on to the next
-step.
+When an escalated choice has two or more viable product, recovery,
+risk-response, or improvement options, follow `SKILL.md`'s **Human decision
+brief**: options and trade-offs with no recommendation, then the withheld
+recommendation after they answer, with a chance to change. Name the option
+they should pick; do not word the question so that "yes" accepts a hidden
+pick. Contradictory or unattributable recovery evidence remains a stop, not an
+option. Record the settled choice in the ledger. Agent-owned decisions go in
+the same log without asking.
 
 ## Waiting
 

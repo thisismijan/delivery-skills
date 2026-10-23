@@ -294,21 +294,33 @@ describe("human decision context", () => {
       "**Pros:**",
       "**Cons:**",
       "**Risks and consequences:**",
-      "### Comparison and recommendation",
+      "### Comparison",
       "**Recommendation:**",
       "**Would change if:**",
       "**Reversibility:**",
       "**If we wait:**",
       "**Choose:**",
+      "**Why it matters:**",
+      "## Your choice:",
     ]) {
       expect([field, brief.includes(field)]).toEqual([field, true]);
     }
     expect(brief).toMatch(/two or more viable options/i);
     expect(brief).toMatch(/recommendation is\s+weak/i);
-    expect(brief).toMatch(/Ask exactly one final question/i);
+    expect(brief).toMatch(/Ask exactly one\s+final question/i);
+    expect(brief).toMatch(/Do not include a recommendation/i);
+    expect(brief).toMatch(/After they choose/i);
+    expect(brief).toMatch(/keep or switch/i);
+    const choosePhase = brief.split("**After they choose.**")[0] ?? "";
+    expect(choosePhase).toContain("### Comparison");
+    expect(choosePhase).not.toContain("**Recommendation:**");
   });
 
   test("the brief applies only to real choices and preserves hard gates", () => {
+    expect(brief).toMatch(/factory owns simple decisions/i);
+    expect(brief).toMatch(/It does not ask/i);
+    expect(brief).toMatch(/two-way door/i);
+    expect(brief).toMatch(/agent-owned/i);
     expect(brief).toMatch(/Do not manufacture a choice/i);
     for (const excluded of [
       "factual question",
@@ -319,7 +331,8 @@ describe("human decision context", () => {
     ]) {
       expect([excluded, brief.includes(excluded)]).toEqual([excluded, true]);
     }
-    expect(brief).toMatch(/failed gate never\s+becomes an option/i);
+    expect(brief).toMatch(/missing identifier or credential is asked directly/i);
+    expect(brief).toMatch(/failed gate never\s+becomes an\s+option/i);
     expect(brief).toMatch(/does not take.*decision|does not.*weaken.*approval/is);
   });
 
@@ -347,9 +360,9 @@ describe("human decision context", () => {
   });
 
   test("analysis depth scales from local reversible to consequential choices", () => {
-    expect(brief).toMatch(/local, cheap, reversible choice\s+short/i);
+    expect(brief).toMatch(/reversible product-scope\s+choice stays compact/i);
     expect(brief).toMatch(
-      /public contract.*persistent data.*security boundary.*distributed state.*cross-system.*operational topology/s,
+      /public contract[\s\S]*persistent data[\s\S]*security\s+boundary[\s\S]*distributed state[\s\S]*cross-system[\s\S]*operational\s+topology/,
     );
     expect(brief).toMatch(/plain language/i);
     expect(brief).toMatch(/practical consequence/i);
@@ -553,6 +566,8 @@ describe("auto", () => {
     for (const human of ["merge", "risk", "Installing"]) {
       expect(whenToAsk).toMatch(new RegExp(human, "i"));
     }
+    expect(whenToAsk).toMatch(/Ask only when[\s\S]*factory cannot decide/i);
+    expect(whenToAsk).toMatch(/Agent-owned decisions go in\s+the same log without asking/i);
   });
 
   test("ready waves dispatch concurrently in isolated worktrees", () => {
@@ -864,6 +879,8 @@ describe("engineering learning postmortem", () => {
 	const retro = SPECS["retro.md"];
 
 	test("retro persists a chronological, evidence-backed learning artifact", () => {
+		expect(retro).toContain(".delivery/grooming/");
+		expect(retro).toContain("decisions.md");
 		expect(retro).toContain(".delivery/runs/<run-id>-postmortem.md");
 		expect(retro).toContain(
 			"`attempt → evidence of failure → changed model → result`",
@@ -1050,6 +1067,21 @@ describe("portable factory pack", () => {
       expect(readme).toContain(boundary);
     }
     expect(readme).toContain(".delivery/workers/<run>/<key>.md");
+    expect(readme).toMatch(
+      /decides simple, reversible, and discoverable work itself/i,
+    );
+  });
+
+  test("the README teaches agent-owned defaults and informed escalations", () => {
+    const start = readme.indexOf("## Learning while the factory runs");
+    const end = readme.indexOf("\n## Cost controls", start);
+    const learning = readme.slice(start, end);
+    expect(start).toBeGreaterThan(-1);
+    expect(learning).toContain("The factory takes simple decisions");
+    expect(learning).toContain("logged as agent-owned, and not asked");
+    expect(learning).toContain("Escalate only what you must own");
+    expect(learning).toContain("decide before you see a preferred answer");
+    expect(learning).toContain("The recommendation comes after");
   });
 
   test("the README describes runtime model inventory and shadow routing", () => {

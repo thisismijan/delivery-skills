@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The `groom` capability provides an operator-invoked `/groom` command that turns raw input (an idea, an HLD, or a PRD) into small, individually deployable ticket drafts ready for `/draft`. It runs interactively, grounds itself in the target codebase, classifies the input shape and recommends it to the operator, grills the operator one question at a time, conditionally synthesizes a PRD, and emits approval-gated ticket drafts (a single ticket, or a vertical-slice breakdown) confined to `.delivery/grooming/`. Every acceptance criterion is a Given/When/Then behaviour statement, and no groom output describes how the change is built or tested. It performs no MCP, git, or Jira side effects.
+The `groom` capability provides an operator-invoked `/groom` command that turns raw input (an idea, an HLD, or a PRD) into small, individually deployable ticket drafts ready for `/draft`. It runs interactively, grounds itself in the target codebase, classifies the input shape, grills the operator one question at a time so they choose from options and trade-offs before seeing a recommendation, conditionally synthesizes a PRD, and emits approval-gated ticket drafts (a single ticket, or a vertical-slice breakdown) confined to `.delivery/grooming/`. Every acceptance criterion is a Given/When/Then behaviour statement, and no groom output describes how the change is built or tested. It performs no MCP, git, or Jira side effects.
 
 ## Requirements
 
@@ -40,13 +40,34 @@ Before the grilling loop begins, the command SHALL perform a read-only codebase 
 - **THEN** a read-only codebase exploration runs before any grilling question
 - **AND** the command's questions and slice proposals reference concrete modules or domain terms from the repository
 
-### Requirement: One-question-at-a-time grilling with recommendations
-The grilling loop SHALL emit exactly one question per turn, and every question SHALL include a recommended answer. It SHALL never batch two or more questions into a single turn.
+### Requirement: One-question-at-a-time grilling that withholds the recommendation
+The grilling loop SHALL ask only operator-owned decisions. It SHALL decide facts, single viable paths, and local cheap reversible defaults itself, record them as agent-owned, and continue. When it does ask, it SHALL emit exactly one question per turn. A question with two or more viable options SHALL present those options with context, benefits, and drawbacks, and SHALL NOT include a recommended answer on that turn. After the operator chooses, the command SHALL reveal its withheld recommendation and SHALL offer a change. It SHALL never batch two or more questions into a single turn.
+
+#### Scenario: Simple decisions are not asked
+- **WHEN** the codebase, the input, or a cheap reversible default answers a gap
+- **THEN** the command decides it, records it as agent-owned, and does not ask the operator
 
 #### Scenario: Exactly one question per turn
 - **WHEN** the grilling loop is active
-- **THEN** each turn presents exactly one question with a recommended answer
+- **THEN** each turn presents exactly one question
 - **AND** no turn contains two or more questions
+
+#### Scenario: Options come before the recommendation
+- **WHEN** a grilling question has two or more viable options
+- **THEN** the first turn names the options with context, benefits, and drawbacks, and does not include a recommended answer
+- **AND** after the operator chooses, the next turn reveals the withheld recommendation and offers a change
+
+### Requirement: Settled grilling choices are logged
+After each grilling choice is settled, the command SHALL append it to `decisions.md` under the grooming output directory, recording the question, the options, the operator's pick, the withheld recommendation, and whether they differed. After each agent-owned decision it SHALL append `Agent decided:` and one line of why. `decisions.md` is a run log, not a ticket draft, and MAY be written before the operator approves the ticket plan.
+
+#### Scenario: A settled choice lands in the decision log
+- **WHEN** the operator settles a grilling question
+- **THEN** `decisions.md` under the grooming output directory records that question, the options, their pick, and the later recommendation
+
+#### Scenario: An agent-owned decision is logged without asking
+- **WHEN** the command takes a simple decision itself
+- **THEN** `decisions.md` records `Agent decided:` and why
+- **AND** the operator is not asked
 
 ### Requirement: Grilling depth scales to input maturity
 The grilling depth SHALL scale to how raw the input is: a thin or raw input SHALL produce more questions than an already-detailed PRD of equivalent scope.
@@ -57,21 +78,25 @@ The grilling depth SHALL scale to how raw the input is: a thin or raw input SHAL
 - **THEN** the thin input produces more grilling questions than the detailed PRD
 
 ### Requirement: Input-shape classification before grilling
-Before the grilling loop begins, the command SHALL classify the input shape as one of: a single ticket, a PRD-worthy initiative that needs slices, or an ask that should be split into multiple tickets. It SHALL present that classification to the operator as a recommendation (for example, "this reads as two tickets") before grilling continues. PRD synthesis and the vertical-slice breakdown SHALL be conditional on this recommendation rather than a default path.
+Before the grilling loop begins, the command SHALL classify the input shape as one of: a single ticket, a PRD-worthy initiative that needs slices, or an ask that should be split into multiple tickets. When evidence supports only one classification, the command SHALL settle it, record it as agent-owned, and continue without waiting for confirmation. When two or more classifications remain viable, it SHALL follow the human decision brief (options first, recommendation after they choose). PRD synthesis and the vertical-slice breakdown SHALL be conditional on the settled classification rather than a default path.
 
 #### Scenario: Classification precedes grilling
 - **WHEN** grooming begins for a given input
 - **THEN** the command classifies the input as a single ticket, a PRD-worthy initiative, or a split-worthy ask before the first grilling question
-- **AND** presents that classification to the operator as a recommendation
+- **AND** states that classification
 
-#### Scenario: Single small ask recommends one ticket and skips PRD and slicing
+#### Scenario: An obvious shape is not confirmed
+- **WHEN** evidence supports only one classification
+- **THEN** the command settles it as agent-owned and continues without asking for confirmation
+
+#### Scenario: Single small ask settles as one ticket and skips PRD and slicing
 - **WHEN** a single small ask is groomed
-- **THEN** the command recommends a single ticket
+- **THEN** the command settles the input as a single ticket
 - **AND** skips PRD synthesis and the vertical-slice breakdown
 
-#### Scenario: Broad or multi-story input recommends a PRD and/or split
+#### Scenario: Broad or multi-story input settles as a PRD and/or split
 - **WHEN** a broad or multi-story input is groomed
-- **THEN** the command recommends a PRD and/or a split into multiple tickets before the grilling loop continues
+- **THEN** the command settles the input as a PRD and/or a split into multiple tickets before the grilling loop continues
 - **AND** does not default straight to the slice-breakdown path
 
 ### Requirement: Conditional PRD synthesis

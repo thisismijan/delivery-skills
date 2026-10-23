@@ -278,9 +278,14 @@ describe("durable grooming", () => {
 		expect(groom).toMatch(/question frontier/i);
 		expect(groom).toMatch(/prerequisites.*settled/i);
 		expect(groom).toMatch(/facts.*discover/i);
-		expect(groom).toMatch(/decisions.*ask/i);
+		expect(groom).toMatch(/Do not ask a simple decision/i);
+		expect(groom).toMatch(/simple decisions are taken/i);
+		expect(groom).toMatch(/operator-owned decisions are asked/i);
 		expect(groom).toMatch(/Human decision brief/i);
 		expect(groom).toMatch(/two or more viable.*product or slicing/is);
+		expect(plain(groom)).toMatch(/withholds the recommendation/i);
+		expect(groom).toContain("decisions.md");
+		expect(groom).toContain("Agent decided:");
 	});
 
 	test("ticket prompts prefer contracts over stale source coordinates", () => {
@@ -301,6 +306,9 @@ describe("context-rich human decisions", () => {
 		expect(delivery).toContain("No material DSA difference");
 		expect(delivery).toContain("No material system-design");
 		expect(delivery).toMatch(/Never invent Big-O claims/i);
+		expect(plain(delivery)).toMatch(/do not include a recommendation/i);
+		expect(plain(delivery)).toMatch(/after they choose/i);
+		expect(delivery).toContain("## Your choice:");
 	});
 
 	test("stage skills invoke the brief only when multiple paths are viable", () => {
@@ -313,8 +321,10 @@ describe("context-rich human decisions", () => {
 	});
 
 	test("decision context never turns failed evidence into an option", () => {
-		expect(delivery).toMatch(/failed gate never\s+becomes an option/i);
+		expect(delivery).toMatch(/failed gate never\s+becomes an\s+option/i);
+		expect(delivery).toMatch(/factory owns simple decisions/i);
 		expect(auto).toMatch(/Contradictory or unattributable.*remains a stop/is);
+		expect(auto).toMatch(/Ask only when[\s\S]*factory cannot decide/i);
 	});
 });
 
