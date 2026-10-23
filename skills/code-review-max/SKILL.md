@@ -64,9 +64,11 @@ Give every reviewer the same immutable brief:
 Do not give reviewers the author's reasoning as evidence. A statement in the
 change description is a claim to verify.
 
-Give lenses and the adjudicator this brief and the pinned diff, not a bundled
-review packet. Each of them reads the code it checks anyway, so a packet's
-spec and evidence text only adds context that every later step re-reads.
+Give lenses this brief and the pinned diff, not a bundled review packet. Each
+lens reads the code it checks anyway, so a packet's spec and evidence text only
+adds context that every later step re-reads. The adjudicator is different: it
+has to read the work item, spec, diff and every lens's candidates, so it gets
+the adjudication packet below instead.
 
 Persist the brief at `.review/mr-<iid>/<full-head-sha>/brief.md`. Reuse it only
 when its ref and full head SHA still match live `read` metadata; otherwise
@@ -179,6 +181,13 @@ returned `mode` is authoritative:
   It may raise a severity, and it still blocks when several Low findings share
   one root cause that makes the change unsafe.
 - `main`: a candidate is Medium or above. The main conversation adjudicates.
+
+Before adjudicating, bundle the work item, the change spec, the pinned diff and
+every lens's candidates into one packet:
+`bun "${FACTORY_ROOT}/scripts/review-packet.ts" --ticket <work-item file> --spec <change dir> --diff <pinned diff> --evidence <lens 1 candidates> ... --out .review/mr-<iid>/<full-head-sha>/adjudication-packet.md`.
+Whoever adjudicates reads that packet first instead of opening each input on
+its own, then reads the cited code of several candidates in one command where
+it can. Every separate read is re-read on each later step.
 
 Whoever adjudicates owns the verdict. For every candidate:
 

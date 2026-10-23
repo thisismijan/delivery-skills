@@ -425,7 +425,12 @@ describe("bounded recovery and replay safety", () => {
 		expect(maxReview).toMatch(
 			/main ?: a candidate is medium or above\. the main conversation adjudicates/i,
 		);
-		expect(maxReview).toMatch(/give lenses and the adjudicator this brief and the pinned diff, not a bundled review packet/i);
+		expect(maxReview).toMatch(/give lenses this brief and the pinned diff, not a bundled review packet/i);
+		expect(plain(codeReviewMax)).toMatch(
+			/review-packet\.ts" --ticket <work-item file> --spec <change dir> --diff <pinned diff> --evidence <lens 1 candidates> \.\.\. --out \.review\/mr-<iid>\/<full-head-sha>\/adjudication-packet\.md/,
+		);
+		expect(maxReview).toMatch(/reads that packet first instead of opening each input on its own/i);
+		expect(maxReview).toMatch(/reads the cited code of several candidates in one command/i);
 		expect(plain(execute)).toMatch(
 			/review-packet\.ts" --ticket <work-item-file> --spec <changeDir> --out <reviewDir>\/test-packet\.md/,
 		);
