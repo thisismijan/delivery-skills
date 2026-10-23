@@ -425,6 +425,12 @@ describe("bounded recovery and replay safety", () => {
 		expect(maxReview).toMatch(
 			/main ?: a candidate is medium or above\. the main conversation adjudicates/i,
 		);
+		expect(maxReview).toMatch(/review-packet\.ts.*point every reviewer and the adjudicator at it first/i);
+		expect(plain(execute)).toMatch(
+			/review-packet\.ts" --ticket <work-item-file> --spec .* --diff <reviewDir>\/diff\.patch --evidence <artifact>\.\.\. --out <reviewDir>\/review-packet\.md/,
+		);
+		expect(plain(holdoutReviewer)).toMatch(/review packet ?, read it first/i);
+		expect(plain(holdoutReviewer)).toMatch(/open another file only to settle something the packet cannot/i);
 
 		const comments = plain(addressComments);
 		expect(comments).toMatch(

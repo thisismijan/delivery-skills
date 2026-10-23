@@ -64,6 +64,12 @@ Give every reviewer the same immutable brief:
 Do not give reviewers the author's reasoning as evidence. A statement in the
 change description is a claim to verify.
 
+Bundle the requirement, the OpenSpec change files, and the complete pinned diff
+into `.review/mr-<iid>/<full-head-sha>/review-packet.md` with
+`bun "${FACTORY_ROOT}/scripts/review-packet.ts"` and point every reviewer and
+the adjudicator at it first. A reviewer then opens other files only to check a
+claim, because each separate read is re-read on every later step.
+
 Persist the brief at `.review/mr-<iid>/<full-head-sha>/brief.md`. Reuse it only
 when its ref and full head SHA still match live `read` metadata; otherwise
 rebuild it. This worktree-local artifact lets the second pass run in a fresh conversation on any conforming runtime.
