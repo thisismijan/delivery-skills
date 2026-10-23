@@ -437,8 +437,8 @@ ambiguous match stops the run instead of guessing.
   exact advertised identifier for that capability. Diagnostic shadow profiling
   defaults off. Set `ROUTING_PROFILING=always` to collect evaluation evidence;
   only then is a cheaper shadow recommendation recorded, never dispatched.
-  Each recorded task captures wall time automatically, overlays host token and
-  cost figures when the runtime writes them, and otherwise stores character
+  Each recorded task captures wall time automatically, overlays host token and cost
+  figures when the runtime writes them, and otherwise stores character
   counts of named artifacts. After each task, the run scorecard refreshes with
   actual gate, repair, escalation, time, cost, and usage totals. It labels
   shadow quality and savings as unevaluated until a paired benchmark has

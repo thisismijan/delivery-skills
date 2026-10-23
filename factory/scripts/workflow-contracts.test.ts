@@ -446,7 +446,12 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(addressComments)).toMatch(
 			/regardless of this setting, resolve frontier.*then dispatch a fresh holdout-reviewer/i,
 		);
-		for (const document of [delivery, rootReadme, referenceDocs, workflowDocs]) {
+		for (const document of [
+			delivery,
+			rootReadme,
+			referenceDocs,
+			workflowDocs,
+		]) {
 			expect(document).toContain("ROUTING_PROFILING");
 			expect(plain(document)).toMatch(
 				new RegExp(`defaults?(?: to)? ${DEFAULT_ROUTING_PROFILING}`, "i"),
