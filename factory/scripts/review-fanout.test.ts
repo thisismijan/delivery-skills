@@ -38,18 +38,22 @@ test("a reversible non-sensitive change within the contained bounds runs the two
 	]) {
 		const plan = planReviewFanout(input);
 		expect(plan.mode).toBe("contained");
-		expect(plan.lenses).toEqual(["correctness-security", "tests-specification"]);
+		expect(plan.lenses).toEqual([
+			"correctness-security",
+			"tests-specification",
+		]);
 	}
 });
 
 test("every threshold boundary fails to the full review", () => {
-	for (const input of [
+	const boundaries: ReviewFanoutInput[] = [
 		{ ...smallInput, changedFiles: CONTAINED_MAX_FILES + 1 },
 		{ ...smallInput, changedLines: CONTAINED_MAX_LINES },
 		{ ...smallInput, reversible: false },
 		{ ...smallInput, classificationComplete: false },
-		{ ...smallInput, changedFiles: 3, surfaces: ["dependencies"] as const },
-	]) {
+		{ ...smallInput, changedFiles: 3, surfaces: ["dependencies"] },
+	];
+	for (const input of boundaries) {
 		const plan = planReviewFanout(input);
 		expect(plan.mode).toBe("full");
 		expect(plan.lenses).toEqual([...REVIEW_LENSES]);

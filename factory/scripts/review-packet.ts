@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 // A reviewer that opens each input separately re-reads its whole context on
@@ -54,7 +54,8 @@ export function buildReviewPacket(input: ReviewPacketInput): string {
 	for (const section of input.spec) {
 		parts.push(`### ${section.title}`, "", fence(section.body), "");
 	}
-	if (input.diff !== undefined) parts.push("## Diff", "", fence(input.diff), "");
+	if (input.diff !== undefined)
+		parts.push("## Diff", "", fence(input.diff), "");
 	if (input.evidence.length > 0) {
 		parts.push("## Evidence", "");
 		for (const section of input.evidence) {
