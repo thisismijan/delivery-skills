@@ -349,6 +349,17 @@ describe("small-context ticket scope", () => {
 		expect(draftContract).toMatch(/SPLIT_REQUIRED/i);
 	});
 
+	test("assessor treats one cohesive contract as one cluster instead of splitting by default", () => {
+		const assessor = plain(ticketAssessor);
+		expect(assessor).not.toMatch(/when in doubt, prefer a split/i);
+		expect(assessor).toMatch(
+			/extend the same public function, type, or class in one cohesive code area are one cluster/i,
+		);
+		expect(assessor).toMatch(
+			/split only when you can name two outcomes that touch different public contracts or code areas/i,
+		);
+	});
+
 	test("assessor states the criteria cap the verdict enforces and keeps constraints out of it", () => {
 		const words = ["zero", "one", "two", "three", "four", "five"];
 		const cap = words[MAX_DERIVED_ACCEPTANCE_CRITERIA];
@@ -403,6 +414,14 @@ describe("bounded recovery and replay safety", () => {
 		expect(maxReview).toMatch(/review-fanout\.ts/);
 		expect(maxReview).toMatch(/lenses array is authoritative/i);
 		expect(maxReview).toMatch(/non-zero exit stops the review/i);
+		expect(maxReview).toMatch(/review-fanout\.ts" measure <base-sha> <head-sha>/);
+		expect(maxReview).toMatch(/classify surfaces from its paths only/i);
+		expect(maxReview).toMatch(/review-fanout\.ts" adjudication/);
+		expect(maxReview).toMatch(/standard ?: every candidate is low/i);
+		expect(maxReview).toMatch(/it may raise a severity/i);
+		expect(maxReview).toMatch(
+			/main ?: a candidate is medium or above\. the main conversation adjudicates/i,
+		);
 
 		const comments = plain(addressComments);
 		expect(comments).toMatch(
