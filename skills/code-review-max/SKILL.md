@@ -89,6 +89,13 @@ Classify the pinned diff before dispatch:
   to prove every condition.
 - Anything else is a **full review**, including an unknown classification.
 
+Measure the counts with
+`bun "${FACTORY_ROOT}/scripts/review-fanout.ts" measure <base-sha> <head-sha>`.
+It leaves out the change's own OpenSpec, `.delivery/` and `.review/` files,
+which are not code and are reviewed against it, and reports what it left out.
+Classify surfaces from its `paths` only, so a spec's `.openspec.yaml` is never
+a Config surface.
+
 Write the measured counts, reversibility decision, whether every classification
 field was proved, and normalized surfaces to
 `.review/mr-<iid>/<full-head-sha>/review-fanout-input.json`, then run:
@@ -149,7 +156,21 @@ style preferences, or speculative future requirements.
 
 ## Adjudicate every candidate
 
-The main conversation owns the verdict. For every candidate:
+Write each lens's candidate severities to
+`.review/mr-<iid>/<full-head-sha>/lens-candidates.json` as
+`{"candidates":[{"severity":"Low"}, ...]}` and run
+`bun "${FACTORY_ROOT}/scripts/review-fanout.ts" adjudication <that file>`. The
+returned `mode` is authoritative:
+
+- `none`: no lens returned a candidate. Write the output below with
+  `No findings.` and a `PASS` verdict; there is nothing to verify.
+- `standard`: every candidate is Low. Dispatch one fresh read-only subagent on
+  the resolved `standard` model to apply this section and the Severity rules.
+  It may raise a severity, and it still blocks when several Low findings share
+  one root cause that makes the change unsafe.
+- `main`: a candidate is Medium or above. The main conversation adjudicates.
+
+Whoever adjudicates owns the verdict. For every candidate:
 
 1. Read the cited code at the pinned head and enough surrounding code to verify
    the claim.
