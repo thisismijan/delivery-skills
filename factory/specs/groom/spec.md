@@ -41,7 +41,11 @@ Before the grilling loop begins, the command SHALL perform a read-only codebase 
 - **AND** the command's questions and slice proposals reference concrete modules or domain terms from the repository
 
 ### Requirement: One-question-at-a-time grilling that withholds the recommendation
-The grilling loop SHALL emit exactly one question per turn. A question with two or more viable options SHALL present those options with context, benefits, and drawbacks, and SHALL NOT include a recommended answer on that turn. After the operator chooses, the command SHALL reveal its withheld recommendation and SHALL offer a change. It SHALL never batch two or more questions into a single turn.
+The grilling loop SHALL ask only operator-owned decisions. It SHALL decide facts, single viable paths, and local cheap reversible defaults itself, record them as agent-owned, and continue. When it does ask, it SHALL emit exactly one question per turn. A question with two or more viable options SHALL present those options with context, benefits, and drawbacks, and SHALL NOT include a recommended answer on that turn. After the operator chooses, the command SHALL reveal its withheld recommendation and SHALL offer a change. It SHALL never batch two or more questions into a single turn.
+
+#### Scenario: Simple decisions are not asked
+- **WHEN** the codebase, the input, or a cheap reversible default answers a gap
+- **THEN** the command decides it, records it as agent-owned, and does not ask the operator
 
 #### Scenario: Exactly one question per turn
 - **WHEN** the grilling loop is active
@@ -54,11 +58,16 @@ The grilling loop SHALL emit exactly one question per turn. A question with two 
 - **AND** after the operator chooses, the next turn reveals the withheld recommendation and offers a change
 
 ### Requirement: Settled grilling choices are logged
-After each grilling choice is settled, the command SHALL append it to `decisions.md` under the grooming output directory, recording the question, the options, the operator's pick, the withheld recommendation, and whether they differed. `decisions.md` is a run log, not a ticket draft, and MAY be written before the operator approves the ticket plan.
+After each grilling choice is settled, the command SHALL append it to `decisions.md` under the grooming output directory, recording the question, the options, the operator's pick, the withheld recommendation, and whether they differed. After each agent-owned decision it SHALL append `Agent decided:` and one line of why. `decisions.md` is a run log, not a ticket draft, and MAY be written before the operator approves the ticket plan.
 
 #### Scenario: A settled choice lands in the decision log
 - **WHEN** the operator settles a grilling question
 - **THEN** `decisions.md` under the grooming output directory records that question, the options, their pick, and the later recommendation
+
+#### Scenario: An agent-owned decision is logged without asking
+- **WHEN** the command takes a simple decision itself
+- **THEN** `decisions.md` records `Agent decided:` and why
+- **AND** the operator is not asked
 
 ### Requirement: Grilling depth scales to input maturity
 The grilling depth SHALL scale to how raw the input is: a thin or raw input SHALL produce more questions than an already-detailed PRD of equivalent scope.
@@ -69,12 +78,16 @@ The grilling depth SHALL scale to how raw the input is: a thin or raw input SHAL
 - **THEN** the thin input produces more grilling questions than the detailed PRD
 
 ### Requirement: Input-shape classification before grilling
-Before the grilling loop begins, the command SHALL classify the input shape as one of: a single ticket, a PRD-worthy initiative that needs slices, or an ask that should be split into multiple tickets. It SHALL present that classification to the operator before grilling continues. When two or more classifications remain viable, it SHALL follow the human decision brief (options first, recommendation after they choose). PRD synthesis and the vertical-slice breakdown SHALL be conditional on the settled classification rather than a default path.
+Before the grilling loop begins, the command SHALL classify the input shape as one of: a single ticket, a PRD-worthy initiative that needs slices, or an ask that should be split into multiple tickets. When evidence supports only one classification, the command SHALL settle it, record it as agent-owned, and continue without waiting for confirmation. When two or more classifications remain viable, it SHALL follow the human decision brief (options first, recommendation after they choose). PRD synthesis and the vertical-slice breakdown SHALL be conditional on the settled classification rather than a default path.
 
 #### Scenario: Classification precedes grilling
 - **WHEN** grooming begins for a given input
 - **THEN** the command classifies the input as a single ticket, a PRD-worthy initiative, or a split-worthy ask before the first grilling question
-- **AND** presents that classification to the operator
+- **AND** states that classification
+
+#### Scenario: An obvious shape is not confirmed
+- **WHEN** evidence supports only one classification
+- **THEN** the command settles it as agent-owned and continues without asking for confirmation
 
 #### Scenario: Single small ask settles as one ticket and skips PRD and slicing
 - **WHEN** a single small ask is groomed

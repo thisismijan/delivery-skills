@@ -20,7 +20,7 @@ This command turns whatever the operator provides (a file path, inline text, or 
 ## Hard rules
 
 - **No MCP, git, or work-item provider tools.** This command and both its subagents (`groom-explorer`, `groom-writer`) carry no MCP, git, or provider tools. `Bash` is present on this command ONLY to run the local deterministic Bun scripts (`groom-paths.ts`, `verify-ticket.ts`, `human-text.ts`) and to make the idempotent `.gitignore` edit. Never invoke `git`, a forge CLI, or any remote work-item call from it. A run produces zero commits and zero remote work-item activity. All writes land only under the grooming output directory (plus the single `.gitignore` line).
-- **One question per turn.** The grilling loop emits exactly one question per turn. A real choice uses the delivery conductor's **Human decision brief**: options and trade-offs first, then the withheld recommendation after they answer. Never batch two or more questions into a single turn.
+- **Escalate only operator-owned decisions.** The factory decides facts, single viable paths, and local cheap reversible defaults itself, records them, and continues. It asks only when product intent or a hard-to-reverse trade-off cannot be discovered. Each such question is one turn and uses the delivery conductor's **Human decision brief**: options and trade-offs first, then the withheld recommendation after they answer. Never batch two or more questions into a single turn.
 - **Atomic and complete.** Every ticket is one useful vertical outcome that can be understood, tested, implemented, and reviewed in one fresh small-context session. Prefer another ticket over another independent outcome.
 - **Write nothing before approval.** No ticket draft or PRD file is written until the operator explicitly approves the ticket or the slice breakdown. The conductor freezes that approved plan as the run contract. This skill does not invent extra tickets after that yes. After each settled grilling choice, append that choice to `decisions.md` in the grooming output directory (a run log, not a draft).
 - **Fail closed on bad drafts.** A draft that fails `verify-ticket.ts` is fixed and re-emitted, never written as the final artifact.
@@ -61,21 +61,22 @@ Before asking the operator anything, classify the input as one of:
 - **A PRD-worthy initiative:** broad enough to need a PRD and a vertical-slice breakdown into multiple tickets.
 - **A split-worthy ask:** reads as more than one ticket's worth of work but does not need a full PRD.
 
-Base the classification on the input itself and the explorer's report (Step 3). If two or more classifications remain genuinely viable, follow the delivery conductor's **Human decision brief** (choose phase first, recommendation after they answer). If evidence supports only one classification, present that path directly without manufacturing alternatives, with one sentence on why the other shapes do not fit. The settled classification determines whether Steps 6 and 7 run at all (see below). It is not a formality.
+Base the classification on the input itself and the explorer's report (Step 3). If evidence supports only one classification, the factory settles it, states it in one sentence, records it as agent-owned, and continues. Do not wait for confirmation of an obvious single ticket or an obvious split. If two or more classifications remain genuinely viable, follow the delivery conductor's **Human decision brief** (choose phase first, recommendation after they answer). The settled classification determines whether Steps 6 and 7 run at all (see below). It is not a formality.
 
 ### Step 5 — Grilling loop (one question at a time)
 
-Ask the operator questions to fill in gaps, resolve ambiguities, and surface constraints. Rules:
+Fill gaps from the input and the codebase first. Ask the operator only for intent the factory cannot discover. Rules:
 
 - **Exactly one question per turn.** Never batch two or more questions.
-- **A real choice withholds the recommendation.** When a question offers two or more viable product or slicing choices, follow the delivery conductor's **Human decision brief**: options, codebase context, and pros and cons first; after they choose, reveal the withheld recommendation and offer a change. Name each option; do not word the question so that "yes" accepts a hidden pick.
-- **Teach the trade-off, not the answer.** Ground **Why it matters** in a concrete module, file, or domain term from the explorer's report. Factual and single-viable-path questions stay direct.
+- **Do not ask a simple decision.** If the codebase, the input, a constitution default, or a cheap reversible two-way door answers it, decide, record `Agent decided:` in `decisions.md`, and continue.
+- **A real escalation withholds the recommendation.** When a remaining question is operator-owned and offers two or more viable product or slicing choices, follow the delivery conductor's **Human decision brief**: options, codebase context, and pros and cons first; after they choose, reveal the withheld recommendation and offer a change. Name each option; do not word the question so that "yes" accepts a hidden pick.
+- **Teach the trade-off, not the answer.** Ground **Why it matters** in a concrete module, file, or domain term from the explorer's report.
 - Maintain a **question frontier**: ask only a question whose prerequisites are already settled. Do not ask downstream scope or acceptance questions while an earlier product decision can change them.
-- **Facts are discovered; decisions are asked.** Inspect the input and codebase for facts. Ask the operator only for intent, trade-offs, or decisions that cannot be discovered.
+- **Facts are discovered; simple decisions are taken; only operator-owned decisions are asked.** Inspect the input and codebase for facts. Take local, cheap, reversible defaults. Ask only for intent, irreversible trade-offs, or value judgments that cannot be discovered.
 - **Prefer inspecting the code** over asking when the answer is discoverable from the codebase (the explorer's report or a direct `Read`/`Grep`).
-- **Depth scales to input maturity.** A thin or raw idea is grilled harder (more questions) than an already-detailed PRD of equivalent scope. Assess the input's completeness and calibrate accordingly.
-- Ask about: user impact, scope boundaries, success criteria, constraints or NFRs, blocked-by dependencies, out-of-scope items, and acceptance criteria phrased as Given/When/Then behaviour statements. Never ask about test seams or implementation decisions — those are how-level questions owned by `/draft` and `/execute`, not grooming.
-- After each settled choice, append it to `<output-dir>/decisions.md` with the question, the options, their pick, the withheld recommendation, and whether they differed. Continue until you have enough to write a PRD (if warranted) and propose a slice breakdown, or to write a single ticket directly.
+- **Depth scales to input maturity.** A thin or raw idea still needs more operator-owned questions (who it is for, the outcome, the success signal) than an already-detailed PRD of equivalent scope. It does not earn extra trivia questions.
+- Cover operator-owned gaps in: user impact, scope boundaries, success criteria, constraints or NFRs, blocked-by dependencies, out-of-scope items, and acceptance criteria phrased as Given/When/Then behaviour statements. Never ask about test seams or implementation decisions — those are how-level questions owned by `/draft` and `/execute`, not grooming.
+- After each settled choice, append it to `<output-dir>/decisions.md` with the question, the options, their pick, the withheld recommendation, and whether they differed. After each agent-owned decision, append `Agent decided:` and one line of why. Continue until you have enough to write a PRD (if warranted) and propose a slice breakdown, or to write a single ticket directly.
 
 ### Step 6 — Conditional PRD synthesis
 

@@ -553,23 +553,37 @@ Keep the lifecycle portable across conforming runtimes.
 
 ## Human decision brief
 
-Before asking the operator to choose among two or more viable options, present
-one compact decision brief. This applies to product direction, slicing,
-implementation seams, recovery paths, release-risk responses, review
-publication or fix paths, and improvement installation or rollback when more
-than one option can safely proceed.
+The factory owns simple decisions. Escalate only a choice the operator must
+make because the codebase cannot answer it, the paths have material or
+hard-to-reverse consequences, or a human boundary already applies (merge,
+release-risk, skill install).
 
-Do not manufacture a choice. A factual question, missing identifier or
-credential, deterministic gate result, one viable path, or simple confirmation
-of an already selected option may be asked directly. A failed gate never
-becomes an option. This brief explains a human-owned decision; it does not take
-that decision or weaken its approval boundary.
+The factory decides, records, and continues when:
 
-Scale the depth to the consequence. Keep a local, cheap, reversible choice
-short. Go deeper for a public contract, persistent data, security boundary,
-distributed state, cross-system effect, operational topology, safety concern,
-or costly rollback. Use plain language and define a technical term by its
-practical consequence.
+- the answer is a factual question it can look up or observe
+- a deterministic gate result already decided the path
+- only one viable path remains
+- the choice is local, cheap, and reversible (a two-way door)
+- the work is how to implement an already-approved contract
+- the operator would only be giving simple confirmation of an already
+  selected option
+
+It records those as agent-owned in the decision log so they stay inspectable.
+It does not ask. Do not manufacture a choice. A failed gate never
+becomes an option. A missing identifier or credential is asked directly,
+without this brief.
+
+Escalate with this brief when two or more viable options remain and the choice
+changes product intent, a public contract, persistent data, a security
+boundary, distributed state, operational topology, or a costly rollback. This
+brief explains a human-owned decision; it does not take that decision or
+weaken its approval boundary.
+
+Once escalated, scale the depth to the consequence. A reversible product-scope
+choice stays compact. Go deeper for a public contract, persistent data,
+security boundary, distributed state, cross-system effect, operational
+topology, safety concern, or costly rollback. Use plain language and define a
+technical term by its practical consequence.
 
 The brief has two turns so the operator decides before seeing a preferred
 answer. A recommendation shown first anchors the choice and hides the trade-off.

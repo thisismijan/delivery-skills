@@ -61,13 +61,13 @@ Merge the results into four lists:
 
 ### 3. Interview
 
-Ask the operator one question at a time. A real choice follows `SKILL.md`'s
-**Human decision brief**: options and trade-offs first, then the withheld
-recommendation after they answer.
+Ask the operator only for product intent the factory cannot discover. Decide
+facts, probes, and cheap reversible defaults itself. An escalated choice
+follows `SKILL.md`'s **Human decision brief**: options and trade-offs first,
+then the withheld recommendation after they answer.
 
-- When a question asks the operator to choose among two or more viable product
-  directions, first follow `SKILL.md`'s **Human decision brief**. Keep a factual
-  or single-viable-path question direct.
+- When a remaining question asks the operator to choose among two or more
+  viable product directions, first follow `SKILL.md`'s **Human decision brief**.
 - Never ask for a fact you can look up. Look it up.
 - A question you could answer by running something is not the operator's to
   answer. Write a throwaway probe in a scratch directory outside the repo, run
