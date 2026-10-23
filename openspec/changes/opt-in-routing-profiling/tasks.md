@@ -14,6 +14,8 @@
 ## 3. Documentation
 
 - [x] 3.1 Document the default, opt-in mode, and unchanged quality controls.
+- [x] 3.2 Update the README, workflow, reference, and runtime docs for
+  risk-based review spend and reply-only comment rounds.
 
 ## 4. Review-cost controls
 

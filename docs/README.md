@@ -8,7 +8,7 @@ safety kernel, and the SDLC. Use this map for setup and day-to-day operation.
 | [Getting started](getting-started.md) | First install, PATH, Bun, doctor, init |
 | [Hosts](../adapters/README.md) | Which runtime adapter to pick |
 | [Providers](../providers/README.md) | Forge, tracker, and mixed stacks |
-| [Workflow](workflow.md) | Idea through post-merge |
+| [Workflow](workflow.md) | Idea through post-merge, including model-spend defaults |
 | [Examples](examples.md) | Local files, GitHub, GitLab, Jira |
 | [Troubleshooting](troubleshooting.md) | Doctor output and common failures |
 | [Security](security.md) | Credentials, human-owned actions, note jail |

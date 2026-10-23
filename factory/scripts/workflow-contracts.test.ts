@@ -446,12 +446,28 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(addressComments)).toMatch(
 			/regardless of this setting, resolve frontier.*then dispatch a fresh holdout-reviewer/i,
 		);
-		for (const document of [delivery, rootReadme, referenceDocs]) {
+		for (const document of [
+			delivery,
+			rootReadme,
+			referenceDocs,
+			workflowDocs,
+		]) {
 			expect(document).toContain("ROUTING_PROFILING");
 			expect(plain(document)).toMatch(
 				new RegExp(`defaults?(?: to)? ${DEFAULT_ROUTING_PROFILING}`, "i"),
 			);
 		}
+	});
+
+	test("operator docs describe risk-based review spend", () => {
+		for (const document of [rootReadme, workflowDocs, referenceDocs, runtime]) {
+			expect(document).toContain("review-fanout.ts");
+			expect(plain(document)).toMatch(/small reversible change/i);
+		}
+		expect(plain(rootReadme)).toMatch(/reply-only round/i);
+		expect(plain(workflowDocs)).toMatch(/reply-only round/i);
+		expect(plain(referenceDocs)).toMatch(/lenses array is authoritative/i);
+		expect(plain(runtime)).toMatch(/lenses array is authoritative/i);
 	});
 
 	test("the profile controller is frontier-level and read-only", () => {

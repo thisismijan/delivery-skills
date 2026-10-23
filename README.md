@@ -369,6 +369,30 @@ Human-owned stops, in order:
 2. Merge, or explicit acceptance of a release risk.
 3. Installing or rolling back an exact delivery-skill candidate.
 
+## Cost controls
+
+Default delivery keeps the expensive model for work that can change the
+outcome: implementation when complexity is recorded as high, first holdout
+review of new code, and holdout review after a comment round that changes the
+commit. Independent tests, security-sensitive feasibility, and dual review
+before readiness still run.
+
+Diagnostic shadow profiling defaults off so a ticket does not pay extra
+frontier calls that cannot affect live dispatch. Set
+`ROUTING_PROFILING=always` only when collecting evaluation evidence. Live
+model selection and quality gates stay the same in both modes.
+
+The correctness review pins the advertised model list, resolves the standard
+tier, then asks `review-fanout.ts` which lenses to start. A small reversible
+change is at most 2 files, fewer than 50 changed lines, a two-way door, and
+none of Data, Contract, Config, Auth, or Infra. That case runs correctness and
+security plus tests and specification. Larger, one-way, sensitive, or
+uncertain changes retain all four lenses. Invalid input fails closed rather
+than guessing a cheaper pass.
+
+See [workflow](docs/workflow.md) and [reference](docs/reference.md) for the
+operator knobs.
+
 ## Guarantees
 
 Every gate fails closed. A malformed verdict, a missing artifact, or an
@@ -394,7 +418,9 @@ ambiguous match stops the run instead of guessing.
 - **Comments are handled once.** Every in-scope comment must be classified,
   with no missing, extra, or duplicate ids. Only replies from the factory's own
   account mark a thread handled, and a human follow-up brings it back into scope.
-  If a run stops after replying, the next run still performs the holdout review.
+  A round that changes the commit still runs holdout review. A reply-only round
+  whose commit is unchanged stays draft and continues to dual review instead of
+  repeating holdout on the same code.
 - **Published notes are jailed.** The review publisher posts only files under
   the target repository's `.review/` directory and refuses symlink escapes and
   secret-like filenames.
@@ -409,33 +435,30 @@ ambiguous match stops the run instead of guessing.
   `.delivery/routing/model-inventory.json`. The workflow still names the
   required capability (standard or frontier). The catalogue then picks an
   exact advertised identifier for that capability. Diagnostic shadow profiling
-  defaults off to avoid frontier calls that cannot affect live dispatch. Set
-  `ROUTING_PROFILING=always` to collect evaluation evidence; only then is a
-  cheaper shadow recommendation recorded, never dispatched. Each recorded task captures
-  wall time automatically, overlays host token and cost figures when the
-  runtime writes them, and otherwise stores character counts of named
-  artifacts. After each task, the run scorecard refreshes with actual gate,
-  repair, escalation, time, cost, and usage totals. It labels shadow quality
-  and savings as unevaluated until a paired benchmark has actually run.
-  The paired-evidence generator hashes fixed inputs and managed trees, reads
-  captured usage and gate results, and measures output size instead of relying
-  on hand-transcribed benchmark evidence. Fast catalogue models stay
-  evaluation-only until representative-run scores for that exact candidate
-  clear the 90 percent bar with at least five reversible cases and no critical
-  misses. Live evidence is not mixed into that sample. Safety floors keep auth,
-  migration, concurrency, distributed-state, weak-verification, holdout review,
-  and irreversible work on the frontier recommendation. Live availability stays
-  unchanged without an exact operator promotion approval naming the candidate.
-  Public rankings and unscored fixtures never promote. This setting changes
-  diagnostic collection only: live model selection, holdout review, and every
-  quality gate remain unchanged.
+  defaults off. Set `ROUTING_PROFILING=always` to collect evaluation evidence;
+  only then is a cheaper shadow recommendation recorded, never dispatched.
+  Each recorded task captures wall time automatically, overlays host token and cost
+  figures when the runtime writes them, and otherwise stores character
+  counts of named artifacts. After each task, the run scorecard refreshes with
+  actual gate, repair, escalation, time, cost, and usage totals. It labels
+  shadow quality and savings as unevaluated until a paired benchmark has
+  actually run. The paired-evidence generator hashes fixed inputs and managed
+  trees, reads captured usage and gate results, and measures output size
+  instead of relying on hand-transcribed benchmark evidence. Fast catalogue
+  models stay evaluation-only until representative-run scores for that exact
+  candidate clear the 90 percent bar with at least five reversible cases and
+  no critical misses. Live evidence is not mixed into that sample. Safety
+  floors keep auth, migration, concurrency, distributed-state,
+  weak-verification, holdout review, and irreversible work on the frontier
+  recommendation. Live availability stays unchanged without an exact operator
+  promotion approval naming the candidate. Public rankings and unscored
+  fixtures never promote.
 - **Review spend follows demonstrated risk.** Independently adjudicated review
-  lenses use the standard model tier. A proven small, reversible change runs
-  the correctness/security and tests/specification lenses; larger, one-way,
-  sensitive, or uncertain changes retain all four lenses. Reply-only comment
-  rounds do not send an unchanged commit through duplicate gates and frontier
-  holdout review. Any changed commit still does, and Stage 3 dual review remains
-  mandatory before readiness.
+  lenses use the standard model tier. `review-fanout.ts` chooses two essential
+  lenses for a proven small reversible change and all four lenses otherwise.
+  Reply-only comment rounds do not send an unchanged commit through duplicate
+  gates and frontier holdout review. Any changed commit still does, and dual
+  review remains mandatory before readiness.
 - **Retro teaches the engineering journey.** It writes a chronological
   postmortem covering the problem, attempted models, counterexamples, design
   evolution, final invariants, DSA complexity, and system-design trade-offs. It

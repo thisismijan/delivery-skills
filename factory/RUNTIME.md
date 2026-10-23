@@ -178,6 +178,23 @@ current session may use. At the start of a factory run:
    task class. Promotion reports keep `live` and `representative-run` evidence in
    separate groups and never pool them.
 
+Diagnostic shadow profiling is opt-in. Read `routingProfiling` from
+`bun "$FACTORY_ROOT/scripts/config.ts"`; it defaults to `off` and is enabled
+only when `ROUTING_PROFILING=always`. In `off` mode, skip the
+`task-profile-controller` call and its dependent usage, persistence, and
+scorecard telemetry. Live model selection, implementation, holdout review of
+new or changed code, and every quality gate remain unchanged. In `always`
+mode, persist profiles and shadow recommendations as evaluation evidence.
+A cheaper shadow recommendation is recorded, never dispatched.
+
+Independently adjudicated `/code-review-max` lenses use the resolved
+`standard` model. Write measured counts and surfaces to
+`.review/mr-<iid>/<full-head-sha>/review-fanout-input.json`, then run
+`bun "$FACTORY_ROOT/scripts/review-fanout.ts" <that file>`. The returned
+`lenses` array is authoritative. A small reversible change runs two essential
+lenses; risky, one-way, sensitive, or unknown classification runs all four.
+Invalid input is a terminal stop.
+
 The catalogue is ordered policy. Runtime availability chooses among catalogue
 candidates; it never lowers safety floors.
 

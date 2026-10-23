@@ -15,9 +15,9 @@ from `skills/delivery/SKILL.md`.
    It does not authorize merge, tracker status, risk acceptance, or skill
    install.
 5. **Auto.** `/delivery auto <key>` creates approved items, fans out
-   independent tickets into isolated worktrees (at most 4 at a time unless
-   you set `MAX_PARALLEL_WORKTREES`), drafts, executes, reviews, and
-   monitors the exact-head pipeline without polling.
+   independent tickets into isolated worktrees (at most `maxParallelWorktrees`
+   at a time, default 4, override with `MAX_PARALLEL_WORKTREES`), drafts,
+   executes, reviews, and monitors the exact-head pipeline without polling.
 6. **You merge.** Delivery never merges, closes, or resolves threads.
 7. **After merge.** Delivery monitors the exact merged revision on the default
    branch. An attributable in-scope failure fixes forward through a new
@@ -28,6 +28,25 @@ from `skills/delivery/SKILL.md`.
 
 Resume with `/delivery <KEY>` or `/delivery auto <key>`. Do not skip a failed
 gate.
+
+## Model spend
+
+Live dispatch still uses the required capability, then the catalogue, then an
+exact advertised model. Diagnostic shadow profiling defaults off. Set
+`ROUTING_PROFILING=always` only when collecting evaluation evidence; a cheaper
+shadow recommendation is recorded, never dispatched.
+
+`/code-review-max` starts independently adjudicated lenses on the standard
+tier. `review-fanout.ts` chooses two essential lenses for a proven small
+reversible change (at most 2 files, fewer than 50 changed lines, two-way, no
+Data/Contract/Config/Auth/Infra) and all four lenses otherwise. Invalid input
+fails closed.
+
+`/address-comments` still classifies every in-scope comment. A round that
+changes the commit still runs cumulative gates and frontier holdout review. A
+reply-only round whose commit is unchanged stays draft and continues to dual
+review instead of repeating holdout on the same code. Dual review remains the
+only authority that may mark the change ready.
 
 ## Pipeline checkpoints
 
