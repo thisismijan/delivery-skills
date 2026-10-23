@@ -95,7 +95,9 @@ re-run the gate. Do not reuse it.
 4. **Write tests first.** Resolve `standard` against
    `.delivery/routing/model-inventory.json`, then dispatch the `test-writer`
    subagent with that exact available model, `<changeDir>/specs/`, and
-   `<changeDir>/tasks.md`. It writes test files only. It writes **durable** tests
+   `<changeDir>/tasks.md`, bundled with the work item into one file by
+   `bun "${FACTORY_ROOT}/scripts/review-packet.ts" --ticket <work-item-file> --spec <changeDir> --out <reviewDir>/test-packet.md`
+   and given to it as its starting input. It writes test files only. It writes **durable** tests
    and **skips** inherently transient (point-in-time migration) scenarios,
    reporting each skip with a reason (see "Test durability" in `CONVENTIONS.md`).
    Capture its complete compact handoff verbatim to

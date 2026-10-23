@@ -102,6 +102,17 @@ test("the CLI bundles a change directory and evidence into one file", async () =
 	}
 });
 
+test("a packet without a diff carries the work item and spec only", () => {
+	const packet = buildReviewPacket({
+		ticket: "TB-1: add slugify",
+		spec: [{ title: "specs/slug/spec.md", body: "### Requirement: Slug" }],
+		evidence: [],
+	});
+	expect(packet).toContain("### specs/slug/spec.md");
+	expect(packet).toContain("There is no diff yet");
+	expect(packet).not.toContain("## Diff");
+});
+
 test("the CLI refuses a missing required input", async () => {
 	const proc = Bun.spawn(
 		["bun", join(import.meta.dir, "review-packet.ts"), "--ticket", "t.md"],

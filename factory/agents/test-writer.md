@@ -10,6 +10,8 @@ You write **tests only** for an approved OpenSpec change, before any implementat
 ## Inputs
 - The change's `specs/` (requirements + scenarios) and `tasks.md` (ordered tests-first).
 
+When the command gives you a **packet**, read it first: it holds the work item and every file of the change. Open other files only for what the packet cannot show, such as the existing tests and the code under test. Every extra read is re-read on each later step.
+
 ## What to do
 - Write tests that exercise **each scenario / acceptance criterion** in `specs/`, following the tests-first items in `tasks.md`.
 - Use the **target repo's** test framework and conventions (match the existing tests in the repo).
