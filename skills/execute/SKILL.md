@@ -171,7 +171,13 @@ re-run the gate. Do not reuse it.
    unscored fixture as live availability. That change needs an exact operator
    promotion approval naming the candidate.
 
-7. **Implement to green.** Dispatch the `implementer` subagent using the exact
+7. **Implement to green.** Bundle the work item, the change's spec files, the
+   failing tests and the red gate into one file:
+   `git diff <default-branch>...HEAD > <reviewDir>/implement-diff.patch`, then
+   `bun "${FACTORY_ROOT}/scripts/review-packet.ts" --ticket <work-item-file> --spec openspec/changes/<changeName> --diff <reviewDir>/implement-diff.patch --evidence <red-gate-artifact> --out <reviewDir>/implement-packet.md`.
+   Rebuild it before every fix dispatch, with the failing gate artifact or the
+   review findings as the evidence. Dispatch the `implementer` subagent with the
+   packet as its starting input, using the exact
    runtime model resolved in step 6. Override the prompt's static model. If the
    host cannot override a plugin agent's model, use the existing
    `implementer-opus` fallback only for the semantic frontier case. Capture its

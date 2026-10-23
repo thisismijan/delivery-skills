@@ -431,6 +431,17 @@ describe("bounded recovery and replay safety", () => {
 		);
 		expect(plain(holdoutReviewer)).toMatch(/review packet ?, read it first/i);
 		expect(plain(holdoutReviewer)).toMatch(/open another file only to settle something the packet cannot/i);
+		expect(plain(execute)).toMatch(
+			/review-packet\.ts" --ticket <work-item-file> --spec .* --diff <reviewDir>\/implement-diff\.patch --evidence <red-gate-artifact> --out <reviewDir>\/implement-packet\.md/,
+		);
+		expect(plain(execute)).toMatch(/rebuild it before every fix dispatch/i);
+		for (const agent of [implementer, implementerOpus]) {
+			expect(plain(agent)).toMatch(/packet , read it first/i);
+		}
+		expect(plain(implementer)).toMatch(
+			/finding needs behaviour the spec does not define, add one scenario for it to the change's delta spec in the same fix/i,
+		);
+		expect(plain(implementer)).toMatch(/exercises the public interface only/i);
 
 		const comments = plain(addressComments);
 		expect(comments).toMatch(

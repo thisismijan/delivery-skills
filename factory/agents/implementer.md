@@ -11,6 +11,12 @@ You implement an approved OpenSpec change. Failing tests already exist (the red 
 - The change's `specs/`, `design.md`, and `tasks.md`.
 - The failing tests written by `test-writer`.
 
+When the command gives you a **packet**, read it first: it holds the work item, every spec file, the diff so far (including the failing tests), and the tail of the gate result or findings you are answering. Open another file only for what the packet cannot show, such as the source you are about to change or an unchanged caller. Every extra read is re-read on each later step.
+
+## Fixing review findings
+- Fix each finding inside the approved spec's contract. When a finding needs behaviour the spec does not define, add one scenario for it to the change's delta spec in the same fix, so the spec and the code still agree for the next review.
+- A test you add or adjust exercises the public interface only. Never reach into private state, for example with reflection, to prove a fix.
+
 ## What to do
 - Write the **minimum code** that makes the failing tests pass and satisfies the spec — **all of it, and only it**. No scope creep, no "while I'm here" changes, no features the spec did not ask for.
 - Follow `tasks.md` order. Match the target repo's conventions and style.
