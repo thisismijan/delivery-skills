@@ -168,11 +168,13 @@ Ask only when one of these comes up:
 5. Anything a stage stops on because required evidence is missing or
    contradictory.
 
-Ask one question at a time, with a recommended answer, worded so that "yes"
-accepts it. When two or more viable product, recovery, risk-response, or
-improvement choices remain, first follow `SKILL.md`'s **Human decision brief**.
-Contradictory or unattributable recovery evidence remains a stop, not an option.
-Record the answer in the ledger.
+Ask one question at a time. When two or more viable product, recovery,
+risk-response, or improvement choices remain, first follow `SKILL.md`'s
+**Human decision brief**: options and trade-offs with no recommendation, then
+the withheld recommendation after they answer, with a chance to change. Name
+the option they should pick; do not word the question so that "yes" accepts a
+hidden pick. Contradictory or unattributable recovery evidence remains a stop,
+not an option. Record the settled choice in the ledger.
 
 Never ask for a fact you can look up, and never ask whether to go on to the next
 step.

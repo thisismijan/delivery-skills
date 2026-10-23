@@ -61,8 +61,9 @@ Merge the results into four lists:
 
 ### 3. Interview
 
-Ask the operator one question at a time. Give a recommended answer with each,
-worded so that "yes" accepts it.
+Ask the operator one question at a time. A real choice follows `SKILL.md`'s
+**Human decision brief**: options and trade-offs first, then the withheld
+recommendation after they answer.
 
 - When a question asks the operator to choose among two or more viable product
   directions, first follow `SKILL.md`'s **Human decision brief**. Keep a factual

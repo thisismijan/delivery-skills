@@ -294,18 +294,26 @@ describe("human decision context", () => {
       "**Pros:**",
       "**Cons:**",
       "**Risks and consequences:**",
-      "### Comparison and recommendation",
+      "### Comparison",
       "**Recommendation:**",
       "**Would change if:**",
       "**Reversibility:**",
       "**If we wait:**",
       "**Choose:**",
+      "**Why it matters:**",
+      "## Your choice:",
     ]) {
       expect([field, brief.includes(field)]).toEqual([field, true]);
     }
     expect(brief).toMatch(/two or more viable options/i);
     expect(brief).toMatch(/recommendation is\s+weak/i);
-    expect(brief).toMatch(/Ask exactly one final question/i);
+    expect(brief).toMatch(/Ask exactly one\s+final question/i);
+    expect(brief).toMatch(/Do not include a recommendation/i);
+    expect(brief).toMatch(/After they choose/i);
+    expect(brief).toMatch(/keep or switch/i);
+    const choosePhase = brief.split("**After they choose.**")[0] ?? "";
+    expect(choosePhase).toContain("### Comparison");
+    expect(choosePhase).not.toContain("**Recommendation:**");
   });
 
   test("the brief applies only to real choices and preserves hard gates", () => {
@@ -864,6 +872,8 @@ describe("engineering learning postmortem", () => {
 	const retro = SPECS["retro.md"];
 
 	test("retro persists a chronological, evidence-backed learning artifact", () => {
+		expect(retro).toContain(".delivery/grooming/");
+		expect(retro).toContain("decisions.md");
 		expect(retro).toContain(".delivery/runs/<run-id>-postmortem.md");
 		expect(retro).toContain(
 			"`attempt → evidence of failure → changed model → result`",

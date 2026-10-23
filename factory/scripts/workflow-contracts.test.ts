@@ -281,6 +281,8 @@ describe("durable grooming", () => {
 		expect(groom).toMatch(/decisions.*ask/i);
 		expect(groom).toMatch(/Human decision brief/i);
 		expect(groom).toMatch(/two or more viable.*product or slicing/is);
+		expect(plain(groom)).toMatch(/withholds the recommendation/i);
+		expect(groom).toContain("decisions.md");
 	});
 
 	test("ticket prompts prefer contracts over stale source coordinates", () => {
@@ -301,6 +303,9 @@ describe("context-rich human decisions", () => {
 		expect(delivery).toContain("No material DSA difference");
 		expect(delivery).toContain("No material system-design");
 		expect(delivery).toMatch(/Never invent Big-O claims/i);
+		expect(plain(delivery)).toMatch(/do not include a recommendation/i);
+		expect(plain(delivery)).toMatch(/after they choose/i);
+		expect(delivery).toContain("## Your choice:");
 	});
 
 	test("stage skills invoke the brief only when multiple paths are viable", () => {

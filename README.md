@@ -154,8 +154,10 @@ are packaging sugar for hosts that load skills that way.
 ## Continuous delivery
 
 Use `/delivery <idea-or-PRD>` for new work or `/delivery auto <key>` to resume
-existing work. The skill grills the product decisions and presents the final
-atomic ticket plan. Your approval of that plan is the single routine delivery
+existing work. The skill grills the product decisions so you choose from the options and
+trade-offs first. After you pick, it shows its own recommendation and why,
+and you can change your mind. It then presents the final atomic ticket plan.
+Your approval of that plan is the single routine delivery
 authorization for the run.
 
 After approval, it automatically:
@@ -368,6 +370,28 @@ Human-owned stops, in order:
    approval.
 2. Merge, or explicit acceptance of a release risk.
 3. Installing or rolling back an exact delivery-skill candidate.
+
+## Learning while the factory runs
+
+The factory is meant to make the operator a stronger engineer, even when they
+are not writing the code.
+
+- **Decide before you see a preferred answer.** A real choice opens with
+  evidence, options, and trade-offs. The recommendation comes after you pick,
+  with a chance to switch. That stops the first suggestion from doing the
+  thinking for you.
+- **Ground every trade-off in this codebase.** Grilling names the module, file,
+  or domain term the choice will touch, not a generic product question.
+- **Keep a decision log.** Grooming writes `decisions.md` as you settle each
+  choice: the options, your pick, the later recommendation, and whether they
+  differed. The closing summary recaps it. Retro reads it when it reconstructs
+  the engineering story.
+- **Look back as a case study.** After merge, retro writes an engineering
+  postmortem: the problem, the attempts, what disproved them, and the data
+  structure and system-design lessons.
+
+Factual questions, missing credentials, and a single viable path stay direct.
+A failed gate is never dressed up as an option.
 
 ## Cost controls
 

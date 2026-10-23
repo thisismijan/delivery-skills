@@ -51,11 +51,12 @@ Follow the `/groom` skill. Non-negotiables this
 workflow must not weaken:
 
 - No MCP, git, or work-item provider from groom
-- One grilling question per turn, each with a recommended answer
-- A question with two or more viable product or slicing choices first follows
-  `SKILL.md`'s **Human decision brief**; factual and single-path questions stay
-  direct
-- Write nothing before the operator explicitly approves the slice breakdown
+- One grilling question per turn. A real choice follows `SKILL.md`'s
+  **Human decision brief**: options and trade-offs first, then the withheld
+  recommendation after they answer
+- Factual and single-path questions stay direct
+- Write no ticket draft or PRD before the operator explicitly approves the
+  slice breakdown; `decisions.md` may be appended as choices settle
 - Every final draft passes `verify-ticket.ts`
 
 **Slicing preference (operator + groom grilling):** maximize independent

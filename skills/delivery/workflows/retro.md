@@ -35,6 +35,8 @@ scope, read whatever exists of the following; a source that exists but cannot be
 read is recorded as a gap.
 
 - The ledger: decisions, stops, approvals, and voided verdicts.
+- Grooming `decisions.md` files under `.delivery/grooming/`: the operator's
+  pick, the withheld recommendation, and whether they differed.
 - The factory's record of the run: stage results, gate failures, holdout
   verdicts, escalations, reruns, and continues.
 - The MR: review threads, which findings were acted on and which were dismissed,

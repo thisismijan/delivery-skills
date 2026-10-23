@@ -254,8 +254,11 @@ In a cloud agent the operator replies in a later follow-up, not at once. When
 you ask the operator anything there:
 
 - Ask every question whose answer does not depend on another answer in one
-  numbered list, each with a recommended answer. Do not drip one question per
-  turn.
+  numbered list. Do not drip one question per turn.
+- A real choice uses the **Human decision brief** choose phase: options,
+  context, and trade-offs, with no recommendation. After the operator answers,
+  send one follow-up that reveals the withheld recommendation for each choice
+  and offers a change.
 - End the turn after asking. The reply resumes the run from the ledger.
 
 A stage's own questions, such as groom's grilling, keep that stage's style.
@@ -568,11 +571,18 @@ distributed state, cross-system effect, operational topology, safety concern,
 or costly rollback. Use plain language and define a technical term by its
 practical consequence.
 
-Use this shape:
+The brief has two turns so the operator decides before seeing a preferred
+answer. A recommendation shown first anchors the choice and hides the trade-off.
+
+**Choose phase.** Present evidence, every viable option, and the comparison.
+Do not include a recommendation, a preferred option, or wording that "yes"
+accepts your pick. Hold that judgment until after they answer. Ask exactly one
+final question.
 
 ```markdown
 ## Decision: <what must be chosen>
 **Why now:** <why work cannot safely continue without this choice>
+**Why it matters:** <the engineering consequence of this choice, in this codebase>
 
 ### Evidence and constraints
 - Known: <verified fact and source>
@@ -599,20 +609,35 @@ with the reason. Never invent Big-O claims.>
 reliability, recovery, security, and operability; or "No material system-design
 difference" with the actual discriminator.>
 
-### Comparison and recommendation
-<side-by-side material consequences>
-**Recommendation:** <option and evidence-bound reason>
-**Assumptions:** <what the recommendation relies on>
-**Would change if:** <evidence that would change the recommendation>
+### Comparison
+<side-by-side material consequences, with no preferred option>
 **Reversibility:** <cost and method of changing course>
 **If we wait:** <effect of delaying or giving no answer>
 
 **Choose:** <one precise question naming every viable option>
 ```
 
-If evidence does not support a strong preference, say the recommendation is
-weak and name the missing evidence or value judgment that decides it. Never
-hide uncertainty in a confident recommendation. Ask exactly one final question.
+**After they choose.** Reveal the withheld recommendation and why. Give them a
+chance to change.
+
+```markdown
+## Your choice: <the option they picked>
+**Recommendation:** <option and evidence-bound reason>
+**Assumptions:** <what the recommendation relies on>
+**Would change if:** <evidence that would change the recommendation>
+```
+
+If they picked the same option, say so, explain the reason in one or two
+sentences, and continue unless they ask to switch. If they picked a different
+option, explain the disagreement without talking down to them, then wait for
+keep or switch. If evidence does not support a strong preference, say the
+recommendation is weak and name the missing evidence or value judgment that
+decides it. Never hide uncertainty in a confident recommendation.
+
+Record the settled choice: the question, the options, their pick, the
+recommendation, and whether they differed. Grooming writes that log under the
+grooming output directory as `decisions.md`. Other stages append a Decision
+line in the ledger.
 
 ## Checkpoint policy
 
