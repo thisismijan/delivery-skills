@@ -346,6 +346,101 @@ async function applyJavaRename(
 	};
 }
 
+function isImportStatement(statement: ts.Statement): boolean {
+	return (
+		ts.isImportDeclaration(statement) || ts.isImportEqualsDeclaration(statement)
+	);
+}
+
+function nonImportText(source: string, fileName: string): string {
+	const sourceFile = ts.createSourceFile(
+		fileName,
+		source,
+		ts.ScriptTarget.Latest,
+		true,
+		ts.ScriptKind.TSX,
+	);
+	return sourceFile.statements
+		.filter((statement) => !isImportStatement(statement))
+		.map((statement) => statement.getText(sourceFile))
+		.join("\n");
+}
+
+async function applyTypeScriptImports(
+	classified: MechanicalEditPlan,
+	root: string,
+	listed: string[],
+): Promise<ApplyMechanicalEditResult> {
+	const config = compilerOptionsFromConfig(root);
+	const programFiles = config.fileNames ?? (await listTypeScriptFiles(root));
+	const fileNames = [...new Set([...programFiles, ...listed])];
+	const service = createLanguageService(root, fileNames, config.options);
+	const format: ts.FormatCodeSettings = {
+		tabSize: 2,
+		indentSize: 2,
+		convertTabsToSpaces: true,
+		newLineCharacter: "\n",
+	};
+	const listedSet = new Set(listed);
+	const nextTexts = new Map<string, string>();
+	for (const file of listed) {
+		const original = ts.sys.readFile(file);
+		if (original === undefined) {
+			return plan(classified, `missing file: ${relative(root, file) || file}`);
+		}
+		const changes = service.organizeImports(
+			{ type: "file", fileName: file, skipDestructiveCodeActions: false },
+			format,
+			{},
+		);
+		if (changes.some((change) => !listedSet.has(resolve(change.fileName)))) {
+			return plan(
+				classified,
+				"import rewrite includes files that were not listed",
+			);
+		}
+		const fileChanges = changes.filter(
+			(change) => resolve(change.fileName) === file,
+		);
+		const edits: RenameEdit[] = [];
+		for (const fileChange of fileChanges) {
+			for (const textChange of fileChange.textChanges) {
+				edits.push({
+					fileName: file,
+					start: textChange.span.start,
+					end: textChange.span.start + textChange.span.length,
+					text: textChange.newText,
+				});
+			}
+		}
+		if (edits.length === 0) {
+			continue;
+		}
+		if (editsOverlap(edits)) {
+			return plan(classified, "import edits overlap");
+		}
+		const next = applyEditsToText(original, edits);
+		if (nonImportText(original, file) !== nonImportText(next, file)) {
+			return plan(
+				classified,
+				"import rewrite would change code that is not an import",
+			);
+		}
+		nextTexts.set(file, next);
+	}
+	const written: string[] = [];
+	for (const [fileName, text] of nextTexts) {
+		await writeFile(fileName, text, "utf8");
+		written.push(relative(root, fileName).split(sep).join("/"));
+	}
+	return {
+		verdict: "mechanical",
+		reason: "applied TypeScript import-only rewrite",
+		apply: "script",
+		filesChanged: written.sort(),
+	};
+}
+
 export async function applyMechanicalEdit(input: {
 	payload: unknown;
 	root: string;
@@ -360,10 +455,6 @@ export async function applyMechanicalEdit(input: {
 		to?: string;
 		files: string[];
 	};
-	if (payload.operation !== "rename" || !payload.from || !payload.to) {
-		return plan(classified, "no proven script for this operation");
-	}
-
 	const root = resolve(input.root);
 	const listed = payload.files.map((file) => resolve(root, file));
 	const languages = new Set(
@@ -377,6 +468,15 @@ export async function applyMechanicalEdit(input: {
 	const language = [...languages][0];
 	if (!language) {
 		return plan(classified, "listed files are not one supported language");
+	}
+	if (payload.operation === "import-only") {
+		if (language !== "typescript") {
+			return plan(classified, "no proven script for this operation");
+		}
+		return applyTypeScriptImports(classified, root, listed);
+	}
+	if (payload.operation !== "rename" || !payload.from || !payload.to) {
+		return plan(classified, "no proven script for this operation");
 	}
 	if (language === "python") {
 		return applyPythonRename(classified, payload, root, listed);
