@@ -405,19 +405,20 @@ review of new code, and holdout review after a comment round that changes the
 commit. Independent tests, security-sensitive feasibility, and dual review
 before readiness still run. A bounded rename, import-only, or format-only
 unit is classified by `mechanical-edit.ts` before any extra worker.
-`apply-mechanical-edit.ts` rewrites a TypeScript identifier rename when the
-language service can prove the graph, a Python function or class rename when
-CPython can prove the graph, unused Python top-level imports when the rest of
-the module is unchanged, a Python format-only rewrite when names and
-literals stay identical, unused Java imports when the rest of the
-compilation unit is unchanged, a Java format-only rewrite when names and
-literals stay identical, and a Java type rename when a single class,
-interface, enum, or record name is listed completely. Otherwise the current
-worker runs.
-Units the scripts cannot prove — overloads, incomplete file lists, mixed
-languages — sit in a representative scoring pack so a fast model can be
-measured without going live. Fast catalogue models stay evaluation-only
-until promotion. The worker never decides that its own job is menial.
+`apply-mechanical-edit.ts` applies it without a model when it can prove the
+rewrite for TypeScript, Python, or Java:
+
+- rename: a TypeScript identifier, a Python function or class, or a single
+  Java type or method, when every reference is in the listed files
+- import-only: unused TypeScript imports, unused Python top-level names, or
+  unused Java single-type imports, when the rest of the file is unchanged
+- format-only: spacing that leaves names and literals identical
+
+Anything the helper cannot prove — overloads, incomplete file lists, mixed
+languages, star imports — keeps today's worker. Those units sit in
+`mechanical-edit-scoring.ts` so a fast model can be measured without going
+live. Fast catalogue models stay evaluation-only until promotion. The
+worker never decides that its own job is menial.
 
 Diagnostic shadow profiling defaults off so a ticket does not pay extra
 frontier calls that cannot affect live dispatch. Set

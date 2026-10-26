@@ -123,7 +123,9 @@ This command consumes the review comments on the **existing** MR for this ticket
      bun "${FACTORY_ROOT}/scripts/apply-mechanical-edit.ts" "<reviewDir>/mechanical-edit-<commentId>.json" "<repoRoot>"
      ```
      Incomplete or free-text comments are not a unit. Persist the JSON plan.
-     When `apply` is `script`, the helper already wrote the files. Otherwise
+     Proven TypeScript, Python, and Java rename, import-only, and format-only
+     units apply here without a model. When `apply` is `script`, the helper
+     already wrote the files. Otherwise
      dispatch the `implementer` to write the fix. Do not ask the implementer
      whether the work is menial. Do not dispatch a catalogue fast model. A
      payload flag is not proof that a script ran. Then bring the

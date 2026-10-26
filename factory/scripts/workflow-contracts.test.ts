@@ -439,6 +439,12 @@ describe("bounded recovery and replay safety", () => {
 		}
 		expect(addressComments).toMatch(/nitpick/i);
 		expect(plain(addressComments)).toMatch(/make no code change/i);
+		expect(runtime).toContain("mechanical-edit.ts");
+		expect(runtime).toContain("apply-mechanical-edit.ts");
+		expect(runtime).toContain("mechanical-edit-scoring.ts");
+		expect(runtime).toContain("TypeScript");
+		expect(runtime).toContain("Python");
+		expect(runtime).toContain("Java");
 		const controller = read("agents/task-profile-controller.md");
 		expect(controller).toContain("mechanical-edit");
 		expect(controller).toMatch(
