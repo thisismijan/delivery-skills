@@ -308,6 +308,37 @@ test("a Java string occurrence is not rewritten", async () => {
 	);
 });
 
+test("a complete Java method rename is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/A.java":
+				"public class Host {\n  public String slugifyTitle(String value) { return value; }\n}\n",
+			"src/B.java":
+				'public class Other {\n  String label = new Host().slugifyTitle("x");\n}\n',
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					...javaUnit,
+					from: "slugifyTitle",
+					to: "slugify",
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			expect(await readFile(join(root, "src/A.java"), "utf8")).toContain(
+				"slugify(",
+			);
+			expect(await readFile(join(root, "src/A.java"), "utf8")).not.toContain(
+				"slugifyTitle",
+			);
+			expect(await readFile(join(root, "src/B.java"), "utf8")).toContain(
+				"slugify(",
+			);
+		},
+	);
+});
+
 test("a TypeScript import-only rewrite is applied without a worker", async () => {
 	await withProject(
 		{
@@ -331,6 +362,35 @@ test("a TypeScript import-only rewrite is applied without a worker", async () =>
 			expect(text).toContain('from "node:path"');
 			expect(text).not.toContain("dirname");
 			expect(text).toContain('join("a", "b")');
+		},
+	);
+});
+
+test("a TypeScript format-only rewrite is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/a.ts": "export function slugify(value:string){return value;}\n",
+		},
+		async (root) => {
+			const before = await readFile(join(root, "src/a.ts"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: {
+					operation: "format-only",
+					files: ["src/a.ts"],
+					reversible: true,
+					classificationComplete: true,
+					surfaces: ["user-interface"],
+					verification: "strong",
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			const text = await readFile(join(root, "src/a.ts"), "utf8");
+			expect(text).toContain("slugify");
+			expect(text).toContain("return value");
+			expect(text === before || result.filesChanged.includes("src/a.ts")).toBe(
+				true,
+			);
 		},
 	);
 });
