@@ -252,11 +252,17 @@ const PythonRenameResult = z.object({
 	files: z.record(z.string()).optional(),
 });
 
-async function applyPythonRename(
+async function applyPythonEdit(
 	classified: MechanicalEditPlan,
-	payload: { from?: string; to?: string; files: string[] },
+	payload: {
+		operation: string;
+		from?: string;
+		to?: string;
+		files: string[];
+	},
 	root: string,
 	listed: string[],
+	appliedReason: string,
 ): Promise<ApplyMechanicalEditResult> {
 	const inputPath = join(
 		tmpdir(),
@@ -276,15 +282,15 @@ async function applyPythonRename(
 		const exit = await proc.exited;
 		const stdout = await new Response(proc.stdout).text();
 		if (exit !== 0) {
-			return plan(classified, "python rename helper failed");
+			return plan(classified, "python helper failed");
 		}
 		const parsed = PythonRenameResult.safeParse(JSON.parse(stdout));
 		if (!parsed.success || !parsed.data.ok || !parsed.data.files) {
 			return plan(
 				classified,
 				parsed.success
-					? (parsed.data.reason ?? "python rename was not proven")
-					: "python rename helper returned invalid JSON",
+					? (parsed.data.reason ?? "python rewrite was not proven")
+					: "python helper returned invalid JSON",
 			);
 		}
 		const listedSet = new Set(listed);
@@ -299,7 +305,7 @@ async function applyPythonRename(
 		}
 		return {
 			verdict: "mechanical",
-			reason: "applied Python identifier rename",
+			reason: appliedReason,
 			apply: "script",
 			filesChanged: written.sort(),
 		};
@@ -550,6 +556,15 @@ export async function applyMechanicalEdit(input: {
 		return plan(classified, "listed files are not one supported language");
 	}
 	if (payload.operation === "import-only") {
+		if (language === "python") {
+			return applyPythonEdit(
+				classified,
+				payload,
+				root,
+				listed,
+				"applied Python import-only rewrite",
+			);
+		}
 		if (language !== "typescript") {
 			return plan(classified, "no proven script for this operation");
 		}
@@ -565,7 +580,13 @@ export async function applyMechanicalEdit(input: {
 		return plan(classified, "no proven script for this operation");
 	}
 	if (language === "python") {
-		return applyPythonRename(classified, payload, root, listed);
+		return applyPythonEdit(
+			classified,
+			payload,
+			root,
+			listed,
+			"applied Python identifier rename",
+		);
 	}
 	if (language === "java") {
 		return applyJavaRename(classified, payload, root, listed);

@@ -339,6 +339,53 @@ test("a complete Java method rename is applied without a worker", async () => {
 	);
 });
 
+const pythonImportUnit = {
+	operation: "import-only" as const,
+	files: ["src/a.py"],
+	reversible: true,
+	classificationComplete: true,
+	surfaces: ["user-interface"],
+	verification: "strong" as const,
+};
+
+test("unused Python imports are removed without a worker", async () => {
+	await withProject(
+		{
+			"src/a.py":
+				"from os.path import join, dirname\nvalue = join('a', 'b')\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: pythonImportUnit,
+				root,
+			});
+			expect(result.apply).toBe("script");
+			const text = await readFile(join(root, "src/a.py"), "utf8");
+			expect(text).toContain("join(");
+			expect(text).toContain("from os.path import join");
+			expect(text).not.toContain("dirname");
+		},
+	);
+});
+
+test("a Python star import is refused", async () => {
+	await withProject(
+		{
+			"src/a.py": "from os.path import *\nvalue = join('a', 'b')\n",
+		},
+		async (root) => {
+			const before = await readFile(join(root, "src/a.py"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: pythonImportUnit,
+				root,
+			});
+			expect(result.apply).toBe("select-model");
+			expect(result.reason).toContain("star");
+			expect(await readFile(join(root, "src/a.py"), "utf8")).toBe(before);
+		},
+	);
+});
+
 test("a TypeScript import-only rewrite is applied without a worker", async () => {
 	await withProject(
 		{
