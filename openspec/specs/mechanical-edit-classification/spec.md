@@ -137,3 +137,35 @@ When a mechanical-edit unit is a Java method rename, the command SHALL apply it 
 #### Scenario: A complete Java method rename is applied without a worker
 - **WHEN** a mechanical rename unit lists every Java file that references the method, the listed files contain one method declaration of that name, and the target name is unused
 - **THEN** the helper rewrites those files and reports `apply: script`
+
+### Requirement: Python import-only units drop unused top-level names
+
+When a mechanical-edit unit is Python import-only, the command SHALL drop unused top-level imported names only when remaining non-import AST is identical. Star imports, nested imports, postponed annotations, and comments on import lines SHALL leave files unchanged and keep live dispatch on `select-model`. The command SHALL NOT dispatch a fast catalogue model.
+
+#### Scenario: Unused Python imports are removed without a worker
+- **WHEN** a mechanical import-only unit lists a Python file whose unused top-level imported name can be dropped without touching later statements
+- **THEN** the helper rewrites the file and reports `apply: script`
+
+#### Scenario: A Python star import is refused
+- **WHEN** a listed Python file contains a star import
+- **THEN** the helper writes nothing and reports `apply: select-model`
+
+### Requirement: Python format-only units apply through tokenize round-trip
+
+When a mechanical-edit unit is Python format-only, the command SHALL re-space listed files with CPython's tokenizer only when identifier, number, string, operator, and comment tokens stay identical. Any other case SHALL leave files unchanged and keep live dispatch on `select-model`. The command SHALL NOT dispatch a fast catalogue model.
+
+#### Scenario: A layout-only Python file is formatted without a worker
+- **WHEN** a mechanical format-only unit lists a Python file whose tokens can be spaced without renaming identifiers or changing literals
+- **THEN** the helper rewrites the file or reports no file changes, and reports `apply: script`
+
+### Requirement: Java import-only units drop unused single-type imports
+
+When a mechanical-edit unit is Java import-only, the command SHALL drop unused single-type import lines only when remaining identifier tokens outside those lines stay identical. Star imports and unprovable import forms SHALL leave files unchanged and keep live dispatch on `select-model`. The command SHALL NOT dispatch a fast catalogue model.
+
+#### Scenario: Unused Java imports are removed without a worker
+- **WHEN** a mechanical import-only unit lists a Java file whose unused single-type import can be dropped without touching later identifiers
+- **THEN** the helper rewrites the file and reports `apply: script`
+
+#### Scenario: A Java star import is refused
+- **WHEN** a listed Java file contains a star import
+- **THEN** the helper writes nothing and reports `apply: select-model`
