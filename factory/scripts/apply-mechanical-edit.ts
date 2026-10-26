@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import * as ts from "typescript";
 import { z } from "zod";
+import { planJavaRename } from "./apply-java-mechanical-edit";
 import {
 	type MechanicalEditPlan,
 	classifyMechanicalEdit,
@@ -309,6 +310,42 @@ async function applyPythonRename(
 	}
 }
 
+async function applyJavaRename(
+	classified: MechanicalEditPlan,
+	payload: { from?: string; to?: string; files: string[] },
+	root: string,
+	listed: string[],
+): Promise<ApplyMechanicalEditResult> {
+	if (!payload.from || !payload.to) {
+		return plan(classified, "rename requires from and to identifiers");
+	}
+	const planned = await planJavaRename({
+		root,
+		from: payload.from,
+		to: payload.to,
+		files: payload.files,
+	});
+	if (!planned.ok || !planned.files) {
+		return plan(classified, planned.reason ?? "java rename was not proven");
+	}
+	const listedSet = new Set(listed);
+	const written: string[] = [];
+	for (const [relativePath, text] of Object.entries(planned.files)) {
+		const fileName = resolve(root, relativePath);
+		if (!listedSet.has(fileName)) {
+			return plan(classified, "java helper wrote an unlisted file");
+		}
+		await writeFile(fileName, text, "utf8");
+		written.push(relativePath);
+	}
+	return {
+		verdict: "mechanical",
+		reason: "applied Java type rename",
+		apply: "script",
+		filesChanged: written.sort(),
+	};
+}
+
 export async function applyMechanicalEdit(input: {
 	payload: unknown;
 	root: string;
@@ -343,6 +380,9 @@ export async function applyMechanicalEdit(input: {
 	}
 	if (language === "python") {
 		return applyPythonRename(classified, payload, root, listed);
+	}
+	if (language === "java") {
+		return applyJavaRename(classified, payload, root, listed);
 	}
 	if (language !== "typescript") {
 		return plan(classified, "no proven script for this language");

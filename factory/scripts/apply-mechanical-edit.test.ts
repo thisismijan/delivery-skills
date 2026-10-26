@@ -225,6 +225,89 @@ test("a Python string occurrence is not rewritten", async () => {
 	);
 });
 
+const javaUnit = {
+	operation: "rename" as const,
+	from: "SlugifyTitle",
+	to: "Slugify",
+	files: ["src/A.java", "src/B.java"],
+	reversible: true,
+	classificationComplete: true,
+	surfaces: ["user-interface"],
+	verification: "strong" as const,
+};
+
+test("a complete Java type rename is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/A.java":
+				'public class SlugifyTitle {\n  public String value() { return "x"; }\n}\n',
+			"src/B.java":
+				"public class Other {\n  SlugifyTitle title = new SlugifyTitle();\n}\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: javaUnit,
+				root,
+			});
+			expect(result).toMatchObject({
+				verdict: "mechanical",
+				apply: "script",
+			});
+			expect(await readFile(join(root, "src/A.java"), "utf8")).toContain(
+				"class Slugify ",
+			);
+			expect(await readFile(join(root, "src/A.java"), "utf8")).not.toContain(
+				"SlugifyTitle",
+			);
+			expect(await readFile(join(root, "src/B.java"), "utf8")).toContain(
+				"new Slugify()",
+			);
+		},
+	);
+});
+
+test("an incomplete Java file list leaves files unchanged", async () => {
+	await withProject(
+		{
+			"src/A.java": "public class SlugifyTitle {}\n",
+			"src/B.java": "class Other { SlugifyTitle title; }\n",
+		},
+		async (root) => {
+			const beforeA = await readFile(join(root, "src/A.java"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: { ...javaUnit, files: ["src/A.java"] },
+				root,
+			});
+			expect(result.apply).toBe("select-model");
+			expect(result.reason).toContain("not listed");
+			expect(await readFile(join(root, "src/A.java"), "utf8")).toBe(beforeA);
+		},
+	);
+});
+
+test("a Java string occurrence is not rewritten", async () => {
+	await withProject(
+		{
+			"src/A.java":
+				'public class SlugifyTitle { String n = "SlugifyTitle"; }\n',
+			"src/B.java": "class Other { SlugifyTitle title; }\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: javaUnit,
+				root,
+			});
+			expect(result.apply).toBe("script");
+			expect(await readFile(join(root, "src/A.java"), "utf8")).toContain(
+				'"SlugifyTitle"',
+			);
+			expect(await readFile(join(root, "src/A.java"), "utf8")).toContain(
+				"class Slugify ",
+			);
+		},
+	);
+});
+
 test("import-only has no TypeScript script yet", async () => {
 	await withProject(
 		{
