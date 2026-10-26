@@ -416,9 +416,12 @@ rewrite for TypeScript, Python, or Java:
 
 Anything the helper cannot prove — overloads, incomplete file lists, mixed
 languages, star imports — keeps today's worker. Those units sit in
-`mechanical-edit-scoring.ts` so a fast model can be measured without going
-live. Fast catalogue models stay evaluation-only until promotion. The
-worker never decides that its own job is menial.
+`mechanical-edit-scoring.ts`. `mechanical-edit-test-repos.ts` materializes
+them as temporary git repositories and runs a paired baseline/candidate
+loop. A local listed-file rewrite is recorded as `test-repo-stand-in` and
+does not count toward graduation. Fast catalogue models stay
+evaluation-only until promotion. The worker never decides that its own job
+is menial.
 
 Diagnostic shadow profiling defaults off so a ticket does not pay extra
 frontier calls that cannot affect live dispatch. Set
@@ -513,8 +516,8 @@ ambiguous match stops the run instead of guessing.
   floors keep auth, migration, concurrency, distributed-state,
   weak-verification, holdout review, and irreversible work on the frontier
   recommendation. Live availability stays unchanged without an exact operator
-  promotion approval naming the candidate. Public rankings and unscored
-  fixtures never promote.
+  promotion approval naming the candidate.   Public rankings, unscored
+  fixtures, and test-repo stand-in rewrites never promote.
 - **Review spend follows demonstrated risk.** Independently adjudicated review
   lenses use the standard model tier. `review-fanout.ts` chooses two essential
   lenses for a proven small reversible or contained change and all four lenses

@@ -442,6 +442,8 @@ describe("bounded recovery and replay safety", () => {
 		expect(runtime).toContain("mechanical-edit.ts");
 		expect(runtime).toContain("apply-mechanical-edit.ts");
 		expect(runtime).toContain("mechanical-edit-scoring.ts");
+		expect(runtime).toContain("mechanical-edit-test-repos.ts");
+		expect(runtime).toContain("test-repo-stand-in");
 		expect(runtime).toContain("TypeScript");
 		expect(runtime).toContain("Python");
 		expect(runtime).toContain("Java");
@@ -622,7 +624,9 @@ describe("bounded recovery and replay safety", () => {
 		}
 		expect(runtime).toContain("Public rankings");
 		expect(execute).toContain("unscored fixture");
+		expect(execute).toContain("test-repo stand-in");
 		expect(delivery).toContain("Public rankings never promote");
+		expect(delivery).toContain("Test-repo stand-in scores never promote");
 	});
 
 	test("record-routing persist always supplies an explicit outcome file", () => {

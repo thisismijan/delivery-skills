@@ -1,6 +1,7 @@
 import {
 	CorpusEntry,
 	type CorpusEntry as CorpusEntryType,
+	TEST_REPO_STAND_IN_PROVENANCE,
 } from "./evaluation-corpus";
 import type { ModelCatalogue } from "./model-catalogue";
 import {
@@ -93,6 +94,9 @@ function representativeExactScores(
 		if (!entry.evaluation) return false;
 		if (entry.evaluation.candidateModel !== candidateModel) return false;
 		if (entry.observation.source !== "representative-run") return false;
+		if (entry.evaluation.provenance === TEST_REPO_STAND_IN_PROVENANCE) {
+			return false;
+		}
 		if (!isFastEligible(entry.observation.profile)) return false;
 		if (workType && entry.workType !== workType) return false;
 		return true;

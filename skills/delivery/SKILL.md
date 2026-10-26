@@ -546,6 +546,7 @@ Keep the lifecycle portable across conforming runtimes.
   Named safety floors block auth, migration, concurrency, distributed-state,
   weak-verification, and holdout work. Live availability stays unchanged
   without an exact operator promotion approval. Public rankings never promote.
+  Test-repo stand-in scores never promote.
   Changing the catalogue does not change this run. With profiling off, skip
   the controller call and routing telemetry only. Live model selection,
   implementation, and holdout review remain unchanged, and every quality gate

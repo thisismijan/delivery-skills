@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import {
 	CorpusEntry,
+	TEST_REPO_STAND_IN_PROVENANCE,
 	buildPromotionReport,
 	corpusEntryFrom,
 	scoreCandidate,
@@ -128,6 +129,22 @@ test("a negative or fractional critical-miss count is refused", () => {
 	).toThrow();
 });
 
+test("a test-repo stand-in score records provenance", () => {
+	const entry = scoreCandidate(observation(), {
+		candidateModel: "haiku",
+		relativeUtility: 1,
+		criticalMisses: 0,
+		provenance: TEST_REPO_STAND_IN_PROVENANCE,
+	});
+	expect(entry.evaluation).toEqual({
+		candidateModel: "haiku",
+		relativeUtility: 1,
+		criticalMisses: 0,
+		taskClass: "search",
+		provenance: TEST_REPO_STAND_IN_PROVENANCE,
+	});
+});
+
 test("a stored evaluation without a task class still parses", () => {
 	const stored = corpusEntryFrom(observation(), {
 		candidateModel: "muse-spark-1.3-medium",
@@ -184,6 +201,19 @@ test("live and representative evidence are reported separately", () => {
 		relativeUtility: 0.5,
 		criticalMisses: 2,
 	});
+});
+
+test("test-repo stand-in scores are omitted from promotion groups", () => {
+	const standIn = scoreCandidate(
+		observation({ source: "representative-run", taskId: "search-stand-in" }),
+		{
+			candidateModel: "haiku",
+			relativeUtility: 1,
+			criticalMisses: 0,
+			provenance: TEST_REPO_STAND_IN_PROVENANCE,
+		},
+	);
+	expect(buildPromotionReport([standIn]).groups).toEqual([]);
 });
 
 test("entries without a score are not counted as evidence", () => {
