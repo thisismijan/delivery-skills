@@ -78,6 +78,46 @@ When a mechanical-edit unit is a TypeScript identifier rename, the command SHALL
 - **WHEN** a listed file contains the source name as a string literal and as an identifier
 - **THEN** the helper rewrites only the identifier
 
-#### Scenario: Import-only has no TypeScript script yet
-- **WHEN** the unit is mechanical and the operation is import-only
-- **THEN** the helper writes nothing and live dispatch stays on `select-model`
+### Requirement: Python identifier renames apply through a proven script
+
+When a mechanical-edit unit is a Python identifier rename, the command SHALL apply it with CPython's tokenizer and AST only when the listed files contain exactly one function or class definition of the source name, every remaining name token lives in those files, and the target name is unused. Any other case SHALL leave files unchanged and keep live dispatch on `select-model`. The command SHALL NOT dispatch a fast catalogue model.
+
+#### Scenario: A complete Python rename is applied without a worker
+- **WHEN** a mechanical rename unit lists every Python file that references the identifier, the listed files contain one function or class definition of that name, and the target name is unused
+- **THEN** the helper rewrites those files and reports `apply: script`
+
+#### Scenario: An incomplete Python file list leaves files unchanged
+- **WHEN** a listed Python file defines the identifier and another project file still references it
+- **THEN** the helper writes nothing and reports `apply: select-model`
+
+#### Scenario: A Python string occurrence is not rewritten
+- **WHEN** a listed file contains the source name as a string literal and as an identifier
+- **THEN** the helper rewrites only the identifier
+
+### Requirement: Java type renames apply through a proven script
+
+When a mechanical-edit unit is a Java type rename, the command SHALL apply it only when the listed files contain exactly one class, interface, enum, or record declaration of the source name, every remaining identifier token lives in those files, and the target name is unused. Any other case SHALL leave files unchanged and keep live dispatch on `select-model`. The command SHALL NOT dispatch a fast catalogue model.
+
+#### Scenario: A complete Java type rename is applied without a worker
+- **WHEN** a mechanical rename unit lists every Java file that references the type, the listed files contain one type declaration of that name, and the target name is unused
+- **THEN** the helper rewrites those files and reports `apply: script`
+
+#### Scenario: An incomplete Java file list leaves files unchanged
+- **WHEN** a listed Java file declares the type and another project file still references it
+- **THEN** the helper writes nothing and reports `apply: select-model`
+
+#### Scenario: A Java string occurrence is not rewritten
+- **WHEN** a listed file contains the source name as a string literal and as an identifier
+- **THEN** the helper rewrites only the identifier
+
+### Requirement: TypeScript import-only units apply through organize-imports
+
+When a mechanical-edit unit is TypeScript import-only, the command SHALL apply language-service organize-imports on the listed files only when non-import statements stay identical. Any other case SHALL leave files unchanged and keep live dispatch on `select-model`. The command SHALL NOT dispatch a fast catalogue model.
+
+#### Scenario: Unused TypeScript imports are removed without a worker
+- **WHEN** a mechanical import-only unit lists a TypeScript file whose unused named import can be removed without touching later statements
+- **THEN** the helper rewrites the file and reports `apply: script`
+
+#### Scenario: A non-import rewrite is refused
+- **WHEN** organize-imports would change code outside import declarations
+- **THEN** the helper writes nothing and reports `apply: select-model`
