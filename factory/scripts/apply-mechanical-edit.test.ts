@@ -128,18 +128,99 @@ test("ambiguous symbols are not rewritten", async () => {
 	);
 });
 
-test("non-TypeScript files keep the standard worker", async () => {
+test("unsupported languages keep the standard worker", async () => {
 	await withProject(
 		{
-			"src/a.py": "def slugify_title():\n    return 1\n",
+			"src/a.rb": "def slugify_title\n  1\nend\n",
 		},
 		async (root) => {
 			const result = await applyMechanicalEdit({
-				payload: { ...unit, files: ["src/a.py"] },
+				payload: { ...unit, files: ["src/a.rb"] },
 				root,
 			});
 			expect(result.apply).toBe("select-model");
-			expect(result.reason).toContain("not TypeScript");
+			expect(result.reason).toContain("supported language");
+		},
+	);
+});
+
+const pythonUnit = {
+	operation: "rename" as const,
+	from: "slugify_title",
+	to: "slugify",
+	files: ["src/a.py", "src/b.py"],
+	reversible: true,
+	classificationComplete: true,
+	surfaces: ["user-interface"],
+	verification: "strong" as const,
+};
+
+test("a complete Python rename is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/a.py": "def slugify_title(value):\n    return value\n",
+			"src/b.py":
+				"from a import slugify_title\nlabel = slugify_title('Hello')\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: pythonUnit,
+				root,
+			});
+			expect(result).toMatchObject({
+				verdict: "mechanical",
+				apply: "script",
+			});
+			expect(await readFile(join(root, "src/a.py"), "utf8")).toContain(
+				"def slugify(",
+			);
+			expect(await readFile(join(root, "src/a.py"), "utf8")).not.toContain(
+				"slugify_title",
+			);
+			expect(await readFile(join(root, "src/b.py"), "utf8")).toContain(
+				"slugify(",
+			);
+		},
+	);
+});
+
+test("an incomplete Python file list leaves files unchanged", async () => {
+	await withProject(
+		{
+			"src/a.py": "def slugify_title():\n    return 'x'\n",
+			"src/b.py": "from a import slugify_title\nslugify_title()\n",
+		},
+		async (root) => {
+			const beforeA = await readFile(join(root, "src/a.py"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: { ...pythonUnit, files: ["src/a.py"] },
+				root,
+			});
+			expect(result.apply).toBe("select-model");
+			expect(result.reason).toContain("not listed");
+			expect(await readFile(join(root, "src/a.py"), "utf8")).toBe(beforeA);
+		},
+	);
+});
+
+test("a Python string occurrence is not rewritten", async () => {
+	await withProject(
+		{
+			"src/a.py": 'def slugify_title():\n    return "slugify_title"\n',
+			"src/b.py": "from a import slugify_title\nslugify_title()\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: pythonUnit,
+				root,
+			});
+			expect(result.apply).toBe("script");
+			expect(await readFile(join(root, "src/a.py"), "utf8")).toContain(
+				'"slugify_title"',
+			);
+			expect(await readFile(join(root, "src/a.py"), "utf8")).toContain(
+				"def slugify(",
+			);
 		},
 	);
 });

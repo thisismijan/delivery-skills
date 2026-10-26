@@ -406,7 +406,8 @@ commit. Independent tests, security-sensitive feasibility, and dual review
 before readiness still run. A bounded rename, import-only, or format-only
 unit is classified by `mechanical-edit.ts` before any extra worker.
 `apply-mechanical-edit.ts` rewrites a TypeScript identifier rename when the
-language service can prove the graph. Otherwise the current worker runs.
+language service can prove the graph, and a Python function or class rename
+when CPython can prove the graph. Otherwise the current worker runs.
 Fast catalogue models stay evaluation-only until promotion. The worker never
 decides that its own job is menial.
 

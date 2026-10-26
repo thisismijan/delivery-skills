@@ -1,13 +1,38 @@
 import { readdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import * as ts from "typescript";
+import { z } from "zod";
 import {
 	type MechanicalEditPlan,
 	classifyMechanicalEdit,
 } from "./mechanical-edit";
 
 const TYPESCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"]);
+const PYTHON_EXTENSIONS = new Set([".py", ".pyi"]);
+const JAVA_EXTENSIONS = new Set([".java"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
+
+type ApplyLanguage = "typescript" | "python" | "java";
+
+function extensionOf(fileName: string): string {
+	const dot = fileName.lastIndexOf(".");
+	return dot < 0 ? "" : fileName.slice(dot);
+}
+
+function languageOf(fileName: string): ApplyLanguage | undefined {
+	const extension = extensionOf(fileName);
+	if (TYPESCRIPT_EXTENSIONS.has(extension)) {
+		return "typescript";
+	}
+	if (PYTHON_EXTENSIONS.has(extension)) {
+		return "python";
+	}
+	if (JAVA_EXTENSIONS.has(extension)) {
+		return "java";
+	}
+	return undefined;
+}
 
 export interface ApplyMechanicalEditResult extends MechanicalEditPlan {
 	filesChanged: string[];
@@ -21,11 +46,7 @@ interface RenameEdit {
 }
 
 function hasTypeScriptExtension(fileName: string): boolean {
-	const dot = fileName.lastIndexOf(".");
-	if (dot < 0) {
-		return false;
-	}
-	return TYPESCRIPT_EXTENSIONS.has(fileName.slice(dot));
+	return languageOf(fileName) === "typescript";
 }
 
 function plan(
@@ -108,7 +129,7 @@ async function listTypeScriptFiles(root: string): Promise<string[]> {
 				await walk(full);
 				continue;
 			}
-			if (hasTypeScriptExtension(entry.name)) {
+			if (languageOf(entry.name) === "typescript") {
 				files.push(resolve(full));
 			}
 		}
@@ -224,6 +245,70 @@ function applyEditsToText(source: string, edits: RenameEdit[]): string {
 	return next;
 }
 
+const PythonRenameResult = z.object({
+	ok: z.boolean(),
+	reason: z.string().optional(),
+	files: z.record(z.string()).optional(),
+});
+
+async function applyPythonRename(
+	classified: MechanicalEditPlan,
+	payload: { from?: string; to?: string; files: string[] },
+	root: string,
+	listed: string[],
+): Promise<ApplyMechanicalEditResult> {
+	const inputPath = join(
+		tmpdir(),
+		`apply-python-mechanical-edit-${Date.now()}.json`,
+	);
+	await writeFile(inputPath, JSON.stringify(payload), "utf8");
+	try {
+		const proc = Bun.spawn(
+			[
+				"python3",
+				join(import.meta.dir, "python-mechanical-edit.py"),
+				root,
+				inputPath,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		const exit = await proc.exited;
+		const stdout = await new Response(proc.stdout).text();
+		if (exit !== 0) {
+			return plan(classified, "python rename helper failed");
+		}
+		const parsed = PythonRenameResult.safeParse(JSON.parse(stdout));
+		if (!parsed.success || !parsed.data.ok || !parsed.data.files) {
+			return plan(
+				classified,
+				parsed.success
+					? (parsed.data.reason ?? "python rename was not proven")
+					: "python rename helper returned invalid JSON",
+			);
+		}
+		const listedSet = new Set(listed);
+		const written: string[] = [];
+		for (const [relativePath, text] of Object.entries(parsed.data.files)) {
+			const fileName = resolve(root, relativePath);
+			if (!listedSet.has(fileName)) {
+				return plan(classified, "python helper wrote an unlisted file");
+			}
+			await writeFile(fileName, text, "utf8");
+			written.push(relativePath.split(sep).join("/"));
+		}
+		return {
+			verdict: "mechanical",
+			reason: "applied Python identifier rename",
+			apply: "script",
+			filesChanged: written.sort(),
+		};
+	} finally {
+		await Bun.file(inputPath)
+			.delete()
+			.catch(() => undefined);
+	}
+}
+
 export async function applyMechanicalEdit(input: {
 	payload: unknown;
 	root: string;
@@ -239,13 +324,28 @@ export async function applyMechanicalEdit(input: {
 		files: string[];
 	};
 	if (payload.operation !== "rename" || !payload.from || !payload.to) {
-		return plan(classified, "no proven TypeScript script for this operation");
+		return plan(classified, "no proven script for this operation");
 	}
 
 	const root = resolve(input.root);
 	const listed = payload.files.map((file) => resolve(root, file));
-	if (listed.some((file) => !hasTypeScriptExtension(file))) {
-		return plan(classified, "listed files are not TypeScript");
+	const languages = new Set(
+		listed
+			.map((file) => languageOf(file))
+			.filter((language): language is ApplyLanguage => language !== undefined),
+	);
+	if (languages.size !== 1) {
+		return plan(classified, "listed files are not one supported language");
+	}
+	const language = [...languages][0];
+	if (!language) {
+		return plan(classified, "listed files are not one supported language");
+	}
+	if (language === "python") {
+		return applyPythonRename(classified, payload, root, listed);
+	}
+	if (language !== "typescript") {
+		return plan(classified, "no proven script for this language");
 	}
 
 	const sources = new Map<string, string>();
