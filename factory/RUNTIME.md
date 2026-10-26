@@ -169,7 +169,8 @@ current session may use. At the start of a factory run:
    promotion approval naming that candidate. A classified mechanical-edit may
    be scored for later graduation; the command classifies it with
    `mechanical-edit.ts` and applies a proven TypeScript, Python, or Java
-   identifier rename with `apply-mechanical-edit.ts`. It never asks the
+   identifier rename, or a proven Python unused-import rewrite, with
+   `apply-mechanical-edit.ts`. It never asks the
    implementer whether the work is menial. Public rankings and unscored fixtures never promote.
    `record-routing.ts persist` requires an explicit outcome
    file validated against the outcome schema. A missing or invalid outcome is
