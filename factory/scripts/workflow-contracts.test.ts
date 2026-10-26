@@ -429,11 +429,12 @@ describe("bounded recovery and replay safety", () => {
 
 	test("mechanical-edit units are classified before dispatch and never self-assigned", () => {
 		for (const skill of [execute, addressComments]) {
-			expect(skill).toContain("mechanical-edit.ts");
+			expect(skill).toContain("apply-mechanical-edit.ts");
 			expect(plain(skill)).toMatch(
 				/do not ask the implementer whether the work is menial/i,
 			);
-			expect(plain(skill)).toMatch(/scripted apply/i);
+			expect(plain(skill)).toMatch(/helper already wrote/i);
+			expect(plain(skill)).toMatch(/payload flag is not proof/i);
 			expect(plain(skill)).toMatch(/do not dispatch a catalogue fast model/i);
 		}
 		expect(addressComments).toMatch(/nitpick/i);
