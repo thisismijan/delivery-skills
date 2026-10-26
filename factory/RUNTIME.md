@@ -170,7 +170,8 @@ current session may use. At the start of a factory run:
    be scored for later graduation; the command classifies it with
    `mechanical-edit.ts` and applies a proven TypeScript, Python, or Java
    identifier rename, a proven Python unused-import rewrite, a proven
-   Python format-only rewrite, or a proven Java unused-import rewrite, with
+   Python format-only rewrite, a proven Java unused-import rewrite, or a
+   proven Java format-only rewrite, with
    `apply-mechanical-edit.ts`. Units the scripts cannot prove are listed in
    `mechanical-edit-scoring.ts` for representative scoring only. It never asks the
    implementer whether the work is menial. Public rankings and unscored fixtures never promote.

@@ -495,6 +495,36 @@ test("a Python format-only rewrite is applied without a worker", async () => {
 	);
 });
 
+test("a Java format-only rewrite is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/A.java":
+				"public class Host{String slugify( String value ){return value;}}\n",
+		},
+		async (root) => {
+			const before = await readFile(join(root, "src/A.java"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: {
+					operation: "format-only",
+					files: ["src/A.java"],
+					reversible: true,
+					classificationComplete: true,
+					surfaces: ["user-interface"],
+					verification: "strong",
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			const text = await readFile(join(root, "src/A.java"), "utf8");
+			expect(text).toContain("slugify");
+			expect(text).toContain("return value");
+			expect(text === before || result.filesChanged.includes("src/A.java")).toBe(
+				true,
+			);
+		},
+	);
+});
+
 test("a TypeScript format-only rewrite is applied without a worker", async () => {
 	await withProject(
 		{

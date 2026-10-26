@@ -106,6 +106,327 @@ export function tokenizeJava(source: string): JavaToken[] {
 	return tokens;
 }
 
+const JAVA_OPS = [
+	">>>=",
+	">>>",
+	">>=",
+	"<<=",
+	"...",
+	"::",
+	"->",
+	"++",
+	"--",
+	"==",
+	"!=",
+	"<=",
+	">=",
+	"&&",
+	"||",
+	"+=",
+	"-=",
+	"*=",
+	"/=",
+	"%=",
+	"&=",
+	"|=",
+	"^=",
+	"<<",
+	">>",
+	";",
+	",",
+	"(",
+	")",
+	"{",
+	"}",
+	"[",
+	"]",
+	".",
+	"+",
+	"-",
+	"*",
+	"/",
+	"%",
+	"&",
+	"|",
+	"^",
+	"!",
+	"~",
+	"?",
+	":",
+	"=",
+	"<",
+	">",
+	"@",
+];
+const NO_SPACE_AFTER = new Set(["(", "[", "{", ".", "@"]);
+const NO_SPACE_BEFORE = new Set([")", "]", "}", ",", ";", ".", "..."]);
+const ATTACHED_OPS = new Set(["++", "--", "!", "~"]);
+
+export interface JavaFormatToken {
+	kind: "id" | "number" | "string" | "comment" | "op" | "newline" | "indent";
+	text: string;
+}
+
+function readJavaString(source: string, start: number): number {
+	if (source.slice(start, start + 3) === '"""') {
+		const end = source.indexOf('"""', start + 3);
+		if (end < 0) {
+			throw new Error("java format-only cannot prove an unclosed string");
+		}
+		return end + 3;
+	}
+	const quote = source[start];
+	let index = start + 1;
+	while (index < source.length) {
+		if (source[index] === "\\") {
+			index += 2;
+			continue;
+		}
+		if (source[index] === quote) {
+			return index + 1;
+		}
+		if (source[index] === "\n") {
+			throw new Error("java format-only cannot prove an unclosed string");
+		}
+		index += 1;
+	}
+	throw new Error("java format-only cannot prove an unclosed string");
+}
+
+function readJavaNumber(source: string, start: number): number {
+	let index = start;
+	if (source[index] === "0" && /[xX]/.test(source[index + 1] ?? "")) {
+		index += 2;
+		while (/[0-9A-Fa-f_]/.test(source[index] ?? "")) {
+			index += 1;
+		}
+	} else {
+		while (/[0-9_]/.test(source[index] ?? "")) {
+			index += 1;
+		}
+		if (source[index] === "." && /[0-9]/.test(source[index + 1] ?? "")) {
+			index += 1;
+			while (/[0-9_]/.test(source[index] ?? "")) {
+				index += 1;
+			}
+		}
+		if (/[eE]/.test(source[index] ?? "")) {
+			index += 1;
+			if (/[+-]/.test(source[index] ?? "")) {
+				index += 1;
+			}
+			while (/[0-9_]/.test(source[index] ?? "")) {
+				index += 1;
+			}
+		}
+	}
+	while (/[lLfFdD]/.test(source[index] ?? "")) {
+		index += 1;
+	}
+	return index;
+}
+
+function readJavaOp(source: string, start: number): string | undefined {
+	for (const op of JAVA_OPS) {
+		if (source.startsWith(op, start)) {
+			return op;
+		}
+	}
+	return undefined;
+}
+
+export function tokenizeJavaFormat(source: string): JavaFormatToken[] {
+	const tokens: JavaFormatToken[] = [];
+	let index = 0;
+	let atLineStart = true;
+	while (index < source.length) {
+		const char = source[index];
+		if (!char) {
+			break;
+		}
+		if (char === "\r") {
+			index += source[index + 1] === "\n" ? 2 : 1;
+			tokens.push({ kind: "newline", text: "\n" });
+			atLineStart = true;
+			continue;
+		}
+		if (char === "\n") {
+			tokens.push({ kind: "newline", text: "\n" });
+			index += 1;
+			atLineStart = true;
+			continue;
+		}
+		if (atLineStart && (char === " " || char === "\t")) {
+			let end = index;
+			let indent = "";
+			while (end < source.length && (source[end] === " " || source[end] === "\t")) {
+				indent += source[end] === "\t" ? "    " : " ";
+				end += 1;
+			}
+			tokens.push({ kind: "indent", text: indent });
+			index = end;
+			atLineStart = false;
+			continue;
+		}
+		atLineStart = false;
+		if (char === " " || char === "\t") {
+			index += 1;
+			continue;
+		}
+		if (char === "/" && source[index + 1] === "/") {
+			let end = source.indexOf("\n", index);
+			if (end < 0) {
+				end = source.length;
+			}
+			if (source[end - 1] === "\r") {
+				end -= 1;
+			}
+			tokens.push({ kind: "comment", text: source.slice(index, end) });
+			index = end;
+			continue;
+		}
+		if (char === "/" && source[index + 1] === "*") {
+			const end = source.indexOf("*/", index + 2);
+			if (end < 0) {
+				throw new Error("java format-only cannot prove an unclosed comment");
+			}
+			tokens.push({ kind: "comment", text: source.slice(index, end + 2) });
+			index = end + 2;
+			continue;
+		}
+		if (char === '"' || char === "'") {
+			const end = readJavaString(source, index);
+			tokens.push({ kind: "string", text: source.slice(index, end) });
+			index = end;
+			continue;
+		}
+		if (/[0-9]/.test(char)) {
+			const end = readJavaNumber(source, index);
+			tokens.push({ kind: "number", text: source.slice(index, end) });
+			index = end;
+			continue;
+		}
+		if (isIdentifierStart(char)) {
+			let end = index + 1;
+			while (end < source.length && isIdentifierPart(source[end] ?? "")) {
+				end += 1;
+			}
+			tokens.push({ kind: "id", text: source.slice(index, end) });
+			index = end;
+			continue;
+		}
+		const op = readJavaOp(source, index);
+		if (!op) {
+			throw new Error("java format-only cannot prove this source");
+		}
+		tokens.push({ kind: "op", text: op });
+		index += op.length;
+	}
+	return tokens;
+}
+
+function javaFormatShape(source: string): string {
+	return JSON.stringify(
+		tokenizeJavaFormat(source)
+			.filter((token) => token.kind !== "indent")
+			.map((token) => [token.kind, token.text]),
+	);
+}
+
+function identifierShape(source: string): string {
+	return JSON.stringify(tokenizeJava(source).map((token) => [token.kind, token.text]));
+}
+
+function needsSpace(previous: JavaFormatToken, next: JavaFormatToken): boolean {
+	if (previous.kind === "newline" || previous.kind === "indent") {
+		return false;
+	}
+	if (next.kind === "newline") {
+		return false;
+	}
+	if (previous.kind === "comment" || next.kind === "comment") {
+		return previous.kind !== "newline";
+	}
+	if (previous.kind === "op" && NO_SPACE_AFTER.has(previous.text)) {
+		return false;
+	}
+	if (next.kind === "op" && NO_SPACE_BEFORE.has(next.text)) {
+		return false;
+	}
+	if (previous.kind === "op" && ATTACHED_OPS.has(previous.text)) {
+		return false;
+	}
+	if (next.kind === "op" && ATTACHED_OPS.has(next.text)) {
+		return false;
+	}
+	return true;
+}
+
+export function formatJavaSource(source: string): string {
+	const tokens = tokenizeJavaFormat(source);
+	let next = "";
+	let previous: JavaFormatToken | undefined;
+	for (const token of tokens) {
+		if (token.kind === "newline") {
+			next += "\n";
+			previous = token;
+			continue;
+		}
+		if (token.kind === "indent") {
+			next += token.text;
+			previous = token;
+			continue;
+		}
+		if (previous && needsSpace(previous, token)) {
+			next += " ";
+		}
+		next += token.text;
+		previous = token;
+	}
+	if (javaFormatShape(source) !== javaFormatShape(next)) {
+		throw new Error("format rewrite would change non-whitespace structure");
+	}
+	if (identifierShape(source) !== identifierShape(next)) {
+		throw new Error("format rewrite would change non-whitespace structure");
+	}
+	return next;
+}
+
+export async function planJavaFormat(input: {
+	root: string;
+	files: string[];
+}): Promise<JavaRenamePlan> {
+	const root = resolve(input.root);
+	const listed = input.files.map((file) => resolve(root, file));
+	const rewritten: Record<string, string> = {};
+	for (const file of listed) {
+		const text = await Bun.file(file)
+			.text()
+			.catch(() => undefined);
+		if (text === undefined) {
+			return {
+				ok: false,
+				reason: `missing file: ${relative(root, file) || file}`,
+			};
+		}
+		try {
+			const next = formatJavaSource(text);
+			if (next !== text) {
+				rewritten[relative(root, file).split(sep).join("/")] = next;
+			}
+		} catch (error) {
+			return {
+				ok: false,
+				reason:
+					error instanceof Error
+						? error.message
+						: "java format rewrite was not proven",
+			};
+		}
+	}
+	return { ok: true, files: rewritten };
+}
+
 function typeDeclarationCount(tokens: JavaToken[], name: string): number {
 	let count = 0;
 	for (let index = 0; index < tokens.length; index += 1) {
