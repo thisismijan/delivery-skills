@@ -166,8 +166,11 @@ current session may use. At the start of a factory run:
    floors block auth, migration, concurrency, distributed-state,
    weak-verification, and holdout work even after the bar clears. Passing
    evidence does not change live availability without an exact operator
-   promotion approval naming that candidate. Public rankings and unscored
-   fixtures never promote.    `record-routing.ts persist` requires an explicit outcome
+   promotion approval naming that candidate. A classified mechanical-edit may
+   be scored for later graduation; the command classifies it with
+   `mechanical-edit.ts` and never asks the implementer whether the work is
+   menial. Public rankings and unscored fixtures never promote.
+   `record-routing.ts persist` requires an explicit outcome
    file validated against the outcome schema. A missing or invalid outcome is
    refused and writes nothing; it is never stored as a successful result.
    Usage files come from `capture-usage.ts`: start a timer before the worker,

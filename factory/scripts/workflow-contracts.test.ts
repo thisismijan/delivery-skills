@@ -427,6 +427,24 @@ describe("bounded recovery and replay safety", () => {
 		expect(sentBack).toMatch(/if the test is right, change nothing/i);
 	});
 
+	test("mechanical-edit units are classified before dispatch and never self-assigned", () => {
+		for (const skill of [execute, addressComments]) {
+			expect(skill).toContain("mechanical-edit.ts");
+			expect(plain(skill)).toMatch(
+				/do not ask the implementer whether the work is menial/i,
+			);
+			expect(plain(skill)).toMatch(/scripted apply/i);
+			expect(plain(skill)).toMatch(/do not dispatch a catalogue fast model/i);
+		}
+		expect(addressComments).toMatch(/nitpick/i);
+		expect(plain(addressComments)).toMatch(/make no code change/i);
+		const controller = read("agents/task-profile-controller.md");
+		expect(controller).toContain("mechanical-edit");
+		expect(controller).toMatch(
+			/Do not label ordinary implement as mechanical-edit/,
+		);
+	});
+
 	test("repeated failures force a premise check before a third fix", () => {
 		for (const skill of [execute, addressComments]) {
 			const contract = plain(skill);

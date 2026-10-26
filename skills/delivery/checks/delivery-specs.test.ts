@@ -1100,6 +1100,7 @@ describe("portable factory pack", () => {
     expect(readme).toContain("wall time automatically");
     expect(readme).toContain("host token and cost");
     expect(readme).toContain("review-fanout.ts");
+    expect(readme).toContain("mechanical-edit.ts");
     expect(readme).toContain("Cost controls");
     expect(readme).toMatch(/reply-only round/i);
   });

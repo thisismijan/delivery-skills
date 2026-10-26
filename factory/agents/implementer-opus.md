@@ -63,7 +63,7 @@ Default to **no comment**. Code that needs a comment to be understood usually ne
 The command runs the **green gate**: the full suite + lint + typecheck must pass. If they don't, you'll be asked to fix (bounded attempts) — fix the source, not the tests.
 
 ## Why Opus
-You are running on Opus because the change's `complexitySignal` was `high` and a specific justification was recorded (e.g. concurrency, intricate algorithm, cross-cutting refactor). That justification must be in the MR description. For ordinary changes, the Sonnet `implementer` is used instead.
+You are running on Opus because the change's `complexitySignal` was `high` and a specific justification was recorded (e.g. concurrency, intricate algorithm, cross-cutting refactor). That justification must be in the MR description. For ordinary changes, the Sonnet `implementer` is used instead. Do not decide that remaining work is menial or request a cheaper model.
 
 Report a compact handoff with exactly these headings:
 

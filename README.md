@@ -403,7 +403,10 @@ Default delivery keeps the expensive model for work that can change the
 outcome: implementation when complexity is recorded as high, first holdout
 review of new code, and holdout review after a comment round that changes the
 commit. Independent tests, security-sensitive feasibility, and dual review
-before readiness still run.
+before readiness still run. A bounded rename, import-only, or format-only
+unit is classified by `mechanical-edit.ts` before any extra worker. Scripted
+apply is preferred. Fast catalogue models stay evaluation-only until
+promotion. The worker never decides that its own job is menial.
 
 Diagnostic shadow profiling defaults off so a ticket does not pay extra
 frontier calls that cannot affect live dispatch. Set

@@ -282,6 +282,33 @@ test("a named floor still blocks after the quality bar clears", () => {
 	expect(namedSafetyFloor(auth.profile)).toBe("auth");
 });
 
+test("classified mechanical-edit can clear fast dispatch on its own scores", () => {
+	const edit: TaskProfileInput = {
+		...search,
+		taskId: "rename-1",
+		stage: "address",
+		workType: "mechanical-edit",
+		reason: ["rename a local helper with the existing test gate"],
+	};
+	const evidence = scored({
+		count: MIN_EVALUATED_FAST_SAMPLES,
+		profile: edit,
+	});
+	expect(evaluateFastDispatch(evidence, edit, SPARK).allowed).toBe(true);
+});
+
+test("auth mechanical-edit is still blocked", () => {
+	const edit = floorProfile({
+		taskId: "auth-rename",
+		stage: "address",
+		workType: "mechanical-edit",
+		domains: ["auth"],
+		reason: ["rename a token helper"],
+	});
+	expect(namedSafetyFloor(edit)).toBe("auth");
+	expect(evaluateFastDispatch(clearing(), edit, SPARK).allowed).toBe(false);
+});
+
 test("the CLI requires a profile and enforces its safety floor", async () => {
 	const dir = await mkdtemp(join(tmpdir(), "fast-dispatch-cli-"));
 	try {

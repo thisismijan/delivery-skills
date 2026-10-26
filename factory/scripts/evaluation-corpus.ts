@@ -66,6 +66,8 @@ const CONTRACT: Record<string, string> = {
 	"write-tests": "Write failing tests for the accepted scenarios.",
 	implement: "Make the accepted tests pass without weakening them.",
 	review: "Judge the committed diff against the spec and gate evidence.",
+	"mechanical-edit":
+		"Apply a classified rename, import-only, or format-only unit without changing behaviour.",
 };
 
 export function scoreCandidate(
