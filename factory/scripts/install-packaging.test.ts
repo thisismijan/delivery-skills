@@ -169,6 +169,9 @@ test("a production install ships dependencies and its primary CLIs run", async (
 			await pathExists(join(dest, "_factory", "node_modules", "zod")),
 		).toBe(true);
 		expect(
+			await pathExists(join(dest, "_factory", "node_modules", "typescript")),
+		).toBe(true);
+		expect(
 			JSON.parse(
 				await readFile(join(dest, "_factory", "runtime-manifest.json"), "utf8"),
 			),

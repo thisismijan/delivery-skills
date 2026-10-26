@@ -5,12 +5,12 @@
     "": {
       "name": "ig-spec",
       "dependencies": {
+        "typescript": "5.9.3",
         "zod": "3.25.76",
       },
       "devDependencies": {
         "@biomejs/biome": "1.9.4",
         "@types/bun": "1.3.14",
-        "typescript": "5.9.3",
       },
     },
   },
