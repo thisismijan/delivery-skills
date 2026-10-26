@@ -185,8 +185,9 @@ re-run the gate. Do not reuse it.
    bun "${FACTORY_ROOT}/scripts/apply-mechanical-edit.ts" "<reviewDir>/mechanical-edit.json" "<repoRoot>"
    ```
    Incomplete or free-text findings are not a unit. Persist the JSON plan.
-   When `apply` is `script`, the helper already wrote the files; skip the
-   implementer for this unit. When the verdict is `not-mechanical`, apply is
+   Proven TypeScript, Python, and Java rename, import-only, and format-only
+   units apply here without a model. When `apply` is `script`, the helper
+   already wrote the files; skip the implementer for this unit. When the verdict is `not-mechanical`, apply is
    `select-model`, or there is no unit, keep the model from step 6. Do not
    ask the implementer whether the work is menial. Do not dispatch a catalogue
    fast model. A payload flag is not proof that a script ran.
