@@ -571,6 +571,15 @@ export async function applyMechanicalEdit(input: {
 		return applyTypeScriptImports(classified, root, listed);
 	}
 	if (payload.operation === "format-only") {
+		if (language === "python") {
+			return applyPythonEdit(
+				classified,
+				payload,
+				root,
+				listed,
+				"applied Python format-only rewrite",
+			);
+		}
 		if (language !== "typescript") {
 			return plan(classified, "no proven script for this operation");
 		}
