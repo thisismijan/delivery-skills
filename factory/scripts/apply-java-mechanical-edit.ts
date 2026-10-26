@@ -172,6 +172,184 @@ function rewrite(
 	return next;
 }
 
+function lineStart(source: string, index: number): number {
+	let start = index;
+	while (start > 0 && source[start - 1] !== "\n") {
+		start -= 1;
+	}
+	return start;
+}
+
+function skipSpaces(source: string, index: number): number {
+	let next = index;
+	while (next < source.length && /\s/.test(source[next] ?? "")) {
+		next += 1;
+	}
+	return next;
+}
+
+interface JavaImport {
+	start: number;
+	end: number;
+	simple: string;
+	star: boolean;
+}
+
+function javaImports(
+	source: string,
+	tokens: JavaToken[],
+): { ok: true; imports: JavaImport[] } | { ok: false; reason: string } {
+	const imports: JavaImport[] = [];
+	for (let index = 0; index < tokens.length; index += 1) {
+		const token = tokens[index];
+		if (token?.text !== "import") {
+			continue;
+		}
+		const prefix = source.slice(lineStart(source, token.start), token.start);
+		if (/\S/.test(prefix)) {
+			return { ok: false, reason: "java import-only cannot prove inline imports" };
+		}
+		let cursor = index + 1;
+		if (tokens[cursor]?.text === "static") {
+			cursor += 1;
+		}
+		const parts: string[] = [];
+		let star = false;
+		let lastEnd = token.end;
+		while (cursor < tokens.length) {
+			const current = tokens[cursor];
+			if (
+				current &&
+				(current.kind === "id" || current.kind === "kw" || current.kind === "type")
+			) {
+				parts.push(current.text);
+				lastEnd = current.end;
+				cursor += 1;
+				const dot = tokens[cursor];
+				if (dot?.kind === "dot") {
+					const afterDot = skipSpaces(source, dot.end);
+					if (source[afterDot] === "*") {
+						star = true;
+						lastEnd = afterDot + 1;
+						cursor += 1;
+						break;
+					}
+					lastEnd = dot.end;
+					cursor += 1;
+					continue;
+				}
+				break;
+			}
+			break;
+		}
+		if (parts.length === 0) {
+			return { ok: false, reason: "java import statement is incomplete" };
+		}
+		const semi = skipSpaces(source, lastEnd);
+		if (source[semi] !== ";") {
+			return { ok: false, reason: "java import-only cannot prove this import form" };
+		}
+		let end = semi + 1;
+		const rest = source.slice(end, source.indexOf("\n", end) + 1 || source.length);
+		if (rest.includes("\n")) {
+			if (/\S/.test(rest.slice(0, rest.indexOf("\n")))) {
+				return {
+					ok: false,
+					reason: "java import-only cannot prove inline imports",
+				};
+			}
+			end = source.indexOf("\n", end) + 1;
+		}
+		const simple = parts[parts.length - 1];
+		if (!simple) {
+			return { ok: false, reason: "java import statement is incomplete" };
+		}
+		imports.push({
+			start: lineStart(source, token.start),
+			end,
+			simple,
+			star,
+		});
+	}
+	return { ok: true, imports };
+}
+
+function dropJavaImports(source: string, unused: JavaImport[]): string {
+	let next = source;
+	for (const item of [...unused].sort((left, right) => right.start - left.start)) {
+		next = `${next.slice(0, item.start)}${next.slice(item.end)}`;
+	}
+	return next;
+}
+
+function nonImportIdentifiers(tokens: JavaToken[], imports: JavaImport[]): Set<string> {
+	const names = new Set<string>();
+	for (const token of tokens) {
+		if (token.kind !== "id") {
+			continue;
+		}
+		if (
+			imports.some((item) => token.start >= item.start && token.start < item.end)
+		) {
+			continue;
+		}
+		names.add(token.text);
+	}
+	return names;
+}
+
+export async function planJavaImports(input: {
+	root: string;
+	files: string[];
+}): Promise<JavaRenamePlan> {
+	const root = resolve(input.root);
+	const listed = input.files.map((file) => resolve(root, file));
+	const rewritten: Record<string, string> = {};
+	for (const file of listed) {
+		const text = await Bun.file(file)
+			.text()
+			.catch(() => undefined);
+		if (text === undefined) {
+			return {
+				ok: false,
+				reason: `missing file: ${relative(root, file) || file}`,
+			};
+		}
+		const tokens = tokenizeJava(text);
+		const parsed = javaImports(text, tokens);
+		if (!parsed.ok) {
+			return parsed;
+		}
+		if (parsed.imports.some((item) => item.star)) {
+			return { ok: false, reason: "java import-only cannot prove star imports" };
+		}
+		const used = nonImportIdentifiers(tokens, parsed.imports);
+		const unused = parsed.imports.filter((item) => !used.has(item.simple));
+		if (unused.length === 0) {
+			continue;
+		}
+		const next = dropJavaImports(text, unused);
+		if (next === text) {
+			continue;
+		}
+		const nextTokens = tokenizeJava(next);
+		const nextParsed = javaImports(next, nextTokens);
+		if (!nextParsed.ok) {
+			return { ok: false, reason: "import rewrite would change code that is not an import" };
+		}
+		const before = nonImportIdentifiers(tokens, parsed.imports);
+		const after = nonImportIdentifiers(nextTokens, nextParsed.imports);
+		if (
+			before.size !== after.size ||
+			[...before].some((name) => !after.has(name))
+		) {
+			return { ok: false, reason: "import rewrite would change code that is not an import" };
+		}
+		rewritten[relative(root, file).split(sep).join("/")] = next;
+	}
+	return { ok: true, files: rewritten };
+}
+
 async function listJavaFiles(root: string): Promise<string[]> {
 	const files: string[] = [];
 	const walk = async (dir: string): Promise<void> => {

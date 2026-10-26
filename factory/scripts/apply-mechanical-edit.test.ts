@@ -386,6 +386,59 @@ test("a Python star import is refused", async () => {
 	);
 });
 
+test("unused Java imports are removed without a worker", async () => {
+	await withProject(
+		{
+			"src/A.java":
+				"import java.util.List;\nimport java.util.Map;\nclass Host { List<String> values; }\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					operation: "import-only",
+					files: ["src/A.java"],
+					reversible: true,
+					classificationComplete: true,
+					surfaces: ["user-interface"],
+					verification: "strong",
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			const text = await readFile(join(root, "src/A.java"), "utf8");
+			expect(text).toContain("import java.util.List;");
+			expect(text).not.toContain("import java.util.Map;");
+			expect(text).toContain("List<String> values");
+		},
+	);
+});
+
+test("a Java star import is refused", async () => {
+	await withProject(
+		{
+			"src/A.java":
+				"import java.util.*;\nclass Host { List<String> values; }\n",
+		},
+		async (root) => {
+			const before = await readFile(join(root, "src/A.java"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: {
+					operation: "import-only",
+					files: ["src/A.java"],
+					reversible: true,
+					classificationComplete: true,
+					surfaces: ["user-interface"],
+					verification: "strong",
+				},
+				root,
+			});
+			expect(result.apply).toBe("select-model");
+			expect(result.reason).toContain("star");
+			expect(await readFile(join(root, "src/A.java"), "utf8")).toBe(before);
+		},
+	);
+});
+
 test("a TypeScript import-only rewrite is applied without a worker", async () => {
 	await withProject(
 		{
