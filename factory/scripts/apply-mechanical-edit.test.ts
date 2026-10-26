@@ -308,14 +308,13 @@ test("a Java string occurrence is not rewritten", async () => {
 	);
 });
 
-test("import-only has no TypeScript script yet", async () => {
+test("a TypeScript import-only rewrite is applied without a worker", async () => {
 	await withProject(
 		{
 			"src/a.ts":
-				'import { join } from "node:path";\nexport const x = join("a", "b");\n',
+				'import { join, dirname } from "node:path";\nexport const x = join("a", "b");\n',
 		},
 		async (root) => {
-			const before = await readFile(join(root, "src/a.ts"), "utf8");
 			const result = await applyMechanicalEdit({
 				payload: {
 					operation: "import-only",
@@ -327,9 +326,11 @@ test("import-only has no TypeScript script yet", async () => {
 				},
 				root,
 			});
-			expect(result.verdict).toBe("mechanical");
-			expect(result.apply).toBe("select-model");
-			expect(await readFile(join(root, "src/a.ts"), "utf8")).toBe(before);
+			expect(result.apply).toBe("script");
+			const text = await readFile(join(root, "src/a.ts"), "utf8");
+			expect(text).toContain('from "node:path"');
+			expect(text).not.toContain("dirname");
+			expect(text).toContain('join("a", "b")');
 		},
 	);
 });
