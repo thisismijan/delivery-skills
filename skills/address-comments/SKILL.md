@@ -116,13 +116,29 @@ This command consumes the review comments on the **existing** MR for this ticket
      ```
      bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/red-command-<commentId>.json" red | tee "<reviewDir>/red-gate-<commentId>-<test-commit>.json"
      ```
-     non-zero exit (test passed before the fix) → stop + escalate. Then dispatch the `implementer` to write the fix, and bring the suite green:
+     non-zero exit (test passed before the fix) → stop + escalate. Then classify
+     a mechanical-edit unit if the comment names a bounded rename, import-only,
+     or format-only change:
+     ```
+     bun "${FACTORY_ROOT}/scripts/mechanical-edit.ts" "<reviewDir>/mechanical-edit-<commentId>.json"
+     ```
+     Incomplete or free-text comments are not a unit. Persist the JSON plan.
+     When `apply` is `script`, use that scripted apply. Otherwise dispatch the
+     `implementer` to write the fix. Do not ask the implementer whether the
+     work is menial. Do not dispatch a catalogue fast model. Then bring the
+     suite green:
      ```
      bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/green-command-<commentId>.json" green | tee "<reviewDir>/green-gate-<commentId>-<source-commit>.json"
      ```
      Run the green gate, lint, and typecheck in parallel and persist all three results. Commit referencing the comment; capture the commit SHA.
 
-   - **`non-functional`** (action, green-only): make the change (no new test required), then require the **green gate** plus lint plus typecheck to pass (commands as above). Commit referencing the comment; capture the SHA.
+   - **`non-functional`** (action, green-only): classify a mechanical-edit unit
+     the same way as a bug action. When `apply` is `script`, use that scripted
+     apply. Otherwise make the change with the current `select-model` worker (no
+     new test required), then require the **green gate** plus lint plus
+     typecheck to pass (commands as above). Do not ask the implementer whether
+     the work is menial. Do not dispatch a catalogue fast model. Commit
+     referencing the comment; capture the SHA.
 
      For both action cases, on a gate/lint/typecheck failure dispatch the `implementer` to fix the **source** (never the tests) and re-run; loop a bounded number of times up to `maxFixAttempts`, then **stop + escalate** for that comment.
 

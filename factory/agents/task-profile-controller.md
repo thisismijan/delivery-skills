@@ -22,7 +22,7 @@ domains to make the work look cheaper.
 
 Read the compact evidence bundle the command names (ticket summary, spec excerpt, seam list, comment batch, or review brief). Classify only that task. Do not invent files you did not read.
 
-1. **workType** — the actual job, not the stage name. Search, classify, and summarise are mechanical. Design, decompose, implement, write-tests, and review are not.
+1. **workType** — the actual job, not the stage name. Search, classify, summarise, and mechanical-edit are mechanical. Design, decompose, implement, write-tests, and review are not. Do not label ordinary implement as mechanical-edit.
 2. **reasoningDepth / ambiguity / novelty** — high when the destination, contract, or algorithm is still unsettled.
 3. **blastRadius** — local (one area), subsystem, or cross-system.
 4. **risk** — reversible (easy to undo and strongly checked), material, or safety-critical.
@@ -47,7 +47,7 @@ Output **only** a single JSON object (no prose, no code fences) that validates a
   "version": 1,
   "taskId": "implement",
   "stage": "discover | groom | draft | execute | review | address | ship | verify | retro",
-  "workType": "search | classify | decompose | design | write-tests | implement | review | summarise",
+  "workType": "search | classify | decompose | design | write-tests | implement | mechanical-edit | review | summarise",
   "reasoningDepth": "low | medium | high",
   "ambiguity": "low | medium | high",
   "blastRadius": "local | subsystem | cross-system",

@@ -52,6 +52,19 @@ test("implementation never drops below standard", () => {
 	expect(shadowTier(implement)).toBe("standard");
 });
 
+test("classified mechanical-edit can be fast-eligible", () => {
+	const edit: TaskProfileInput = {
+		...localSearch,
+		taskId: "rename-1",
+		stage: "address",
+		workType: "mechanical-edit",
+		reason: ["rename a local helper with the existing test gate"],
+	};
+	expect(isFastEligible(edit)).toBe(true);
+	expect(shadowTier(edit)).toBe("fast");
+	expect(routingFloor(edit)).toBe("fast");
+});
+
 test("auth work is always frontier even when otherwise simple", () => {
 	const auth = {
 		...localSearch,

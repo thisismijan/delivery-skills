@@ -178,7 +178,18 @@ re-run the gate. Do not reuse it.
    `git diff <default-branch>...HEAD > <reviewDir>/implement-diff.patch`, then
    `bun "${FACTORY_ROOT}/scripts/review-packet.ts" --ticket <work-item-file> --spec openspec/changes/<changeName> --diff <reviewDir>/implement-diff.patch --evidence <red-gate-artifact> --out <reviewDir>/implement-packet.md`.
    Rebuild it before every fix dispatch, with the failing gate artifact or the
-   review findings as the evidence. Dispatch the `implementer` subagent with the
+   review findings as the evidence.
+   If this dispatch is a bounded rename, import-only, or format-only unit,
+   write `<reviewDir>/mechanical-edit.json` and classify it:
+   ```
+   bun "${FACTORY_ROOT}/scripts/mechanical-edit.ts" "<reviewDir>/mechanical-edit.json"
+   ```
+   Incomplete or free-text findings are not a unit. Persist the JSON plan.
+   When `apply` is `script`, use that scripted apply and skip the implementer
+   for this unit. When the verdict is `not-mechanical` or there is no unit,
+   keep the model from step 6. Do not ask the implementer whether the work is
+   menial. Do not dispatch a catalogue fast model.
+   Dispatch the `implementer` subagent with the
    packet as its starting input, using the exact
    runtime model resolved in step 6. Override the prompt's static model. If the
    host cannot override a plugin agent's model, use the existing

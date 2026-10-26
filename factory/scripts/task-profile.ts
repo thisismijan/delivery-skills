@@ -33,6 +33,7 @@ export const TaskProfileInput = z
 			"design",
 			"write-tests",
 			"implement",
+			"mechanical-edit",
 			"review",
 			"summarise",
 		]),

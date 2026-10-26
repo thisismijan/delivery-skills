@@ -18,7 +18,12 @@ const RANK: Record<ModelTier, number> = {
 	frontier: 2,
 };
 
-const FAST_WORK = new Set(["search", "classify", "summarise"]);
+const FAST_WORK = new Set([
+	"search",
+	"classify",
+	"summarise",
+	"mechanical-edit",
+]);
 export const HOLD_OUT_STAGES = new Set([
 	"execute",
 	"address",
