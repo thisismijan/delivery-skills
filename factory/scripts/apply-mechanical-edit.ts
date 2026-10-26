@@ -441,6 +441,86 @@ async function applyTypeScriptImports(
 	};
 }
 
+function astShape(source: string, fileName: string): string {
+	const sourceFile = ts.createSourceFile(
+		fileName,
+		source,
+		ts.ScriptTarget.Latest,
+		true,
+		ts.ScriptKind.TSX,
+	);
+	const walk = (node: ts.Node): unknown => {
+		if (ts.isIdentifier(node)) {
+			return ["id", node.text];
+		}
+		if (ts.isStringLiteral(node) || ts.isNumericLiteral(node)) {
+			return ["lit", node.text];
+		}
+		const children: unknown[] = [];
+		ts.forEachChild(node, (child) => {
+			children.push(walk(child));
+		});
+		return [node.kind, children];
+	};
+	return JSON.stringify(walk(sourceFile));
+}
+
+async function applyTypeScriptFormat(
+	classified: MechanicalEditPlan,
+	root: string,
+	listed: string[],
+): Promise<ApplyMechanicalEditResult> {
+	const config = compilerOptionsFromConfig(root);
+	const programFiles = config.fileNames ?? (await listTypeScriptFiles(root));
+	const fileNames = [...new Set([...programFiles, ...listed])];
+	const service = createLanguageService(root, fileNames, config.options);
+	const format: ts.FormatCodeSettings = {
+		tabSize: 2,
+		indentSize: 2,
+		convertTabsToSpaces: true,
+		newLineCharacter: "\n",
+	};
+	const nextTexts = new Map<string, string>();
+	for (const file of listed) {
+		const original = ts.sys.readFile(file);
+		if (original === undefined) {
+			return plan(classified, `missing file: ${relative(root, file) || file}`);
+		}
+		const textChanges = service.getFormattingEditsForDocument(file, format);
+		const edits: RenameEdit[] = textChanges.map((textChange) => ({
+			fileName: file,
+			start: textChange.span.start,
+			end: textChange.span.start + textChange.span.length,
+			text: textChange.newText,
+		}));
+		if (edits.length === 0) {
+			continue;
+		}
+		if (editsOverlap(edits)) {
+			return plan(classified, "format edits overlap");
+		}
+		const next = applyEditsToText(original, edits);
+		if (astShape(original, file) !== astShape(next, file)) {
+			return plan(
+				classified,
+				"format rewrite would change non-whitespace structure",
+			);
+		}
+		nextTexts.set(file, next);
+	}
+	const written: string[] = [];
+	for (const [fileName, text] of nextTexts) {
+		await writeFile(fileName, text, "utf8");
+		written.push(relative(root, fileName).split(sep).join("/"));
+	}
+	return {
+		verdict: "mechanical",
+		reason: "applied TypeScript format-only rewrite",
+		apply: "script",
+		filesChanged: written.sort(),
+	};
+}
+
 export async function applyMechanicalEdit(input: {
 	payload: unknown;
 	root: string;
@@ -474,6 +554,12 @@ export async function applyMechanicalEdit(input: {
 			return plan(classified, "no proven script for this operation");
 		}
 		return applyTypeScriptImports(classified, root, listed);
+	}
+	if (payload.operation === "format-only") {
+		if (language !== "typescript") {
+			return plan(classified, "no proven script for this operation");
+		}
+		return applyTypeScriptFormat(classified, root, listed);
 	}
 	if (payload.operation !== "rename" || !payload.from || !payload.to) {
 		return plan(classified, "no proven script for this operation");
