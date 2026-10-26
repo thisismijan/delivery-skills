@@ -340,7 +340,7 @@ async function applyJavaRename(
 	}
 	return {
 		verdict: "mechanical",
-		reason: "applied Java type rename",
+		reason: "applied Java identifier rename",
 		apply: "script",
 		filesChanged: written.sort(),
 	};

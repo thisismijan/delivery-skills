@@ -3,6 +3,17 @@ import { join, relative, resolve, sep } from "node:path";
 
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git", "target", "build"]);
 const TYPE_KEYWORDS = new Set(["class", "interface", "enum", "record"]);
+const TYPE_PRIMITIVES = new Set([
+	"void",
+	"boolean",
+	"byte",
+	"short",
+	"int",
+	"long",
+	"char",
+	"float",
+	"double",
+]);
 
 export interface JavaRenamePlan {
 	ok: boolean;
@@ -11,7 +22,7 @@ export interface JavaRenamePlan {
 }
 
 interface JavaToken {
-	kind: "id" | "kw" | "other";
+	kind: "id" | "kw" | "type" | "dot";
 	text: string;
 	start: number;
 	end: number;
@@ -65,14 +76,24 @@ export function tokenizeJava(source: string): JavaToken[] {
 			}
 			continue;
 		}
+		if (char === ".") {
+			tokens.push({ kind: "dot", text: ".", start: index, end: index + 1 });
+			index += 1;
+			continue;
+		}
 		if (isIdentifierStart(char)) {
 			let end = index + 1;
 			while (end < source.length && isIdentifierPart(source[end] ?? "")) {
 				end += 1;
 			}
 			const text = source.slice(index, end);
+			const kind = TYPE_KEYWORDS.has(text)
+				? "kw"
+				: TYPE_PRIMITIVES.has(text)
+					? "type"
+					: "id";
 			tokens.push({
-				kind: TYPE_KEYWORDS.has(text) ? "kw" : "id",
+				kind,
 				text,
 				start: index,
 				end,
@@ -103,6 +124,37 @@ function typeDeclarationCount(tokens: JavaToken[], name: string): number {
 
 function hasIdentifier(tokens: JavaToken[], name: string): boolean {
 	return tokens.some((token) => token.kind === "id" && token.text === name);
+}
+
+function followedByParen(source: string, end: number): boolean {
+	let index = end;
+	while (index < source.length && /\s/.test(source[index] ?? "")) {
+		index += 1;
+	}
+	return source[index] === "(";
+}
+
+function methodDeclarationCount(
+	source: string,
+	tokens: JavaToken[],
+	name: string,
+): number {
+	let count = 0;
+	for (let index = 0; index < tokens.length; index += 1) {
+		const token = tokens[index];
+		const previous = tokens[index - 1];
+		if (
+			token?.kind === "id" &&
+			token.text === name &&
+			followedByParen(source, token.end) &&
+			previous &&
+			previous.kind !== "dot" &&
+			(previous.kind === "id" || previous.kind === "type")
+		) {
+			count += 1;
+		}
+	}
+	return count;
 }
 
 function rewrite(
@@ -152,6 +204,7 @@ export async function planJavaRename(input: {
 	const listed = input.files.map((file) => resolve(root, file));
 	const sources = new Map<string, { text: string; tokens: JavaToken[] }>();
 	let declarations = 0;
+	let methods = 0;
 	for (const file of listed) {
 		const text = await Bun.file(file)
 			.text()
@@ -164,6 +217,7 @@ export async function planJavaRename(input: {
 		}
 		const tokens = tokenizeJava(text);
 		declarations += typeDeclarationCount(tokens, input.from);
+		methods += methodDeclarationCount(text, tokens, input.from);
 		if (hasIdentifier(tokens, input.to)) {
 			return {
 				ok: false,
@@ -172,14 +226,19 @@ export async function planJavaRename(input: {
 		}
 		sources.set(file, { text, tokens });
 	}
-	if (declarations === 0) {
-		return {
-			ok: false,
-			reason: "no proven Java script for this identifier",
-		};
-	}
 	if (declarations > 1) {
 		return { ok: false, reason: "source identifier is ambiguous" };
+	}
+	if (declarations === 0) {
+		if (methods === 0) {
+			return {
+				ok: false,
+				reason: "no proven Java script for this identifier",
+			};
+		}
+		if (methods > 1) {
+			return { ok: false, reason: "source identifier is ambiguous" };
+		}
 	}
 
 	const listedSet = new Set(listed);

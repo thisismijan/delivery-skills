@@ -308,6 +308,37 @@ test("a Java string occurrence is not rewritten", async () => {
 	);
 });
 
+test("a complete Java method rename is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/A.java":
+				"public class Host {\n  public String slugifyTitle(String value) { return value; }\n}\n",
+			"src/B.java":
+				'public class Other {\n  String label = new Host().slugifyTitle("x");\n}\n',
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					...javaUnit,
+					from: "slugifyTitle",
+					to: "slugify",
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			expect(await readFile(join(root, "src/A.java"), "utf8")).toContain(
+				"slugify(",
+			);
+			expect(await readFile(join(root, "src/A.java"), "utf8")).not.toContain(
+				"slugifyTitle",
+			);
+			expect(await readFile(join(root, "src/B.java"), "utf8")).toContain(
+				"slugify(",
+			);
+		},
+	);
+});
+
 test("a TypeScript import-only rewrite is applied without a worker", async () => {
 	await withProject(
 		{
