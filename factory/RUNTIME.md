@@ -168,9 +168,9 @@ current session may use. At the start of a factory run:
    evidence does not change live availability without an exact operator
    promotion approval naming that candidate. A classified mechanical-edit may
    be scored for later graduation; the command classifies it with
-   `mechanical-edit.ts` and applies a proven TypeScript identifier rename with
-   `apply-mechanical-edit.ts`. It never asks the implementer whether the work
-   is menial. Public rankings and unscored fixtures never promote.
+   `mechanical-edit.ts` and applies a proven TypeScript or Python identifier
+   rename with `apply-mechanical-edit.ts`. It never asks the implementer
+   whether the work is menial. Public rankings and unscored fixtures never promote.
    `record-routing.ts persist` requires an explicit outcome
    file validated against the outcome schema. A missing or invalid outcome is
    refused and writes nothing; it is never stored as a successful result.
