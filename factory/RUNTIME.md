@@ -171,7 +171,8 @@ current session may use. At the start of a factory run:
    `mechanical-edit.ts` and applies a proven TypeScript, Python, or Java
    identifier rename, a proven Python unused-import rewrite, a proven
    Python format-only rewrite, or a proven Java unused-import rewrite, with
-   `apply-mechanical-edit.ts`. It never asks the
+   `apply-mechanical-edit.ts`. Units the scripts cannot prove are listed in
+   `mechanical-edit-scoring.ts` for representative scoring only. It never asks the
    implementer whether the work is menial. Public rankings and unscored fixtures never promote.
    `record-routing.ts persist` requires an explicit outcome
    file validated against the outcome schema. A missing or invalid outcome is
