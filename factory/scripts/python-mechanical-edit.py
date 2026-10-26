@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed identifier rename and import-only apply for Python mechanical-edit units."""
+"""Fail-closed identifier rename, import-only, and format-only apply for Python."""
 
 from __future__ import annotations
 
@@ -200,6 +200,58 @@ def plan_rename(root: str, payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "files": rewritten}
 
 
+SIGNIFICANT_TOKEN_TYPES = {
+    tokenize.NAME,
+    tokenize.NUMBER,
+    tokenize.STRING,
+    tokenize.OP,
+    tokenize.COMMENT,
+}
+
+
+def python_shape(source: str) -> str:
+    return ast.dump(ast.parse(source), include_attributes=False)
+
+
+def significant_tokens(source: str) -> list[tuple[int, str]]:
+    return [
+        (token.type, token.string)
+        for token in tokenize.generate_tokens(StringIO(source).readline)
+        if token.type in SIGNIFICANT_TOKEN_TYPES
+    ]
+
+
+def format_python(source: str) -> str:
+    tokens = list(tokenize.generate_tokens(StringIO(source).readline))
+    next_source = tokenize.untokenize((token.type, token.string) for token in tokens)
+    if python_shape(source) != python_shape(next_source):
+        raise ValueError("format rewrite would change non-whitespace structure")
+    if significant_tokens(source) != significant_tokens(next_source):
+        raise ValueError("format rewrite would change non-whitespace structure")
+    return next_source
+
+
+def plan_format_only(root: str, payload: dict[str, Any]) -> dict[str, Any]:
+    files = payload.get("files") or []
+    if not files:
+        return {"ok": False, "reason": "format-only requires files"}
+    listed = [os.path.realpath(os.path.join(root, file)) for file in files]
+    rewritten: dict[str, str] = {}
+    for path in listed:
+        try:
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
+        except OSError:
+            return {"ok": False, "reason": f"missing file: {relative_to(root, path)}"}
+        try:
+            next_text = format_python(text)
+        except (ValueError, SyntaxError, tokenize.TokenError):
+            return {"ok": False, "reason": "python format rewrite was not proven"}
+        if next_text != text:
+            rewritten[relative_to(root, path)] = next_text
+    return {"ok": True, "files": rewritten}
+
+
 def plan_import_only(root: str, payload: dict[str, Any]) -> dict[str, Any]:
     files = payload.get("files") or []
     if not files:
@@ -283,6 +335,8 @@ def plan(root: str, payload: dict[str, Any]) -> dict[str, Any]:
         return plan_rename(root, payload)
     if operation == "import-only":
         return plan_import_only(root, payload)
+    if operation == "format-only":
+        return plan_format_only(root, payload)
     return {"ok": False, "reason": "no proven python script for this operation"}
 
 

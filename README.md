@@ -408,7 +408,8 @@ unit is classified by `mechanical-edit.ts` before any extra worker.
 `apply-mechanical-edit.ts` rewrites a TypeScript identifier rename when the
 language service can prove the graph, a Python function or class rename when
 CPython can prove the graph, unused Python top-level imports when the rest of
-the module is unchanged, and a Java type rename when a single class,
+the module is unchanged, a Python format-only rewrite when names and
+literals stay identical, and a Java type rename when a single class,
 interface, enum, or record name is listed completely. Otherwise the current
 worker runs.
 Fast catalogue models stay evaluation-only until promotion. The worker never
