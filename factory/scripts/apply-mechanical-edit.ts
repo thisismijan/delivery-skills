@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import * as ts from "typescript";
 import { z } from "zod";
-import { planJavaRename } from "./apply-java-mechanical-edit";
+import { planJavaImports, planJavaRename } from "./apply-java-mechanical-edit";
 import {
 	type MechanicalEditPlan,
 	classifyMechanicalEdit,
@@ -352,6 +352,34 @@ async function applyJavaRename(
 	};
 }
 
+async function applyJavaImports(
+	classified: MechanicalEditPlan,
+	root: string,
+	listed: string[],
+	files: string[],
+): Promise<ApplyMechanicalEditResult> {
+	const planned = await planJavaImports({ root, files });
+	if (!planned.ok || !planned.files) {
+		return plan(classified, planned.reason ?? "java import rewrite was not proven");
+	}
+	const listedSet = new Set(listed);
+	const written: string[] = [];
+	for (const [relativePath, text] of Object.entries(planned.files)) {
+		const fileName = resolve(root, relativePath);
+		if (!listedSet.has(fileName)) {
+			return plan(classified, "java helper wrote an unlisted file");
+		}
+		await writeFile(fileName, text, "utf8");
+		written.push(relativePath);
+	}
+	return {
+		verdict: "mechanical",
+		reason: "applied Java import-only rewrite",
+		apply: "script",
+		filesChanged: written.sort(),
+	};
+}
+
 function isImportStatement(statement: ts.Statement): boolean {
 	return (
 		ts.isImportDeclaration(statement) || ts.isImportEqualsDeclaration(statement)
@@ -565,12 +593,24 @@ export async function applyMechanicalEdit(input: {
 				"applied Python import-only rewrite",
 			);
 		}
+		if (language === "java") {
+			return applyJavaImports(classified, root, listed, payload.files);
+		}
 		if (language !== "typescript") {
 			return plan(classified, "no proven script for this operation");
 		}
 		return applyTypeScriptImports(classified, root, listed);
 	}
 	if (payload.operation === "format-only") {
+		if (language === "python") {
+			return applyPythonEdit(
+				classified,
+				payload,
+				root,
+				listed,
+				"applied Python format-only rewrite",
+			);
+		}
 		if (language !== "typescript") {
 			return plan(classified, "no proven script for this operation");
 		}
