@@ -458,6 +458,13 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(execute)).toMatch(
 			/when apply is script.*do not dispatch the test-writer or the implementer/i,
 		);
+		const implementStep = execute.split("**Implement to green.**")[1] ?? "";
+		expect(plain(implementStep)).toMatch(
+			/when apply is script[\s\S]*do not dispatch the implementer[\s\S]*continue at the green gates/i,
+		);
+		expect(plain(implementStep)).not.toMatch(
+			/do not dispatch the implementer[\s\S]{0,80}dispatch the implementer/i,
+		);
 		expect(plain(execute)).toMatch(/do not run a red gate/i);
 		expect(plain(ticketToMr)).toMatch(
 			/scripted mechanical-edit unit skips the test-writer, red gate, and implementer/i,

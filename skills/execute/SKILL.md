@@ -208,11 +208,13 @@ re-run the gate. Do not reuse it.
    Incomplete or free-text findings are not a unit. Persist the JSON plan.
    Proven TypeScript, Python, and Java rename, import-only, and format-only
    units apply here without a model. When `apply` is `script`, the helper
-   already wrote the files; skip the implementer for this unit. When the verdict is `not-mechanical`, apply is
+   already wrote the files. Do not dispatch the `implementer`. Write `none`
+   to `<reviewDir>/implementer-handoff.md` if it is empty, and continue at
+   the green gates (step 8). When the verdict is `not-mechanical`, apply is
    `select-model`, or there is no unit, keep the model from step 6. Do not
    ask the implementer whether the work is menial. Do not dispatch a catalogue
    fast model. A payload flag is not proof that a script ran.
-   Dispatch the `implementer` subagent with the
+   Otherwise dispatch the `implementer` subagent with the
    packet as its starting input, using the exact
    runtime model resolved in step 6. Override the prompt's static model. If the
    host cannot override a plugin agent's model, use the existing
