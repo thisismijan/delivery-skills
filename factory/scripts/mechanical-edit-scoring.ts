@@ -1,10 +1,17 @@
-import { buildObservation } from "./record-routing";
 import { scoreCandidate } from "./evaluation-corpus";
 import type { CorpusEntry } from "./evaluation-corpus";
+import {
+	fastCatalogueCandidateIds,
+	loadModelCatalogue,
+} from "./model-catalogue";
+import { buildObservation } from "./record-routing";
 import type { RoutingObservation } from "./routing-observation";
 import type { TaskProfileInput } from "./task-profile";
 
-export const UNSCRIPTED_MECHANICAL_CANDIDATE = "haiku";
+export {
+	fastCatalogueCandidateIds,
+	requireFastCatalogueCandidate,
+} from "./model-catalogue";
 
 export interface UnscriptedMechanicalFixture {
 	id: string;
@@ -48,7 +55,8 @@ export function unscriptedMechanicalFixtures(): UnscriptedMechanicalFixture[] {
 		},
 		{
 			id: "python-incomplete-graph",
-			reason: "Python rename graphs that omit a referencing file stay unscripted",
+			reason:
+				"Python rename graphs that omit a referencing file stay unscripted",
 			files: {
 				"src/a.py": "def slugify_title():\n    return 'x'\n",
 				"src/b.py": "from a import slugify_title\nslugify_title()\n",
@@ -182,7 +190,7 @@ export function scoreUnscriptedMechanicalPack(input: {
 if (import.meta.main) {
 	console.log(
 		JSON.stringify({
-			candidate: UNSCRIPTED_MECHANICAL_CANDIDATE,
+			fastCandidates: fastCatalogueCandidateIds(await loadModelCatalogue()),
 			fixtures: unscriptedMechanicalFixtures().map((fixture) => fixture.id),
 			observations: representativeUnscriptedMechanicalObservations().length,
 		}),

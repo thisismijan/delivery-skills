@@ -176,8 +176,9 @@ current session may use. At the start of a factory run:
    corpus files to a caller directory. A local stand-in rewrite is
    `test-repo-stand-in` evidence and is not counted.
    `mechanical-edit-model-runs.ts` prepare/ingest scores captured baseline
-   and candidate trees as `model-run` evidence. It requires host tokens,
-   named workers, and hidden checks, and refuses character-only usage.
+   and candidate trees as `model-run` evidence for an exact fast catalogue
+   candidate. It requires host tokens, named workers, and hidden checks,
+   and refuses a non-fast model and character-only usage.
    It never asks the
    implementer whether the work is menial. Public rankings and unscored fixtures never promote.
    `record-routing.ts persist` requires an explicit outcome

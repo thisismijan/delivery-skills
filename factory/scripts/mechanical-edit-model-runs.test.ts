@@ -12,11 +12,14 @@ import {
 	ingestUnscriptedMechanicalModelRuns,
 	prepareUnscriptedMechanicalModelRuns,
 } from "./mechanical-edit-model-runs";
+import { unscriptedMechanicalFixtures } from "./mechanical-edit-scoring";
 import {
-	UNSCRIPTED_MECHANICAL_CANDIDATE,
-	unscriptedMechanicalFixtures,
-} from "./mechanical-edit-scoring";
-import { loadModelCatalogue } from "./model-catalogue";
+	fastCatalogueCandidateIds,
+	loadModelCatalogue,
+} from "./model-catalogue";
+
+const SPARK = "muse-spark-1.3-medium";
+const COMPOSER = "composer-1";
 
 const checks = [
 	{ id: "compile", hidden: false, passed: true },
@@ -42,7 +45,7 @@ async function fillCapture(
 	await Bun.write(join(dir, "baseline-skill", "SKILL.md"), "standard worker\n");
 	await Bun.write(
 		join(dir, "candidate-skill", "SKILL.md"),
-		options?.candidateSkill ?? "haiku worker\n",
+		options?.candidateSkill ?? "fast worker\n",
 	);
 	await Bun.write(join(dir, "baseline-output", "out.txt"), "baseline\n");
 	await Bun.write(join(dir, "candidate-output", "out.txt"), "candidate\n");
@@ -76,8 +79,7 @@ async function fillCapture(
 		checks,
 	};
 	if (options?.candidateWorker !== null) {
-		candidateResult.selectedWorkerModel =
-			options?.candidateWorker ?? UNSCRIPTED_MECHANICAL_CANDIDATE;
+		candidateResult.selectedWorkerModel = options?.candidateWorker ?? SPARK;
 	}
 	await writeJson(join(dir, "candidate-result.json"), candidateResult);
 }
@@ -115,7 +117,10 @@ test("ingest refuses character-only usage", async () => {
 		if (!fixture) throw new Error("missing fixture");
 		await fillCapture(workDir, fixture.id, { usageSource: "characters" });
 		await expect(
-			ingestUnscriptedMechanicalModelRuns({ captureDir: workDir }),
+			ingestUnscriptedMechanicalModelRuns({
+				captureDir: workDir,
+				candidateModel: SPARK,
+			}),
 		).rejects.toThrow(/host tokens/);
 		expect(await Bun.file(join(workDir, "corpus", "index.json")).exists()).toBe(
 			false,
@@ -135,7 +140,10 @@ test("ingest refuses a test-repo stand-in rewrite", async () => {
 			candidateSkill: "test-repo stand-in rewrite\n",
 		});
 		await expect(
-			ingestUnscriptedMechanicalModelRuns({ captureDir: workDir }),
+			ingestUnscriptedMechanicalModelRuns({
+				captureDir: workDir,
+				candidateModel: SPARK,
+			}),
 		).rejects.toThrow(/stand-in/);
 	} finally {
 		await rm(workDir, { recursive: true, force: true });
@@ -150,7 +158,10 @@ test("ingest refuses a missing candidate worker name", async () => {
 		if (!fixture) throw new Error("missing fixture");
 		await fillCapture(workDir, fixture.id, { candidateWorker: null });
 		await expect(
-			ingestUnscriptedMechanicalModelRuns({ captureDir: workDir }),
+			ingestUnscriptedMechanicalModelRuns({
+				captureDir: workDir,
+				candidateModel: SPARK,
+			}),
 		).rejects.toThrow(/selectedWorkerModel/);
 	} finally {
 		await rm(workDir, { recursive: true, force: true });
@@ -164,10 +175,11 @@ test("a complete capture is scored as a model run and does not promote", async (
 	try {
 		await prepareUnscriptedMechanicalModelRuns(workDir);
 		for (const fixture of unscriptedMechanicalFixtures()) {
-			await fillCapture(workDir, fixture.id);
+			await fillCapture(workDir, fixture.id, { candidateWorker: SPARK });
 		}
 		const ingested = await ingestUnscriptedMechanicalModelRuns({
 			captureDir: workDir,
+			candidateModel: SPARK,
 		});
 		expect(ingested.entries.length).toBeGreaterThanOrEqual(
 			MIN_EVALUATED_FAST_SAMPLES,
@@ -176,7 +188,7 @@ test("a complete capture is scored as a model run and does not promote", async (
 			ingested.entries.every(
 				(entry) =>
 					entry.evaluation?.provenance === MODEL_RUN_PROVENANCE &&
-					entry.evaluation.candidateModel === UNSCRIPTED_MECHANICAL_CANDIDATE &&
+					entry.evaluation.candidateModel === SPARK &&
 					entry.observation.source === "representative-run",
 			),
 		).toBe(true);
@@ -184,18 +196,36 @@ test("a complete capture is scored as a model run and does not promote", async (
 			MIN_EVALUATED_FAST_SAMPLES,
 		);
 		expect(ingested.availability).toBe("evaluation-only");
-		const verdict = evaluatePromotion(
-			ingested.entries,
-			UNSCRIPTED_MECHANICAL_CANDIDATE,
-		);
+		const verdict = evaluatePromotion(ingested.entries, SPARK);
 		expect(verdict.evidenceCleared).toBe(true);
 		expect(verdict.availability).toBe("evaluation-only");
 		expect(applyFastPromotion(catalogue, verdict)).toEqual(before);
 		expect(
 			catalogue.tiers.fast.candidates.find(
-				(candidate) => candidate.id === UNSCRIPTED_MECHANICAL_CANDIDATE,
+				(candidate) => candidate.id === SPARK,
 			)?.availability,
 		).toBe("evaluation-only");
+	} finally {
+		await rm(workDir, { recursive: true, force: true });
+	}
+});
+
+test("ingest refuses a model that is not in the fast catalogue tier", async () => {
+	const workDir = await mkdtemp(join(tmpdir(), "mechanical-edit-standard-"));
+	try {
+		await prepareUnscriptedMechanicalModelRuns(workDir);
+		const fixture = unscriptedMechanicalFixtures()[0];
+		if (!fixture) throw new Error("missing fixture");
+		await fillCapture(workDir, fixture.id, { candidateWorker: "sonnet" });
+		await expect(
+			ingestUnscriptedMechanicalModelRuns({
+				captureDir: workDir,
+				candidateModel: "sonnet",
+			}),
+		).rejects.toThrow(/not a fast catalogue model/);
+		expect(await Bun.file(join(workDir, "corpus", "index.json")).exists()).toBe(
+			false,
+		);
 	} finally {
 		await rm(workDir, { recursive: true, force: true });
 	}
@@ -214,8 +244,11 @@ test("the CLI prepare and ingest round-trip", async () => {
 			{ stdout: "pipe", stderr: "pipe" },
 		);
 		expect(await prepared.exited).toBe(0);
+		expect(
+			JSON.parse(await new Response(prepared.stdout).text()).fastCandidates,
+		).toEqual(fastCatalogueCandidateIds(await loadModelCatalogue()));
 		for (const fixture of unscriptedMechanicalFixtures()) {
-			await fillCapture(workDir, fixture.id);
+			await fillCapture(workDir, fixture.id, { candidateWorker: COMPOSER });
 		}
 		const ingested = Bun.spawn(
 			[
@@ -223,6 +256,7 @@ test("the CLI prepare and ingest round-trip", async () => {
 				join(import.meta.dir, "mechanical-edit-model-runs.ts"),
 				"ingest",
 				workDir,
+				COMPOSER,
 			],
 			{ stdout: "pipe", stderr: "pipe" },
 		);
@@ -230,7 +264,7 @@ test("the CLI prepare and ingest round-trip", async () => {
 		expect(
 			JSON.parse(await new Response(ingested.stdout).text()),
 		).toMatchObject({
-			candidate: "haiku",
+			candidate: COMPOSER,
 			provenance: MODEL_RUN_PROVENANCE,
 			availability: "evaluation-only",
 		});

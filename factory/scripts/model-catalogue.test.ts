@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
 import {
 	catalogueModels,
+	fastCatalogueCandidateIds,
 	loadModelCatalogue,
+	requireFastCatalogueCandidate,
 	resolveAvailableModel,
 } from "./model-catalogue";
 
@@ -45,6 +47,17 @@ test("the resolver falls through when the first frontier candidate is unavailabl
 	};
 	expect(resolveAvailableModel(catalogue, "frontier", inventory).model).toBe(
 		"claude-opus-5-5-high",
+	);
+});
+
+test("fast catalogue ids include every bundled fast candidate", async () => {
+	const catalogue = await loadModelCatalogue();
+	const ids = fastCatalogueCandidateIds(catalogue);
+	expect(ids.length).toBeGreaterThan(1);
+	expect(ids).toEqual(catalogue.tiers.fast.candidates.map((item) => item.id));
+	expect(requireFastCatalogueCandidate(catalogue, ids[0] ?? "")).toBe(ids[0]);
+	expect(() => requireFastCatalogueCandidate(catalogue, "sonnet")).toThrow(
+		"not a fast catalogue model",
 	);
 });
 

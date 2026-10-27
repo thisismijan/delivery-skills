@@ -9,11 +9,13 @@ import {
 	evaluatePromotion,
 } from "./fast-dispatch";
 import {
-	UNSCRIPTED_MECHANICAL_CANDIDATE,
 	scoreUnscriptedMechanicalPack,
 	unscriptedMechanicalFixtures,
 } from "./mechanical-edit-scoring";
-import { loadModelCatalogue } from "./model-catalogue";
+import {
+	fastCatalogueCandidateIds,
+	loadModelCatalogue,
+} from "./model-catalogue";
 
 test("the unscripted pack has at least five representative units", () => {
 	expect(unscriptedMechanicalFixtures().length).toBeGreaterThanOrEqual(
@@ -46,32 +48,40 @@ test("scripted units are not in the unscripted scoring pack", () => {
 	expect(ids).not.toContain("typescript-format-only");
 });
 
-test("haiku scores on the pack do not change live availability", async () => {
+test("fast-candidate scores on the pack do not change live availability", async () => {
 	const catalogue = await loadModelCatalogue();
+	const candidateModel = fastCatalogueCandidateIds(catalogue)[0];
+	expect(candidateModel).toBeDefined();
+	if (!candidateModel) return;
 	const before = structuredClone(catalogue);
 	const entries = scoreUnscriptedMechanicalPack({
-		candidateModel: UNSCRIPTED_MECHANICAL_CANDIDATE,
+		candidateModel,
 		relativeUtility: 0.91,
 	});
 	expect(entries.length).toBeGreaterThanOrEqual(MIN_EVALUATED_FAST_SAMPLES);
-	const verdict = evaluatePromotion(entries, UNSCRIPTED_MECHANICAL_CANDIDATE);
+	const verdict = evaluatePromotion(entries, candidateModel);
 	expect(verdict.evidenceCleared).toBe(true);
 	expect(verdict.availability).toBe("evaluation-only");
 	expect(applyFastPromotion(catalogue, verdict)).toEqual(before);
 	expect(
 		catalogue.tiers.fast.candidates.find(
-			(candidate) => candidate.id === UNSCRIPTED_MECHANICAL_CANDIDATE,
+			(candidate) => candidate.id === candidateModel,
 		)?.availability,
 	).toBe("evaluation-only");
 });
 
-test("live scores on the pack do not count as graduation evidence", () => {
+test("live scores on the pack do not count as graduation evidence", async () => {
+	const candidateModel = fastCatalogueCandidateIds(
+		await loadModelCatalogue(),
+	)[0];
+	expect(candidateModel).toBeDefined();
+	if (!candidateModel) return;
 	const entries = scoreUnscriptedMechanicalPack({
-		candidateModel: UNSCRIPTED_MECHANICAL_CANDIDATE,
+		candidateModel,
 		relativeUtility: 0.91,
 		source: "live",
 	});
-	const verdict = evaluatePromotion(entries, UNSCRIPTED_MECHANICAL_CANDIDATE);
+	const verdict = evaluatePromotion(entries, candidateModel);
 	expect(verdict.evidenceCleared).toBe(false);
 	expect(verdict.sampleSize).toBe(0);
 	expect(verdict.availability).toBe("evaluation-only");
@@ -83,8 +93,10 @@ test("the CLI lists the unscripted fixtures", async () => {
 		{ stdout: "pipe", stderr: "pipe" },
 	);
 	expect(await proc.exited).toBe(0);
-	expect(JSON.parse(await new Response(proc.stdout).text())).toMatchObject({
-		candidate: "haiku",
-		observations: unscriptedMechanicalFixtures().length,
-	});
+	const listed = JSON.parse(await new Response(proc.stdout).text());
+	expect(listed.observations).toBe(unscriptedMechanicalFixtures().length);
+	expect(listed.fastCandidates).toEqual(
+		fastCatalogueCandidateIds(await loadModelCatalogue()),
+	);
+	expect(listed.fastCandidates.length).toBeGreaterThan(1);
 });

@@ -9,16 +9,16 @@ import {
 	applyFastPromotion,
 	evaluatePromotion,
 } from "./fast-dispatch";
-import {
-	UNSCRIPTED_MECHANICAL_CANDIDATE,
-	unscriptedMechanicalFixtures,
-} from "./mechanical-edit-scoring";
+import { unscriptedMechanicalFixtures } from "./mechanical-edit-scoring";
 import {
 	applyListedFileStandIn,
 	benchmarkUnscriptedMechanicalRepos,
 	materializeUnscriptedMechanicalRepos,
 } from "./mechanical-edit-test-repos";
-import { loadModelCatalogue } from "./model-catalogue";
+import {
+	fastCatalogueCandidateIds,
+	loadModelCatalogue,
+} from "./model-catalogue";
 
 test("each unscripted fixture materializes as a git repository", async () => {
 	const parent = await mkdtemp(join(tmpdir(), "mechanical-edit-repos-"));
@@ -60,9 +60,12 @@ test("test-repo stand-in scores do not fill the graduation sample", async () => 
 	const catalogue = await loadModelCatalogue();
 	const before = structuredClone(catalogue);
 	try {
+		const candidateModel = fastCatalogueCandidateIds(catalogue)[0];
+		expect(candidateModel).toBeDefined();
+		if (!candidateModel) return;
 		const result = await benchmarkUnscriptedMechanicalRepos({
 			workDir,
-			candidateModel: UNSCRIPTED_MECHANICAL_CANDIDATE,
+			candidateModel,
 		});
 		expect(result.entries.length).toBeGreaterThanOrEqual(
 			MIN_EVALUATED_FAST_SAMPLES,
@@ -71,25 +74,23 @@ test("test-repo stand-in scores do not fill the graduation sample", async () => 
 			result.entries.every(
 				(entry) =>
 					entry.evaluation?.provenance === TEST_REPO_STAND_IN_PROVENANCE &&
-					entry.evaluation.candidateModel === UNSCRIPTED_MECHANICAL_CANDIDATE &&
+					entry.evaluation.candidateModel === candidateModel &&
 					entry.observation.source === "representative-run",
 			),
 		).toBe(true);
 		expect(await Bun.file(join(result.corpusDir, "index.json")).exists()).toBe(
 			true,
 		);
-		const verdict = evaluatePromotion(
-			result.entries,
-			UNSCRIPTED_MECHANICAL_CANDIDATE,
-			{ approval: { candidateModel: UNSCRIPTED_MECHANICAL_CANDIDATE } },
-		);
+		const verdict = evaluatePromotion(result.entries, candidateModel, {
+			approval: { candidateModel },
+		});
 		expect(verdict.sampleSize).toBe(0);
 		expect(verdict.evidenceCleared).toBe(false);
 		expect(verdict.availability).toBe("evaluation-only");
 		expect(applyFastPromotion(catalogue, verdict)).toEqual(before);
 		expect(
 			catalogue.tiers.fast.candidates.find(
-				(candidate) => candidate.id === UNSCRIPTED_MECHANICAL_CANDIDATE,
+				(candidate) => candidate.id === candidateModel,
 			)?.availability,
 		).toBe("evaluation-only");
 	} finally {
@@ -105,12 +106,16 @@ test("the CLI writes corpus under the caller directory", async () => {
 			{ stdout: "pipe", stderr: "pipe" },
 		);
 		expect(await proc.exited).toBe(0);
-		expect(JSON.parse(await new Response(proc.stdout).text())).toMatchObject({
-			candidate: "haiku",
+		const listed = JSON.parse(await new Response(proc.stdout).text());
+		expect(listed).toMatchObject({
 			workDir,
 			count: unscriptedMechanicalFixtures().length,
 			provenance: TEST_REPO_STAND_IN_PROVENANCE,
 		});
+		expect(listed.fastCandidates).toEqual(
+			fastCatalogueCandidateIds(await loadModelCatalogue()),
+		);
+		expect(listed.fastCandidates).toContain(listed.candidate);
 	} finally {
 		await rm(workDir, { recursive: true, force: true });
 	}

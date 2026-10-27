@@ -14,7 +14,7 @@ the ingest path for real paired artifacts.
 
 **Non-Goals:**
 
-- Dispatching Haiku from this repository.
+- Dispatching a fast catalogue model from this repository.
 - Inventing token counts or output trees.
 - Calling `applyFastPromotion`.
 
@@ -22,10 +22,10 @@ the ingest path for real paired artifacts.
 
 ### The host runs the models
 
-This pack cannot advertise or invoke Haiku. The operator dispatches the
-live standard worker and `model-catalogue.ts resolve fast … --evaluation`
-in a runtime that lists `haiku`, then drops the trees into the capture
-directory.
+This pack cannot advertise or invoke a fast model. The operator dispatches
+the live standard worker and `model-catalogue.ts resolve fast … --evaluation`
+in a runtime that lists the named fast candidate, then drops the trees
+into the capture directory.
 
 ### Token usage is required
 
