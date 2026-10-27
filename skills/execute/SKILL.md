@@ -23,8 +23,8 @@ This command implements the approved change and, **only after the holdout review
 
 ## Hard rules
 
-- **Tests first.** Write tests before implementation and prove they fail (red gate). Never modify tests to make them pass.
-- **No pressure bypass.** Time pressure never permits skipping the red gate, green gate, holdout review, or operator-owned action.
+- **Tests first.** Write tests before implementation and prove they fail (red gate), except when `apply-mechanical-edit.ts` reports `apply` is `script`. Then the existing suite plus green, lint, and typecheck is the proof. Never modify tests to make them pass. Never skip holdout.
+- **No pressure bypass.** Time pressure never permits skipping the red gate (except a scripted mechanical-edit unit), the green gate, holdout review, or operator-owned action.
 - **Review before the MR.** The holdout review runs against the **committed branch diff + gate results** — there is no MR yet. **An MR is opened only after the review returns `approve`.** Never open an MR for un-reviewed, changes-requested, rejected, or escalated work.
 - **Open the change as soon as the first holdout review is satisfied, then check back on it.** The first `approve` opens the draft change in the same step; never hold it back for extra local review rounds. Reviewers, people or automated, often comment only once a change is posted. Release readiness reads those comments before the change is reported ready, and any unanswered one is answered in one `/address-comments` round.
 - **Gated writes only:** the only writes are the branch commit/push, the change (created post-approval), and notes (on the change and the selected work item). **The factory NEVER merges, closes, or resolves threads, and never changes work-item status; humans own merge, close, thread resolution, and status.**
@@ -91,6 +91,24 @@ re-run the gate. Do not reuse it.
   ledger records `continuous-delivery: yes` resumes from `/delivery auto
   <KEY>` without another checkbox. Do not start execute from an unapproved
   bare-key resume.
+
+3b. **Scripted mechanical-edit first.** If this change is a bounded rename,
+   import-only, or format-only unit, write `<reviewDir>/mechanical-edit.json`
+   and apply it before any test-writer:
+   ```
+   bun "${FACTORY_ROOT}/scripts/apply-mechanical-edit.ts" "<reviewDir>/mechanical-edit.json" "<repoRoot>"
+   ```
+   Incomplete or free-text findings are not a unit. Persist the JSON plan.
+   Proven TypeScript, Python, and Java rename, import-only, and format-only
+   units apply here without a model. When `apply` is `script`, the helper
+   already wrote the files. Do not dispatch the `test-writer` or the
+   `implementer`. Do not run a red gate. Write `none` to
+   `<reviewDir>/test-writer-handoff.md`, `<reviewDir>/implementer-handoff.md`,
+   and `<reviewDir>/skips.md`. Continue at the green gates. When the verdict
+   is `not-mechanical`, apply is `select-model`, or there is no unit, keep
+   tests-first below. Do not ask the implementer whether the work is menial.
+   Do not dispatch a catalogue fast model. A payload flag is not proof that a
+   script ran.
 
 4. **Write tests first.** Resolve `standard` against
    `.delivery/routing/model-inventory.json`, then dispatch the `test-writer`

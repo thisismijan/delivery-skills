@@ -85,7 +85,7 @@ On explicit approval:
 
 Factory behavior this workflow must not override:
 
-- Tests first → red gate → implement → green (+ lint/types) → Opus holdout
+- Tests first → red gate → implement → green (+ lint/types) → Opus holdout, except a scripted mechanical-edit unit skips the test-writer, red gate, and implementer and still runs green, lint, typecheck, and holdout
 - Draft MR opened **only** on holdout `approve`; Stage 3 marks it ready
 - The draft MR opens on the **first** holdout `approve`, never held back for
   extra local review rounds, because reviewers often comment only on a posted
