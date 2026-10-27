@@ -535,7 +535,9 @@ ambiguous match stops the run instead of guessing.
   naming the candidate. Public rankings, unscored fixtures, and test-repo
   stand-in rewrites never promote.
 - **Review spend follows demonstrated risk.** Independently adjudicated review
-  lenses use the standard model tier. `review-fanout.ts` chooses two essential
+  lenses use the standard model tier. Release-readiness lens subagents use that
+  same resolved standard model; the main conversation still decides GO or
+  NO-GO. `review-fanout.ts` chooses two essential
   lenses for a proven small reversible or contained change and all four lenses
   otherwise.
   Reply-only comment rounds do not send an unchanged commit through duplicate

@@ -688,6 +688,9 @@ describe("capabilities", () => {
   test("the readiness workflow states the fail-closed rule", () => {
     const readiness = SPECS["release-readiness.md"];
     const lenses = section(readiness, "### 3. Run the lenses");
+    expect(lenses).toContain("resolve standard");
+    expect(lenses).toMatch(/main conversation still decides GO or NO-GO/);
+    expect(lenses).toMatch(/Do not dispatch a fast\s+model for these lenses/);
     const decide = section(readiness, "### 6. Decide");
     const brief = section(readiness, "### 7. Write the brief");
     expect(lenses).not.toMatch(/proof of concept or it is downgraded/i);

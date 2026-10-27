@@ -908,3 +908,35 @@ describe("diff surface scan", () => {
 		expect(runtime).toContain('scripts/diff-scan.ts" <base> <head>');
 	});
 });
+
+describe("release-readiness lens tier", () => {
+	test("lens subagents resolve standard and the conductor still decides", () => {
+		const readiness = plain(releaseReadiness);
+		expect(releaseReadiness).toContain(
+			'scripts/model-catalogue.ts" resolve standard',
+		);
+		expect(readiness).toMatch(
+			/pass that exact model identifier to every lens subagent/i,
+		);
+		expect(readiness).toMatch(/main conversation still decides GO or NO-GO/i);
+		expect(readiness).toMatch(/do not dispatch a fast model for these lenses/i);
+		expect(readiness).toMatch(
+			/missing live standard candidate stops the stage/i,
+		);
+	});
+
+	test("operator docs name the same standard-tier rule", () => {
+		for (const document of [
+			conventions,
+			runtime,
+			workflowDocs,
+			referenceDocs,
+			rootReadme,
+		]) {
+			expect(plain(document)).toMatch(
+				/release-readiness lens subagents.*standard/i,
+			);
+			expect(plain(document)).toMatch(/GO or NO-GO/i);
+		}
+	});
+});

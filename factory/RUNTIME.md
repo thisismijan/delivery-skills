@@ -211,7 +211,9 @@ mode, persist profiles and shadow recommendations as evaluation evidence.
 A cheaper shadow recommendation is recorded, never dispatched.
 
 Independently adjudicated `/code-review-max` lenses use the resolved
-`standard` model. Write measured counts and surfaces to
+`standard` model. Release-readiness lens subagents resolve that same
+`standard` capability and pass the exact identifier; the main conversation
+still decides GO or NO-GO. Fast-tier models do not run those lenses. Write measured counts and surfaces to
 `.review/mr-<iid>/<full-head-sha>/review-fanout-input.json`, then run
 `bun "$FACTORY_ROOT/scripts/review-fanout.ts" <that file>`. The returned
 `lenses` array is authoritative. A small reversible change, or a contained one
