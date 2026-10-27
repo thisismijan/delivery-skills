@@ -883,3 +883,28 @@ describe("normalized forge workflow commands", () => {
 		expect(conventions).toMatch(/unplanned host tool/i);
 	});
 });
+
+describe("diff surface scan", () => {
+	const scan = 'diff-scan.ts" <base-sha> <head-sha>';
+
+	test("release readiness classifies from the scan and keeps every mark", () => {
+		const readiness = plain(releaseReadiness);
+		expect(releaseReadiness).toContain(scan);
+		expect(readiness).toMatch(/non-zero exit stops the stage/i);
+		expect(readiness).toMatch(/never remove a scanned one/i);
+		expect(readiness).toMatch(/oneWay signal makes the change a one-way door/i);
+		expect(readiness).toMatch(/start from the scan's loweredBar hits/i);
+	});
+
+	test("code-review-max takes the scanned surfaces as a floor", () => {
+		const maxReview = plain(codeReviewMax);
+		expect(codeReviewMax).toContain(scan);
+		expect(maxReview).toMatch(/never remove a scanned one/i);
+		expect(maxReview).toMatch(/oneWay signal makes the change one-way/i);
+	});
+
+	test("the script is named in the conventions and runtime notes", () => {
+		expect(conventions).toContain("scripts/diff-scan.ts");
+		expect(runtime).toContain('scripts/diff-scan.ts" <base> <head>');
+	});
+});
