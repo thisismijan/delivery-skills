@@ -48,9 +48,7 @@ export async function verifyTicket(
 
 	// Count checkboxes only inside the Acceptance criteria section. Examples
 	// elsewhere and fenced code are not acceptance criteria.
-	const acceptanceCriteria = sectionBody(text, "acceptance criteria");
-	const checkboxPattern = /^- \[[ xX]\]/gm;
-	const checkboxes = acceptanceCriteria.match(checkboxPattern) ?? [];
+	const checkboxes = acceptanceCriterionLines(text);
 	if (checkboxes.length === 0) {
 		missing.push(
 			"Missing acceptance criteria: no checkboxes found (add at least one - [ ] or - [x] checkbox)",
@@ -66,9 +64,7 @@ export async function verifyTicket(
 	// leading/trailing clauses and an "And" continuation). Fail on the first
 	// non-conforming criterion.
 	const gwtOrderPattern = /\bgiven\b.*\bwhen\b.*\bthen\b/i;
-	const checkboxLinePattern = /^- \[[ xX]\](.*)$/gm;
-	for (const match of acceptanceCriteria.matchAll(checkboxLinePattern)) {
-		const content = (match[1] ?? "").trim();
+	for (const content of checkboxes) {
 		if (!gwtOrderPattern.test(content)) {
 			missing.push(
 				`Acceptance criterion is not a Given/When/Then behaviour statement: "${content}" (each criterion must read as a single-line Given ... When ... Then ... statement)`,
@@ -98,6 +94,12 @@ export async function verifyTicket(
 
 function escapeRegex(s: string): string {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function acceptanceCriterionLines(text: string): string[] {
+	return [...sectionBody(text, "acceptance criteria").matchAll(/^- \[[ xX]\](.*)$/gm)].map(
+		(match) => (match[1] ?? "").trim(),
+	);
 }
 
 export function sectionBody(text: string, name: string): string {

@@ -48,8 +48,29 @@ PDF export.
 Nothing.
 `;
 
-test("a structurally valid body still uses the assessor", async () => {
-	expect(await inspectTicketStructure(item(validBody))).toEqual({
+test("a complete ticket with no open questions skips the assessor as good", async () => {
+	const result = await inspectTicketStructure(item(validBody));
+	expect(result.skipAssessor).toBe(true);
+	if (result.skipAssessor) {
+		expect(result.verdict.quality).toBe("good");
+		expect(result.verdict.scopeFit).toBe("atomic");
+		expect(result.verdict.gaps).toEqual([]);
+		expect(result.verdict.derivedAcceptanceCriteria).toEqual([
+			"Given the dashboard is open, When the operator exports, Then a CSV file downloads",
+			"Given an export completes, When the file is opened, Then it contains the visible rows",
+		]);
+		expect(parseAssessmentVerdict(JSON.stringify(result.verdict))).toEqual(
+			result.verdict,
+		);
+	}
+});
+
+test("a question in what to build still uses the assessor", async () => {
+	const body = validBody.replace(
+		"Add an export control that downloads the visible rows as CSV.",
+		"Add an export control? Confirm the file format.",
+	);
+	expect(await inspectTicketStructure(item(body))).toEqual({
 		skipAssessor: false,
 	});
 });
