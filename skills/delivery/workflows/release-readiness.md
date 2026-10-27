@@ -85,6 +85,17 @@ Collect the inputs the lenses need. Link them in the ledger; do not copy them.
 
 ### 2. Classify the change
 
+Scan the pinned diff first:
+`bun "${FACTORY_ROOT}/scripts/diff-scan.ts" <base-sha> <head-sha>`.
+A non-zero exit stops the stage; never classify by hand instead. Save the
+output beside the ledger and link it.
+
+The scan's `surfaces`, `oneWay` signals, and `loweredBar` hits are a floor.
+Keep every one of them. You may add a surface, signal, or hit you can prove
+from the diff, with the evidence, but never remove a scanned one. Read only
+the parts of the diff you need to confirm or extend the marks, not the whole
+diff again.
+
 Mark every surface the diff touches. Each mark turns on a lens in step 3.
 
 | Surface | Signals |
@@ -103,6 +114,8 @@ Then make the **door call**:
   migrations, data deletes, emitted events or messages others consume, external
   contract removals, sent notifications.
 - **Two-way door**: reverting the MR and redeploying restores the old behaviour.
+
+Any scanned `oneWay` signal makes the change a one-way door.
 
 **Small change rule.** If the diff touches 2 files or fewer, is under 50 changed
 lines, is a two-way door, and marks none of Data, Contract, Config, Auth, or
@@ -141,7 +154,8 @@ Drop any finding that repeats a Stage 3 finding, whether fixed or dismissed.
 
 ### 4. Check the bar
 
-Scan the diff alone for the bar being lowered:
+Start from the scan's `loweredBar` hits from step 2. Each one stays a hit.
+Then check the diff alone for any the scan cannot see:
 
 - Tests deleted, skipped, or marked as expected failures.
 - Assertions removed or loosened.

@@ -31,6 +31,7 @@ Environment:
 ```text
 bun "$FACTORY_ROOT/scripts/config.ts"
 bun "$FACTORY_ROOT/scripts/review-fanout.ts" <input.json>
+bun "$FACTORY_ROOT/scripts/diff-scan.ts" <base> <head>
 bun "$FACTORY_ROOT/scripts/review-packet.ts" --ticket <file> --spec <change-dir> [--diff <file>] [--evidence <file>]... --out <file>
 ```
 
@@ -47,6 +48,11 @@ authoritative. `review-fanout.ts measure <base> <head>` produces the counts
 from code paths only. `review-fanout.ts adjudication <candidates.json>`
 returns `none` when no lens raised a candidate, `standard` when every
 candidate is Low, and `main` when any is Medium or above.
+
+`diff-scan.ts` marks sensitive surfaces, one-way signals, and lowered quality
+bars in a `base...head` diff from paths and changed lines, for TypeScript,
+Python, and Java. Its marks are a floor for review and release readiness:
+they can be added to, never removed. `--diff <file>` scans a saved diff.
 
 `review-packet.ts` writes one Markdown packet holding the work item, every
 spec file under the change directory, the diff when given, and the last 6000

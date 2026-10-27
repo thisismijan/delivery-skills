@@ -220,6 +220,11 @@ who verifies the lens candidates: nobody when there are none, one standard-tier
 subagent when all are Low, and the main conversation when any is Medium or
 above.
 
+Surfaces, one-way signals, and lowered-bar hits start from
+`bun "$FACTORY_ROOT/scripts/diff-scan.ts" <base> <head>`, used by
+`/code-review-max` and release readiness. Its marks are a floor that the model
+may add to and never remove. A non-zero exit stops the stage.
+
 The catalogue is ordered policy. Runtime availability chooses among catalogue
 candidates; it never lowers safety floors.
 

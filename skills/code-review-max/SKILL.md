@@ -103,7 +103,11 @@ Measure the counts with
 It leaves out the change's own OpenSpec, `.delivery/` and `.review/` files,
 which are not code and are reviewed against it, and reports what it left out.
 Classify surfaces from its `paths` only, so a spec's `.openspec.yaml` is never
-a Config surface.
+a Config surface. Start from
+`bun "${FACTORY_ROOT}/scripts/diff-scan.ts" <base-sha> <head-sha>`, which
+applies the same exclusions. Its `surfaces` are a floor: add a surface you can
+prove, never remove a scanned one. Any `oneWay` signal makes the change
+one-way. A non-zero exit stops the review.
 
 Write the measured counts, reversibility decision, whether every classification
 field was proved, and normalized surfaces to

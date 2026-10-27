@@ -110,7 +110,7 @@ export function planReviewFanout(input: ReviewFanoutInput): ReviewFanoutPlan {
 
 // Spec artefacts are reviewed by the holdout reviewer and lens 2 against the
 // code; counting them made every change look large and sensitive.
-const NON_CODE_PREFIXES = ["openspec/", ".delivery/", ".review/"];
+export const NON_CODE_PREFIXES = ["openspec/", ".delivery/", ".review/"];
 
 export interface ReviewableDiff {
 	changedFiles: number;
