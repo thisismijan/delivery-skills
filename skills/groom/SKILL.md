@@ -151,6 +151,16 @@ ticket.
 
 On explicit operator approval of the ticket (single-ticket path) or the slice breakdown (PRD-worthy or split-worthy path):
 
+0. When Step 2a passed and the operator approved that same content
+   without requesting a rewrite, do not dispatch the `groom-writer`.
+   Re-run `verify-ticket.ts` on `<output-dir>/source.md`. Non-zero exit
+   is a stop; never write it as the final artifact. Zero exit: require
+   `bun "${FACTORY_ROOT}/scripts/groom-paths.ts" verify "<repoRoot>"
+   "<output-dir>/ticket.md"`, then atomically copy `source.md` to that
+   verified path. Continue at step 3 below (PRD is skipped on this
+   path). When the operator requested a rewrite, or Step 2a failed,
+   continue at item 1.
+
 1. Dispatch `groom-writer` with a temporary staging directory inside the approved output directory:
    - The output directory (from Step 2).
    - The approved ticket content or slice breakdown.
