@@ -73,6 +73,35 @@ export function requireFastCatalogueCandidate(
 	return candidateModel;
 }
 
+export async function writeModelCatalogue(
+	catalogue: ModelCatalogue,
+	path = CATALOGUE_PATH,
+): Promise<void> {
+	await Bun.write(path, `${JSON.stringify(catalogue, null, "\t")}\n`);
+}
+
+export function registerFastCatalogueCandidate(
+	catalogue: ModelCatalogue,
+	candidateModel: string,
+): ModelCatalogue {
+	const next = structuredClone(catalogue);
+	for (const tier of ["frontier", "standard", "fast"] as const) {
+		if (
+			next.tiers[tier].candidates.some((item) => item.id === candidateModel)
+		) {
+			if (tier === "fast") return next;
+			throw new Error(
+				`${candidateModel} is already a ${tier} model; not registering as fast`,
+			);
+		}
+	}
+	next.tiers.fast.candidates.push({
+		id: candidateModel,
+		availability: "evaluation-only",
+	});
+	return next;
+}
+
 export function resolveAvailableModel(
 	catalogue: ModelCatalogue,
 	tier: ModelTier,
@@ -106,11 +135,12 @@ export function resolveAvailableModel(
 
 if (import.meta.main) {
 	try {
-		const catalogue = await loadModelCatalogue();
-		const [command, tierArg, inventoryFile, flag] = process.argv.slice(2);
+		const [command, ...rest] = process.argv.slice(2);
 		if (!command) {
-			console.log(JSON.stringify(catalogue));
-		} else if (command === "resolve" && tierArg && inventoryFile) {
+			console.log(JSON.stringify(await loadModelCatalogue()));
+		} else if (command === "resolve" && rest[0] && rest[1]) {
+			const [tierArg, inventoryFile, flag] = rest;
+			const catalogue = await loadModelCatalogue();
 			const tier = z.enum(["fast", "standard", "frontier"]).parse(tierArg);
 			const inventory = ModelInventory.parse(
 				await Bun.file(inventoryFile).json(),
@@ -122,9 +152,23 @@ if (import.meta.main) {
 					}),
 				),
 			);
+		} else if (command === "register-fast" && rest[0]) {
+			const [candidateModel, cataloguePath] = rest;
+			const path = cataloguePath ?? CATALOGUE_PATH;
+			const catalogue = await loadModelCatalogue(path);
+			const next = registerFastCatalogueCandidate(catalogue, candidateModel);
+			await writeModelCatalogue(next, path);
+			console.log(
+				JSON.stringify({
+					id: candidateModel,
+					availability: next.tiers.fast.candidates.find(
+						(item) => item.id === candidateModel,
+					)?.availability,
+				}),
+			);
 		} else {
 			console.error(
-				"usage: model-catalogue [resolve <fast|standard|frontier> <inventory.json> [--evaluation]]",
+				"usage: model-catalogue [resolve <fast|standard|frontier> <inventory.json> [--evaluation] | register-fast <id> [catalogue.json]]",
 			);
 			process.exit(2);
 		}
