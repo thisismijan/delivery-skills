@@ -100,7 +100,7 @@ function escapeRegex(s: string): string {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function sectionBody(text: string, name: string): string {
+export function sectionBody(text: string, name: string): string {
 	const lines = text.split("\n");
 	const headingPattern = /^#{1,6}\s+(.+?)\s*$/;
 	let inSection = false;

@@ -366,6 +366,9 @@ describe("small-context ticket scope", () => {
 		expect(assessor).toMatch(
 			/does not dispatch you when the work item body fails/i,
 		);
+		expect(draft).toMatch(/ticket-feasibility\.ts"/);
+		expect(draftContract).toMatch(/when skipAnalyst is true/i);
+		expect(draftContract).toMatch(/do not dispatch the feasibility-analyst/i);
 	});
 
 	test("assessor treats one cohesive contract as one cluster instead of splitting by default", () => {

@@ -83,7 +83,15 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
    - `decision: "clarify"` or `"reject"` → post the routing `reason` as one provider note on `<work-item-key>`, then **HARD STOP this run** (see "Terminal stop" below). No spec. For clarify, the note lists the specific gaps; for both, it notes that a human may edit the work item and re-invoke `/draft` **in a new session**.
    - `decision: "proceed"` → continue.
 
-4. **Feasibility.** Resolve `standard`, then dispatch the
+4. **Feasibility.** First scan What to build and Acceptance criteria:
+   ```
+   bun "${FACTORY_ROOT}/scripts/ticket-feasibility.ts" "<reviewDir>/work-item.json" \
+     > "<reviewDir>/ticket-feasibility.json"
+   ```
+   Non-zero exit → **stop and escalate**. When `skipAnalyst` is true, copy
+   `verdict` to `<reviewDir>/feasibility.json` and go to step 5. Do not
+   dispatch the `feasibility-analyst`. When `skipAnalyst` is false, resolve
+   `standard`, then dispatch the
    `feasibility-analyst` subagent with that exact available model against the
    codebase for this ticket. Persist its single JSON `FeasibilityVerdict` to
    `<reviewDir>/feasibility.json`.
