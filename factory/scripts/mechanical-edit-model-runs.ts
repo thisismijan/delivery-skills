@@ -209,12 +209,20 @@ export async function prepareUnscriptedMechanicalModelRuns(
 		);
 		captures.push(dir);
 	}
+	const fixtureIds = unscriptedMechanicalFixtures().map(
+		(fixture) => fixture.id,
+	);
 	await Bun.write(
 		join(root, "CAPTURE.md"),
 		[
 			"# Mechanical-edit model-run capture",
 			"",
 			"Dispatch the live standard worker and the named fast catalogue model (`model-catalogue.ts resolve fast <inventory> --evaluation`) on each `repos/<id>` git fixture. Do not live-dispatch a fast model.",
+			"",
+			"Before the candidate arm, prove the host accepts that exact id as a dispatchable model. Listing it in the inventory, or resolving it with `--evaluation`, is not a run. If the host refuses the id, stop. Do not ingest. Do not copy another candidate's tree. Do not invent token counts, trees, or results.",
+			"",
+			"Every unscripted fixture still needs a candidate run:",
+			...fixtureIds.map((id) => `- \`${id}\``),
 			"",
 			"For each `captures/<id>` drop:",
 			"",

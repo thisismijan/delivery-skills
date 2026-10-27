@@ -184,7 +184,10 @@ current session may use. At the start of a factory run:
    `mechanical-edit-model-runs.ts` prepare/ingest scores captured baseline
    and candidate trees as `model-run` evidence for an exact fast catalogue
    candidate. It requires host tokens, named workers, and hidden checks,
-   and refuses a non-fast model and character-only usage.
+   and refuses a non-fast model and character-only usage. The host must
+   accept that exact id as a dispatchable model before the candidate arm.
+   Inventory membership and `--evaluation` resolve are not a run. A
+   refused host id writes no corpus scores and does not promote.
    It never asks the
    implementer whether the work is menial. Public rankings and unscored fixtures never promote.
    `record-routing.ts persist` requires an explicit outcome

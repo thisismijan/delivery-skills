@@ -85,6 +85,9 @@ test("approved Spark and Haiku are live while Composer stays evaluation-only", a
 		)?.availability,
 	).toBe("evaluation-only");
 	expect(
+		catalogue.tiers.fast.candidates.map((candidate) => candidate.id),
+	).toEqual(["muse-spark-1.3-medium", "composer-1", "haiku"]);
+	expect(
 		resolveAvailableModel(catalogue, "fast", {
 			version: 1,
 			recordedAt: "2026-10-16T09:00:00.000Z",

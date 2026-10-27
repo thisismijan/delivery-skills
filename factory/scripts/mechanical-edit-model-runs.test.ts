@@ -103,7 +103,18 @@ test("prepare materializes git fixtures and capture skeletons", async () => {
 				).exists(),
 			).toBe(true);
 		}
-		expect(await Bun.file(join(workDir, "CAPTURE.md")).exists()).toBe(true);
+		const capture = await Bun.file(join(workDir, "CAPTURE.md")).text();
+		expect(capture).toMatch(
+			/prove the host accepts that exact id as a dispatchable model/i,
+		);
+		expect(capture).toMatch(
+			/Listing it in the inventory, or resolving it with `--evaluation`, is not a run/,
+		);
+		expect(capture).toMatch(/If the host refuses the id, stop/i);
+		expect(capture).toMatch(/Do not invent token counts/i);
+		for (const fixture of unscriptedMechanicalFixtures()) {
+			expect(capture).toContain(`- \`${fixture.id}\``);
+		}
 	} finally {
 		await rm(workDir, { recursive: true, force: true });
 	}
