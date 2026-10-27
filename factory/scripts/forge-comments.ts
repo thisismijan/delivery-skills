@@ -9,17 +9,18 @@ import { type MrComment, excludeHandledThreads } from "./glab-comments";
 
 export function parseForgeDiscussions(input: unknown): MrComment[] {
 	const result = ForgeDiscussions.parse(input);
-	return result.discussions.flatMap((discussion) =>
-		discussion.notes
-			.filter((note) => !note.system)
+	return result.discussions.flatMap((discussion) => {
+		if (discussion.resolved) return [];
+		return discussion.notes
+			.filter((note) => !note.system && !note.resolved)
 			.map((note) => ({
 				id: note.id,
 				discussionId: discussion.id,
 				author: note.author,
 				body: note.body,
 				...(note.anchor ? { anchor: note.anchor } : {}),
-			})),
-	);
+			}));
+	});
 }
 
 export interface ScriptedOutdatedComment {
@@ -46,6 +47,14 @@ export function scopeComments(
 	const inScope: MrComment[] = [];
 	const outdated: ScriptedOutdatedComment[] = [];
 	for (const comment of comments) {
+		if (comment.body.trim() === "") {
+			outdated.push({
+				commentId: String(comment.id),
+				classification: "outdated",
+				reasoning: "comment body is empty",
+			});
+			continue;
+		}
 		const anchor = comment.anchor;
 		if (!anchor || anchor.side === "old") {
 			inScope.push(comment);

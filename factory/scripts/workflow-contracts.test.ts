@@ -566,6 +566,8 @@ describe("bounded recovery and replay safety", () => {
 		);
 		expect(comments).toMatch(/forge-comments\.ts" scope/i);
 		expect(comments).toMatch(/missing path or a new-side line past the end/i);
+		expect(comments).toMatch(/drops resolved discussions and resolved notes/i);
+		expect(comments).toMatch(/empty or whitespace-only body is outdated/i);
 		expect(comments).toMatch(
 			/head still equals the step 2 revision.*no re-review-pending\.json existed on entry.*skip the cumulative gates and holdout re-review/i,
 		);
