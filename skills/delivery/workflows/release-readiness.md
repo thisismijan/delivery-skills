@@ -123,6 +123,18 @@ Infra, skip the subagents in step 3 and run the rollback lens yourself.
 
 ### 3. Run the lenses
 
+Resolve the `standard` capability against the recorded inventory:
+```
+bun "${FACTORY_ROOT}/scripts/model-catalogue.ts" resolve standard \
+  .delivery/routing/model-inventory.json
+```
+Pass that exact model identifier to every lens subagent. These lenses collect
+findings; the main conversation still decides GO or NO-GO, drops Stage 3
+duplicates, and keeps unverified Critical and High findings blocking. A
+missing live standard candidate stops the stage. Do not dispatch a fast
+model for these lenses: they have no executable test, lint, or typecheck
+gate of their own.
+
 Run the lenses the classification turned on as parallel read-only subagents. Give
 each one the diff, the OpenSpec change, and its brief below, not the author's
 reasoning. Each returns findings as: severity (Critical, High, Important,
