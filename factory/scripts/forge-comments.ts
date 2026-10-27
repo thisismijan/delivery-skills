@@ -1,6 +1,7 @@
 export {
 	AUDIT_PREFIX,
 	excludeHandledThreads,
+	type CommentAnchor,
 	type MrComment,
 } from "./glab-comments";
 import { ForgeDiscussions } from "./forge-provider";
@@ -16,13 +17,113 @@ export function parseForgeDiscussions(input: unknown): MrComment[] {
 				discussionId: discussion.id,
 				author: note.author,
 				body: note.body,
+				...(note.anchor ? { anchor: note.anchor } : {}),
 			})),
 	);
 }
 
+export interface ScriptedOutdatedComment {
+	commentId: string;
+	classification: "outdated";
+	reasoning: string;
+}
+
+export interface ScopedComments {
+	inScope: MrComment[];
+	outdated: ScriptedOutdatedComment[];
+}
+
+function lineCount(contents: string): number {
+	if (contents.length === 0) return 0;
+	const lines = contents.split("\n");
+	return contents.endsWith("\n") ? lines.length - 1 : lines.length;
+}
+
+export function scopeComments(
+	comments: MrComment[],
+	headFiles: Record<string, string | null>,
+): ScopedComments {
+	const inScope: MrComment[] = [];
+	const outdated: ScriptedOutdatedComment[] = [];
+	for (const comment of comments) {
+		const anchor = comment.anchor;
+		if (!anchor || anchor.side === "old") {
+			inScope.push(comment);
+			continue;
+		}
+		if (!(anchor.path in headFiles)) {
+			inScope.push(comment);
+			continue;
+		}
+		const contents = headFiles[anchor.path];
+		const id = String(comment.id);
+		if (contents === null) {
+			outdated.push({
+				commentId: id,
+				classification: "outdated",
+				reasoning: `anchor path ${anchor.path} is missing at the pinned head`,
+			});
+			continue;
+		}
+		if (typeof contents !== "string") {
+			throw new Error(
+				`head-files.json value for ${anchor.path} must be a string or null`,
+			);
+		}
+		const lines = lineCount(contents);
+		if (anchor.line > lines) {
+			outdated.push({
+				commentId: id,
+				classification: "outdated",
+				reasoning: `anchor line ${anchor.line} is past the end of ${anchor.path} (${lines} lines)`,
+			});
+			continue;
+		}
+		inScope.push(comment);
+	}
+	return { inScope, outdated };
+}
+
+const USAGE = [
+	"usage: forge-comments.ts",
+	"       forge-comments.ts scope <comments.json> <head-files.json>",
+].join("\n");
+
 if (import.meta.main) {
-	const input = await new Response(Bun.stdin.stream()).text();
+	const [command, commentsPath, filesPath] = process.argv.slice(2);
 	try {
+		if (command === "scope") {
+			if (!commentsPath || !filesPath) {
+				console.error(USAGE);
+				process.exit(2);
+			}
+			const comments = JSON.parse(
+				await Bun.file(commentsPath).text(),
+			) as MrComment[];
+			if (!Array.isArray(comments)) {
+				throw new Error("comments.json must be an array");
+			}
+			const headFiles = JSON.parse(await Bun.file(filesPath).text()) as Record<
+				string,
+				string | null
+			>;
+			if (
+				headFiles === null ||
+				typeof headFiles !== "object" ||
+				Array.isArray(headFiles)
+			) {
+				throw new Error(
+					"head-files.json must be an object of path to contents or null",
+				);
+			}
+			console.log(JSON.stringify(scopeComments(comments, headFiles), null, 2));
+			process.exit(0);
+		}
+		if (command) {
+			console.error(USAGE);
+			process.exit(2);
+		}
+		const input = await new Response(Bun.stdin.stream()).text();
 		const authors = new Set(
 			(process.env.DELIVERY_FACTORY_AUTHORS ?? "factory,delivery-bot")
 				.split(",")

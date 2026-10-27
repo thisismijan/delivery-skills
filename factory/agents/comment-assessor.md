@@ -42,6 +42,6 @@ Output **only** a single JSON array (no prose, no code fences) that validates as
 ]
 ```
 
-- One entry per in-scope comment, no more and no fewer. If there are zero in-scope comments, output `[]`.
+- One entry per in-scope comment, no more and no fewer. The command does not dispatch you when the in-scope list is empty.
 - `commentId` must echo the id you were given for that comment.
 - Enums must match exactly. No additional keys.

@@ -6,11 +6,18 @@ export { AUDIT_PREFIX };
 // No process is spawned here; the command pipes JSON input in.
 // Fail-closed: unparseable / non-array input throws.
 
+export interface CommentAnchor {
+	path: string;
+	line: number;
+	side?: "new" | "old";
+}
+
 export interface MrComment {
 	id: string | number; // note id from glab JSON
 	discussionId: string; // parent thread id, for replying via .../discussions/<id>/notes
 	author: string; // display name or username of the author
 	body: string; // full comment body text
+	anchor?: CommentAnchor;
 }
 
 interface RawGlabNote {

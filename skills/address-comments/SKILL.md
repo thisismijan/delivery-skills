@@ -81,16 +81,38 @@ This command consumes the review comments on the **existing** MR for this ticket
      | bun "${FACTORY_ROOT}/scripts/forge-comments.ts" \
      > "<reviewDir>/comments.json"
    ```
-   Non-zero exit or unparseable output → **stop + escalate**. The provider result is normalized JSON bound to the requested change and head revision. `forge-comments.ts` flattens it to one entry per non-system note, carries each parent `discussionId` (needed to reply on its thread), and applies `excludeHandledThreads`: if an authenticated factory note in a discussion starts with the audit prefix, the **entire discussion** is excluded. Removing only the factory reply would leave the original human note in scope and cause a duplicate action on re-entry. The resulting comments are **in scope**.
+   Non-zero exit or unparseable output → **stop + escalate**. The provider result is normalized JSON bound to the requested change and head revision. `forge-comments.ts` flattens it to one entry per non-system note, carries each parent `discussionId` (needed to reply on its thread), and applies `excludeHandledThreads`: if an authenticated factory note in a discussion starts with the audit prefix, the **entire discussion** is excluded. Removing only the factory reply would leave the original human note in scope and cause a duplicate action on re-entry.
 
-5. **Classify (single batch, read-only).** Resolve `standard` against the runtime
+   For every remaining comment with a new-side `anchor`, read that path at the
+   pinned head (`git show <head>:<path>`). Write those contents, or `null` when
+   the path is missing, to `<reviewDir>/head-files.json`. Do not invent file
+   text. Then:
+   ```
+   bun "${FACTORY_ROOT}/scripts/forge-comments.ts" scope \
+     "<reviewDir>/comments.json" "<reviewDir>/head-files.json" \
+     > "<reviewDir>/scoped-comments.json"
+   ```
+   Non-zero exit → **stop + escalate**. A missing path or a new-side line past
+   the end of the file is outdated. An unanchored comment, an old-side
+   anchor, or a path you did not look up stays in scope. Replace
+   `comments.json` with the `inScope` array. Copy the `outdated` array into
+   `<reviewDir>/classification.json` (or `[]` when there were none). Write
+   `<reviewDir>/expected-comment-ids.json` from every `inScope` id plus every
+   `outdated` `commentId`. The resulting `inScope` comments are **in scope**.
+
+5. **Classify (single batch, read-only).** If in-scope comments are empty,
+   do not dispatch the `comment-assessor`. Keep `classification.json` as the
+   scripted outdated verdicts, or `[]` when there were none, then continue
+   at step 6. When at least one in-scope comment remains, resolve `standard`
+   against the runtime
    model inventory. Read `routingProfiling` from
    `bun "${FACTORY_ROOT}/scripts/config.ts"` (default `off`). When it is exactly
    `always`, start a usage timer. Then dispatch **exactly one**
    `comment-assessor` subagent with that exact available model (tools
    `Read, Grep, Glob` only), the in-scope comments (each with its `commentId`
    and `discussionId`), the diff, and `<changeDir>` (spec + tasks). Keep each
-   comment's `discussionId` so step 7 can reply on the right thread.
+   comment's `discussionId` so step 7 can reply on the right thread. Merge the
+   assessor verdicts onto the scripted outdated entries before validating.
    ```
    bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/classify-usage-timer.json"
    ```
@@ -98,7 +120,7 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    bun "${FACTORY_ROOT}/scripts/verdicts.ts" classification "<reviewDir>/classification.json" "<reviewDir>/expected-comment-ids.json"
    ```
-   A malformed or missing verdict → **stop + escalate** and action no comments. If there are zero in-scope comments the verdict is `[]` — nothing to action; go to step 8 only if any prior change was made, otherwise stop cleanly. After a valid verdict, only when `routingProfiling` is `always`, resolve `frontier` and dispatch `task-profile-controller` with that exact available model for the classify task, validate with `task-profile.ts`, persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-shadow.json"`, and finish capture after the outcome file exists:
+   A malformed or missing verdict → **stop + escalate** and action no comments. After a valid verdict, only when `routingProfiling` is `always`, resolve `frontier` and dispatch `task-profile-controller` with that exact available model for the classify task, validate with `task-profile.ts`, persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-shadow.json"`, and finish capture after the outcome file exists:
    ```
    bun "${FACTORY_ROOT}/scripts/capture-usage.ts" finish "<reviewDir>/classify-usage-timer.json" "<reviewDir>/classify-usage.json" --input "<reviewDir>/classify-profile.json" --output "<reviewDir>/classify-outcome.json"
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-outcome.json" "<reviewDir>/classify-usage.json" <controller-model> <standard-model>
