@@ -17,6 +17,21 @@ const SPLIT_RECOMMENDATION =
 export async function inspectTicketStructure(
 	item: WorkItem,
 ): Promise<TicketStructureResult> {
+	if (item.blockedBy.length > 0) {
+		return {
+			skipAssessor: true,
+			verdict: {
+				quality: "needs_clarification",
+				scopeFit: "atomic",
+				splitRecommendation: [],
+				gaps: [
+					`This work item is blocked by ${item.blockedBy.join(", ")}. Draft it after those blockers merge.`,
+				],
+				derivedAcceptanceCriteria: [],
+				confidence: "high",
+			},
+		};
+	}
 	const result = await verifyTicket(`${item.body}\n`);
 	if (result.ok) return { skipAssessor: false };
 	const tooLarge = result.missing.some((gap) =>

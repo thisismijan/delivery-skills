@@ -3,7 +3,11 @@ import { inspectTicketStructure } from "./ticket-structure";
 import { parseAssessmentVerdict } from "./verdicts";
 import { WorkItem } from "./work-item-provider";
 
-function item(body: string, title = "Export dashboard data"): WorkItem {
+function item(
+	body: string,
+	title = "Export dashboard data",
+	blockedBy: string[] = [],
+): WorkItem {
 	return WorkItem.parse({
 		version: 1,
 		provider: "sample",
@@ -11,7 +15,7 @@ function item(body: string, title = "Export dashboard data"): WorkItem {
 		type: "story",
 		title,
 		body,
-		blockedBy: [],
+		blockedBy,
 		notes: [],
 	});
 }
@@ -59,6 +63,21 @@ test("missing sections skip the assessor with those gaps", async () => {
 		expect(result.verdict.splitRecommendation).toEqual([]);
 		expect(result.verdict.confidence).toBe("high");
 		expect(result.verdict.gaps.join(" ")).toMatch(/Missing required section/);
+		expect(parseAssessmentVerdict(JSON.stringify(result.verdict))).toEqual(
+			result.verdict,
+		);
+	}
+});
+
+test("recorded blockers skip the assessor even when the body is valid", async () => {
+	const result = await inspectTicketStructure(
+		item(validBody, "Export dashboard data", ["KEY-2"]),
+	);
+	expect(result.skipAssessor).toBe(true);
+	if (result.skipAssessor) {
+		expect(result.verdict.quality).toBe("needs_clarification");
+		expect(result.verdict.scopeFit).toBe("atomic");
+		expect(result.verdict.gaps.join(" ")).toMatch(/blocked by KEY-2/i);
 		expect(parseAssessmentVerdict(JSON.stringify(result.verdict))).toEqual(
 			result.verdict,
 		);
