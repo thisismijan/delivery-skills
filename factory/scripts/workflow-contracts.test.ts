@@ -357,6 +357,12 @@ describe("small-context ticket scope", () => {
 			/No spec is authored for an oversized ticket/i,
 		);
 		expect(draftContract).toMatch(/SPLIT_REQUIRED/i);
+		expect(draft).toMatch(/ticket-structure\.ts"/);
+		expect(draftContract).toMatch(/when skipAssessor is true/i);
+		expect(draftContract).toMatch(/do not dispatch the ticket-assessor/i);
+		expect(assessor).toMatch(
+			/does not dispatch you when the work item body fails/i,
+		);
 	});
 
 	test("assessor treats one cohesive contract as one cluster instead of splitting by default", () => {
