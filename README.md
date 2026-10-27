@@ -425,7 +425,10 @@ the live standard worker and the named fast catalogue model with
 `model-catalogue.ts resolve fast <inventory> --evaluation`, drop the trees
 and `capture-usage.ts` token files, then ingest naming that exact fast id.
 Ingest refuses a non-fast model, character-only usage, and the stand-in
-rewrite. A new exact id joins the fast tier with
+rewrite. The host must accept the exact candidate id as a dispatchable
+model before the candidate arm. Inventory membership and evaluation
+resolve are not a run. A refused host id produces no ingest JSON and
+does not promote. A new exact id joins the fast tier with
 `model-catalogue.ts register-fast <id>`. It stays evaluation-only until
 `fast-dispatch.ts promote <corpus> <id> --approve <id>` writes it live
 after an exact operator promotion approval. `muse-spark-1.3-medium` and
