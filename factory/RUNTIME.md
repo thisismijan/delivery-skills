@@ -161,7 +161,8 @@ current session may use. At the start of a factory run:
    resolved with `--evaluation` for corpus benchmarking. Register a new
    exact id with `model-catalogue.ts register-fast <id>`. Promote with
    `fast-dispatch.ts promote <corpus> <id> --approve <id>`. Live delivery
-   may resolve a catalogue-live fast id without `--evaluation`. A later
+   may resolve `muse-spark-1.3-medium` and `haiku` without `--evaluation`.
+   Composer stays evaluation-only. A later
    version id does not inherit scores.
    `fast-dispatch.ts` still gates the exact candidate and task class on
    representative-run scores. Live scores are never mixed into that

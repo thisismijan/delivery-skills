@@ -428,7 +428,8 @@ Ingest refuses a non-fast model, character-only usage, and the stand-in
 rewrite. A new exact id joins the fast tier with
 `model-catalogue.ts register-fast <id>`. It stays evaluation-only until
 `fast-dispatch.ts promote <corpus> <id> --approve <id>` writes it live
-after an exact operator promotion approval. Scores do not carry to a
+after an exact operator promotion approval. `muse-spark-1.3-medium` and
+`haiku` are live after that path. Composer stays evaluation-only. Scores do not carry to a
 later version id. The worker never decides that its own job is menial.
 
 Diagnostic shadow profiling defaults off so a ticket does not pay extra
@@ -521,7 +522,8 @@ ambiguous match stops the run instead of guessing.
   models stay evaluation-only until representative-run scores for that exact
   candidate clear the 90 percent bar with at least five reversible cases and
   no critical misses, then `fast-dispatch.ts promote` with `--approve` of
-  that same id. A later version id is a new candidate. Live evidence is
+  that same id. Spark and Haiku are live after that path. Composer stays
+  evaluation-only. A later version id is a new candidate. Live evidence is
   not mixed into that sample. Safety floors keep auth,
   migration, concurrency, distributed-state, weak-verification, holdout
   review, and irreversible work on the frontier recommendation. Live
