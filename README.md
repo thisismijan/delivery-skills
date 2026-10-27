@@ -429,7 +429,8 @@ rewrite. A new exact id joins the fast tier with
 `model-catalogue.ts register-fast <id>`. It stays evaluation-only until
 `fast-dispatch.ts promote <corpus> <id> --approve <id>` writes it live
 after an exact operator promotion approval. `muse-spark-1.3-medium` and
-`haiku` are live after that path. Composer stays evaluation-only. Scores do not carry to a
+`haiku` are live after that path. Live resolve may return an advertised
+alias the host accepts (`claude-haiku-5-5-medium` for Haiku). Composer stays evaluation-only. Scores do not carry to a
 later version id. The worker never decides that its own job is menial.
 
 Diagnostic shadow profiling defaults off so a ticket does not pay extra

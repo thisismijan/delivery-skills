@@ -22,7 +22,11 @@
 			"candidates": [
 				{ "id": "muse-spark-1.3-medium", "availability": "live" },
 				{ "id": "composer-1", "availability": "evaluation-only" },
-				{ "id": "haiku", "availability": "live" }
+				{
+					"id": "haiku",
+					"availability": "live",
+					"aliases": ["claude-haiku-5-5-medium"]
+				}
 			],
 			"purpose": "mechanical and strongly verified work"
 		}
