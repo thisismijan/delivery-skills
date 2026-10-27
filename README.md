@@ -419,7 +419,12 @@ languages, star imports — keeps today's worker. Those units sit in
 `mechanical-edit-scoring.ts`. `mechanical-edit-test-repos.ts` materializes
 them as temporary git repositories and runs a paired baseline/candidate
 loop. A local listed-file rewrite is recorded as `test-repo-stand-in` and
-does not count toward graduation. Fast catalogue models stay
+does not count toward graduation. Real scores come from
+`mechanical-edit-model-runs.ts`: prepare the capture directory, dispatch
+the live standard worker and Haiku with
+`model-catalogue.ts resolve fast <inventory> --evaluation`, drop the trees
+and `capture-usage.ts` token files, then ingest. Ingest refuses
+character-only usage and the stand-in rewrite. Fast catalogue models stay
 evaluation-only until promotion. The worker never decides that its own job
 is menial.
 

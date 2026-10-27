@@ -174,7 +174,11 @@ current session may use. At the start of a factory run:
    for representative scoring only. `mechanical-edit-test-repos.ts`
    materializes those fixtures as git test repositories and writes paired
    corpus files to a caller directory. A local stand-in rewrite is
-   `test-repo-stand-in` evidence and is not counted. It never asks the
+   `test-repo-stand-in` evidence and is not counted.
+   `mechanical-edit-model-runs.ts` prepare/ingest scores captured baseline
+   and candidate trees as `model-run` evidence. It requires host tokens,
+   named workers, and hidden checks, and refuses character-only usage.
+   It never asks the
    implementer whether the work is menial. Public rankings and unscored fixtures never promote.
    `record-routing.ts persist` requires an explicit outcome
    file validated against the outcome schema. A missing or invalid outcome is
