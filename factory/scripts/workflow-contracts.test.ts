@@ -446,6 +446,13 @@ describe("bounded recovery and replay safety", () => {
 			expect(plain(skill)).toMatch(/payload flag is not proof/i);
 			expect(plain(skill)).toMatch(/do not dispatch a catalogue fast model/i);
 		}
+		expect(plain(execute)).toMatch(
+			/when apply is script.*do not dispatch the test-writer or the implementer/i,
+		);
+		expect(plain(execute)).toMatch(/do not run a red gate/i);
+		expect(plain(ticketToMr)).toMatch(
+			/scripted mechanical-edit unit skips the test-writer, red gate, and implementer/i,
+		);
 		expect(addressComments).toMatch(/nitpick/i);
 		expect(plain(addressComments)).toMatch(/make no code change/i);
 		expect(runtime).toContain("mechanical-edit.ts");
