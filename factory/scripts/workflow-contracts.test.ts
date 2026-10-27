@@ -286,6 +286,9 @@ describe("durable grooming", () => {
 		expect(plain(groom)).toMatch(/withholds the recommendation/i);
 		expect(groom).toContain("decisions.md");
 		expect(groom).toContain("Agent decided:");
+		expect(groom).toMatch(/verify-ticket\.ts" "<output-dir>\/source\.md"/);
+		expect(plain(groom)).toMatch(/do not dispatch the groom-explorer/i);
+		expect(plain(groom)).toMatch(/do not run the grilling loop/i);
 	});
 
 	test("ticket prompts prefer contracts over stale source coordinates", () => {
