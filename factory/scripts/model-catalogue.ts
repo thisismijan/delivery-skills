@@ -5,6 +5,7 @@ import type { ModelTier } from "./task-profile";
 export const ModelCandidate = z.object({
 	id: z.string().min(1),
 	availability: z.enum(["live", "evaluation-only"]),
+	aliases: z.array(z.string().min(1)).default([]),
 });
 export type ModelCandidate = z.infer<typeof ModelCandidate>;
 
@@ -108,17 +109,34 @@ export function resolveAvailableModel(
 	inventory: ModelInventory,
 	options: { allowEvaluationOnly?: boolean } = {},
 ): ResolvedModel {
-	const advertised = new Set(inventory.models);
+	const advertised = inventory.models;
+	const advertisedSet = new Set(advertised);
 	const candidates = catalogueModels(catalogue, tier);
-	const selected = candidates.find(
-		(candidate) =>
-			advertised.has(candidate.id) &&
-			(candidate.availability === "live" ||
-				options.allowEvaluationOnly === true),
-	);
+	const selected = candidates
+		.map((candidate) => {
+			const hostId = advertised.find(
+				(model) => model === candidate.id || candidate.aliases.includes(model),
+			);
+			return hostId ? { candidate, hostId } : undefined;
+		})
+		.find(
+			(
+				match,
+			): match is {
+				candidate: ModelCandidate;
+				hostId: string;
+			} =>
+				match !== undefined &&
+				(match.candidate.availability === "live" ||
+					options.allowEvaluationOnly === true),
+		);
 	if (!selected) {
 		const availableCandidates = candidates
-			.filter((candidate) => advertised.has(candidate.id))
+			.filter(
+				(candidate) =>
+					advertisedSet.has(candidate.id) ||
+					candidate.aliases.some((alias) => advertisedSet.has(alias)),
+			)
 			.map((candidate) => candidate.id);
 		const detail =
 			availableCandidates.length > 0
@@ -128,8 +146,8 @@ export function resolveAvailableModel(
 	}
 	return {
 		tier,
-		model: selected.id,
-		availability: selected.availability,
+		model: selected.hostId,
+		availability: selected.candidate.availability,
 	};
 }
 

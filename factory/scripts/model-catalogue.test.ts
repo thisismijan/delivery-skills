@@ -95,6 +95,53 @@ test("approved Spark and Haiku are live while Composer stays evaluation-only", a
 		model: "haiku",
 		availability: "live",
 	});
+	expect(
+		resolveAvailableModel(catalogue, "fast", {
+			version: 1,
+			recordedAt: "2026-10-27T14:00:00.000Z",
+			models: ["claude-haiku-5-5-medium", "claude-sonnet-5-5-medium"],
+		}),
+	).toEqual({
+		tier: "fast",
+		model: "claude-haiku-5-5-medium",
+		availability: "live",
+	});
+	expect(() =>
+		resolveAvailableModel(catalogue, "fast", {
+			version: 1,
+			recordedAt: "2026-10-27T14:00:00.000Z",
+			models: [
+				"claude-sonnet-5-5-medium",
+				"claude-haiku-5-5-medium",
+				"muse-spark-1.3-medium",
+				"muse-wonder-1.0-high",
+			],
+		}),
+	).not.toThrow();
+	expect(
+		resolveAvailableModel(catalogue, "fast", {
+			version: 1,
+			recordedAt: "2026-10-27T14:00:00.000Z",
+			models: [
+				"claude-sonnet-5-5-medium",
+				"claude-haiku-5-5-medium",
+				"muse-spark-1.3-medium",
+				"muse-wonder-1.0-high",
+			],
+		}).model,
+	).toBe("muse-spark-1.3-medium");
+	expect(() =>
+		resolveAvailableModel(catalogue, "fast", {
+			version: 1,
+			recordedAt: "2026-10-27T14:00:00.000Z",
+			models: [
+				"claude-sonnet-5-5-medium",
+				"claude-opus-5-5-high",
+				"gemini-4-argon-medium",
+				"muse-wonder-1.0-high",
+			],
+		}),
+	).toThrow("advertised models do not include");
 });
 
 test("live fast candidates resolve without evaluation and others stay blocked", async () => {
