@@ -56,6 +56,23 @@ export function catalogueModels(
 	return catalogue.tiers[tier].candidates;
 }
 
+export function fastCatalogueCandidateIds(catalogue: ModelCatalogue): string[] {
+	return catalogueModels(catalogue, "fast").map((candidate) => candidate.id);
+}
+
+export function requireFastCatalogueCandidate(
+	catalogue: ModelCatalogue,
+	candidateModel: string,
+): string {
+	const ids = fastCatalogueCandidateIds(catalogue);
+	if (!ids.includes(candidateModel)) {
+		throw new Error(
+			`${candidateModel} is not a fast catalogue model; fast candidates are: ${ids.join(", ")}`,
+		);
+	}
+	return candidateModel;
+}
+
 export function resolveAvailableModel(
 	catalogue: ModelCatalogue,
 	tier: ModelTier,

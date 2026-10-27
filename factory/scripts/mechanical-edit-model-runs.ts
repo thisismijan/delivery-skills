@@ -12,11 +12,15 @@ import {
 	generatePairedEvidence,
 } from "./generate-paired-evidence";
 import {
-	UNSCRIPTED_MECHANICAL_CANDIDATE,
 	representativeUnscriptedMechanicalObservations,
 	unscriptedMechanicalFixtures,
 } from "./mechanical-edit-scoring";
 import { materializeUnscriptedMechanicalRepos } from "./mechanical-edit-test-repos";
+import {
+	fastCatalogueCandidateIds,
+	loadModelCatalogue,
+	requireFastCatalogueCandidate,
+} from "./model-catalogue";
 import { evaluatePairedEvidence } from "./paired-evaluation";
 import { Usage } from "./routing-observation";
 
@@ -210,7 +214,7 @@ export async function prepareUnscriptedMechanicalModelRuns(
 		[
 			"# Mechanical-edit model-run capture",
 			"",
-			"Dispatch the live standard worker and Haiku (`model-catalogue.ts resolve fast <inventory> --evaluation`) on each `repos/<id>` git fixture. Do not live-dispatch Haiku.",
+			"Dispatch the live standard worker and the named fast catalogue model (`model-catalogue.ts resolve fast <inventory> --evaluation`) on each `repos/<id>` git fixture. Do not live-dispatch a fast model.",
 			"",
 			"For each `captures/<id>` drop:",
 			"",
@@ -228,7 +232,7 @@ export async function prepareUnscriptedMechanicalModelRuns(
 
 export async function ingestUnscriptedMechanicalModelRuns(input: {
 	captureDir: string;
-	candidateModel?: string;
+	candidateModel: string;
 }): Promise<{
 	corpusDir: string;
 	entries: CorpusEntry[];
@@ -236,8 +240,10 @@ export async function ingestUnscriptedMechanicalModelRuns(input: {
 	availability: "live" | "evaluation-only";
 }> {
 	const root = resolve(input.captureDir);
-	const candidateModel =
-		input.candidateModel ?? UNSCRIPTED_MECHANICAL_CANDIDATE;
+	const candidateModel = requireFastCatalogueCandidate(
+		await loadModelCatalogue(),
+		input.candidateModel,
+	);
 	const fixtures = unscriptedMechanicalFixtures();
 	const observations =
 		representativeUnscriptedMechanicalObservations("representative-run");
@@ -321,14 +327,22 @@ export async function ingestUnscriptedMechanicalModelRuns(input: {
 }
 
 if (import.meta.main) {
-	const [command, dir] = process.argv.slice(2);
-	if (!command || !dir || (command !== "prepare" && command !== "ingest")) {
+	const [command, dir, candidateModel] = process.argv.slice(2);
+	if (
+		!command ||
+		!dir ||
+		(command !== "prepare" && command !== "ingest") ||
+		(command === "ingest" && !candidateModel)
+	) {
 		console.error(
-			"usage: mechanical-edit-model-runs <prepare|ingest> <directory>",
+			"usage: mechanical-edit-model-runs prepare <directory>\n       mechanical-edit-model-runs ingest <directory> <fast-candidate>",
 		);
 		process.exit(2);
 	}
 	try {
+		const fastCandidates = fastCatalogueCandidateIds(
+			await loadModelCatalogue(),
+		);
 		if (command === "prepare") {
 			const prepared = await prepareUnscriptedMechanicalModelRuns(dir);
 			console.log(
@@ -336,22 +350,27 @@ if (import.meta.main) {
 					workDir: prepared.workDir,
 					repos: prepared.repos.length,
 					captures: prepared.captures.length,
-					candidate: UNSCRIPTED_MECHANICAL_CANDIDATE,
+					fastCandidates,
 				}),
 			);
 		} else {
+			if (!candidateModel) {
+				process.exit(2);
+			}
 			const ingested = await ingestUnscriptedMechanicalModelRuns({
 				captureDir: dir,
+				candidateModel,
 			});
 			console.log(
 				JSON.stringify({
-					candidate: UNSCRIPTED_MECHANICAL_CANDIDATE,
+					candidate: candidateModel,
 					provenance: MODEL_RUN_PROVENANCE,
 					count: ingested.entries.length,
 					sampleSize: ingested.sampleSize,
 					availability: ingested.availability,
 					need: MIN_EVALUATED_FAST_SAMPLES,
 					corpus: ingested.corpusDir,
+					fastCandidates,
 				}),
 			);
 		}

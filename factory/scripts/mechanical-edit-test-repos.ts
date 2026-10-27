@@ -10,11 +10,15 @@ import {
 } from "./evaluation-corpus";
 import { generatePairedEvidence } from "./generate-paired-evidence";
 import {
-	UNSCRIPTED_MECHANICAL_CANDIDATE,
 	type UnscriptedMechanicalFixture,
 	representativeUnscriptedMechanicalObservations,
 	unscriptedMechanicalFixtures,
 } from "./mechanical-edit-scoring";
+import {
+	fastCatalogueCandidateIds,
+	loadModelCatalogue,
+	requireFastCatalogueCandidate,
+} from "./model-catalogue";
 import { evaluatePairedEvidence } from "./paired-evaluation";
 
 export { TEST_REPO_STAND_IN_PROVENANCE };
@@ -187,8 +191,13 @@ export async function benchmarkUnscriptedMechanicalRepos(input?: {
 	const workDir =
 		input?.workDir ??
 		join(tmpdir(), `mechanical-edit-test-repos-${Date.now()}`);
-	const candidateModel =
-		input?.candidateModel ?? UNSCRIPTED_MECHANICAL_CANDIDATE;
+	const catalogue = await loadModelCatalogue();
+	const named =
+		input?.candidateModel ?? fastCatalogueCandidateIds(catalogue)[0];
+	if (!named) {
+		throw new Error("the fast catalogue tier has no candidates");
+	}
+	const candidateModel = requireFastCatalogueCandidate(catalogue, named);
 	const repoParent = join(workDir, "repos");
 	const corpusDir = join(workDir, "corpus");
 	await mkdir(repoParent, { recursive: true });
@@ -325,12 +334,16 @@ export async function benchmarkUnscriptedMechanicalRepos(input?: {
 
 if (import.meta.main) {
 	try {
+		const catalogue = await loadModelCatalogue();
+		const fastCandidates = fastCatalogueCandidateIds(catalogue);
 		const result = await benchmarkUnscriptedMechanicalRepos({
 			workDir: process.argv[2],
+			candidateModel: process.argv[3] ?? fastCandidates[0],
 		});
 		console.log(
 			JSON.stringify({
-				candidate: UNSCRIPTED_MECHANICAL_CANDIDATE,
+				candidate: result.entries[0]?.evaluation?.candidateModel,
+				fastCandidates,
 				workDir: result.workDir,
 				corpus: result.corpusDir,
 				count: result.entries.length,

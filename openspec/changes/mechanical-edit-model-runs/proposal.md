@@ -11,7 +11,7 @@ captured baseline and candidate trees from an advertised model run.
   and hidden checks.
 - Record those scores as `model-run` provenance.
 - Refuse stand-in rewrites, character-only usage, and missing workers.
-- Leave live catalogue availability unchanged, including Haiku.
+- Leave live catalogue availability unchanged for every fast candidate.
 
 ## Capabilities
 

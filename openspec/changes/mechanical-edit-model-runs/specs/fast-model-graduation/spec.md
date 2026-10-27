@@ -9,8 +9,8 @@ A complete paired capture of a baseline worker and an exact evaluation-only cand
 - **THEN** the corpus entry uses provenance `model-run` and names the exact candidate
 
 #### Scenario: Model-run scores still do not promote without approval
-- **WHEN** five or more ingested `model-run` scores for Haiku clear the 90 percent bar with no critical misses and there is no operator promotion approval
-- **THEN** Haiku remains evaluation-only and the live catalogue is unchanged
+- **WHEN** five or more ingested `model-run` scores for an exact fast catalogue candidate clear the 90 percent bar with no critical misses and there is no operator promotion approval
+- **THEN** that candidate remains evaluation-only and the live catalogue is unchanged
 
 ### Requirement: Incomplete or stand-in captures are refused
 

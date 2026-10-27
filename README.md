@@ -421,12 +421,12 @@ them as temporary git repositories and runs a paired baseline/candidate
 loop. A local listed-file rewrite is recorded as `test-repo-stand-in` and
 does not count toward graduation. Real scores come from
 `mechanical-edit-model-runs.ts`: prepare the capture directory, dispatch
-the live standard worker and Haiku with
+the live standard worker and the named fast catalogue model with
 `model-catalogue.ts resolve fast <inventory> --evaluation`, drop the trees
-and `capture-usage.ts` token files, then ingest. Ingest refuses
-character-only usage and the stand-in rewrite. Fast catalogue models stay
-evaluation-only until promotion. The worker never decides that its own job
-is menial.
+and `capture-usage.ts` token files, then ingest naming that exact fast id.
+Ingest refuses a non-fast model, character-only usage, and the stand-in
+rewrite. Fast catalogue models stay evaluation-only until promotion. The
+worker never decides that its own job is menial.
 
 Diagnostic shadow profiling defaults off so a ticket does not pay extra
 frontier calls that cannot affect live dispatch. Set
