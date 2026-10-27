@@ -88,11 +88,7 @@ test("test-repo stand-in scores do not fill the graduation sample", async () => 
 		expect(verdict.evidenceCleared).toBe(false);
 		expect(verdict.availability).toBe("evaluation-only");
 		expect(applyFastPromotion(catalogue, verdict)).toEqual(before);
-		expect(
-			catalogue.tiers.fast.candidates.find(
-				(candidate) => candidate.id === candidateModel,
-			)?.availability,
-		).toBe("evaluation-only");
+		expect(catalogue).toEqual(before);
 	} finally {
 		await rm(workDir, { recursive: true, force: true });
 	}

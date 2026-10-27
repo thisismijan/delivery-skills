@@ -200,11 +200,7 @@ test("a complete capture is scored as a model run and does not promote", async (
 		expect(verdict.evidenceCleared).toBe(true);
 		expect(verdict.availability).toBe("evaluation-only");
 		expect(applyFastPromotion(catalogue, verdict)).toEqual(before);
-		expect(
-			catalogue.tiers.fast.candidates.find(
-				(candidate) => candidate.id === SPARK,
-			)?.availability,
-		).toBe("evaluation-only");
+		expect(catalogue).toEqual(before);
 	} finally {
 		await rm(workDir, { recursive: true, force: true });
 	}

@@ -165,13 +165,15 @@ re-run the gate. Do not reuse it.
    scorecard block and dispatch the same implementation worker directly. This
    setting only removes diagnostic work; it never changes the live model or
    weakens a quality gate.
-   Do not dispatch a catalogue fast model unless `fast-dispatch.ts` later
-   reports that the exact candidate on representative-run reversible, strongly
-   verified work has cleared the 90 percent bar. Named safety floors still
-   block auth, migration, concurrency, distributed-state, weak-verification,
-   and holdout tasks. Do not treat a cleared bar, a public ranking, an
-   unscored fixture, or a test-repo stand-in as live availability. That
-   change needs an exact operator promotion approval naming the candidate.
+   Do not dispatch a catalogue fast model unless it is live and
+   `fast-dispatch.ts` later reports that the exact candidate on
+   representative-run reversible, strongly verified work has cleared the 90 percent
+   bar. `muse-spark-1.3-medium` is live. Composer and Haiku stay
+   evaluation-only. Named safety floors still block auth, migration,
+   concurrency, distributed-state, weak-verification, and holdout tasks. Do
+   not treat a cleared bar, a public ranking, an unscored fixture, or a
+   test-repo stand-in as live availability. That change needs an exact
+   operator promotion approval naming the candidate.
 
 7. **Implement to green.** Bundle the work item, the change's spec files, the
    failing tests and the red gate into one file:

@@ -425,7 +425,9 @@ the live standard worker and the named fast catalogue model with
 `model-catalogue.ts resolve fast <inventory> --evaluation`, drop the trees
 and `capture-usage.ts` token files, then ingest naming that exact fast id.
 Ingest refuses a non-fast model, character-only usage, and the stand-in
-rewrite. Fast catalogue models stay evaluation-only until promotion. The
+rewrite. `muse-spark-1.3-medium` is live after scored mechanical-edit
+captures and an exact operator promotion approval. Other fast catalogue
+models stay evaluation-only until they receive their own approval. The
 worker never decides that its own job is menial.
 
 Diagnostic shadow profiling defaults off so a ticket does not pay extra
@@ -517,12 +519,14 @@ ambiguous match stops the run instead of guessing.
   instead of relying on hand-transcribed benchmark evidence. Fast catalogue
   models stay evaluation-only until representative-run scores for that exact
   candidate clear the 90 percent bar with at least five reversible cases and
-  no critical misses. Live evidence is not mixed into that sample. Safety
-  floors keep auth, migration, concurrency, distributed-state,
-  weak-verification, holdout review, and irreversible work on the frontier
-  recommendation. Live availability stays unchanged without an exact operator
-  promotion approval naming the candidate.   Public rankings, unscored
-  fixtures, and test-repo stand-in rewrites never promote.
+  no critical misses, then an exact operator promotion approval. Spark is
+  live after that path. Composer and Haiku stay evaluation-only. Live
+  evidence is not mixed into that sample. Safety floors keep auth,
+  migration, concurrency, distributed-state, weak-verification, holdout
+  review, and irreversible work on the frontier recommendation. Live
+  availability stays unchanged without an exact operator promotion approval
+  naming the candidate. Public rankings, unscored fixtures, and test-repo
+  stand-in rewrites never promote.
 - **Review spend follows demonstrated risk.** Independently adjudicated review
   lenses use the standard model tier. `review-fanout.ts` chooses two essential
   lenses for a proven small reversible or contained change and all four lenses

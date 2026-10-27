@@ -224,6 +224,7 @@ State the chosen entry and what it runs in one line, then continue.
    runtime-advertised live frontier candidate satisfies frontier work. Static
    agent `model:` fields are fallback values only.
    A model that is available but marked `evaluation-only` cannot run live.
+   `muse-spark-1.3-medium` is live. Composer and Haiku stay evaluation-only.
 
 Do not deep-audit beyond that — each stage workflow lists its own
 preconditions; fail when a stage command fails.
@@ -542,10 +543,12 @@ Keep the lifecycle portable across conforming runtimes.
   cheaper shadow recommendation is recorded, never dispatched. After each run,
   generate the routing comparison report and rebuild the evaluation corpus from
   those files. Fast catalogue models stay evaluation-only until
-  representative-run scores for the exact candidate clear the 90 percent bar.
-  Named safety floors block auth, migration, concurrency, distributed-state,
-  weak-verification, and holdout work. Live availability stays unchanged
-  without an exact operator promotion approval. Public rankings never promote.
+  representative-run scores for the exact candidate clear the 90 percent bar
+  and an operator promotion approval names that candidate. Spark is live.
+  Composer and Haiku stay evaluation-only. Named safety floors block auth,
+  migration, concurrency, distributed-state, weak-verification, and holdout
+  work. Live availability stays unchanged without an exact operator promotion
+  approval. Public rankings never promote.
   Test-repo stand-in scores never promote.
   Changing the catalogue does not change this run. With profiling off, skip
   the controller call and routing telemetry only. Live model selection,

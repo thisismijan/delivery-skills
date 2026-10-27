@@ -16,13 +16,23 @@ import {
 	evaluatePromotion,
 	namedSafetyFloor,
 } from "./fast-dispatch";
-import { loadModelCatalogue } from "./model-catalogue";
+import { type ModelCatalogue, loadModelCatalogue } from "./model-catalogue";
 import { buildObservation } from "./record-routing";
 import { representativeObservations } from "./representative-routing-runs";
 import type { RoutingObservation } from "./routing-observation";
 import type { TaskProfileInput } from "./task-profile";
 
 const SPARK = "muse-spark-1.3-medium";
+
+function evaluationOnlyFastCatalogue(
+	catalogue: ModelCatalogue,
+): ModelCatalogue {
+	const next = structuredClone(catalogue);
+	for (const candidate of next.tiers.fast.candidates) {
+		candidate.availability = "evaluation-only";
+	}
+	return next;
+}
 const COMPOSER = "composer-1";
 
 const search: TaskProfileInput = {
@@ -377,7 +387,7 @@ test("the CLI requires a profile and enforces its safety floor", async () => {
 });
 
 test("passing evidence without approval leaves availability unchanged", async () => {
-	const catalogue = await loadModelCatalogue();
+	const catalogue = evaluationOnlyFastCatalogue(await loadModelCatalogue());
 	const before = structuredClone(catalogue);
 	const verdict = evaluatePromotion(clearing(), SPARK);
 	expect(verdict.evidenceCleared).toBe(true);
@@ -392,7 +402,7 @@ test("passing evidence without approval leaves availability unchanged", async ()
 });
 
 test("approval for another candidate leaves availability unchanged", async () => {
-	const catalogue = await loadModelCatalogue();
+	const catalogue = evaluationOnlyFastCatalogue(await loadModelCatalogue());
 	const before = structuredClone(catalogue);
 	const verdict = evaluatePromotion(clearing(), SPARK, {
 		approval: { candidateModel: COMPOSER },
@@ -403,7 +413,7 @@ test("approval for another candidate leaves availability unchanged", async () =>
 });
 
 test("public rankings do not promote", async () => {
-	const catalogue = await loadModelCatalogue();
+	const catalogue = evaluationOnlyFastCatalogue(await loadModelCatalogue());
 	const rankings = [{ model: SPARK, rank: 1, score: 0.99 }];
 	const verdict = evaluatePromotion([], SPARK, {
 		rankings,
@@ -419,7 +429,7 @@ test("public rankings do not promote", async () => {
 });
 
 test("exact operator promotion approval can mark only that candidate live", async () => {
-	const catalogue = await loadModelCatalogue();
+	const catalogue = evaluationOnlyFastCatalogue(await loadModelCatalogue());
 	const before = structuredClone(catalogue);
 	const verdict = evaluatePromotion(clearing(), SPARK, {
 		approval: { candidateModel: SPARK },

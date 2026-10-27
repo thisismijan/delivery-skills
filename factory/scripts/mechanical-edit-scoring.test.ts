@@ -63,11 +63,7 @@ test("fast-candidate scores on the pack do not change live availability", async 
 	expect(verdict.evidenceCleared).toBe(true);
 	expect(verdict.availability).toBe("evaluation-only");
 	expect(applyFastPromotion(catalogue, verdict)).toEqual(before);
-	expect(
-		catalogue.tiers.fast.candidates.find(
-			(candidate) => candidate.id === candidateModel,
-		)?.availability,
-	).toBe("evaluation-only");
+	expect(catalogue).toEqual(before);
 });
 
 test("live scores on the pack do not count as graduation evidence", async () => {

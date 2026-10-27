@@ -20,7 +20,7 @@
 		},
 		"fast": {
 			"candidates": [
-				{ "id": "muse-spark-1.3-medium", "availability": "evaluation-only" },
+				{ "id": "muse-spark-1.3-medium", "availability": "live" },
 				{ "id": "composer-1", "availability": "evaluation-only" },
 				{ "id": "haiku", "availability": "evaluation-only" }
 			],
