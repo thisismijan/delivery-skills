@@ -47,6 +47,22 @@ bun "${FACTORY_ROOT}/scripts/groom-paths.ts" "<title>"
 
 Use the printed `dir` value (e.g. the directory printed by `groom-paths.ts`) as the output directory for this run. The same title always yields the same directory, so a re-run lands in the same place.
 
+### Step 2a — Skip exploration when the input is already a valid ticket
+
+Write the resolved input to `<output-dir>/source.md`. Run:
+```
+bun "${FACTORY_ROOT}/scripts/verify-ticket.ts" "<output-dir>/source.md"
+```
+When the exit is zero, the input is already a structurally valid ticket.
+Do not dispatch the `groom-explorer`. Do not run the grilling loop or
+synthesize a PRD. Record `Agent decided:` in `decisions.md` that the
+input passed structural verification. Classify it as a single ticket and
+continue at Step 7 with that content. Operator approval is still
+required before any draft is written.
+
+When the exit is non-zero, keep `source.md` as the raw input and
+continue at Step 3. A raw idea is expected to fail this check.
+
 ### Step 3 — Read-only codebase grounding (before any grilling question)
 
 Dispatch the `groom-explorer` subagent with the input and the target codebase. It maps relevant modules, seams, and domain terms. Wait for its report before proceeding to grilling.
