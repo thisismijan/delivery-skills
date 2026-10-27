@@ -444,6 +444,8 @@ describe("bounded recovery and replay safety", () => {
 		expect(runtime).toContain("mechanical-edit-scoring.ts");
 		expect(runtime).toContain("mechanical-edit-test-repos.ts");
 		expect(runtime).toContain("test-repo-stand-in");
+		expect(runtime).toContain("mechanical-edit-model-runs.ts");
+		expect(runtime).toContain("model-run");
 		expect(runtime).toContain("TypeScript");
 		expect(runtime).toContain("Python");
 		expect(runtime).toContain("Java");
