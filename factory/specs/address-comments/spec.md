@@ -33,15 +33,29 @@ The command SHALL gather all MR comments via `glab`. It SHALL treat a thread as 
 
 #### Scenario: All other comments are in scope
 - **WHEN** the MR contains comments from humans, the smai bot, or anyone other than the holdout-reviewer's audit note
-- **THEN** each such comment is passed to classification
+- **THEN** each such comment is passed to classification unless a later scoping rule marks it outdated
+
+#### Scenario: A gone new-side anchor is outdated without a classifier
+- **WHEN** a remaining comment has a new-side anchor whose path is missing at the pinned head, or whose line is past the end of that file
+- **THEN** the command records a scripted `outdated` verdict for it
+- **AND** does not pass that comment to the comment-assessor
+
+#### Scenario: Unknown or old-side anchors stay in scope
+- **WHEN** a remaining comment has no anchor, an old-side anchor, or a path the command did not look up
+- **THEN** that comment stays in scope for classification
 
 ### Requirement: Classify every assessed comment
-The command SHALL dispatch a single read-only `comment-assessor` subagent (tools `Read, Grep, Glob` only) that classifies all in-scope comments in one batch, each into exactly one of `bug`, `non-functional`, `nitpick`, `false-positive`, `question`, `outdated`. The output SHALL be validated by the Zod `ClassificationVerdict` schema; a malformed or missing verdict MUST fail closed (stop + escalate).
+The command SHALL dispatch a single read-only `comment-assessor` subagent (tools `Read, Grep, Glob` only) that classifies all in-scope comments in one batch, each into exactly one of `bug`, `non-functional`, `nitpick`, `false-positive`, `question`, `outdated`. The output SHALL be validated by the Zod `ClassificationVerdict` schema; a malformed or missing verdict MUST fail closed (stop + escalate). When gather-and-scope leaves zero in-scope comments, the command SHALL NOT dispatch the assessor.
 
 #### Scenario: Comment-assessor is read-only and batched
-- **WHEN** classification runs
+- **WHEN** classification runs with at least one in-scope comment
 - **THEN** exactly one `comment-assessor` subagent is dispatched with only `Read, Grep, Glob` tools
 - **AND** it returns a Zod-validated array of per-comment classification verdicts in one batch
+
+#### Scenario: An empty in-scope list skips the assessor
+- **WHEN** gather-and-scope leaves zero in-scope comments
+- **THEN** no comment-assessor is dispatched
+- **AND** classification is the scripted outdated verdicts or an empty array
 
 #### Scenario: Malformed classification verdict fails closed
 - **WHEN** the comment-assessor output fails `ClassificationVerdict` Zod validation
