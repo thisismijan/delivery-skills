@@ -158,9 +158,11 @@ current session may use. At the start of a factory run:
 4. A missing model for the required tier is a terminal capability failure. Do
    not silently choose a model from another tier.
 5. Unpromoted `fast` candidates are `evaluation-only`. They may be
-   resolved with `--evaluation` for corpus benchmarking. Live delivery
-   may resolve `muse-spark-1.3-medium` without that flag after exact
-   operator promotion approval. Composer and Haiku stay evaluation-only.
+   resolved with `--evaluation` for corpus benchmarking. Register a new
+   exact id with `model-catalogue.ts register-fast <id>`. Promote with
+   `fast-dispatch.ts promote <corpus> <id> --approve <id>`. Live delivery
+   may resolve a catalogue-live fast id without `--evaluation`. A later
+   version id does not inherit scores.
    `fast-dispatch.ts` still gates the exact candidate and task class on
    representative-run scores. Live scores are never mixed into that
    sample. Fewer than five cases, a mean below the 90 percent bar, or any

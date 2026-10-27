@@ -1,10 +1,16 @@
 import { expect, test } from "bun:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
+	CATALOGUE_PATH,
 	catalogueModels,
 	fastCatalogueCandidateIds,
 	loadModelCatalogue,
+	registerFastCatalogueCandidate,
 	requireFastCatalogueCandidate,
 	resolveAvailableModel,
+	writeModelCatalogue,
 } from "./model-catalogue";
 
 test("the bundled catalogue names every tier without host keys", async () => {
@@ -61,38 +67,35 @@ test("fast catalogue ids include every bundled fast candidate", async () => {
 	);
 });
 
-test("approved Spark is live while other fast models stay evaluation-only", async () => {
+test("live fast candidates resolve without evaluation and others stay blocked", async () => {
 	const catalogue = await loadModelCatalogue();
+	const live = catalogue.tiers.fast.candidates.filter(
+		(candidate) => candidate.availability === "live",
+	);
+	const evaluationOnly = catalogue.tiers.fast.candidates.filter(
+		(candidate) => candidate.availability === "evaluation-only",
+	);
+	expect(live.length).toBeGreaterThan(0);
+	expect(evaluationOnly.length).toBeGreaterThan(0);
+	const liveId = live[0]?.id;
+	const blockedId = evaluationOnly[0]?.id;
+	if (!liveId || !blockedId) throw new Error("fast catalogue rows missing");
 	expect(
-		catalogue.tiers.fast.candidates.find(
-			(candidate) => candidate.id === "muse-spark-1.3-medium",
-		)?.availability,
-	).toBe("live");
-	expect(
-		catalogue.tiers.fast.candidates.find(
-			(candidate) => candidate.id === "composer-1",
-		)?.availability,
-	).toBe("evaluation-only");
-	expect(
-		catalogue.tiers.fast.candidates.find(
-			(candidate) => candidate.id === "haiku",
-		)?.availability,
-	).toBe("evaluation-only");
-	const inventory = {
-		version: 1 as const,
-		recordedAt: "2026-10-16T09:00:00.000Z",
-		models: ["muse-spark-1.3-medium", "composer-1"],
-	};
-	expect(resolveAvailableModel(catalogue, "fast", inventory)).toEqual({
+		resolveAvailableModel(catalogue, "fast", {
+			version: 1,
+			recordedAt: "2026-10-16T09:00:00.000Z",
+			models: [liveId, blockedId],
+		}),
+	).toEqual({
 		tier: "fast",
-		model: "muse-spark-1.3-medium",
+		model: liveId,
 		availability: "live",
 	});
 	expect(() =>
 		resolveAvailableModel(catalogue, "fast", {
 			version: 1,
 			recordedAt: "2026-10-16T09:00:00.000Z",
-			models: ["composer-1"],
+			models: [blockedId],
 		}),
 	).toThrow("evaluation-only");
 	expect(
@@ -102,11 +105,81 @@ test("approved Spark is live while other fast models stay evaluation-only", asyn
 			{
 				version: 1,
 				recordedAt: "2026-10-16T09:00:00.000Z",
-				models: ["composer-1"],
+				models: [blockedId],
 			},
 			{ allowEvaluationOnly: true },
 		).model,
-	).toBe("composer-1");
+	).toBe(blockedId);
+});
+
+test("a new exact id joins the fast tier as evaluation-only", async () => {
+	const catalogue = await loadModelCatalogue();
+	const next = registerFastCatalogueCandidate(
+		catalogue,
+		"muse-spark-1.4-medium",
+	);
+	expect(
+		next.tiers.fast.candidates.find(
+			(candidate) => candidate.id === "muse-spark-1.4-medium",
+		)?.availability,
+	).toBe("evaluation-only");
+	expect(catalogue.tiers.fast.candidates.map((item) => item.id)).not.toContain(
+		"muse-spark-1.4-medium",
+	);
+	expect(registerFastCatalogueCandidate(next, "muse-spark-1.4-medium")).toEqual(
+		next,
+	);
+});
+
+test("a standard-tier id cannot be registered as fast", async () => {
+	const catalogue = await loadModelCatalogue();
+	const standardId = catalogue.tiers.standard.candidates[0]?.id;
+	if (!standardId) throw new Error("standard catalogue rows missing");
+	expect(() => registerFastCatalogueCandidate(catalogue, standardId)).toThrow(
+		"already a standard model",
+	);
+	expect(fastCatalogueCandidateIds(catalogue)).not.toContain(standardId);
+});
+
+test("register-fast writes a temp catalogue and refuses a standard id", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "register-fast-"));
+	const cataloguePath = join(dir, "model-catalogue.json");
+	try {
+		await writeModelCatalogue(
+			await loadModelCatalogue(CATALOGUE_PATH),
+			cataloguePath,
+		);
+		const registered = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "model-catalogue.ts"),
+				"register-fast",
+				"muse-spark-1.4-medium",
+				cataloguePath,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await registered.exited).toBe(0);
+		expect(JSON.parse(await new Response(registered.stdout).text())).toEqual({
+			id: "muse-spark-1.4-medium",
+			availability: "evaluation-only",
+		});
+		const before = await Bun.file(cataloguePath).text();
+		const refused = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "model-catalogue.ts"),
+				"register-fast",
+				"sonnet",
+				cataloguePath,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await refused.exited).toBe(1);
+		expect(await Bun.file(cataloguePath).text()).toBe(before);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
 });
 
 test("missing capability fails closed rather than choosing an unrelated model", async () => {

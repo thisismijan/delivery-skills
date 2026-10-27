@@ -3,7 +3,13 @@ import {
 	type CorpusEntry as CorpusEntryType,
 	TEST_REPO_STAND_IN_PROVENANCE,
 } from "./evaluation-corpus";
-import type { ModelCatalogue } from "./model-catalogue";
+import {
+	CATALOGUE_PATH,
+	type ModelCatalogue,
+	loadModelCatalogue,
+	requireFastCatalogueCandidate,
+	writeModelCatalogue,
+} from "./model-catalogue";
 import {
 	ALWAYS_FRONTIER_DOMAINS,
 	HOLD_OUT_STAGES,
@@ -287,27 +293,84 @@ export function parseCorpusEntries(input: unknown): CorpusEntryType[] {
 	return CorpusEntry.array().parse(input);
 }
 
-if (import.meta.main) {
-	const corpusFile = process.argv[2];
-	const candidateModel = process.argv[3];
-	const profileFile = process.argv[4];
-	if (!corpusFile || !candidateModel || !profileFile) {
-		console.error(
-			"usage: fast-dispatch <corpus-entries.json> <candidate-model> <profile.json>",
-		);
-		process.exit(2);
+export async function promoteFastCatalogue(options: {
+	corpusPath: string;
+	candidateModel: string;
+	approval?: string;
+	cataloguePath?: string;
+}): Promise<{ verdict: PromotionVerdict; wrote: boolean }> {
+	const cataloguePath = options.cataloguePath ?? CATALOGUE_PATH;
+	const catalogue = await loadModelCatalogue(cataloguePath);
+	requireFastCatalogueCandidate(catalogue, options.candidateModel);
+	const verdict = evaluatePromotion(
+		parseCorpusEntries(await Bun.file(options.corpusPath).json()),
+		options.candidateModel,
+		options.approval
+			? { approval: { candidateModel: options.approval } }
+			: undefined,
+	);
+	if (verdict.availability !== "live") {
+		return { verdict, wrote: false };
 	}
+	await writeModelCatalogue(
+		applyFastPromotion(catalogue, verdict),
+		cataloguePath,
+	);
+	return { verdict, wrote: true };
+}
+
+if (import.meta.main) {
+	const [commandOrCorpus, ...rest] = process.argv.slice(2);
 	try {
-		const profile = TaskProfileInputSchema.parse(
-			await Bun.file(profileFile).json(),
-		);
-		const verdict = evaluateFastDispatch(
-			parseCorpusEntries(await Bun.file(corpusFile).json()),
-			profile,
-			candidateModel,
-		);
-		console.log(JSON.stringify(verdict));
-		if (!verdict.allowed) process.exit(1);
+		if (commandOrCorpus === "promote") {
+			const corpusPath = rest[0];
+			const candidateModel = rest[1];
+			if (!corpusPath || !candidateModel) {
+				console.error(
+					"usage: fast-dispatch promote <corpus-entries.json> <candidate-model> [--approve <candidate-model>] [catalogue.json]",
+				);
+				process.exit(2);
+			}
+			let approval: string | undefined;
+			let cataloguePath: string | undefined;
+			for (let index = 2; index < rest.length; index += 1) {
+				const arg = rest[index];
+				if (arg === "--approve") {
+					index += 1;
+					approval = rest[index];
+					continue;
+				}
+				cataloguePath = arg;
+			}
+			const result = await promoteFastCatalogue({
+				corpusPath,
+				candidateModel,
+				approval,
+				cataloguePath,
+			});
+			console.log(JSON.stringify({ ...result.verdict, wrote: result.wrote }));
+			if (!result.wrote) process.exit(1);
+		} else {
+			const corpusFile = commandOrCorpus;
+			const candidateModel = rest[0];
+			const profileFile = rest[1];
+			if (!corpusFile || !candidateModel || !profileFile) {
+				console.error(
+					"usage: fast-dispatch <corpus-entries.json> <candidate-model> <profile.json>",
+				);
+				process.exit(2);
+			}
+			const profile = TaskProfileInputSchema.parse(
+				await Bun.file(profileFile).json(),
+			);
+			const verdict = evaluateFastDispatch(
+				parseCorpusEntries(await Bun.file(corpusFile).json()),
+				profile,
+				candidateModel,
+			);
+			console.log(JSON.stringify(verdict));
+			if (!verdict.allowed) process.exit(1);
+		}
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));
 		process.exit(1);

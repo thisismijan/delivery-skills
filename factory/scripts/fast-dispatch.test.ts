@@ -15,8 +15,13 @@ import {
 	evaluateFastDispatch,
 	evaluatePromotion,
 	namedSafetyFloor,
+	promoteFastCatalogue,
 } from "./fast-dispatch";
-import { type ModelCatalogue, loadModelCatalogue } from "./model-catalogue";
+import {
+	type ModelCatalogue,
+	loadModelCatalogue,
+	writeModelCatalogue,
+} from "./model-catalogue";
 import { buildObservation } from "./record-routing";
 import { representativeObservations } from "./representative-routing-runs";
 import type { RoutingObservation } from "./routing-observation";
@@ -450,4 +455,78 @@ test("exact operator promotion approval can mark only that candidate live", asyn
 			?.availability,
 	).toBe("evaluation-only");
 	expect(catalogue).toEqual(before);
+});
+
+test("promote writes only the approved exact id live", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "fast-promote-"));
+	const cataloguePath = join(dir, "model-catalogue.json");
+	const corpusPath = join(dir, "corpus.json");
+	try {
+		await writeModelCatalogue(
+			evaluationOnlyFastCatalogue(await loadModelCatalogue()),
+			cataloguePath,
+		);
+		await Bun.write(
+			corpusPath,
+			JSON.stringify(
+				scored({
+					count: MIN_EVALUATED_FAST_SAMPLES,
+					candidateModel: COMPOSER,
+					relativeUtility: 0.91,
+				}),
+			),
+		);
+		const skipped = await promoteFastCatalogue({
+			corpusPath,
+			candidateModel: COMPOSER,
+			cataloguePath,
+		});
+		expect(skipped.wrote).toBe(false);
+		expect(skipped.verdict.availability).toBe("evaluation-only");
+		expect(
+			(await loadModelCatalogue(cataloguePath)).tiers.fast.candidates.find(
+				(candidate) => candidate.id === COMPOSER,
+			)?.availability,
+		).toBe("evaluation-only");
+		const missingApproval = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "fast-dispatch.ts"),
+				"promote",
+				corpusPath,
+				COMPOSER,
+				cataloguePath,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await missingApproval.exited).toBe(1);
+		expect(
+			JSON.parse(await new Response(missingApproval.stdout).text()).wrote,
+		).toBe(false);
+		const promoted = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "fast-dispatch.ts"),
+				"promote",
+				corpusPath,
+				COMPOSER,
+				"--approve",
+				COMPOSER,
+				cataloguePath,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await promoted.exited).toBe(0);
+		const next = await loadModelCatalogue(cataloguePath);
+		expect(
+			next.tiers.fast.candidates.find((candidate) => candidate.id === COMPOSER)
+				?.availability,
+		).toBe("live");
+		expect(
+			next.tiers.fast.candidates.find((candidate) => candidate.id === SPARK)
+				?.availability,
+		).toBe("evaluation-only");
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
 });
