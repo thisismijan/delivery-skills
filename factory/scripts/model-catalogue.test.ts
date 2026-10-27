@@ -67,6 +67,36 @@ test("fast catalogue ids include every bundled fast candidate", async () => {
 	);
 });
 
+test("approved Spark and Haiku are live while Composer stays evaluation-only", async () => {
+	const catalogue = await loadModelCatalogue();
+	expect(
+		catalogue.tiers.fast.candidates.find(
+			(candidate) => candidate.id === "muse-spark-1.3-medium",
+		)?.availability,
+	).toBe("live");
+	expect(
+		catalogue.tiers.fast.candidates.find(
+			(candidate) => candidate.id === "haiku",
+		)?.availability,
+	).toBe("live");
+	expect(
+		catalogue.tiers.fast.candidates.find(
+			(candidate) => candidate.id === "composer-1",
+		)?.availability,
+	).toBe("evaluation-only");
+	expect(
+		resolveAvailableModel(catalogue, "fast", {
+			version: 1,
+			recordedAt: "2026-10-16T09:00:00.000Z",
+			models: ["haiku", "composer-1"],
+		}),
+	).toEqual({
+		tier: "fast",
+		model: "haiku",
+		availability: "live",
+	});
+});
+
 test("live fast candidates resolve without evaluation and others stay blocked", async () => {
 	const catalogue = await loadModelCatalogue();
 	const live = catalogue.tiers.fast.candidates.filter(
