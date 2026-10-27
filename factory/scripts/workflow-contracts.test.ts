@@ -289,6 +289,9 @@ describe("durable grooming", () => {
 		expect(groom).toMatch(/verify-ticket\.ts" "<output-dir>\/source\.md"/);
 		expect(plain(groom)).toMatch(/do not dispatch the groom-explorer/i);
 		expect(plain(groom)).toMatch(/do not run the grilling loop/i);
+		expect(plain(groom)).toMatch(
+			/do not dispatch the groom-writer[\s\S]*atomically copy source\.md/i,
+		);
 	});
 
 	test("ticket prompts prefer contracts over stale source coordinates", () => {

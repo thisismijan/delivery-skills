@@ -214,6 +214,11 @@ Each emitted ticket draft SHALL contain all required template sections (Context,
 - **THEN** it is fixed and re-emitted
 - **AND** it is never written as the final artifact
 
+#### Scenario: An unchanged valid input is copied without a writer
+- **WHEN** the input passed `verify-ticket.ts` and the operator approved that content without a rewrite
+- **THEN** the final draft is a verified copy of that source
+- **AND** the groom-writer is not dispatched
+
 ### Requirement: Deterministic output paths
 `scripts/groom-paths.ts` SHALL derive a slug from the input title such that the same title always yields the same output path under `.delivery/grooming/<slug>/`, and it SHALL be exercised by `bun test`.
 
