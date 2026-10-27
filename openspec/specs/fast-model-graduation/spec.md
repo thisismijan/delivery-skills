@@ -204,7 +204,11 @@ When representative-run evidence for an exact fast catalogue candidate has clear
 
 #### Scenario: Spark may be live after exact approval
 - **WHEN** the catalogue is loaded after an operator promotion approval naming `muse-spark-1.3-medium`
-- **THEN** that candidate is live and `composer-1` and `haiku` remain evaluation-only
+- **THEN** that candidate is live
+
+#### Scenario: Haiku may be live after exact approval
+- **WHEN** the catalogue is loaded after an operator promotion approval naming `haiku`
+- **THEN** that candidate is live and `composer-1` remains evaluation-only
 
 #### Scenario: Unapproved fast ids still need evaluation resolve
 - **WHEN** live fast resolve is asked with only `composer-1` advertised
