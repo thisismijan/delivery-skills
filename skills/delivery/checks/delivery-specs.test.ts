@@ -1103,6 +1103,8 @@ describe("portable factory pack", () => {
     expect(readme).toContain("mechanical-edit.ts");
     expect(readme).toContain("apply-mechanical-edit.ts");
     expect(readme).toContain("mechanical-edit-scoring.ts");
+    expect(readme).toContain("mechanical-edit-test-repos.ts");
+    expect(readme).toContain("test-repo-stand-in");
     expect(readme).toContain("TypeScript");
     expect(readme).toContain("Python");
     expect(readme).toContain("Java");

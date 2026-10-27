@@ -169,9 +169,9 @@ re-run the gate. Do not reuse it.
    reports that the exact candidate on representative-run reversible, strongly
    verified work has cleared the 90 percent bar. Named safety floors still
    block auth, migration, concurrency, distributed-state, weak-verification,
-   and holdout tasks. Do not treat a cleared bar, a public ranking, or an
-   unscored fixture as live availability. That change needs an exact operator
-   promotion approval naming the candidate.
+   and holdout tasks. Do not treat a cleared bar, a public ranking, an
+   unscored fixture, or a test-repo stand-in as live availability. That
+   change needs an exact operator promotion approval naming the candidate.
 
 7. **Implement to green.** Bundle the work item, the change's spec files, the
    failing tests and the red gate into one file:

@@ -2,7 +2,11 @@ import { expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildCorpus, scoreCandidate } from "./evaluation-corpus";
+import {
+	TEST_REPO_STAND_IN_PROVENANCE,
+	buildCorpus,
+	scoreCandidate,
+} from "./evaluation-corpus";
 import {
 	FAST_RELATIVE_UTILITY_THRESHOLD,
 	type FastSafetyFloor,
@@ -111,6 +115,32 @@ test("mixed live and representative evidence is not enough", () => {
 	expect(promotion.availability).toBe("evaluation-only");
 	expect(promotion.evidenceCleared).toBe(false);
 	expect(promotion.sampleSize).toBe(3);
+});
+
+test("test-repo stand-in scores do not count even with approval", async () => {
+	const standIn = scored({
+		count: MIN_EVALUATED_FAST_SAMPLES,
+		relativeUtility: 1,
+	}).map((entry) =>
+		scoreCandidate(entry.observation, {
+			candidateModel: SPARK,
+			relativeUtility: 1,
+			criticalMisses: 0,
+			provenance: TEST_REPO_STAND_IN_PROVENANCE,
+		}),
+	);
+	const dispatch = evaluateFastDispatch(standIn, search, SPARK);
+	expect(dispatch.allowed).toBe(false);
+	expect(dispatch.sampleSize).toBe(0);
+	const catalogue = await loadModelCatalogue();
+	const before = structuredClone(catalogue);
+	const promotion = evaluatePromotion(standIn, SPARK, {
+		approval: { candidateModel: SPARK },
+	});
+	expect(promotion.sampleSize).toBe(0);
+	expect(promotion.evidenceCleared).toBe(false);
+	expect(promotion.availability).toBe("evaluation-only");
+	expect(applyFastPromotion(catalogue, promotion)).toEqual(before);
 });
 
 test("live-only scores do not count", () => {

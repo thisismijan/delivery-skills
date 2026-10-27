@@ -7,6 +7,22 @@ import {
 	RoutingObservation as RoutingObservationSchema,
 } from "./routing-observation";
 
+export const TEST_REPO_STAND_IN_PROVENANCE = "test-repo-stand-in";
+export const MODEL_RUN_PROVENANCE = "model-run";
+export const EvaluationProvenance = z.enum([
+	TEST_REPO_STAND_IN_PROVENANCE,
+	MODEL_RUN_PROVENANCE,
+]);
+export type EvaluationProvenance = z.infer<typeof EvaluationProvenance>;
+
+const Evaluation = z.object({
+	candidateModel: z.string().min(1),
+	relativeUtility: z.number().min(0).max(1),
+	criticalMisses: z.number().int().nonnegative(),
+	taskClass: z.string().min(1).optional(),
+	provenance: EvaluationProvenance.optional(),
+});
+
 export const CorpusEntry = z.object({
 	taskId: RoutingObservationSchema.shape.profile.shape.taskId,
 	runId: RoutingObservationSchema.shape.runId,
@@ -24,22 +40,11 @@ export const CorpusEntry = z.object({
 	currentTier: RoutingObservationSchema.shape.currentTier,
 	shadowTier: RoutingObservationSchema.shape.shadowTier,
 	observation: RoutingObservationSchema,
-	evaluation: z
-		.object({
-			candidateModel: z.string().min(1),
-			relativeUtility: z.number().min(0).max(1),
-			criticalMisses: z.number().int().nonnegative(),
-			taskClass: z.string().min(1).optional(),
-		})
-		.optional(),
+	evaluation: Evaluation.optional(),
 });
 export type CorpusEntry = z.infer<typeof CorpusEntry>;
 
-export const CandidateResult = z.object({
-	candidateModel: z.string().min(1),
-	relativeUtility: z.number().min(0).max(1),
-	criticalMisses: z.number().int().nonnegative(),
-});
+export const CandidateResult = Evaluation.omit({ taskClass: true });
 export type CandidateResult = z.infer<typeof CandidateResult>;
 
 export const PromotionGroup = z.object({
@@ -95,6 +100,7 @@ export function buildPromotionReport(entries: CorpusEntry[]): PromotionReport {
 	for (const entry of entries) {
 		const evaluation = entry.evaluation;
 		if (!evaluation) continue;
+		if (evaluation.provenance === TEST_REPO_STAND_IN_PROVENANCE) continue;
 		const taskClass = evaluation.taskClass ?? entry.workType;
 		const source = entry.observation.source;
 		const key = `${evaluation.candidateModel}\0${taskClass}\0${source}`;
