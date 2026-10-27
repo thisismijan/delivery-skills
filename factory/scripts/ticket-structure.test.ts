@@ -1,0 +1,86 @@
+import { expect, test } from "bun:test";
+import { inspectTicketStructure } from "./ticket-structure";
+import { parseAssessmentVerdict } from "./verdicts";
+import { WorkItem } from "./work-item-provider";
+
+function item(body: string, title = "Export dashboard data"): WorkItem {
+	return WorkItem.parse({
+		version: 1,
+		provider: "sample",
+		ref: "KEY-1",
+		type: "story",
+		title,
+		body,
+		blockedBy: [],
+		notes: [],
+	});
+}
+
+const validBody = `# Export dashboard data
+
+## Context
+
+Operators need a CSV of the current dashboard.
+
+## User stories
+
+- As an operator I want to export dashboard rows so that I can analyse them offline.
+
+## What to build
+
+Add an export control that downloads the visible rows as CSV.
+
+## Acceptance criteria
+
+- [ ] Given the dashboard is open, When the operator exports, Then a CSV file downloads
+- [ ] Given an export completes, When the file is opened, Then it contains the visible rows
+
+## Out of scope
+
+PDF export.
+
+## Blocked by
+
+Nothing.
+`;
+
+test("a structurally valid body still uses the assessor", async () => {
+	expect(await inspectTicketStructure(item(validBody))).toEqual({
+		skipAssessor: false,
+	});
+});
+
+test("missing sections skip the assessor with those gaps", async () => {
+	const result = await inspectTicketStructure(item("TBD"));
+	expect(result.skipAssessor).toBe(true);
+	if (result.skipAssessor) {
+		expect(result.verdict.quality).toBe("needs_clarification");
+		expect(result.verdict.scopeFit).toBe("atomic");
+		expect(result.verdict.splitRecommendation).toEqual([]);
+		expect(result.verdict.confidence).toBe("high");
+		expect(result.verdict.gaps.join(" ")).toMatch(/Missing required section/);
+		expect(parseAssessmentVerdict(JSON.stringify(result.verdict))).toEqual(
+			result.verdict,
+		);
+	}
+});
+
+test("too many user stories skip the assessor as too large", async () => {
+	const body = validBody.replace(
+		"- As an operator I want to export dashboard rows so that I can analyse them offline.",
+		[
+			"- As an operator I want to export dashboard rows so that I can analyse them offline.",
+			"- As an operator I want email alerts so that I know when export fails.",
+		].join("\n"),
+	);
+	const result = await inspectTicketStructure(item(body));
+	expect(result.skipAssessor).toBe(true);
+	if (result.skipAssessor) {
+		expect(result.verdict.scopeFit).toBe("too_large");
+		expect(result.verdict.splitRecommendation).toHaveLength(1);
+		expect(result.verdict.gaps.join(" ")).toMatch(/Too many user stories/);
+		expect(parseAssessmentVerdict(JSON.stringify(result.verdict))).toEqual(
+			result.verdict,
+		);
+	}
+});
