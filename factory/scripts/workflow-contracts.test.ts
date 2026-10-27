@@ -360,6 +360,9 @@ describe("small-context ticket scope", () => {
 		expect(draft).toMatch(/ticket-structure\.ts"/);
 		expect(draftContract).toMatch(/when skipAssessor is true/i);
 		expect(draftContract).toMatch(/do not dispatch the ticket-assessor/i);
+		expect(draftContract).toMatch(
+			/recorded blockers skip the assessor even when the body is otherwise valid/i,
+		);
 		expect(assessor).toMatch(
 			/does not dispatch you when the work item body fails/i,
 		);
