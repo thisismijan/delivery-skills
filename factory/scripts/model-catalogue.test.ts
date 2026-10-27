@@ -61,21 +61,52 @@ test("fast catalogue ids include every bundled fast candidate", async () => {
 	);
 });
 
-test("available fast models remain blocked from live routing", async () => {
+test("approved Spark is live while other fast models stay evaluation-only", async () => {
 	const catalogue = await loadModelCatalogue();
+	expect(
+		catalogue.tiers.fast.candidates.find(
+			(candidate) => candidate.id === "muse-spark-1.3-medium",
+		)?.availability,
+	).toBe("live");
+	expect(
+		catalogue.tiers.fast.candidates.find(
+			(candidate) => candidate.id === "composer-1",
+		)?.availability,
+	).toBe("evaluation-only");
+	expect(
+		catalogue.tiers.fast.candidates.find(
+			(candidate) => candidate.id === "haiku",
+		)?.availability,
+	).toBe("evaluation-only");
 	const inventory = {
 		version: 1 as const,
 		recordedAt: "2026-10-16T09:00:00.000Z",
 		models: ["muse-spark-1.3-medium", "composer-1"],
 	};
-	expect(() => resolveAvailableModel(catalogue, "fast", inventory)).toThrow(
-		"evaluation-only",
-	);
+	expect(resolveAvailableModel(catalogue, "fast", inventory)).toEqual({
+		tier: "fast",
+		model: "muse-spark-1.3-medium",
+		availability: "live",
+	});
+	expect(() =>
+		resolveAvailableModel(catalogue, "fast", {
+			version: 1,
+			recordedAt: "2026-10-16T09:00:00.000Z",
+			models: ["composer-1"],
+		}),
+	).toThrow("evaluation-only");
 	expect(
-		resolveAvailableModel(catalogue, "fast", inventory, {
-			allowEvaluationOnly: true,
-		}).model,
-	).toBe("muse-spark-1.3-medium");
+		resolveAvailableModel(
+			catalogue,
+			"fast",
+			{
+				version: 1,
+				recordedAt: "2026-10-16T09:00:00.000Z",
+				models: ["composer-1"],
+			},
+			{ allowEvaluationOnly: true },
+		).model,
+	).toBe("composer-1");
 });
 
 test("missing capability fails closed rather than choosing an unrelated model", async () => {

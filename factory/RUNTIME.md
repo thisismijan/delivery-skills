@@ -157,12 +157,14 @@ current session may use. At the start of a factory run:
    runtime cannot override models.
 4. A missing model for the required tier is a terminal capability failure. Do
    not silently choose a model from another tier.
-5. `fast` candidates are `evaluation-only`. Availability does not approve
-   them. They may be resolved with `--evaluation` for corpus benchmarking, but
-   live delivery cannot use them until `fast-dispatch.ts` passes the exact
-   candidate and task class on representative-run scores. Live scores are never
-   mixed into that sample. Fewer than five cases, a mean below the 90 percent
-   bar, or any critical miss keeps the model evaluation-only. Named safety
+5. Unpromoted `fast` candidates are `evaluation-only`. They may be
+   resolved with `--evaluation` for corpus benchmarking. Live delivery
+   may resolve `muse-spark-1.3-medium` without that flag after exact
+   operator promotion approval. Composer and Haiku stay evaluation-only.
+   `fast-dispatch.ts` still gates the exact candidate and task class on
+   representative-run scores. Live scores are never mixed into that
+   sample. Fewer than five cases, a mean below the 90 percent bar, or any
+   critical miss keeps an unpromoted model evaluation-only. Named safety
    floors block auth, migration, concurrency, distributed-state,
    weak-verification, and holdout work even after the bar clears. Passing
    evidence does not change live availability without an exact operator
