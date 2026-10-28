@@ -234,6 +234,45 @@ test("an empty or whitespace-only body is outdated", () => {
 	]);
 });
 
+test("an acknowledgement-only body is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "ack",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "LGTM!",
+			},
+			{
+				id: "thanks",
+				discussionId: "t2",
+				author: "reviewer",
+				body: "thanks",
+			},
+			{
+				id: "kept",
+				discussionId: "t3",
+				author: "reviewer",
+				body: "LGTM, but please add a test.",
+			},
+		],
+		{},
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual(["kept"]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "ack",
+			classification: "outdated",
+			reasoning: "comment is only an acknowledgement",
+		},
+		{
+			commentId: "thanks",
+			classification: "outdated",
+			reasoning: "comment is only an acknowledgement",
+		},
+	]);
+});
+
 test("an applied suggestion-only comment is outdated", () => {
 	const scoped = scopeComments(
 		[

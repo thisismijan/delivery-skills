@@ -589,6 +589,9 @@ describe("bounded recovery and replay safety", () => {
 		expect(comments).toMatch(/drops resolved discussions and resolved notes/i);
 		expect(comments).toMatch(/empty or whitespace-only body is outdated/i);
 		expect(comments).toMatch(
+			/only an acknowledgement such as LGTM, thanks, or approved is outdated/i,
+		);
+		expect(comments).toMatch(
 			/body is only a suggestion fence[\s\S]*suggested text is already in that file[\s\S]*outdated/i,
 		);
 		expect(comments).toMatch(

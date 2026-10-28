@@ -40,6 +40,28 @@ function lineCount(contents: string): number {
 	return contents.endsWith("\n") ? lines.length - 1 : lines.length;
 }
 
+const ACK_BODIES = new Set([
+	"lgtm",
+	"looks good",
+	"looks good to me",
+	"+1",
+	"thanks",
+	"thank you",
+	"approved",
+	"ship it",
+	"nice",
+	"nice work",
+]);
+
+function ackOnly(body: string): boolean {
+	const normalised = body
+		.trim()
+		.replace(/[.!]+$/g, "")
+		.trim()
+		.toLowerCase();
+	return ACK_BODIES.has(normalised);
+}
+
 function appliedSuggestion(body: string, contents: string): boolean {
 	const trimmed = body.trim();
 	const match = /^```suggestion[^\n]*\n([\s\S]*?)^```$/m.exec(trimmed);
@@ -61,6 +83,14 @@ export function scopeComments(
 				commentId: String(comment.id),
 				classification: "outdated",
 				reasoning: "comment body is empty",
+			});
+			continue;
+		}
+		if (ackOnly(comment.body)) {
+			outdated.push({
+				commentId: String(comment.id),
+				classification: "outdated",
+				reasoning: "comment is only an acknowledgement",
 			});
 			continue;
 		}
