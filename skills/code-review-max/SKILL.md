@@ -120,7 +120,9 @@ The returned `lenses` array is authoritative. Invalid input or a non-zero exit
 stops the review; never guess a reduced fan-out. Persist the result beside the
 input.
 
-Start fresh read-only subagents in one parallel batch. For a small reversible
+When `lenses` is empty, do not dispatch review-lens subagents. Continue at
+adjudication with no candidates. Start fresh read-only subagents in one
+parallel batch only when the array names lenses. For a small reversible
 or contained change, run lenses 1 and 2.
 For a full review, run all four lenses. They may use read, search, and
 read-only git commands. They must not

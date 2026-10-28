@@ -216,7 +216,8 @@ Independently adjudicated `/code-review-max` lenses use the resolved
 still decides GO or NO-GO. Fast-tier models do not run those lenses. Write measured counts and surfaces to
 `.review/mr-<iid>/<full-head-sha>/review-fanout-input.json`, then run
 `bun "$FACTORY_ROOT/scripts/review-fanout.ts" <that file>`. The returned
-`lenses` array is authoritative. A small reversible change, or a contained one
+`lenses` array is authoritative. An empty `lenses` array means no reviewable code; do not dispatch
+review-lens subagents. A small reversible change, or a contained one
 (reversible, at most 6 files and under 400 lines, no sensitive surface or
 dependency change), runs two essential lenses; larger, one-way, sensitive, or
 unknown classification runs all four.

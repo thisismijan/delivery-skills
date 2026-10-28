@@ -539,6 +539,9 @@ describe("bounded recovery and replay safety", () => {
 			/small reversible or contained change, run lenses 1 and 2/i,
 		);
 		expect(maxReview).toMatch(
+			/lenses is empty[\s\S]*do not dispatch review-lens/i,
+		);
+		expect(maxReview).toMatch(
 			/contained change is reversible, touches at most 6 files with fewer than 400 changed lines/i,
 		);
 		expect(maxReview).toMatch(/bound every command's output/i);
