@@ -505,6 +505,11 @@ describe("bounded recovery and replay safety", () => {
 		expect(runtime).toContain("TypeScript");
 		expect(runtime).toContain("Python");
 		expect(runtime).toContain("Java");
+		expect(plain(execute)).toMatch(/unique python parameter or local/i);
+		expect(plain(execute)).toMatch(/unique java field/i);
+		expect(plain(execute)).toMatch(/unique typescript missing import/i);
+		expect(plain(execute)).toMatch(/google-java-format/i);
+		expect(plain(rootReadme)).toMatch(/python function, class,\s*parameter, or local/i);
 		const controller = read("agents/task-profile-controller.md");
 		expect(controller).toContain("mechanical-edit");
 		expect(controller).toMatch(

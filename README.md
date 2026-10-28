@@ -408,12 +408,15 @@ unit is classified by `mechanical-edit.ts` before any extra worker.
 `apply-mechanical-edit.ts` applies it without a model when it can prove the
 rewrite for TypeScript, JavaScript, Python, or Java:
 
-- rename: a TypeScript or JavaScript identifier, a Python function or class,
-  or a single Java type or method, when every reference is in the listed files
-- import-only: unused TypeScript or JavaScript imports, unused Python
-  top-level names, or unused Java single-type imports, when the rest of the
-  file is unchanged
-- format-only: spacing that leaves names and literals identical
+- rename: a TypeScript or JavaScript identifier, a Python function, class,
+  parameter, or local, or a single Java type, method, or field, when every
+  reference is in the listed files. A unique Java type also renames
+  `From.java` to `To.java` when the listed file name matches
+- import-only: unused TypeScript or JavaScript imports, a unique missing
+  TypeScript import, unused Python top-level names, or unused Java
+  single-type imports, when the rest of the file is unchanged
+- format-only: spacing that leaves names and literals identical, using a
+  repo Prettier, Ruff, or google-java-format binary when one is present
 
 Anything the helper cannot prove — overloads, incomplete file lists, mixed
 languages, star imports — keeps today's worker. Those units sit in

@@ -19,6 +19,7 @@ export interface JavaRenamePlan {
 	ok: boolean;
 	reason?: string;
 	files?: Record<string, string>;
+	remove?: string[];
 }
 
 interface JavaToken {
@@ -362,6 +363,13 @@ function needsSpace(previous: JavaFormatToken, next: JavaFormatToken): boolean {
 	return true;
 }
 
+export function javaFormatIdentityHolds(original: string, next: string): boolean {
+	return (
+		javaFormatShape(original) === javaFormatShape(next) &&
+		identifierShape(original) === identifierShape(next)
+	);
+}
+
 export function formatJavaSource(source: string): string {
 	const tokens = tokenizeJavaFormat(source);
 	let next = "";
@@ -453,6 +461,40 @@ function followedByParen(source: string, end: number): boolean {
 		index += 1;
 	}
 	return source[index] === "(";
+}
+
+function afterIdentifier(source: string, end: number): string {
+	let index = skipSpaces(source, end);
+	if (source.startsWith("[]", index)) {
+		index = skipSpaces(source, index + 2);
+	}
+	return source[index] ?? "";
+}
+
+function fieldDeclarationCount(
+	source: string,
+	tokens: JavaToken[],
+	name: string,
+): number {
+	let count = 0;
+	for (let index = 0; index < tokens.length; index += 1) {
+		const token = tokens[index];
+		const previous = tokens[index - 1];
+		if (
+			token?.kind !== "id" ||
+			token.text !== name ||
+			!previous ||
+			previous.kind === "dot" ||
+			(previous.kind !== "id" && previous.kind !== "type")
+		) {
+			continue;
+		}
+		const next = afterIdentifier(source, token.end);
+		if (next === "=" || next === ";") {
+			count += 1;
+		}
+	}
+	return count;
 }
 
 function methodDeclarationCount(
@@ -704,6 +746,10 @@ export async function planJavaRename(input: {
 	const sources = new Map<string, { text: string; tokens: JavaToken[] }>();
 	let declarations = 0;
 	let methods = 0;
+	let fields = 0;
+	if (input.from === "serialVersionUID") {
+		return { ok: false, reason: "java field rename cannot prove serialVersionUID" };
+	}
 	for (const file of listed) {
 		const text = await Bun.file(file)
 			.text()
@@ -717,6 +763,7 @@ export async function planJavaRename(input: {
 		const tokens = tokenizeJava(text);
 		declarations += typeDeclarationCount(tokens, input.from);
 		methods += methodDeclarationCount(text, tokens, input.from);
+		fields += fieldDeclarationCount(text, tokens, input.from);
 		if (hasIdentifier(tokens, input.to)) {
 			return {
 				ok: false,
@@ -729,13 +776,18 @@ export async function planJavaRename(input: {
 		return { ok: false, reason: "source identifier is ambiguous" };
 	}
 	if (declarations === 0) {
-		if (methods === 0) {
+		const kinds = [methods > 0 ? "method" : undefined, fields > 0 ? "field" : undefined]
+			.filter((kind): kind is string => kind !== undefined);
+		if (kinds.length !== 1) {
 			return {
 				ok: false,
-				reason: "no proven Java script for this identifier",
+				reason:
+					kinds.length === 0
+						? "no proven Java script for this identifier"
+						: "source identifier is ambiguous",
 			};
 		}
-		if (methods > 1) {
+		if (methods > 1 || fields > 1) {
 			return { ok: false, reason: "source identifier is ambiguous" };
 		}
 	}
@@ -760,14 +812,35 @@ export async function planJavaRename(input: {
 	}
 
 	const rewritten: Record<string, string> = {};
+	const remove: string[] = [];
 	for (const [file, { text, tokens }] of sources) {
 		const next = rewrite(text, tokens, input.from, input.to);
-		if (next !== text) {
-			rewritten[relative(root, file).split(sep).join("/")] = next;
+		const relativePath = relative(root, file).split(sep).join("/");
+		const base = relativePath.slice(relativePath.lastIndexOf("/") + 1);
+		const directory =
+			relativePath.includes("/")
+				? relativePath.slice(0, relativePath.lastIndexOf("/") + 1)
+				: "";
+		let destination = relativePath;
+		if (declarations === 1 && base === `${input.from}.java`) {
+			destination = `${directory}${input.to}.java`;
+			const destinationFile = resolve(root, destination);
+			const already = await Bun.file(destinationFile)
+				.text()
+				.catch(() => undefined);
+			if (already !== undefined && destinationFile !== file) {
+				return { ok: false, reason: "java type rename target file already exists" };
+			}
+			if (destination !== relativePath) {
+				remove.push(relativePath);
+			}
+		}
+		if (next !== text || destination !== relativePath) {
+			rewritten[destination] = next !== text ? next : text;
 		}
 	}
 	if (Object.keys(rewritten).length === 0) {
 		return { ok: false, reason: "source identifier was not found" };
 	}
-	return { ok: true, files: rewritten };
+	return { ok: true, files: rewritten, remove };
 }

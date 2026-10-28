@@ -44,6 +44,130 @@ def declaration_count(source: str, name: str) -> int:
     return count
 
 
+def source_offset(source: str, lineno: int, col: int) -> int:
+    starts = [0]
+    for index, char in enumerate(source):
+        if char == "\n":
+            starts.append(index + 1)
+    return starts[lineno - 1] + col
+
+
+def node_span(source: str, node: ast.AST) -> tuple[int, int] | None:
+    lineno = getattr(node, "lineno", None)
+    col = getattr(node, "col_offset", None)
+    end_lineno = getattr(node, "end_lineno", None)
+    end_col = getattr(node, "end_col_offset", None)
+    if lineno is None or col is None or end_lineno is None or end_col is None:
+        return None
+    return source_offset(source, lineno, col), source_offset(source, end_lineno, end_col)
+
+
+def function_args(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda) -> list[ast.arg]:
+    args = [
+        *node.args.posonlyargs,
+        *node.args.args,
+        *node.args.kwonlyargs,
+    ]
+    if node.args.vararg:
+        args.append(node.args.vararg)
+    if node.args.kwarg:
+        args.append(node.args.kwarg)
+    return args
+
+
+def call_name(node: ast.Call) -> str | None:
+    func = node.func
+    if isinstance(func, ast.Name):
+        return func.id
+    return None
+
+
+class Binding:
+    def __init__(self, kind: str, node: ast.AST, enclosing: ast.AST | None) -> None:
+        self.kind = kind
+        self.node = node
+        self.enclosing = enclosing
+
+
+def collect_bindings(tree: ast.AST, name: str) -> list[Binding]:
+    found: list[Binding] = []
+    stack: list[ast.AST] = []
+
+    def visit(node: ast.AST) -> None:
+        enclosing = stack[-1] if stack else None
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            if not isinstance(node, ast.Lambda) and node.name == name:
+                found.append(Binding("function", node, None))
+            for arg in function_args(node):
+                if arg.arg == name:
+                    found.append(Binding("arg", arg, node))
+            stack.append(node)
+            for child in ast.iter_child_nodes(node):
+                visit(child)
+            stack.pop()
+            return
+        if isinstance(node, ast.ClassDef) and node.name == name:
+            found.append(Binding("class", node, None))
+        if isinstance(node, ast.Name) and node.id == name and isinstance(node.ctx, ast.Store):
+            found.append(Binding("local", node, enclosing))
+        if isinstance(node, ast.alias):
+            bound = bound_name(node)
+            if bound == name:
+                found.append(Binding("import", node, enclosing))
+        for child in ast.iter_child_nodes(node):
+            visit(child)
+
+    visit(tree)
+    return found
+
+
+def has_exec_or_eval(tree: ast.AST) -> bool:
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and call_name(node) in {"exec", "eval"}:
+            return True
+    return False
+
+
+def has_attribute_named(tree: ast.AST, name: str) -> bool:
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and node.attr == name:
+            return True
+    return False
+
+
+def replace_spans(source: str, spans: list[tuple[int, int]], target: str) -> str:
+    next_source = source
+    for start, end in sorted(spans, reverse=True):
+        next_source = next_source[:start] + target + next_source[end:]
+    return next_source
+
+
+def scoped_rename(source: str, binding: Binding, source_name: str, target_name: str) -> str:
+    enclosing = binding.enclosing
+    if enclosing is None:
+        tree = ast.parse(source)
+        enclosing = tree
+    if has_exec_or_eval(enclosing):
+        raise ValueError("python local rename cannot prove exec or eval")
+    if has_attribute_named(enclosing, source_name):
+        raise ValueError("python local rename cannot prove attribute uses")
+    spans: list[tuple[int, int]] = []
+    for node in ast.walk(enclosing):
+        if isinstance(node, ast.Name) and node.id == source_name:
+            span = node_span(source, node)
+            if span is None:
+                raise ValueError("python local rename cannot prove this binding")
+            spans.append(span)
+        if isinstance(node, ast.arg) and node.arg == source_name:
+            span = node_span(source, node)
+            if span is None:
+                raise ValueError("python local rename cannot prove this binding")
+            spans.append(span)
+    if not spans:
+        raise ValueError("source identifier was not found")
+    return replace_spans(source, spans, target_name)
+
+
 def name_in_tokens(source: str, name: str) -> bool:
     readline = StringIO(source).readline
     for token in tokenize.generate_tokens(readline):
@@ -142,6 +266,93 @@ def non_import_dump(source: str) -> str:
     return ast.dump(ast.Module(body=remaining, type_ignores=[]), include_attributes=False)
 
 
+def unlisted_uses_name(root: str, listed: list[str], name: str) -> bool:
+    listed_set = set(listed)
+    for path in list_python_files(root):
+        real = os.path.realpath(path)
+        if real in listed_set:
+            continue
+        try:
+            with open(real, encoding="utf-8") as handle:
+                text = handle.read()
+        except OSError:
+            continue
+        if name_in_tokens(text, name):
+            return True
+    return False
+
+
+def plan_local_rename(
+    root: str,
+    sources: dict[str, str],
+    source_name: str,
+    target_name: str,
+) -> dict[str, Any]:
+    chosen: Binding | None = None
+    chosen_path: str | None = None
+    scopes: set[tuple[str, int]] = set()
+    for path, text in sources.items():
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            return {"ok": False, "reason": "python source could not be parsed"}
+        for binding in collect_bindings(tree, source_name):
+            if binding.kind in {"function", "class"}:
+                continue
+            if binding.kind == "import":
+                return {
+                    "ok": False,
+                    "reason": "python local rename cannot prove import aliases",
+                }
+            scope_id = id(binding.enclosing) if binding.enclosing is not None else id(tree)
+            scopes.add((path, scope_id))
+            if chosen is None:
+                chosen = binding
+                chosen_path = path
+    if chosen is None or chosen_path is None:
+        return {"ok": False, "reason": "source identifier was not found"}
+    if len(scopes) != 1:
+        return {"ok": False, "reason": "source identifier is ambiguous"}
+    enclosing = chosen.enclosing
+    listed_set = set(sources)
+    for path, text in sources.items():
+        if path == chosen_path:
+            continue
+        if name_in_tokens(text, source_name):
+            return {
+                "ok": False,
+                "reason": "rename graph includes files that were not listed",
+            }
+    if enclosing is not None:
+        span = node_span(sources[chosen_path], enclosing)
+        if span is None:
+            return {"ok": False, "reason": "python local rename cannot prove this binding"}
+        start, end = span
+        rest = sources[chosen_path][:start] + sources[chosen_path][end:]
+        if name_in_tokens(rest, source_name):
+            return {"ok": False, "reason": "source identifier is ambiguous"}
+    if unlisted_uses_name(root, list(listed_set), source_name):
+        return {
+            "ok": False,
+            "reason": "rename graph includes files that were not listed",
+        }
+    try:
+        next_text = scoped_rename(
+            sources[chosen_path],
+            chosen,
+            source_name,
+            target_name,
+        )
+    except ValueError as error:
+        return {"ok": False, "reason": str(error)}
+    rewritten = {}
+    if next_text != sources[chosen_path]:
+        rewritten[relative_to(root, chosen_path)] = next_text
+    if not rewritten:
+        return {"ok": False, "reason": "source identifier was not found"}
+    return {"ok": True, "files": rewritten}
+
+
 def plan_rename(root: str, payload: dict[str, Any]) -> dict[str, Any]:
     source_name = payload.get("from")
     target_name = payload.get("to")
@@ -169,26 +380,16 @@ def plan_rename(root: str, payload: dict[str, Any]) -> dict[str, Any]:
             }
         sources[path] = text
 
-    if declarations == 0:
-        return {"ok": False, "reason": "source identifier was not found"}
     if declarations > 1:
         return {"ok": False, "reason": "source identifier is ambiguous"}
+    if declarations == 0:
+        return plan_local_rename(root, sources, source_name, target_name)
 
-    listed_set = set(listed)
-    for path in list_python_files(root):
-        real = os.path.realpath(path)
-        if real in listed_set:
-            continue
-        try:
-            with open(real, encoding="utf-8") as handle:
-                text = handle.read()
-        except OSError:
-            continue
-        if name_in_tokens(text, source_name):
-            return {
-                "ok": False,
-                "reason": "rename graph includes files that were not listed",
-            }
+    if unlisted_uses_name(root, listed, source_name):
+        return {
+            "ok": False,
+            "reason": "rename graph includes files that were not listed",
+        }
 
     rewritten: dict[str, str] = {}
     for path, text in sources.items():
@@ -329,6 +530,38 @@ def rewrite_unused_imports(source: str) -> str:
     return next_source
 
 
+def plan_assert_format(root: str, payload: dict[str, Any]) -> dict[str, Any]:
+    proposed = payload.get("proposed") or {}
+    if not isinstance(proposed, dict) or not proposed:
+        return {"ok": False, "reason": "format-only requires files"}
+    rewritten: dict[str, str] = {}
+    for relative_path, next_text in proposed.items():
+        if not isinstance(next_text, str):
+            return {"ok": False, "reason": "python format rewrite was not proven"}
+        path = os.path.realpath(os.path.join(root, relative_path))
+        try:
+            with open(path, encoding="utf-8") as handle:
+                original = handle.read()
+        except OSError:
+            return {"ok": False, "reason": f"missing file: {relative_path}"}
+        try:
+            if python_shape(original) != python_shape(next_text):
+                return {
+                    "ok": False,
+                    "reason": "format rewrite would change non-whitespace structure",
+                }
+            if significant_tokens(original) != significant_tokens(next_text):
+                return {
+                    "ok": False,
+                    "reason": "format rewrite would change non-whitespace structure",
+                }
+        except (ValueError, SyntaxError, tokenize.TokenError):
+            return {"ok": False, "reason": "python format rewrite was not proven"}
+        if next_text != original:
+            rewritten[relative_path] = next_text
+    return {"ok": True, "files": rewritten}
+
+
 def plan(root: str, payload: dict[str, Any]) -> dict[str, Any]:
     operation = payload.get("operation") or "rename"
     if operation == "rename":
@@ -337,6 +570,8 @@ def plan(root: str, payload: dict[str, Any]) -> dict[str, Any]:
         return plan_import_only(root, payload)
     if operation == "format-only":
         return plan_format_only(root, payload)
+    if operation == "assert-format":
+        return plan_assert_format(root, payload)
     return {"ok": False, "reason": "no proven python script for this operation"}
 
 

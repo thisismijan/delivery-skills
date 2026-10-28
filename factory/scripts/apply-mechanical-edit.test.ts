@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { applyMechanicalEdit } from "./apply-mechanical-edit";
@@ -333,6 +333,259 @@ test("a Java string occurrence is not rewritten", async () => {
 			expect(await readFile(join(root, "src/A.java"), "utf8")).toContain(
 				"class Slugify ",
 			);
+		},
+	);
+});
+
+test("a unique Python parameter is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/a.py": "def slugify(value):\n    return value\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					...pythonUnit,
+					from: "value",
+					to: "item",
+					files: ["src/a.py"],
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			const text = await readFile(join(root, "src/a.py"), "utf8");
+			expect(text).toContain("def slugify(item):");
+			expect(text).toContain("return item");
+			expect(text).not.toContain("value");
+		},
+	);
+});
+
+test("a unique Python local is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/a.py": "def slugify():\n    label = 'x'\n    return label\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					...pythonUnit,
+					from: "label",
+					to: "text",
+					files: ["src/a.py"],
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			const text = await readFile(join(root, "src/a.py"), "utf8");
+			expect(text).toContain("text = 'x'");
+			expect(text).toContain("return text");
+			expect(text).not.toContain("label");
+		},
+	);
+});
+
+test("a Python exec use stays on the worker", async () => {
+	await withProject(
+		{
+			"src/a.py": "def slugify(value):\n    exec(value)\n",
+		},
+		async (root) => {
+			const before = await readFile(join(root, "src/a.py"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: {
+					...pythonUnit,
+					from: "value",
+					to: "item",
+					files: ["src/a.py"],
+				},
+				root,
+			});
+			expect(result.apply).toBe("select-model");
+			expect(result.reason).toContain("exec");
+			expect(await readFile(join(root, "src/a.py"), "utf8")).toBe(before);
+		},
+	);
+});
+
+test("a Python attribute of the same name stays on the worker", async () => {
+	await withProject(
+		{
+			"src/a.py":
+				"def slugify(value):\n    return host.value\n",
+		},
+		async (root) => {
+			const before = await readFile(join(root, "src/a.py"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: {
+					...pythonUnit,
+					from: "value",
+					to: "item",
+					files: ["src/a.py"],
+				},
+				root,
+			});
+			expect(result.apply).toBe("select-model");
+			expect(result.reason).toContain("attribute");
+			expect(await readFile(join(root, "src/a.py"), "utf8")).toBe(before);
+		},
+	);
+});
+
+test("a unique Java field is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/Host.java":
+				"public class Host {\n  private String slugifyTitle;\n}\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					...javaUnit,
+					from: "slugifyTitle",
+					to: "slugify",
+					files: ["src/Host.java"],
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			const text = await readFile(join(root, "src/Host.java"), "utf8");
+			expect(text).toContain("private String slugify;");
+			expect(text).not.toContain("slugifyTitle");
+		},
+	);
+});
+
+test("serialVersionUID stays on the worker", async () => {
+	await withProject(
+		{
+			"src/Host.java":
+				"public class Host {\n  private static final long serialVersionUID = 1L;\n}\n",
+		},
+		async (root) => {
+			const before = await readFile(join(root, "src/Host.java"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: {
+					...javaUnit,
+					from: "serialVersionUID",
+					to: "serialId",
+					files: ["src/Host.java"],
+				},
+				root,
+			});
+			expect(result.apply).toBe("select-model");
+			expect(await readFile(join(root, "src/Host.java"), "utf8")).toBe(before);
+		},
+	);
+});
+
+test("a Java type rename moves the matching file", async () => {
+	await withProject(
+		{
+			"src/SlugifyTitle.java":
+				"public class SlugifyTitle {\n  public String value() { return value(); }\n}\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					...javaUnit,
+					files: ["src/SlugifyTitle.java"],
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			expect(await readFile(join(root, "src/Slugify.java"), "utf8")).toContain(
+				"class Slugify ",
+			);
+			await expect(
+				readFile(join(root, "src/SlugifyTitle.java"), "utf8"),
+			).rejects.toThrow();
+		},
+	);
+});
+
+test("a unique TypeScript missing import is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/a.ts":
+				"export function slugify(value: string): string {\n  return value;\n}\n",
+			"src/b.ts": 'export const label = slugify("Hello");\n',
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					operation: "import-only",
+					files: ["src/b.ts"],
+					reversible: true,
+					classificationComplete: true,
+					surfaces: ["user-interface"],
+					verification: "strong",
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			const text = await readFile(join(root, "src/b.ts"), "utf8");
+			expect(text).toContain("slugify");
+			expect(text).toMatch(/import\s*\{?\s*slugify/);
+		},
+	);
+});
+
+test("an ambiguous TypeScript missing import is not added", async () => {
+	await withProject(
+		{
+			"src/a.ts": "export function slugify(): string { return \"a\"; }\n",
+			"src/c.ts": "export function slugify(): string { return \"c\"; }\n",
+			"src/b.ts": "export const label = slugify();\n",
+		},
+		async (root) => {
+			const before = await readFile(join(root, "src/b.ts"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: {
+					operation: "import-only",
+					files: ["src/b.ts"],
+					reversible: true,
+					classificationComplete: true,
+					surfaces: ["user-interface"],
+					verification: "strong",
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			expect(await readFile(join(root, "src/b.ts"), "utf8")).toBe(before);
+		},
+	);
+});
+
+test("a repo formatter that changes names stays on the worker", async () => {
+	await withProject(
+		{
+			"src/a.ts": "export const label = \"Hello\";\n",
+		},
+		async (root) => {
+			const bin = join(root, "node_modules", ".bin");
+			await mkdir(bin, { recursive: true });
+			const prettier = join(bin, "prettier");
+			await writeFile(
+				prettier,
+				"#!/usr/bin/env python3\nimport sys\nprint(sys.stdin.read().replace('Hello', 'Goodbye'), end='')\n",
+			);
+			await chmod(prettier, 0o755);
+			const before = await readFile(join(root, "src/a.ts"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: {
+					operation: "format-only",
+					files: ["src/a.ts"],
+					reversible: true,
+					classificationComplete: true,
+					surfaces: ["user-interface"],
+					verification: "strong",
+				},
+				root,
+			});
+			expect(result.apply).toBe("select-model");
+			expect(result.reason).toContain("non-whitespace");
+			expect(await readFile(join(root, "src/a.ts"), "utf8")).toBe(before);
 		},
 	);
 });
