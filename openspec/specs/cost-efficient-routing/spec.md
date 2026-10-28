@@ -313,6 +313,26 @@ When `/execute` applies a mechanical-edit unit and `apply` is `script`, it SHALL
 - **WHEN** import-only runs and the language service offers exactly one missing-import fix in listed files
 - **THEN** `apply-mechanical-edit.ts` reports `apply` is `script`
 
+#### Scenario: A unique Python missing import is applied by script
+- **WHEN** import-only runs and exactly one repository Python file exports a used unbound name
+- **THEN** `apply-mechanical-edit.ts` reports `apply` is `script`
+- **AND** the listed file gains that import
+
+#### Scenario: An ambiguous Python missing import is not added
+- **WHEN** import-only runs and two repository Python files export the same used name
+- **THEN** `apply` is `script`
+- **AND** the listed file does not gain that import
+
+#### Scenario: A unique Java missing import is applied by script
+- **WHEN** import-only runs and exactly one public Java type matches a used simple name
+- **THEN** `apply-mechanical-edit.ts` reports `apply` is `script`
+- **AND** the listed file gains that import
+
+#### Scenario: An ambiguous Java missing import is not added
+- **WHEN** import-only runs and two public Java types share the used simple name
+- **THEN** `apply` is `script`
+- **AND** the listed file does not gain that import
+
 #### Scenario: A repo formatter that changes names stays unscripted
 - **WHEN** format-only invokes a repo Prettier, Ruff, or google-java-format binary
 - **AND** the result would change names or literals
@@ -419,3 +439,83 @@ When `/execute` reaches implementation and `apply-mechanical-edit.ts` reports `a
 #### Scenario: An unscripted implement step still uses the implementer
 - **WHEN** the unit is `not-mechanical` or `apply` is `select-model`
 - **THEN** the implementer still runs
+
+### Requirement: A scripted skip is recorded as an avoided worker
+
+When a factory command does not dispatch a named worker because a script
+already proved the outcome, it SHALL persist a skip record naming that
+worker and a human reason. The record SHALL NOT include token, cost, or
+wall-time estimates. Persistence SHALL refuse an unknown worker name or a
+duplicate skip id for the same run.
+
+#### Scenario: A mechanical apply records the avoided execute workers
+- **WHEN** `apply-mechanical-edit.ts` reports `apply` is `script`
+- **THEN** skip records name `test-writer` and `implementer`
+- **AND** those records contain no token or cost fields
+
+#### Scenario: An unknown worker is refused
+- **WHEN** persist is given a worker name outside the closed list
+- **THEN** it writes nothing and exits non-zero
+
+### Requirement: The run scorecard counts avoided workers without pricing them
+
+The run scorecard SHALL count persisted skip records for that run and
+SHALL print the avoided-worker total beside measured usage. It SHALL
+state that token savings are not estimated. A run that has skip records
+and no routing observations SHALL still produce a scorecard.
+
+#### Scenario: Skips appear on the scorecard
+- **WHEN** a run has two skip records and measured usage from workers that ran
+- **THEN** the scorecard reports two workers avoided
+- **AND** the text does not invent tokens saved
+
+#### Scenario: A skip-only run still scores
+- **WHEN** a run has skip records and no routing observations
+- **THEN** the scorecard still prints the avoided-worker count
+
+### Requirement: Skip recording does not depend on diagnostic profiling
+
+Skip persist and the avoided-worker scorecard line SHALL run when
+`routingProfiling` is `off`. Turning profiling `always` SHALL NOT change
+which workers are skipped.
+
+#### Scenario: Profiling off still records skips
+- **WHEN** a scripted skip fires and `routingProfiling` is `off`
+- **THEN** the skip record is still persisted
+- **AND** the scorecard still counts it
+
+### Requirement: The unscripted mechanical pack matches remaining worker units
+
+The representative unscripted mechanical pack SHALL include units that
+`apply-mechanical-edit.ts` cannot prove, including a Python attribute of
+the same name, `exec` or `eval`, `serialVersionUID`, and a repo formatter
+that changes names or literals. It SHALL NOT include units whose apply
+result is `script`.
+
+#### Scenario: Remaining refusals are in the pack
+- **WHEN** the unscripted pack is listed
+- **THEN** it includes a Python attribute rename, an exec use, a
+  `serialVersionUID` field, and a formatter that changes names
+
+#### Scenario: Scripted missing imports stay out
+- **WHEN** the unscripted pack is listed
+- **THEN** it does not include a unique Python or Java missing import
+
+### Requirement: Task lists are generated from spec scenarios
+
+When `/draft` has written the delta specs, it SHALL generate `tasks.md`
+with `generate-tasks.ts` and SHALL NOT ask a model to invent the task
+list. The file SHALL contain one test task per `Scenario` heading, then
+an implementation task. Missing specs or a spec with no scenarios SHALL
+fail closed and write nothing.
+
+#### Scenario: Scenarios become tests-first tasks
+- **WHEN** the change specs contain two scenarios
+- **THEN** `tasks.md` lists two test tasks before implementation
+- **AND** no model is asked to write the task list
+
+#### Scenario: A spec without scenarios is refused
+- **WHEN** the specs directory has no `Scenario` headings
+- **THEN** `generate-tasks.ts` exits non-zero
+- **AND** `tasks.md` is not written
+
