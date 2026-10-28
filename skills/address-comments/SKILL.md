@@ -136,6 +136,18 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    (`bug`/`non-functional` → `action`, `nitpick`/`false-positive` → `dispute`, `question` → `answer`, `outdated` → `skip`). An unknown value makes this throw → stop + escalate. Then process each comment, **one commit per actioned comment**:
 
+   For an action comment whose body is only a single-line suggestion fence on
+   a new-side line, write that comment to `<reviewDir>/comment-<commentId>.json`
+   and, where the steps below would dispatch the `implementer` for the fix, run
+   instead:
+   ```
+   bun "${FACTORY_ROOT}/scripts/forge-comments.ts" apply-suggestion "<reviewDir>/comment-<commentId>.json" "<repoRoot>"
+   ```
+   Non-zero exit → **stop + escalate**. When `apply` is `script`, the helper
+   already replaced that line, so do not dispatch the `implementer` for it.
+   When `apply` is `model`, continue as below. A bug still needs its red test
+   first, and the green gate, lint, typecheck, and holdout still run.
+
    - **`bug`** (action, tests-first): write a failing test scoped to the comment, prove it red —
      ```
      bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/red-command-<commentId>.json" red | tee "<reviewDir>/red-gate-<commentId>-<test-commit>.json"
