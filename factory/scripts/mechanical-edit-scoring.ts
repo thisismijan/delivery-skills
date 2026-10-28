@@ -126,6 +126,63 @@ export function unscriptedMechanicalFixtures(): UnscriptedMechanicalFixture[] {
 				files: ["src/a.py"],
 			},
 		},
+		{
+			id: "python-attribute",
+			reason: "A Python attribute of the same name stays on the current worker",
+			files: {
+				"src/a.py": "def slugify(value):\n    return host.value\n",
+			},
+			payload: {
+				...unit,
+				operation: "rename",
+				from: "value",
+				to: "item",
+				files: ["src/a.py"],
+			},
+		},
+		{
+			id: "python-exec",
+			reason: "Python exec cannot prove a local rename",
+			files: {
+				"src/a.py": "def slugify(value):\n    exec(value)\n",
+			},
+			payload: {
+				...unit,
+				operation: "rename",
+				from: "value",
+				to: "item",
+				files: ["src/a.py"],
+			},
+		},
+		{
+			id: "java-serial-version-uid",
+			reason: "serialVersionUID stays on the current worker",
+			files: {
+				"src/Host.java":
+					"public class Host {\n  private static final long serialVersionUID = 1L;\n}\n",
+			},
+			payload: {
+				...unit,
+				operation: "rename",
+				from: "serialVersionUID",
+				to: "serialId",
+				files: ["src/Host.java"],
+			},
+		},
+		{
+			id: "formatter-changes-names",
+			reason: "A repo formatter that changes names stays unscripted",
+			files: {
+				"src/a.ts": 'export const label = "Hello";\n',
+				"node_modules/.bin/prettier":
+					"#!/usr/bin/env python3\nimport sys\nprint(sys.stdin.read().replace('Hello', 'Goodbye'), end='')\n",
+			},
+			payload: {
+				...unit,
+				operation: "format-only",
+				files: ["src/a.ts"],
+			},
+		},
 	];
 }
 

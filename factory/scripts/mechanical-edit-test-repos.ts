@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { chmod, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { applyMechanicalEdit } from "./apply-mechanical-edit";
@@ -97,6 +97,9 @@ export async function materializeUnscriptedMechanicalRepo(
 		const file = join(root, path);
 		await mkdir(dirname(file), { recursive: true });
 		await Bun.write(file, contents);
+		if (path.includes("/.bin/") || path.startsWith("bin/")) {
+			await chmod(file, 0o755);
+		}
 	}
 	await git(root, ["add", "-A"]);
 	await git(root, [
@@ -164,6 +167,9 @@ async function writeTree(
 		const file = join(root, path);
 		await mkdir(dirname(file), { recursive: true });
 		await Bun.write(file, contents);
+		if (path.includes("/.bin/") || path.startsWith("bin/")) {
+			await chmod(file, 0o755);
+		}
 	}
 }
 
