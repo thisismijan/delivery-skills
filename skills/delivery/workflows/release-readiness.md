@@ -117,13 +117,32 @@ Then make the **door call**:
 
 Any scanned `oneWay` signal makes the change a one-way door.
 
-**Small change rule.** If the diff touches 2 files or fewer, is under 50 changed
-lines, is a two-way door, and marks none of Data, Contract, Config, Auth, or
-Infra, skip the subagents in step 3 and run the rollback lens yourself.
+Measure reviewable counts with
+`bun "${FACTORY_ROOT}/scripts/review-fanout.ts" measure <base-sha> <head-sha>`.
+It leaves out OpenSpec and delivery artefacts. Write those counts, the door
+call, whether every classification field was proved, and the scanned surfaces
+to a file beside the ledger, then:
+```
+bun "${FACTORY_ROOT}/scripts/review-fanout.ts" readiness \
+  "<ledger-dir>/readiness-fanout-input.json"
+```
+The returned `mode` is authoritative. Invalid input or a non-zero exit stops
+the stage; never guess a reduced fan-out.
+
+- **`empty`:** the measured diff has no reviewable code. Do not dispatch lens
+  subagents and do not run the rollback lens yourself. Continue at step 4
+  with no lens findings.
+- **`small`:** at most 2 files, fewer than 50 changed lines, two-way, and none
+  of Data, Contract, Config, Auth, or Infra. Skip the subagents in step 3 and
+  run the rollback lens yourself.
+- **`full`:** resolve `standard` and run the lenses the classification turned
+  on.
 
 ### 3. Run the lenses
 
-Resolve the `standard` capability against the recorded inventory:
+When mode is `empty`, skip this step. When mode is `small`, run only the
+rollback brief yourself and continue at step 4. When mode is `full`,
+resolve the `standard` capability against the recorded inventory:
 ```
 bun "${FACTORY_ROOT}/scripts/model-catalogue.ts" resolve standard \
   .delivery/routing/model-inventory.json
@@ -156,7 +175,7 @@ Suggestion), location, what happens, evidence.
   of privilege. Check the diff for secrets. Check new dependencies for known
   vulnerabilities with the repo's scanner if it has one. An incompletely
   reproduced Critical or High finding keeps its severity and is marked unverified.
-- **Operability** (always on unless the small change rule applied). Take the
+- **Operability** (always on unless mode is `empty` or `small`). Take the
   on-call questions from `design.md`. If there are none, write two: "how would
   we know this is broken?" and "how would we know it is slower?". For each, name
   the log, metric, dashboard, or alert that answers it, and whether it exists

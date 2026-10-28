@@ -116,6 +116,14 @@ Release readiness SHALL run the diff scan on the pinned base and head before cla
 - **WHEN** the release readiness workflow is read
 - **THEN** it names the diff scan command, says scanned marks are never removed, and says a non-zero exit stops the stage
 
+### Requirement: Empty and small diffs skip readiness-lens subagents
+
+Release readiness SHALL measure the pinned diff with `review-fanout.ts measure` and SHALL take `review-fanout.ts readiness` as the dispatch plan. An `empty` mode SHALL dispatch no lens subagent and SHALL NOT run the rollback lens in the main conversation. A `small` mode SHALL dispatch no lens subagent and SHALL run the rollback lens in the main conversation. A `full` mode SHALL run the lenses the classification turned on. Malformed input SHALL stop the stage.
+
+#### Scenario: Workflow wording is pinned
+- **WHEN** the release readiness workflow is read
+- **THEN** it names `review-fanout.ts readiness`, says `empty` skips the rollback lens in this conversation, says `small` runs that lens here, and says a non-zero exit stops the stage
+
 ### Requirement: Readiness lens subagents use the resolved standard model
 
 Every release-readiness lens subagent SHALL use the exact model identifier returned by resolving the `standard` capability against the recorded runtime inventory. The main conversation SHALL still synthesise GO or NO-GO, drop Stage 3 duplicates, keep unverified Critical and High findings blocking, and write the brief. A missing live standard candidate SHALL stop the stage. Fast-tier models SHALL NOT run these lenses.
