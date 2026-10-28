@@ -1,5 +1,5 @@
 import type { FeasibilityVerdict } from "./verdicts";
-import { sectionBody, verifyTicket } from "./verify-ticket";
+import { hasOpenQuestion, sectionBody, verifyTicket } from "./verify-ticket";
 import { WorkItem } from "./work-item-provider";
 
 export type TicketFeasibilityResult =
@@ -13,13 +13,6 @@ const SENSITIVE_PATTERNS = [
 ] as const;
 
 const SCOPED_SECTIONS = ["What to build", "Acceptance criteria"] as const;
-
-const QUESTION_SECTIONS = [
-	"Context",
-	"User stories",
-	"What to build",
-	"Acceptance criteria",
-] as const;
 
 function approachSketch(body: string): string {
 	const text = sectionBody(body, "What to build").replace(/\s+/g, " ").trim();
@@ -54,10 +47,7 @@ export async function inspectTicketFeasibility(
 	if (!result.ok || result.warnings.length > 0) {
 		return { skipAnalyst: false };
 	}
-	const questions = QUESTION_SECTIONS.map((name) =>
-		sectionBody(body, name),
-	).join("\n");
-	if (questions.includes("?")) return { skipAnalyst: false };
+	if (hasOpenQuestion(body)) return { skipAnalyst: false };
 	return {
 		skipAnalyst: true,
 		verdict: {

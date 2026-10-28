@@ -125,6 +125,23 @@ export function sectionBody(text: string, name: string): string {
 	return body.join("\n");
 }
 
+export const QUESTION_SECTIONS = [
+	"Context",
+	"User stories",
+	"What to build",
+	"Acceptance criteria",
+] as const;
+
+export function hasOpenQuestion(text: string): boolean {
+	const scoped = QUESTION_SECTIONS.map((name) => sectionBody(text, name)).join(
+		"\n",
+	);
+	return scoped
+		.replace(/`[^`]+`/g, "")
+		.replace(/https?:\/\/[^\s)]+/gi, "")
+		.includes("?");
+}
+
 // Count list items in the "User stories" section (between its heading and the
 // next heading). A story is a markdown list item: "- ", "* ", "+ ", or "N." / "N)".
 export function countUserStories(text: string): number {
