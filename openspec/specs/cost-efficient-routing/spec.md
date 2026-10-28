@@ -248,7 +248,7 @@ When `/draft` looks for an open question, it SHALL ignore `?` characters that ap
 
 ### Requirement: A structurally valid ticket input does not start groom exploration
 
-When `/groom` input already passes `verify-ticket.ts`, the command SHALL NOT dispatch the groom-explorer and SHALL NOT run the grilling loop. It SHALL classify the input as a single ticket and SHALL still require operator approval before writing drafts. Input that fails the verifier SHALL keep exploration and grilling.
+When `/groom` input already passes `verify-ticket.ts`, the command SHALL NOT dispatch the groom-explorer and SHALL NOT run the grilling loop. It SHALL classify the input as a single ticket and SHALL still require operator approval before writing drafts. Input that fails the verifier only because Out of scope or Blocked by is missing SHALL be filled as `None.` and skip exploration the same way. Any other verifier failure SHALL keep exploration and grilling.
 
 #### Scenario: A valid ticket skips the explorer
 - **WHEN** the resolved input passes `verify-ticket.ts`
@@ -258,6 +258,21 @@ When `/groom` input already passes `verify-ticket.ts`, the command SHALL NOT dis
 
 #### Scenario: A raw idea still uses the explorer
 - **WHEN** the resolved input fails `verify-ticket.ts`
+- **AND** the failure is not only a missing Out of scope or Blocked by section
+- **THEN** the read-only codebase explorer still runs before grilling
+
+### Requirement: Housekeeping-only ticket gaps do not start groom exploration
+
+When `/groom` input fails `verify-ticket.ts` only because Out of scope or Blocked by is missing, the command SHALL append those sections as `None.`, SHALL treat the result as a valid ticket, and SHALL NOT dispatch the groom-explorer or run grilling. Any other verifier failure SHALL keep exploration and grilling.
+
+#### Scenario: Missing out of scope skips the explorer after a none fill
+- **WHEN** the resolved input is otherwise a valid ticket and only Out of scope or Blocked by is missing
+- **THEN** those sections are appended as `None.`
+- **AND** no groom-explorer is dispatched
+- **AND** no grilling questions are asked
+
+#### Scenario: A missing context section still uses the explorer
+- **WHEN** the resolved input is missing Context, User stories, What to build, or Acceptance criteria
 - **THEN** the read-only codebase explorer still runs before grilling
 
 ### Requirement: An approved valid ticket input does not start a groom writer
