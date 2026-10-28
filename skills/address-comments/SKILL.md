@@ -136,8 +136,8 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    (`bug`/`non-functional` → `action`, `nitpick`/`false-positive` → `dispute`, `question` → `answer`, `outdated` → `skip`). An unknown value makes this throw → stop + escalate. Then process each comment, **one commit per actioned comment**:
 
-   For an action comment whose body is only an un-ranged suggestion fence on
-   a new-side line, write that comment to `<reviewDir>/comment-<commentId>.json`
+   For an action comment whose body is only a suggestion fence on a new-side
+   line, write that comment to `<reviewDir>/comment-<commentId>.json`
    and, where the steps below would dispatch the `implementer` for the fix, run
    instead:
    ```
