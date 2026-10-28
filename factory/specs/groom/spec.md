@@ -33,7 +33,7 @@ The command SHALL accept a file path argument, inline text, or no argument. With
 - **THEN** the command stops and asks for input rather than proceeding
 
 ### Requirement: Read-only codebase grounding before grilling
-Before the grilling loop begins, the command SHALL perform a read-only codebase exploration and SHALL reference concrete module names or domain terms found in the repository in its questions and slice proposals. When the resolved input already passes `verify-ticket.ts`, the command SHALL skip exploration and grilling.
+Before the grilling loop begins, the command SHALL perform a read-only codebase exploration and SHALL reference concrete module names or domain terms found in the repository in its questions and slice proposals. When the resolved input already passes `verify-ticket.ts`, the command SHALL skip exploration and grilling. When the input fails only because Out of scope or Blocked by is missing, the command SHALL append those sections as `None.` and SHALL skip exploration and grilling the same way.
 
 #### Scenario: Grounding precedes grilling and is cited
 - **WHEN** grooming begins for input that fails `verify-ticket.ts`
@@ -44,6 +44,11 @@ Before the grilling loop begins, the command SHALL perform a read-only codebase 
 - **WHEN** the resolved input passes `verify-ticket.ts`
 - **THEN** the explorer is not dispatched
 - **AND** grilling does not run
+
+#### Scenario: Housekeeping gaps are filled as none
+- **WHEN** the input is otherwise a valid ticket and only Out of scope or Blocked by is missing
+- **THEN** those sections are appended as `None.`
+- **AND** exploration and grilling are skipped
 
 ### Requirement: One-question-at-a-time grilling that withholds the recommendation
 The grilling loop SHALL ask only operator-owned decisions. It SHALL decide facts, single viable paths, and local cheap reversible defaults itself, record them as agent-owned, and continue. When it does ask, it SHALL emit exactly one question per turn. A question with two or more viable options SHALL present those options with context, benefits, and drawbacks, and SHALL NOT include a recommended answer on that turn. After the operator chooses, the command SHALL reveal its withheld recommendation and SHALL offer a change. It SHALL never batch two or more questions into a single turn.
