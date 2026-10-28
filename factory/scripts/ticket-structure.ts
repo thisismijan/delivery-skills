@@ -18,6 +18,9 @@ const SPLIT_GAPS = [
 const SPLIT_RECOMMENDATION =
 	"Split each extra user story or acceptance-criteria cluster into its own ticket with at most one story and at most three Given/When/Then criteria.";
 
+const SIZE_RECOMMENDATION =
+	"Split this ticket so each slice fits one small-context session: one outcome, one contract, one cohesive area, and at most three Given/When/Then criteria.";
+
 export async function inspectTicketStructure(
 	item: WorkItem,
 ): Promise<TicketStructureResult> {
@@ -39,7 +42,19 @@ export async function inspectTicketStructure(
 	const body = `${item.body}\n`;
 	const result = await verifyTicket(body);
 	if (result.ok) {
-		if (result.warnings.length > 0) return { skipAssessor: false };
+		if (result.warnings.length > 0) {
+			return {
+				skipAssessor: true,
+				verdict: {
+					quality: "needs_clarification",
+					scopeFit: "too_large",
+					splitRecommendation: [SIZE_RECOMMENDATION],
+					gaps: result.warnings,
+					derivedAcceptanceCriteria: [],
+					confidence: "high",
+				},
+			};
+		}
 		const scoped = ["Context", "User stories", "What to build", "Acceptance criteria"]
 			.map((name) => sectionBody(body, name))
 			.join("\n");

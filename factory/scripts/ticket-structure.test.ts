@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { inspectTicketStructure } from "./ticket-structure";
 import { parseAssessmentVerdict } from "./verdicts";
+import { SIZE_WARN_LINES } from "./verify-ticket";
 import { WorkItem } from "./work-item-provider";
 
 function item(
@@ -59,6 +60,26 @@ test("a complete ticket with no open questions skips the assessor as good", asyn
 			"Given the dashboard is open, When the operator exports, Then a CSV file downloads",
 			"Given an export completes, When the file is opened, Then it contains the visible rows",
 		]);
+		expect(parseAssessmentVerdict(JSON.stringify(result.verdict))).toEqual(
+			result.verdict,
+		);
+	}
+});
+
+test("a size warning skips the assessor as too large", async () => {
+	const body = validBody.replace(
+		"Operators need a CSV of the current dashboard.",
+		["Operators need a CSV of the current dashboard.", ...Array(SIZE_WARN_LINES).fill("More context.")].join(
+			"\n",
+		),
+	);
+	const result = await inspectTicketStructure(item(body));
+	expect(result.skipAssessor).toBe(true);
+	if (result.skipAssessor) {
+		expect(result.verdict.quality).toBe("needs_clarification");
+		expect(result.verdict.scopeFit).toBe("too_large");
+		expect(result.verdict.splitRecommendation).toHaveLength(1);
+		expect(result.verdict.gaps.join(" ")).toMatch(/Draft is large/);
 		expect(parseAssessmentVerdict(JSON.stringify(result.verdict))).toEqual(
 			result.verdict,
 		);
