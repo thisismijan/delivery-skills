@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { chmod, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { applyMechanicalEdit } from "./apply-mechanical-edit";
@@ -28,7 +28,11 @@ test("every unscripted fixture keeps the current worker", async () => {
 		const root = await mkdtemp(join(tmpdir(), "unscripted-mechanical-"));
 		try {
 			for (const [path, contents] of Object.entries(fixture.files)) {
-				await Bun.write(join(root, path), contents);
+				const full = join(root, path);
+				await Bun.write(full, contents);
+				if (path.includes("/.bin/") || path.startsWith("bin/")) {
+					await chmod(full, 0o755);
+				}
 			}
 			const result = await applyMechanicalEdit({
 				payload: fixture.payload,
@@ -46,6 +50,12 @@ test("scripted units are not in the unscripted scoring pack", () => {
 	expect(ids).not.toContain("python-unused-import");
 	expect(ids).not.toContain("java-unused-import");
 	expect(ids).not.toContain("typescript-format-only");
+	expect(ids).not.toContain("python-unique-missing-import");
+	expect(ids).not.toContain("java-unique-missing-import");
+	expect(ids).toContain("python-attribute");
+	expect(ids).toContain("python-exec");
+	expect(ids).toContain("java-serial-version-uid");
+	expect(ids).toContain("formatter-changes-names");
 });
 
 test("fast-candidate scores on the pack do not change live availability", async () => {
