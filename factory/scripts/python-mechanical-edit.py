@@ -256,6 +256,225 @@ def used_names(tree: ast.AST) -> set[str]:
     return names
 
 
+PYTHON_BUILTINS = frozenset(
+    {
+        "ArithmeticError",
+        "AssertionError",
+        "AttributeError",
+        "BaseException",
+        "Exception",
+        "False",
+        "GeneratorExit",
+        "ImportError",
+        "IndexError",
+        "KeyError",
+        "KeyboardInterrupt",
+        "LookupError",
+        "NameError",
+        "None",
+        "OSError",
+        "RuntimeError",
+        "StopIteration",
+        "True",
+        "TypeError",
+        "ValueError",
+        "abs",
+        "all",
+        "any",
+        "bool",
+        "bytes",
+        "callable",
+        "chr",
+        "classmethod",
+        "dict",
+        "dir",
+        "divmod",
+        "enumerate",
+        "filter",
+        "float",
+        "format",
+        "frozenset",
+        "getattr",
+        "globals",
+        "hasattr",
+        "hash",
+        "help",
+        "hex",
+        "id",
+        "input",
+        "int",
+        "isinstance",
+        "issubclass",
+        "iter",
+        "len",
+        "list",
+        "locals",
+        "map",
+        "max",
+        "min",
+        "next",
+        "object",
+        "oct",
+        "open",
+        "ord",
+        "pow",
+        "print",
+        "property",
+        "range",
+        "repr",
+        "reversed",
+        "round",
+        "set",
+        "setattr",
+        "slice",
+        "sorted",
+        "staticmethod",
+        "str",
+        "sum",
+        "super",
+        "tuple",
+        "type",
+        "vars",
+        "zip",
+        "__name__",
+        "__file__",
+        "__package__",
+        "__doc__",
+        "__annotations__",
+    }
+)
+
+
+def bound_in_file(tree: ast.AST) -> set[str]:
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(node.name)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            names.add(node.id)
+        if isinstance(node, ast.arg):
+            names.add(node.arg)
+        if isinstance(node, ast.alias):
+            names.add(bound_name(node))
+        if isinstance(node, ast.ExceptHandler) and node.name:
+            names.add(node.name)
+    return names
+
+
+def load_names(tree: ast.AST) -> set[str]:
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            names.add(node.id)
+    return names
+
+
+def top_level_exports(tree: ast.AST) -> list[str]:
+    names: list[str] = []
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.append(node.name)
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    names.append(target.id)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            names.append(node.target.id)
+    return names
+
+
+def module_name(root: str, path: str) -> str | None:
+    rel = relative_to(root, path)
+    if rel.endswith(".py"):
+        rel = rel[:-3]
+    elif rel.endswith(".pyi"):
+        rel = rel[:-4]
+    else:
+        return None
+    if rel.endswith("/__init__"):
+        rel = rel[: -len("/__init__")]
+    if not rel:
+        return None
+    parts = rel.split("/")
+    if any(not part.isidentifier() for part in parts):
+        return None
+    return ".".join(parts)
+
+
+def index_python_exports(root: str) -> dict[str, list[tuple[str, str]]]:
+    found: dict[str, list[tuple[str, str]]] = {}
+    for path in list_python_files(root):
+        real = os.path.realpath(path)
+        module = module_name(root, real)
+        if module is None:
+            continue
+        try:
+            with open(real, encoding="utf-8") as handle:
+                tree = ast.parse(handle.read())
+        except (OSError, SyntaxError):
+            continue
+        for name in top_level_exports(tree):
+            found.setdefault(name, []).append((real, module))
+    return found
+
+
+def insert_import_line(source: str, line: str) -> str:
+    tree = ast.parse(source)
+    last = 0
+    for node in tree.body:
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            if node.end_lineno is None:
+                continue
+            last = node.end_lineno
+        elif last:
+            break
+    insertion = line if line.endswith("\n") else f"{line}\n"
+    if last == 0:
+        if source and not source.startswith("\n") and not insertion.endswith("\n"):
+            insertion = f"{insertion}\n"
+        return insertion + source
+    lines = source.splitlines(keepends=True)
+    return "".join(lines[:last]) + insertion + "".join(lines[last:])
+
+
+def add_unique_missing_imports(
+    root: str,
+    path: str,
+    source: str,
+    exports: dict[str, list[tuple[str, str]]],
+) -> str:
+    tree = ast.parse(source)
+    missing = sorted(
+        name
+        for name in load_names(tree)
+        if name not in bound_in_file(tree) and name not in PYTHON_BUILTINS
+    )
+    next_source = source
+    for name in missing:
+        candidates = [
+            (real, module)
+            for real, module in exports.get(name, [])
+            if real != path
+        ]
+        unique: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for real, module in candidates:
+            key = f"{real}::{module}"
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append((real, module))
+        if len(unique) != 1 or unique[0] is None:
+            continue
+        _, module = unique[0]
+        line = f"from {module} import {name}"
+        trial = insert_import_line(next_source, line)
+        if non_import_dump(next_source) != non_import_dump(trial):
+            continue
+        next_source = trial
+    return next_source
+
+
 def non_import_dump(source: str) -> str:
     tree = ast.parse(source)
     remaining = [
@@ -458,6 +677,7 @@ def plan_import_only(root: str, payload: dict[str, Any]) -> dict[str, Any]:
     if not files:
         return {"ok": False, "reason": "import-only requires files"}
     listed = [os.path.realpath(os.path.join(root, file)) for file in files]
+    exports = index_python_exports(root)
     rewritten: dict[str, str] = {}
     for path in listed:
         try:
@@ -467,6 +687,7 @@ def plan_import_only(root: str, payload: dict[str, Any]) -> dict[str, Any]:
             return {"ok": False, "reason": f"missing file: {relative_to(root, path)}"}
         try:
             next_text = rewrite_unused_imports(text)
+            next_text = add_unique_missing_imports(root, path, next_text, exports)
         except ValueError as error:
             return {"ok": False, "reason": str(error)}
         except SyntaxError:

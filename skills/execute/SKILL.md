@@ -102,7 +102,7 @@ re-run the gate. Do not reuse it.
    Proven TypeScript, JavaScript, Python, and Java rename, import-only, and format-only
    units apply here without a model. That includes a unique Python parameter or
    local, a unique Java field, a Java type whose listed file name matches, a
-   unique TypeScript missing import, and format-only through a repo Prettier,
+   unique TypeScript, Python, or Java missing import, and format-only through a repo Prettier,
    Ruff, or google-java-format binary when names and literals stay identical.
    When `apply` is `script`, the helper
    already wrote the files. Do not dispatch the `test-writer` or the
@@ -223,7 +223,7 @@ re-run the gate. Do not reuse it.
    Proven TypeScript, JavaScript, Python, and Java rename, import-only, and format-only
    units apply here without a model. That includes a unique Python parameter or
    local, a unique Java field, a Java type whose listed file name matches, a
-   unique TypeScript missing import, and format-only through a repo Prettier,
+   unique TypeScript, Python, or Java missing import, and format-only through a repo Prettier,
    Ruff, or google-java-format binary when names and literals stay identical.
    When `apply` is `script`, the helper
    already wrote the files. Do not dispatch the `implementer`. Write

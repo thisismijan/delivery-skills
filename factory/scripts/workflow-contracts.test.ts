@@ -507,7 +507,9 @@ describe("bounded recovery and replay safety", () => {
 		expect(runtime).toContain("Java");
 		expect(plain(execute)).toMatch(/unique python parameter or local/i);
 		expect(plain(execute)).toMatch(/unique java field/i);
-		expect(plain(execute)).toMatch(/unique typescript missing import/i);
+		expect(plain(execute)).toMatch(
+			/unique typescript, python, or java missing import/i,
+		);
 		expect(plain(execute)).toMatch(/google-java-format/i);
 		expect(plain(rootReadme)).toMatch(/python function, class,\s*parameter, or local/i);
 		const controller = read("agents/task-profile-controller.md");
@@ -696,6 +698,9 @@ describe("bounded recovery and replay safety", () => {
 		);
 		expect(plain(workflowDocs)).toMatch(
 			/unique python parameter or local/i,
+		);
+		expect(plain(rootReadme)).toMatch(
+			/unique typescript, python, or java missing import/i,
 		);
 		expect(plain(referenceDocs)).toMatch(/node_modules\/\.bin\/prettier/i);
 		expect(plain(referenceDocs)).toMatch(/bin\/google-java-format/i);

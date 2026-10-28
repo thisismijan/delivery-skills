@@ -177,7 +177,7 @@ current session may use. At the start of a factory run:
    `mechanical-edit.ts` and applies proven TypeScript, JavaScript, Python, and Java
    rename, import-only, and format-only units with `apply-mechanical-edit.ts`,
    including a unique Python parameter or local, a unique Java field, a Java
-   type whose listed file name matches, a unique TypeScript missing import, and
+   type whose listed file name matches, a unique TypeScript, Python, or Java missing import, and
    a repo Prettier, Ruff, or google-java-format binary when names and literals
    stay identical.
    Units the scripts cannot prove are listed in `mechanical-edit-scoring.ts`
