@@ -93,7 +93,10 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
    ```
    Non-zero exit → **stop and escalate**. When `skipAnalyst` is true, copy
    `verdict` to `<reviewDir>/feasibility.json` and go to step 5. Do not
-   dispatch the `feasibility-analyst`. When `skipAnalyst` is false, resolve
+   dispatch the `feasibility-analyst`. A complete ticket with no question
+   mark and no named authentication, secrets, or data migration copies a
+   scripted feasible verdict at medium complexity. A question still uses
+   the analyst. When `skipAnalyst` is false, resolve
    `standard`, then dispatch the
    `feasibility-analyst` subagent with that exact available model against the
    codebase for this ticket. Persist its single JSON `FeasibilityVerdict` to

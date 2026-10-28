@@ -43,18 +43,25 @@ Authentication changes.
 Nothing.
 `;
 
-test("an ordinary ticket still uses the analyst", () => {
-	expect(inspectTicketFeasibility(item(ordinary))).toEqual({
-		skipAnalyst: false,
-	});
+test("a complete ticket with no questions skips the analyst as feasible", async () => {
+	const result = await inspectTicketFeasibility(item(ordinary));
+	expect(result.skipAnalyst).toBe(true);
+	if (result.skipAnalyst) {
+		expect(result.verdict.feasible).toBe("yes");
+		expect(result.verdict.complexitySignal).toBe("medium");
+		expect(result.verdict.approachSketch).toMatch(/export control/i);
+		expect(parseFeasibilityVerdict(JSON.stringify(result.verdict))).toEqual(
+			result.verdict,
+		);
+	}
 });
 
-test("authentication in what to build skips the analyst", () => {
+test("authentication in what to build skips the analyst", async () => {
 	const body = ordinary.replace(
 		"Add an export control that downloads the visible rows as CSV.",
 		"Add authentication for the export control.",
 	);
-	const result = inspectTicketFeasibility(item(body));
+	const result = await inspectTicketFeasibility(item(body));
 	expect(result.skipAnalyst).toBe(true);
 	if (result.skipAnalyst) {
 		expect(result.verdict.feasible).toBe("needs_human");
@@ -65,18 +72,32 @@ test("authentication in what to build skips the analyst", () => {
 	}
 });
 
-test("a mention only in out of scope still uses the analyst", () => {
-	expect(inspectTicketFeasibility(item(ordinary)).skipAnalyst).toBe(false);
+test("a mention only in out of scope is not treated as sensitive", async () => {
+	const result = await inspectTicketFeasibility(item(ordinary));
+	expect(result.skipAnalyst).toBe(true);
+	if (result.skipAnalyst) {
+		expect(result.verdict.feasible).toBe("yes");
+	}
 });
 
-test("a data migration in acceptance criteria skips the analyst", () => {
+test("a data migration in acceptance criteria skips the analyst", async () => {
 	const body = ordinary.replace(
 		"Then a CSV file downloads",
 		"Then a data migration rewrites the rows",
 	);
-	const result = inspectTicketFeasibility(item(body));
+	const result = await inspectTicketFeasibility(item(body));
 	expect(result.skipAnalyst).toBe(true);
 	if (result.skipAnalyst) {
 		expect(result.verdict.feasible).toBe("needs_human");
 	}
+});
+
+test("a question in what to build still uses the analyst", async () => {
+	const body = ordinary.replace(
+		"Add an export control that downloads the visible rows as CSV.",
+		"Add an export control? Confirm the file format.",
+	);
+	expect(await inspectTicketFeasibility(item(body))).toEqual({
+		skipAnalyst: false,
+	});
 });
