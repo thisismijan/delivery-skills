@@ -478,7 +478,7 @@ function suggestionComment(body: string, line = 2): MrComment {
 	};
 }
 
-test("a single-line suggestion replaces only the anchored line", () => {
+test("a suggestion without a range replaces the anchored line", () => {
 	expect(
 		planSuggestion(
 			suggestionComment("```suggestion\nconst b = 3;\n```"),
@@ -499,14 +499,24 @@ test("a single-line suggestion replaces only the anchored line", () => {
 		path: "src/a.ts",
 		contents: "const a = 1;\r\nconst b = 3;\r\n",
 	});
+	expect(
+		planSuggestion(
+			suggestionComment("```suggestion\nconst b = 3;\nconst c = 4;\n```"),
+			"const a = 1;\nconst b = 2;\nconst d = 5;\n",
+		),
+	).toEqual({
+		apply: "script",
+		path: "src/a.ts",
+		contents: "const a = 1;\nconst b = 3;\nconst c = 4;\nconst d = 5;\n",
+	});
 });
 
-test("anything but one single-line suggestion on a live line needs a model", () => {
+test("anything but one un-ranged suggestion on a live line needs a model", () => {
 	const file = "const a = 1;\nconst b = 2;\n";
 	const cases: [MrComment, string | null][] = [
 		[suggestionComment("Please fix.\n```suggestion\nx\n```"), file],
 		[suggestionComment("```suggestion:-1+0\nx\n```"), file],
-		[suggestionComment("```suggestion\nx\ny\n```"), file],
+		[suggestionComment("```suggestion:-0+1\nx\ny\n```"), file],
 		[suggestionComment("```suggestion\n\n```"), file],
 		[suggestionComment("```suggestion\nx\n```", 3), file],
 		[suggestionComment("```suggestion\nconst b = 2;\n```"), file],
