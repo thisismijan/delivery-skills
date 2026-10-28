@@ -284,6 +284,34 @@ test("an acknowledgement-only body is outdated", () => {
 	]);
 });
 
+test("a mention-only body is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "ping",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "@owner",
+			},
+			{
+				id: "kept",
+				discussionId: "t2",
+				author: "reviewer",
+				body: "@owner please add a test.",
+			},
+		],
+		{},
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual(["kept"]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "ping",
+			classification: "outdated",
+			reasoning: "comment is only a mention",
+		},
+	]);
+});
+
 test("an applied suggestion-only comment is outdated", () => {
 	const scoped = scopeComments(
 		[
