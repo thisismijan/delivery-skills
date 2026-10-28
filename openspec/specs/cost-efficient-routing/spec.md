@@ -137,6 +137,18 @@ When gather-and-scope finds a resolved discussion, a resolved note, or a comment
 - **THEN** classification includes a scripted outdated verdict for that comment
 - **AND** the comment-assessor does not receive it
 
+### Requirement: An applied suggestion does not start the comment-assessor
+
+When gather-and-scope finds a comment whose body is only a suggestion fence and whose suggested text is already present in the anchored file, `/address-comments` SHALL NOT send that comment to the comment-assessor. Remaining in-scope comments SHALL still dispatch exactly one assessor.
+
+#### Scenario: An applied suggestion skips the assessor
+- **WHEN** a remaining comment is only a suggestion already present in the file
+- **THEN** that comment is not passed to the comment-assessor
+
+#### Scenario: Unapplied suggestions still use the assessor
+- **WHEN** the suggested text is not in the file, or the body has extra prose
+- **THEN** that comment stays in scope for the comment-assessor
+
 ### Requirement: A structurally incomplete ticket does not start a ticket assessor
 
 When `/draft` fetches a work item whose body fails `verify-ticket.ts`, it SHALL write an assessment from the verifier gaps and SHALL NOT dispatch the ticket-assessor. When the body passes, has no size warning, and Context, User stories, What to build, and Acceptance criteria contain no `?`, it SHALL write a `good` atomic assessment from those criteria and SHALL NOT dispatch the ticket-assessor. When the body passes with a size warning, it SHALL write a `too_large` assessment from that warning and SHALL NOT dispatch the ticket-assessor. A question mark without a size warning SHALL still dispatch exactly one ticket-assessor.
