@@ -385,6 +385,12 @@ describe("small-context ticket scope", () => {
 		expect(draft).toMatch(/ticket-feasibility\.ts"/);
 		expect(draftContract).toMatch(/when skipAnalyst is true/i);
 		expect(draftContract).toMatch(/do not dispatch the feasibility-analyst/i);
+		expect(draftContract).toMatch(
+			/complete ticket with no question mark[\s\S]*scripted feasible verdict/i,
+		);
+		expect(plain(read("agents/feasibility-analyst.md"))).toMatch(
+			/already complete with no open questions/i,
+		);
 	});
 
 	test("assessor treats one cohesive contract as one cluster instead of splitting by default", () => {
