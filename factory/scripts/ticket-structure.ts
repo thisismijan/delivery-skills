@@ -1,5 +1,9 @@
 import type { AssessmentVerdict } from "./verdicts";
-import { verifyTicket } from "./verify-ticket";
+import {
+	acceptanceCriterionLines,
+	sectionBody,
+	verifyTicket,
+} from "./verify-ticket";
 import { WorkItem } from "./work-item-provider";
 
 export type TicketStructureResult =
@@ -32,8 +36,26 @@ export async function inspectTicketStructure(
 			},
 		};
 	}
-	const result = await verifyTicket(`${item.body}\n`);
-	if (result.ok) return { skipAssessor: false };
+	const body = `${item.body}\n`;
+	const result = await verifyTicket(body);
+	if (result.ok) {
+		if (result.warnings.length > 0) return { skipAssessor: false };
+		const scoped = ["Context", "User stories", "What to build", "Acceptance criteria"]
+			.map((name) => sectionBody(body, name))
+			.join("\n");
+		if (scoped.includes("?")) return { skipAssessor: false };
+		return {
+			skipAssessor: true,
+			verdict: {
+				quality: "good",
+				scopeFit: "atomic",
+				splitRecommendation: [],
+				gaps: [],
+				derivedAcceptanceCriteria: acceptanceCriterionLines(body),
+				confidence: "high",
+			},
+		};
+	}
 	const tooLarge = result.missing.some((gap) =>
 		SPLIT_GAPS.some((marker) => gap.includes(marker)),
 	);

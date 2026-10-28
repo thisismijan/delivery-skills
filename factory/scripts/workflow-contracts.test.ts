@@ -369,8 +369,14 @@ describe("small-context ticket scope", () => {
 		expect(draftContract).toMatch(
 			/recorded blockers skip the assessor even when the body is otherwise valid/i,
 		);
+		expect(draftContract).toMatch(
+			/complete ticket with no question mark[\s\S]*scripted good verdict/i,
+		);
 		expect(assessor).toMatch(
 			/does not dispatch you when the work item body fails/i,
+		);
+		expect(plain(ticketAssessor)).toMatch(
+			/already complete with no open questions/i,
 		);
 		expect(draft).toMatch(/ticket-feasibility\.ts"/);
 		expect(draftContract).toMatch(/when skipAnalyst is true/i);

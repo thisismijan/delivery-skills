@@ -67,7 +67,10 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
    Non-zero exit → **stop and escalate**. When `skipAssessor` is true, copy
    `verdict` to `<reviewDir>/assessment.json` and go to step 3. Do not
    dispatch the `ticket-assessor`. Recorded blockers skip the assessor even
-   when the body is otherwise valid. When `skipAssessor` is false, resolve
+   when the body is otherwise valid. A complete ticket with no question mark
+   in Context, User stories, What to build, or Acceptance criteria copies a
+   scripted good verdict. A size warning or a question still uses the
+   assessor. When `skipAssessor` is false, resolve
    `standard` against the runtime
    model inventory, then dispatch the `ticket-assessor` subagent with that exact
    available model and the ticket. Persist its single JSON `AssessmentVerdict`
