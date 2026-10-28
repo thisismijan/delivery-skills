@@ -78,7 +78,12 @@ authentication, authorization, secrets, credentials, OAuth, OIDC, JWT, or a
 data, schema, or database migration.
 
 `apply-mechanical-edit.ts` applies a proven TypeScript, JavaScript, Python,
-or Java rename, import-only, or format-only unit without a model.
+or Java rename, import-only, or format-only unit without a model. Rename
+covers a unique Python parameter or local and a unique Java field, and it
+moves `From.java` when a unique type matches the listed file name.
+Import-only also adds a unique TypeScript missing import. Format-only uses
+repo Prettier, Ruff, or google-java-format when that binary is inside the
+repository and names and literals stay identical.
 
 `review-packet.ts` writes one Markdown packet holding the work item, every
 spec file under the change directory, the diff when given, and the last 6000

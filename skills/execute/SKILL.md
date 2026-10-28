@@ -100,7 +100,11 @@ re-run the gate. Do not reuse it.
    ```
    Incomplete or free-text findings are not a unit. Persist the JSON plan.
    Proven TypeScript, JavaScript, Python, and Java rename, import-only, and format-only
-   units apply here without a model. When `apply` is `script`, the helper
+   units apply here without a model. That includes a unique Python parameter or
+   local, a unique Java field, a Java type whose listed file name matches, a
+   unique TypeScript missing import, and format-only through a repo Prettier,
+   Ruff, or google-java-format binary when names and literals stay identical.
+   When `apply` is `script`, the helper
    already wrote the files. Do not dispatch the `test-writer` or the
    `implementer`. Do not run a red gate. Write `none` to
    `<reviewDir>/test-writer-handoff.md`, `<reviewDir>/implementer-handoff.md`,
@@ -207,7 +211,11 @@ re-run the gate. Do not reuse it.
    ```
    Incomplete or free-text findings are not a unit. Persist the JSON plan.
    Proven TypeScript, JavaScript, Python, and Java rename, import-only, and format-only
-   units apply here without a model. When `apply` is `script`, the helper
+   units apply here without a model. That includes a unique Python parameter or
+   local, a unique Java field, a Java type whose listed file name matches, a
+   unique TypeScript missing import, and format-only through a repo Prettier,
+   Ruff, or google-java-format binary when names and literals stay identical.
+   When `apply` is `script`, the helper
    already wrote the files. Do not dispatch the `implementer`. Write `none`
    to `<reviewDir>/implementer-handoff.md` if it is empty, and continue at
    the green gates (step 8). When the verdict is `not-mechanical`, apply is

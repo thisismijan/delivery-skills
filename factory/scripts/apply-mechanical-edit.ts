@@ -1,9 +1,11 @@
-import { readdir, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { readdir, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import * as ts from "typescript";
 import { z } from "zod";
 import {
+	javaFormatIdentityHolds,
 	planJavaFormat,
 	planJavaImports,
 	planJavaRename,
@@ -197,6 +199,7 @@ function createLanguageService(
 	root: string,
 	fileNames: string[],
 	options: ts.CompilerOptions,
+	contents?: Map<string, string>,
 ): ts.LanguageService {
 	const snapshots = new Map<string, ts.IScriptSnapshot>();
 	const host: ts.LanguageServiceHost = {
@@ -204,22 +207,24 @@ function createLanguageService(
 		getScriptFileNames: () => fileNames,
 		getScriptVersion: () => "1",
 		getScriptSnapshot: (fileName) => {
-			const existing = snapshots.get(fileName);
+			const resolved = resolve(fileName);
+			const existing = snapshots.get(resolved) ?? snapshots.get(fileName);
 			if (existing) {
 				return existing;
 			}
-			const text = ts.sys.readFile(fileName);
+			const text = contents?.get(resolved) ?? ts.sys.readFile(fileName);
 			if (text === undefined) {
 				return undefined;
 			}
 			const snapshot = ts.ScriptSnapshot.fromString(text);
-			snapshots.set(fileName, snapshot);
+			snapshots.set(resolved, snapshot);
 			return snapshot;
 		},
 		getCurrentDirectory: () => root,
 		getDefaultLibFileName: (opts) => ts.getDefaultLibFilePath(opts),
 		fileExists: ts.sys.fileExists,
-		readFile: ts.sys.readFile,
+		readFile: (fileName) =>
+			contents?.get(resolve(fileName)) ?? ts.sys.readFile(fileName),
 		readDirectory: ts.sys.readDirectory,
 		directoryExists: ts.sys.directoryExists,
 		getDirectories: ts.sys.getDirectories,
@@ -272,6 +277,7 @@ async function applyPythonEdit(
 		from?: string;
 		to?: string;
 		files: string[];
+		proposed?: Record<string, string>;
 	},
 	root: string,
 	listed: string[],
@@ -351,11 +357,25 @@ async function applyJavaRename(
 	const written: string[] = [];
 	for (const [relativePath, text] of Object.entries(planned.files)) {
 		const fileName = resolve(root, relativePath);
-		if (!listedSet.has(fileName)) {
+		const allowed =
+			listedSet.has(fileName) ||
+			(basename(fileName) === `${payload.to}.java` &&
+				listed.some(
+					(listedFile) =>
+						basename(listedFile) === `${payload.from}.java` &&
+						dirname(listedFile) === dirname(fileName),
+				));
+		if (!allowed) {
 			return plan(classified, "java helper wrote an unlisted file");
 		}
 		await writeFile(fileName, text, "utf8");
 		written.push(relativePath);
+	}
+	for (const relativePath of planned.remove ?? []) {
+		await unlink(resolve(root, relativePath)).catch(() => undefined);
+		if (!written.includes(relativePath)) {
+			written.push(relativePath);
+		}
 	}
 	return {
 		verdict: "mechanical",
@@ -396,12 +416,89 @@ async function applyJavaImports(
 	};
 }
 
+async function applyPythonFormat(
+	classified: MechanicalEditPlan,
+	payload: { files: string[] },
+	root: string,
+	listed: string[],
+): Promise<ApplyMechanicalEditResult> {
+	const ruff = repoRuff(root);
+	if (!ruff) {
+		return applyPythonEdit(
+			classified,
+			{ operation: "format-only", files: payload.files },
+			root,
+			listed,
+			"applied Python format-only rewrite",
+		);
+	}
+	const proposed: Record<string, string> = {};
+	for (const file of listed) {
+		const original = await Bun.file(file)
+			.text()
+			.catch(() => undefined);
+		if (original === undefined) {
+			return plan(classified, `missing file: ${relative(root, file) || file}`);
+		}
+		const next = await spawnStdin(
+			[ruff, "format", "--stdin-filename", file, "-"],
+			original,
+		);
+		if (next === undefined) {
+			return plan(classified, "repo formatter failed");
+		}
+		proposed[relative(root, file).split(sep).join("/")] = next;
+	}
+	return applyPythonEdit(
+		classified,
+		{ operation: "assert-format", files: payload.files, proposed },
+		root,
+		listed,
+		"applied Python format-only rewrite",
+	);
+}
+
 async function applyJavaFormat(
 	classified: MechanicalEditPlan,
 	root: string,
 	listed: string[],
 	files: string[],
 ): Promise<ApplyMechanicalEditResult> {
+	const formatter = repoJavaFormat(root);
+	if (formatter) {
+		const nextTexts = new Map<string, string>();
+		for (const file of listed) {
+			const original = await Bun.file(file)
+				.text()
+				.catch(() => undefined);
+			if (original === undefined) {
+				return plan(classified, `missing file: ${relative(root, file) || file}`);
+			}
+			const next = await spawnStdin([formatter, "-"], original);
+			if (next === undefined) {
+				return plan(classified, "repo formatter failed");
+			}
+			try {
+				if (!javaFormatIdentityHolds(original, next)) {
+					return plan(
+						classified,
+						"format rewrite would change non-whitespace structure",
+					);
+				}
+			} catch {
+				return plan(classified, "java format rewrite was not proven");
+			}
+			if (next !== original) {
+				nextTexts.set(file, next);
+			}
+		}
+		return writeFormatResult(
+			classified,
+			root,
+			nextTexts,
+			"applied Java format-only rewrite",
+		);
+	}
 	const planned = await planJavaFormat({ root, files });
 	if (!planned.ok || !planned.files) {
 		return plan(
@@ -509,10 +606,35 @@ async function applyTypeScriptImports(
 		}
 		nextTexts.set(file, next);
 	}
+	const working = new Map<string, string>();
+	for (const file of listed) {
+		const original = ts.sys.readFile(file);
+		if (original === undefined) {
+			return plan(classified, `missing file: ${relative(root, file) || file}`);
+		}
+		working.set(file, nextTexts.get(file) ?? original);
+	}
+	const missing = await applyUniqueMissingImports(
+		root,
+		fileNames,
+		config.options,
+		listed,
+		listedSet,
+		format,
+		working,
+	);
+	if (!missing.ok) {
+		return plan(classified, missing.reason);
+	}
 	const written: string[] = [];
-	for (const [fileName, text] of nextTexts) {
-		await writeFile(fileName, text, "utf8");
-		written.push(relative(root, fileName).split(sep).join("/"));
+	for (const file of listed) {
+		const original = ts.sys.readFile(file);
+		const next = working.get(file);
+		if (original === undefined || next === undefined || next === original) {
+			continue;
+		}
+		await writeFile(file, next, "utf8");
+		written.push(relative(root, file).split(sep).join("/"));
 	}
 	return {
 		verdict: "mechanical",
@@ -520,6 +642,108 @@ async function applyTypeScriptImports(
 		apply: "script",
 		filesChanged: written.sort(),
 	};
+}
+
+function isMissingImportFix(fixName: string): boolean {
+	return fixName === "import" || fixName === "fixMissingImport";
+}
+
+async function applyUniqueMissingImports(
+	root: string,
+	fileNames: string[],
+	options: ts.CompilerOptions,
+	listed: string[],
+	listedSet: Set<string>,
+	format: ts.FormatCodeSettings,
+	working: Map<string, string>,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+	for (let step = 0; step < listed.length * 8; step += 1) {
+		const service = createLanguageService(root, fileNames, options, working);
+		let applied = false;
+		for (const file of listed) {
+			const original = working.get(file);
+			if (original === undefined) {
+				return { ok: false, reason: `missing file: ${relative(root, file) || file}` };
+			}
+			for (const diagnostic of service.getSemanticDiagnostics(file)) {
+				if (diagnostic.code !== 2304 || diagnostic.start === undefined) {
+					continue;
+				}
+				const end = diagnostic.start + (diagnostic.length ?? 0);
+				const fixes = service
+					.getCodeFixesAtPosition(
+						file,
+						diagnostic.start,
+						end,
+						[diagnostic.code],
+						format,
+						{},
+					)
+					.filter((fix) => isMissingImportFix(fix.fixName));
+				if (fixes.length !== 1 || !fixes[0]) {
+					continue;
+				}
+				const changes = fixes[0].changes;
+				if (changes.some((change) => !listedSet.has(resolve(change.fileName)))) {
+					continue;
+				}
+				const edits: RenameEdit[] = [];
+				for (const change of changes) {
+					for (const textChange of change.textChanges) {
+						edits.push({
+							fileName: resolve(change.fileName),
+							start: textChange.span.start,
+							end: textChange.span.start + textChange.span.length,
+							text: textChange.newText,
+						});
+					}
+				}
+				if (edits.length === 0 || editsOverlap(edits)) {
+					continue;
+				}
+				const nextByFile = new Map(working);
+				for (const [fileName, fileEdits] of groupEdits(edits)) {
+					const current = nextByFile.get(fileName);
+					if (current === undefined) {
+						return {
+							ok: false,
+							reason: "import rewrite includes files that were not listed",
+						};
+					}
+					const next = applyEditsToText(current, fileEdits);
+					if (nonImportText(current, fileName) !== nonImportText(next, fileName)) {
+						return {
+							ok: false,
+							reason: "import rewrite would change code that is not an import",
+						};
+					}
+					nextByFile.set(fileName, next);
+				}
+				for (const [fileName, text] of nextByFile) {
+					working.set(fileName, text);
+				}
+				applied = true;
+				break;
+			}
+			if (applied) {
+				break;
+			}
+		}
+		if (!applied) {
+			return { ok: true };
+		}
+	}
+	return { ok: true };
+}
+
+function groupEdits(edits: RenameEdit[]): Map<string, RenameEdit[]> {
+	const byFile = new Map<string, RenameEdit[]>();
+	for (const edit of edits) {
+		const list = byFile.get(edit.fileName) ?? [];
+		list.push(edit);
+		byFile.set(edit.fileName, list);
+	}
+	return byFile;
 }
 
 function astShape(source: string, fileName: string): string {
@@ -546,11 +770,103 @@ function astShape(source: string, fileName: string): string {
 	return JSON.stringify(walk(sourceFile));
 }
 
+async function spawnStdin(
+	argv: string[],
+	stdin: string,
+): Promise<string | undefined> {
+	const proc = Bun.spawn(argv, {
+		stdin: "pipe",
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	proc.stdin.write(stdin);
+	proc.stdin.end();
+	const exit = await proc.exited;
+	const stdout = await new Response(proc.stdout).text();
+	if (exit !== 0) {
+		return undefined;
+	}
+	return stdout;
+}
+
+function repoPrettier(root: string): string | undefined {
+	const bin = join(root, "node_modules", ".bin", "prettier");
+	return existsSync(bin) ? bin : undefined;
+}
+
+function repoRuff(root: string): string | undefined {
+	for (const candidate of [
+		join(root, ".venv", "bin", "ruff"),
+		join(root, "venv", "bin", "ruff"),
+	]) {
+		if (existsSync(candidate)) {
+			return candidate;
+		}
+	}
+	return undefined;
+}
+
+function repoJavaFormat(root: string): string | undefined {
+	const bin = join(root, "bin", "google-java-format");
+	return existsSync(bin) ? bin : undefined;
+}
+
+async function writeFormatResult(
+	classified: MechanicalEditPlan,
+	root: string,
+	nextTexts: Map<string, string>,
+	reason: string,
+): Promise<ApplyMechanicalEditResult> {
+	const written: string[] = [];
+	for (const [fileName, text] of nextTexts) {
+		await writeFile(fileName, text, "utf8");
+		written.push(relative(root, fileName).split(sep).join("/"));
+	}
+	return {
+		verdict: "mechanical",
+		reason,
+		apply: "script",
+		filesChanged: written.sort(),
+	};
+}
+
 async function applyTypeScriptFormat(
 	classified: MechanicalEditPlan,
 	root: string,
 	listed: string[],
 ): Promise<ApplyMechanicalEditResult> {
+	const prettier = repoPrettier(root);
+	if (prettier) {
+		const nextTexts = new Map<string, string>();
+		for (const file of listed) {
+			const original = ts.sys.readFile(file);
+			if (original === undefined) {
+				return plan(classified, `missing file: ${relative(root, file) || file}`);
+			}
+			const next = await spawnStdin(
+				[prettier, "--stdin-filepath", file],
+				original,
+			);
+			if (next === undefined) {
+				return plan(classified, "repo formatter failed");
+			}
+			if (astShape(original, file) !== astShape(next, file)) {
+				return plan(
+					classified,
+					"format rewrite would change non-whitespace structure",
+				);
+			}
+			if (next !== original) {
+				nextTexts.set(file, next);
+			}
+		}
+		return writeFormatResult(
+			classified,
+			root,
+			nextTexts,
+			"applied TypeScript format-only rewrite",
+		);
+	}
 	const config = compilerOptionsFromConfig(root);
 	const programFiles = config.fileNames ?? (await listTypeScriptFiles(root));
 	const fileNames = [...new Set([...programFiles, ...listed])];
@@ -589,17 +905,12 @@ async function applyTypeScriptFormat(
 		}
 		nextTexts.set(file, next);
 	}
-	const written: string[] = [];
-	for (const [fileName, text] of nextTexts) {
-		await writeFile(fileName, text, "utf8");
-		written.push(relative(root, fileName).split(sep).join("/"));
-	}
-	return {
-		verdict: "mechanical",
-		reason: "applied TypeScript format-only rewrite",
-		apply: "script",
-		filesChanged: written.sort(),
-	};
+	return writeFormatResult(
+		classified,
+		root,
+		nextTexts,
+		"applied TypeScript format-only rewrite",
+	);
 }
 
 export async function applyMechanicalEdit(input: {
@@ -650,13 +961,7 @@ export async function applyMechanicalEdit(input: {
 	}
 	if (payload.operation === "format-only") {
 		if (language === "python") {
-			return applyPythonEdit(
-				classified,
-				payload,
-				root,
-				listed,
-				"applied Python format-only rewrite",
-			);
+			return applyPythonFormat(classified, payload, root, listed);
 		}
 		if (language === "java") {
 			return applyJavaFormat(classified, root, listed, payload.files);
