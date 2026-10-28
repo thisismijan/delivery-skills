@@ -10,7 +10,7 @@ request draft. Scripted rules run before the comment-assessor.
 
 ### Requirement: Scripted outdated comments skip the assessor
 
-When gather-and-scope finds a new-side anchor whose path is missing at the pinned head, or whose line is past the end of that file, `/address-comments` SHALL record a scripted `outdated` verdict and SHALL NOT send that comment to the comment-assessor. An empty or whitespace-only body SHALL be outdated the same way. A body that is only an acknowledgement such as LGTM, thanks, or approved SHALL be outdated the same way. A comment whose body is only a suggestion fence, and whose suggested text is already present in that file, SHALL be outdated the same way. Resolved discussions and resolved notes SHALL be dropped before classification. Unanchored comments, old-side anchors, and paths the command did not look up SHALL stay in scope. When no in-scope comments remain, the command SHALL NOT dispatch the assessor.
+When gather-and-scope finds a new-side anchor whose path is missing at the pinned head, or whose line is past the end of that file, `/address-comments` SHALL record a scripted `outdated` verdict and SHALL NOT send that comment to the comment-assessor. An empty or whitespace-only body SHALL be outdated the same way. A body that is only an acknowledgement such as LGTM, thanks, approved, or done SHALL be outdated the same way. A comment whose body is only a suggestion fence, and whose suggested text is already present in that file, SHALL be outdated the same way. Resolved discussions and resolved notes SHALL be dropped before classification. Unanchored comments, old-side anchors, and paths the command did not look up SHALL stay in scope. When no in-scope comments remain, the command SHALL NOT dispatch the assessor.
 
 #### Scenario: A gone new-side line is outdated
 - **WHEN** a remaining comment has a new-side anchor on a missing file or a line past the end of the file at the pinned head
@@ -32,7 +32,7 @@ When gather-and-scope finds a new-side anchor whose path is missing at the pinne
 - **AND** does not pass that comment to the comment-assessor
 
 #### Scenario: An acknowledgement is outdated without a classifier
-- **WHEN** a remaining comment body is only an acknowledgement such as LGTM, thanks, or approved
+- **WHEN** a remaining comment body is only an acknowledgement such as LGTM, thanks, approved, or done
 - **THEN** the command records a scripted `outdated` verdict for it
 - **AND** does not pass that comment to the comment-assessor
 

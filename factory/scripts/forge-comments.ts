@@ -51,6 +51,14 @@ const ACK_BODIES = new Set([
 	"ship it",
 	"nice",
 	"nice work",
+	"sgtm",
+	"ditto",
+	"done",
+	"fixed",
+	"addressed",
+	"agreed",
+	"see above",
+	"same",
 ]);
 
 function ackOnly(body: string): boolean {
