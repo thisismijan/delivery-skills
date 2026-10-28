@@ -743,6 +743,12 @@ describe("bounded recovery and replay safety", () => {
 		expect(delivery).toContain("Test-repo stand-in scores never promote");
 	});
 
+	test("draft generates tasks from spec scenarios", () => {
+		expect(draft).toContain("generate-tasks.ts");
+		expect(plain(draft)).toMatch(/do not ask a model to invent/i);
+		expect(referenceDocs).toContain("generate-tasks.ts");
+	});
+
 	test("scripted skips are recorded even when profiling is off", () => {
 		for (const skill of [draft, execute, addressComments, groom]) {
 			expect(skill).toContain("record-skip.ts");

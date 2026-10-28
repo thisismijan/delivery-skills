@@ -456,7 +456,9 @@ A model does not start when a script can already prove the outcome:
 - `/draft` skips the ticket assessor and feasibility analyst on a complete
   ordinary ticket, on recorded blockers, on a size warning, and when What to
   build or Acceptance criteria name authentication, authorization, secrets,
-  credentials, OAuth, OIDC, JWT, or a data, schema, or database migration
+  credentials, OAuth, OIDC, JWT, or a data, schema, or database migration.
+  After the specs exist, `generate-tasks.ts` writes `tasks.md` from the
+  scenarios so a model does not invent the task list
 - `/address-comments` skips the comment assessor on resolved, empty,
   acknowledgement-only, mention-only, URL-only, and emoji-only notes, and on
   a suggestion already present in the file. A whole-body suggestion fence,

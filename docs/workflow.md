@@ -71,7 +71,8 @@ still run.
 `/groom` and `/draft` skip their assessors and analysts when a script already
 has the verdict: a ticket that verifies, a size warning, recorded blockers,
 or named authentication, authorization, secrets, credentials, OAuth, OIDC,
-JWT, or a data, schema, or database migration. OpenSpec authoring and
+JWT, or a data, schema, or database migration. After the specs exist,
+`generate-tasks.ts` writes `tasks.md` from the scenarios. OpenSpec authoring and
 holdout still run when the ticket proceeds.
 
 ## Pipeline checkpoints
