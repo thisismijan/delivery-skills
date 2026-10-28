@@ -287,6 +287,7 @@ describe("durable grooming", () => {
 		expect(groom).toContain("decisions.md");
 		expect(groom).toContain("Agent decided:");
 		expect(groom).toMatch(/verify-ticket\.ts" "<output-dir>\/source\.md"/);
+		expect(groom).toMatch(/verify-ticket\.ts" --fill-housekeeping/);
 		expect(plain(groom)).toMatch(/do not dispatch the groom-explorer/i);
 		expect(plain(groom)).toMatch(/do not run the grilling loop/i);
 		expect(plain(groom)).toMatch(
