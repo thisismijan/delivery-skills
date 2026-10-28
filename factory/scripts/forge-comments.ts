@@ -116,13 +116,13 @@ export function planSuggestion(
 	if (!anchor || anchor.side !== "new") {
 		return { apply: "model", reason: "comment has no new-side anchor" };
 	}
-	const match = /^```suggestion(?::-0\+0)?\n([\s\S]*?)\n?```$/.exec(
+	const match = /^```suggestion(?::-(\d+)\+(\d+))?\n([\s\S]*?)\n?```$/.exec(
 		comment.body.trim(),
 	);
 	if (!match) {
-		return { apply: "model", reason: "body is not one un-ranged suggestion" };
+		return { apply: "model", reason: "body is not one suggestion fence" };
 	}
-	const suggestion = match[1] ?? "";
+	const suggestion = match[3] ?? "";
 	if (suggestion.trim() === "") {
 		return { apply: "model", reason: "suggestion is empty" };
 	}
@@ -139,19 +139,23 @@ export function planSuggestion(
 			reason: `line ${anchor.line} is outside ${anchor.path}`,
 		};
 	}
+	const before = match[1] === undefined ? 0 : Number(match[1]);
+	const after = match[2] === undefined ? 0 : Number(match[2]);
+	const startLine = anchor.line - before;
+	const endLine = anchor.line + after;
+	if (startLine < 1 || endLine > count) {
+		return {
+			apply: "model",
+			reason: `range ${startLine}-${endLine} is outside ${anchor.path}`,
+		};
+	}
 	const replacement = suggestion.split("\n");
-	const current = lines.slice(
-		anchor.line - 1,
-		anchor.line - 1 + replacement.length,
-	);
-	if (
-		current.length === replacement.length &&
-		current.every((line, index) => line === replacement[index])
-	) {
+	const next = [...lines];
+	next.splice(startLine - 1, endLine - startLine + 1, ...replacement);
+	if (next.join(eol) === lines.join(eol)) {
 		return { apply: "model", reason: "suggestion is already applied" };
 	}
-	lines.splice(anchor.line - 1, 1, ...replacement);
-	return { apply: "script", path: anchor.path, contents: lines.join(eol) };
+	return { apply: "script", path: anchor.path, contents: next.join(eol) };
 }
 
 function insideRoot(root: string, path: string): string | null {

@@ -509,14 +509,40 @@ test("a suggestion without a range replaces the anchored line", () => {
 		path: "src/a.ts",
 		contents: "const a = 1;\nconst b = 3;\nconst c = 4;\nconst d = 5;\n",
 	});
+	expect(
+		planSuggestion(
+			suggestionComment("```suggestion:-0+1\nconst b = 3;\n```"),
+			"const a = 1;\nconst b = 2;\nconst c = 3;\n",
+		),
+	).toEqual({
+		apply: "script",
+		path: "src/a.ts",
+		contents: "const a = 1;\nconst b = 3;\n",
+	});
+	expect(
+		planSuggestion(
+			suggestionComment(
+				"```suggestion:-1+0\nconst a = 0;\nconst b = 3;\n```",
+				2,
+			),
+			"const a = 1;\nconst b = 2;\nconst c = 3;\n",
+		),
+	).toEqual({
+		apply: "script",
+		path: "src/a.ts",
+		contents: "const a = 0;\nconst b = 3;\nconst c = 3;\n",
+	});
 });
 
-test("anything but one un-ranged suggestion on a live line needs a model", () => {
+test("anything but one suggestion fence on a live in-range span needs a model", () => {
 	const file = "const a = 1;\nconst b = 2;\n";
 	const cases: [MrComment, string | null][] = [
 		[suggestionComment("Please fix.\n```suggestion\nx\n```"), file],
-		[suggestionComment("```suggestion:-1+0\nx\n```"), file],
-		[suggestionComment("```suggestion:-0+1\nx\ny\n```"), file],
+		[suggestionComment("```suggestion:-2+0\nx\n```"), file],
+		[
+			suggestionComment("```suggestion:-0+1\nconst b = 2;\nconst c = 3;\n```"),
+			"const a = 1;\nconst b = 2;\nconst c = 3;\n",
+		],
 		[suggestionComment("```suggestion\n\n```"), file],
 		[suggestionComment("```suggestion\nx\n```", 3), file],
 		[suggestionComment("```suggestion\nconst b = 2;\n```"), file],
