@@ -31,7 +31,13 @@ Environment:
 ```text
 bun "$FACTORY_ROOT/scripts/config.ts"
 bun "$FACTORY_ROOT/scripts/review-fanout.ts" <input.json>
+bun "$FACTORY_ROOT/scripts/review-fanout.ts" readiness <input.json>
 bun "$FACTORY_ROOT/scripts/diff-scan.ts" <base> <head>
+bun "$FACTORY_ROOT/scripts/forge-comments.ts" scope <comments.json> <head-files.json>
+bun "$FACTORY_ROOT/scripts/forge-comments.ts" apply-suggestion <comment.json> <repo-root>
+bun "$FACTORY_ROOT/scripts/ticket-structure.ts" <work-item.json>
+bun "$FACTORY_ROOT/scripts/ticket-feasibility.ts" <work-item.json>
+bun "$FACTORY_ROOT/scripts/apply-mechanical-edit.ts" <input.json> <repo-root>
 bun "$FACTORY_ROOT/scripts/review-packet.ts" --ticket <file> --spec <change-dir> [--diff <file>] [--evidence <file>]... --out <file>
 ```
 
@@ -59,6 +65,20 @@ lenses.
 bars in a `base...head` diff from paths and changed lines, for TypeScript,
 Python, and Java. Its marks are a floor for review and release readiness:
 they can be added to, never removed. `--diff <file>` scans a saved diff.
+
+`forge-comments.ts scope` records resolved, empty, acknowledgement-only,
+mention-only, URL-only, and emoji-only notes, and already-applied
+suggestions, as outdated. `apply-suggestion` replaces the named span of a
+whole-body suggestion fence, including a `:-N+M` range, or writes nothing
+and reports `model`.
+
+`ticket-structure.ts` and `ticket-feasibility.ts` skip the draft assessor and
+analyst when the ticket is complete, blocked, oversized, or names
+authentication, authorization, secrets, credentials, OAuth, OIDC, JWT, or a
+data, schema, or database migration.
+
+`apply-mechanical-edit.ts` applies a proven TypeScript, JavaScript, Python,
+or Java rename, import-only, or format-only unit without a model.
 
 `review-packet.ts` writes one Markdown packet holding the work item, every
 spec file under the change directory, the diff when given, and the last 6000

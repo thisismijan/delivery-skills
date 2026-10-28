@@ -48,11 +48,20 @@ all four lenses otherwise. Invalid input fails closed. Only a candidate at
 Medium or above is verified by the main conversation; all-Low candidates go to
 one standard-tier subagent.
 
-`/address-comments` still classifies every in-scope comment. A round that
+`/address-comments` still classifies every in-scope comment. Resolved, empty,
+acknowledgement-only, mention-only, URL-only, and emoji-only notes, and a
+suggestion already in the file, never start the comment assessor. A
+whole-body suggestion fence is applied without the implementer. A round that
 changes the commit still runs cumulative gates and frontier holdout review. A
 reply-only round whose commit is unchanged stays draft and continues to dual
 review instead of repeating holdout on the same code. Dual review remains the
 only authority that may mark the change ready.
+
+`/groom` and `/draft` skip their assessors and analysts when a script already
+has the verdict: a ticket that verifies, a size warning, recorded blockers,
+or named authentication, authorization, secrets, credentials, OAuth, OIDC,
+JWT, or a data, schema, or database migration. OpenSpec authoring and
+holdout still run when the ticket proceeds.
 
 ## Pipeline checkpoints
 
