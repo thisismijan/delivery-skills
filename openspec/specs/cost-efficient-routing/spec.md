@@ -296,6 +296,29 @@ When `/execute` applies a mechanical-edit unit and `apply` is `script`, it SHALL
 - **THEN** `apply-mechanical-edit.ts` reports `apply` is `script`
 - **AND** no test-writer or implementer is dispatched
 
+#### Scenario: A unique Python local is applied by script
+- **WHEN** the listed files hold one Python parameter or local binding and no attribute, exec, or eval use of that name
+- **THEN** `apply-mechanical-edit.ts` reports `apply` is `script`
+
+#### Scenario: A unique Java field is applied by script
+- **WHEN** the listed files hold one Java field and no method or type of that name
+- **THEN** `apply-mechanical-edit.ts` reports `apply` is `script`
+
+#### Scenario: A Java type rename moves the matching file
+- **WHEN** a unique Java type rename is proven and a listed file is named `from.java`
+- **THEN** `apply-mechanical-edit.ts` writes `to.java` and removes `from.java`
+- **AND** `apply` is `script`
+
+#### Scenario: A unique TypeScript missing import is applied by script
+- **WHEN** import-only runs and the language service offers exactly one missing-import fix in listed files
+- **THEN** `apply-mechanical-edit.ts` reports `apply` is `script`
+
+#### Scenario: A repo formatter that changes names stays unscripted
+- **WHEN** format-only invokes a repo Prettier, Ruff, or google-java-format binary
+- **AND** the result would change names or literals
+- **THEN** `apply` is `select-model`
+- **AND** the listed files are unchanged
+
 ### Requirement: Named safety-sensitive work does not start a feasibility analyst
 
 When `/draft` finds authentication, authorization, secrets, credentials, OAuth, OIDC, JWT, or a data, schema, or database migration named in What to build or Acceptance criteria, it SHALL write a `needs_human` feasibility verdict and SHALL NOT dispatch the feasibility-analyst. A complete ordinary ticket SHALL skip the analyst as feasible at medium complexity. A question mark SHALL still dispatch exactly one analyst.
