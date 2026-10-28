@@ -61,15 +61,17 @@ const ACK_BODIES = new Set([
 	"agreed",
 	"see above",
 	"same",
+	"ack",
 ]);
 
 function ackOnly(body: string): boolean {
-	const normalised = body
+	const tokens = body
 		.trim()
-		.replace(/[.!]+$/g, "")
-		.trim()
-		.toLowerCase();
-	return ACK_BODIES.has(normalised);
+		.toLowerCase()
+		.split(/[\s,]+/)
+		.map((token) => token.replace(/[.!]+$/g, ""))
+		.filter(Boolean);
+	return tokens.length > 0 && tokens.every((token) => ACK_BODIES.has(token));
 }
 
 function mentionOnly(body: string): boolean {

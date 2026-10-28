@@ -13,7 +13,16 @@ import {
 	classifyMechanicalEdit,
 } from "./mechanical-edit";
 
-const TYPESCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"]);
+const TYPESCRIPT_EXTENSIONS = new Set([
+	".ts",
+	".tsx",
+	".mts",
+	".cts",
+	".js",
+	".jsx",
+	".mjs",
+	".cjs",
+]);
 const PYTHON_EXTENSIONS = new Set([".py", ".pyi"]);
 const JAVA_EXTENSIONS = new Set([".java"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
@@ -191,7 +200,7 @@ function createLanguageService(
 ): ts.LanguageService {
 	const snapshots = new Map<string, ts.IScriptSnapshot>();
 	const host: ts.LanguageServiceHost = {
-		getCompilationSettings: () => options,
+		getCompilationSettings: () => ({ ...options, allowJs: true }),
 		getScriptFileNames: () => fileNames,
 		getScriptVersion: () => "1",
 		getScriptSnapshot: (fileName) => {
@@ -364,7 +373,10 @@ async function applyJavaImports(
 ): Promise<ApplyMechanicalEditResult> {
 	const planned = await planJavaImports({ root, files });
 	if (!planned.ok || !planned.files) {
-		return plan(classified, planned.reason ?? "java import rewrite was not proven");
+		return plan(
+			classified,
+			planned.reason ?? "java import rewrite was not proven",
+		);
 	}
 	const listedSet = new Set(listed);
 	const written: string[] = [];
@@ -392,7 +404,10 @@ async function applyJavaFormat(
 ): Promise<ApplyMechanicalEditResult> {
 	const planned = await planJavaFormat({ root, files });
 	if (!planned.ok || !planned.files) {
-		return plan(classified, planned.reason ?? "java format rewrite was not proven");
+		return plan(
+			classified,
+			planned.reason ?? "java format rewrite was not proven",
+		);
 	}
 	const listedSet = new Set(listed);
 	const written: string[] = [];

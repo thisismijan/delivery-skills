@@ -275,6 +275,12 @@ test("an acknowledgement-only body is outdated", () => {
 				body: "Done.",
 			},
 			{
+				id: "pair",
+				discussionId: "t5",
+				author: "reviewer",
+				body: "LGTM, thanks!",
+			},
+			{
 				id: "kept",
 				discussionId: "t4",
 				author: "reviewer",
@@ -297,6 +303,11 @@ test("an acknowledgement-only body is outdated", () => {
 		},
 		{
 			commentId: "done",
+			classification: "outdated",
+			reasoning: "comment is only an acknowledgement",
+		},
+		{
+			commentId: "pair",
 			classification: "outdated",
 			reasoning: "comment is only an acknowledgement",
 		},

@@ -174,10 +174,10 @@ When gather-and-scope finds a comment whose body is only a suggestion fence and 
 
 ### Requirement: An acknowledgement-only comment does not start the comment-assessor
 
-When gather-and-scope finds a comment whose body is only an acknowledgement such as LGTM, thanks, approved, or done, `/address-comments` SHALL NOT send that comment to the comment-assessor. Remaining in-scope comments SHALL still dispatch exactly one assessor.
+When gather-and-scope finds a comment whose body is only acknowledgements such as LGTM, thanks, approved, or done, `/address-comments` SHALL NOT send that comment to the comment-assessor. Remaining in-scope comments SHALL still dispatch exactly one assessor.
 
 #### Scenario: An acknowledgement skips the assessor
-- **WHEN** a remaining comment body is only an acknowledgement
+- **WHEN** a remaining comment body is only acknowledgements
 - **THEN** that comment is not passed to the comment-assessor
 
 #### Scenario: Mixed acknowledgements still use the assessor
@@ -291,27 +291,32 @@ When `/execute` applies a mechanical-edit unit and `apply` is `script`, it SHALL
 - **WHEN** the unit is `not-mechanical` or `apply` is `select-model`
 - **THEN** the test-writer, red gate, and implementer still run
 
+#### Scenario: A JavaScript rename is applied by script
+- **WHEN** the listed files are JavaScript and the rename is proven
+- **THEN** `apply-mechanical-edit.ts` reports `apply` is `script`
+- **AND** no test-writer or implementer is dispatched
+
 ### Requirement: Named safety-sensitive work does not start a feasibility analyst
 
-When `/draft` finds authentication, secrets, or a data migration named in What to build or Acceptance criteria, it SHALL write a `needs_human` feasibility verdict and SHALL NOT dispatch the feasibility-analyst. A complete ordinary ticket SHALL skip the analyst as feasible at medium complexity. A question mark SHALL still dispatch exactly one analyst.
+When `/draft` finds authentication, authorization, secrets, credentials, OAuth, OIDC, JWT, or a data, schema, or database migration named in What to build or Acceptance criteria, it SHALL write a `needs_human` feasibility verdict and SHALL NOT dispatch the feasibility-analyst. A complete ordinary ticket SHALL skip the analyst as feasible at medium complexity. A question mark SHALL still dispatch exactly one analyst.
 
 #### Scenario: Named authentication skips the analyst
-- **WHEN** What to build or Acceptance criteria names authentication, secrets, or a data migration
+- **WHEN** What to build or Acceptance criteria names authentication, authorization, secrets, credentials, OAuth, OIDC, JWT, or a data, schema, or database migration
 - **THEN** no feasibility-analyst is dispatched
 - **AND** feasibility is `needs_human`
 
 #### Scenario: Ordinary tickets still use the analyst
-- **WHEN** those sections do not name authentication, secrets, or a data migration
+- **WHEN** those sections do not name authentication, authorization, secrets, credentials, OAuth, OIDC, JWT, or a data, schema, or database migration
 - **AND** Context, User stories, What to build, or Acceptance criteria contains `?`
 - **THEN** exactly one feasibility-analyst is dispatched
 
 ### Requirement: A complete ordinary ticket does not start a feasibility analyst
 
-When `/draft` finds a work item whose body passes `verify-ticket.ts` with no size warning, whose Context, User stories, What to build, and Acceptance criteria contain no `?`, and whose What to build and Acceptance criteria do not name authentication, secrets, or a data migration, it SHALL write a `feasible` verdict at medium complexity and SHALL NOT dispatch the feasibility-analyst. A question mark SHALL still dispatch exactly one analyst.
+When `/draft` finds a work item whose body passes `verify-ticket.ts` with no size warning, whose Context, User stories, What to build, and Acceptance criteria contain no `?`, and whose What to build and Acceptance criteria do not name authentication, authorization, secrets, credentials, OAuth, OIDC, JWT, or a data, schema, or database migration, it SHALL write a `feasible` verdict at medium complexity and SHALL NOT dispatch the feasibility-analyst. A question mark SHALL still dispatch exactly one analyst.
 
 #### Scenario: A complete ticket skips the analyst as feasible
 - **WHEN** the body passes `verify-ticket.ts` with no size warning and those sections contain no `?`
-- **AND** What to build and Acceptance criteria do not name authentication, secrets, or a data migration
+- **AND** What to build and Acceptance criteria do not name authentication, authorization, secrets, credentials, OAuth, OIDC, JWT, or a data, schema, or database migration
 - **THEN** no feasibility-analyst is dispatched
 - **AND** feasibility is `yes` with medium complexity
 

@@ -8,8 +8,15 @@ export type TicketFeasibilityResult =
 
 const SENSITIVE_PATTERNS = [
 	/\bauthentication\b/i,
+	/\bauthorization\b/i,
 	/\bsecrets?\b/i,
+	/\bcredentials?\b/i,
+	/\boauth\b/i,
+	/\boidc\b/i,
+	/\bjwt\b/i,
 	/\bdata migrations?\b/i,
+	/\bschema migrations?\b/i,
+	/\bdatabase migrations?\b/i,
 ] as const;
 
 const SCOPED_SECTIONS = ["What to build", "Acceptance criteria"] as const;
@@ -23,9 +30,9 @@ export async function inspectTicketFeasibility(
 	item: WorkItem,
 ): Promise<TicketFeasibilityResult> {
 	const body = `${item.body}\n`;
-	const scoped = SCOPED_SECTIONS.map((name) =>
-		sectionBody(body, name),
-	).join("\n");
+	const scoped = SCOPED_SECTIONS.map((name) => sectionBody(body, name)).join(
+		"\n",
+	);
 	const hit = SENSITIVE_PATTERNS.find((pattern) => pattern.test(scoped));
 	if (hit) {
 		return {
@@ -33,11 +40,11 @@ export async function inspectTicketFeasibility(
 			verdict: {
 				feasible: "needs_human",
 				approachSketch:
-					"This ticket names authentication, secrets, or a data migration. A human must confirm a safe approach before it is specified.",
+					"This ticket names authentication, authorization, secrets, credentials, a token protocol, or a migration. A human must confirm a safe approach before it is specified.",
 				affectedAreas: [],
 				contractsTouched: [],
 				risks: [
-					"Named authentication, secrets, or a data migration in what to build or the acceptance criteria",
+					"Named authentication, authorization, secrets, credentials, a token protocol, or a migration in what to build or the acceptance criteria",
 				],
 				complexitySignal: "high",
 			},
@@ -69,9 +76,7 @@ if (import.meta.main) {
 	}
 	try {
 		const item = WorkItem.parse(await Bun.file(inputPath).json());
-		console.log(
-			JSON.stringify(await inspectTicketFeasibility(item), null, 2),
-		);
+		console.log(JSON.stringify(await inspectTicketFeasibility(item), null, 2));
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));
 		process.exit(1);

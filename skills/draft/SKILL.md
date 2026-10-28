@@ -95,7 +95,8 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
    Non-zero exit → **stop and escalate**. When `skipAnalyst` is true, copy
    `verdict` to `<reviewDir>/feasibility.json` and go to step 5. Do not
    dispatch the `feasibility-analyst`. A complete ticket with no question
-   mark and no named authentication, secrets, or data migration copies a
+   mark and no named authentication, authorization, secrets, credentials,
+   OAuth, OIDC, JWT, or data, schema, or database migration copies a
    scripted feasible verdict at medium complexity. A question still uses
    the analyst. A question mark in a URL, inline code, or optional syntax
    does not count.
