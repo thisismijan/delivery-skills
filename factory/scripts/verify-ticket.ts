@@ -9,8 +9,8 @@ const REQUIRED_SECTIONS = [
 	"Blocked by",
 ];
 
-const SIZE_WARN_LINES = 400;
-const SIZE_WARN_CHARS = 12000;
+export const SIZE_WARN_LINES = 400;
+export const SIZE_WARN_CHARS = 12000;
 
 function hasNewline(s: string): boolean {
 	return s.includes("\n");
