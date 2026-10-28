@@ -597,6 +597,7 @@ describe("bounded recovery and replay safety", () => {
 		expect(comments).toMatch(/only a mention is outdated/i);
 		expect(comments).toMatch(/only a URL is outdated/i);
 		expect(comments).toMatch(/only emoji is outdated/i);
+		expect(comments).toMatch(/un-ranged suggestion fence/i);
 		expect(comments).toMatch(/forge-comments\.ts" apply-suggestion/i);
 		expect(comments).toMatch(
 			/apply is script ?, the helper already replaced that line, so do not dispatch the implementer/i,

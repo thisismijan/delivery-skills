@@ -120,11 +120,11 @@ export function planSuggestion(
 		comment.body.trim(),
 	);
 	if (!match) {
-		return { apply: "model", reason: "body is not one single-line suggestion" };
+		return { apply: "model", reason: "body is not one un-ranged suggestion" };
 	}
 	const suggestion = match[1] ?? "";
-	if (suggestion.trim() === "" || suggestion.includes("\n")) {
-		return { apply: "model", reason: "suggestion is not one non-empty line" };
+	if (suggestion.trim() === "") {
+		return { apply: "model", reason: "suggestion is empty" };
 	}
 	if (contents === null) {
 		return { apply: "model", reason: `${anchor.path} is missing` };
@@ -139,10 +139,18 @@ export function planSuggestion(
 			reason: `line ${anchor.line} is outside ${anchor.path}`,
 		};
 	}
-	if (lines[anchor.line - 1] === suggestion) {
+	const replacement = suggestion.split("\n");
+	const current = lines.slice(
+		anchor.line - 1,
+		anchor.line - 1 + replacement.length,
+	);
+	if (
+		current.length === replacement.length &&
+		current.every((line, index) => line === replacement[index])
+	) {
 		return { apply: "model", reason: "suggestion is already applied" };
 	}
-	lines[anchor.line - 1] = suggestion;
+	lines.splice(anchor.line - 1, 1, ...replacement);
 	return { apply: "script", path: anchor.path, contents: lines.join(eol) };
 }
 
