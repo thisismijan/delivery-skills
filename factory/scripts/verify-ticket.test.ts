@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { verifyTicket } from "./verify-ticket";
+import { fillHousekeepingSections, verifyTicket } from "./verify-ticket";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -556,6 +556,35 @@ test("checkboxes outside Acceptance criteria do not count", async () => {
 		"## Context\n- [ ] not an acceptance criterion",
 	);
 	expect((await verifyTicket(draft)).ok).toBe(true);
+});
+
+test("missing out of scope and blocked by can be filled as none", async () => {
+	const draft = REQUIRED_SECTIONS.filter(
+		(section) => section !== "Out of scope" && section !== "Blocked by",
+	)
+		.map((section) => {
+			if (section === "Acceptance criteria") {
+				return `## ${section}\n\n- [ ] Given the draft is reviewed, When the acceptance criteria section is checked, Then at least one criterion is listed\n`;
+			}
+			return `## ${section}\n\nSome content.\n`;
+		})
+		.join("\n");
+	const first = await verifyTicket(draft);
+	expect(first.ok).toBe(false);
+	const filled = fillHousekeepingSections(draft, first.missing);
+	expect(filled).toBeTruthy();
+	if (filled) {
+		const again = await verifyTicket(filled);
+		expect(again.ok).toBe(true);
+		expect(filled).toMatch(/## Out of scope\nNone\./);
+		expect(filled).toMatch(/## Blocked by\nNone\./);
+	}
+});
+
+test("a missing context section is not filled as housekeeping", async () => {
+	const draft = draftMissingSection("Context");
+	const first = await verifyTicket(draft);
+	expect(fillHousekeepingSections(draft, first.missing)).toBeNull();
 });
 
 test("fenced checkbox examples in Acceptance criteria are ignored", async () => {

@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 
 const REQUIRED_SECTIONS = [
 	"Context",
@@ -92,6 +92,27 @@ export async function verifyTicket(
 	return { ok: missing.length === 0, missing, warnings };
 }
 
+const HOUSEKEEPING_GAPS = [
+	"Missing required section: Out of scope",
+	"Missing required section: Blocked by",
+] as const;
+
+export function fillHousekeepingSections(
+	text: string,
+	missing: string[],
+): string | null {
+	if (missing.length === 0) return null;
+	if (!missing.every((gap) => (HOUSEKEEPING_GAPS as readonly string[]).includes(gap))) {
+		return null;
+	}
+	let filled = text.replace(/\s*$/, "\n");
+	for (const gap of missing) {
+		const name = gap.replace("Missing required section: ", "");
+		filled += `\n## ${name}\nNone.\n`;
+	}
+	return filled;
+}
+
 function escapeRegex(s: string): string {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -164,12 +185,47 @@ export function countUserStories(text: string): number {
 }
 
 if (import.meta.main) {
-	const input = process.argv[2];
+	const fillHousekeeping = process.argv[2] === "--fill-housekeeping";
+	const input = fillHousekeeping ? process.argv[3] : process.argv[2];
 	if (!input) {
-		console.error("usage: verify-ticket <draftPath|draftText>");
+		console.error(
+			"usage: verify-ticket [--fill-housekeeping] <draftPath|draftText>",
+		);
 		process.exit(2);
 	}
 	const result = await verifyTicket(input);
-	console.log(JSON.stringify(result));
-	process.exit(result.ok ? 0 : 1);
+	if (result.ok || !fillHousekeeping) {
+		console.log(JSON.stringify(result));
+		process.exit(result.ok ? 0 : 1);
+	}
+	if (hasNewline(input)) {
+		console.log(JSON.stringify(result));
+		process.exit(1);
+	}
+	try {
+		const info = await stat(input);
+		if (!info.isFile()) {
+			console.log(JSON.stringify(result));
+			process.exit(1);
+		}
+	} catch {
+		console.log(JSON.stringify(result));
+		process.exit(1);
+	}
+	const filled = fillHousekeepingSections(
+		await resolveInput(input),
+		result.missing,
+	);
+	if (filled === null) {
+		console.log(JSON.stringify(result));
+		process.exit(1);
+	}
+	const again = await verifyTicket(filled);
+	if (!again.ok) {
+		console.log(JSON.stringify(result));
+		process.exit(1);
+	}
+	await writeFile(input, filled);
+	console.log(JSON.stringify({ ...again, filled: true }));
+	process.exit(0);
 }

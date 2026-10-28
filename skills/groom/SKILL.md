@@ -60,7 +60,16 @@ input passed structural verification. Classify it as a single ticket and
 continue at Step 7 with that content. Operator approval is still
 required before any draft is written.
 
-When the exit is non-zero, keep `source.md` as the raw input and
+When the exit is non-zero, run:
+```
+bun "${FACTORY_ROOT}/scripts/verify-ticket.ts" --fill-housekeeping \
+  "<output-dir>/source.md"
+```
+When that exit is zero, the helper appended missing Out of scope and
+Blocked by sections as `None.` and the file now passes. Treat it as a
+valid ticket: skip the explorer, grilling, and PRD, and continue at
+Step 7. Operator approval is still required.
+When that exit is still non-zero, keep `source.md` as the raw input and
 continue at Step 3. A raw idea is expected to fail this check.
 
 ### Step 3 — Read-only codebase grounding (before any grilling question)
