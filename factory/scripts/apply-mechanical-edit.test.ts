@@ -649,6 +649,58 @@ test("unused Python imports are removed without a worker", async () => {
 	);
 });
 
+test("a unique Python missing import is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/a.py": "def slugify(value):\n    return value\n",
+			"src/b.py": "label = slugify('Hello')\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					operation: "import-only",
+					files: ["src/b.py"],
+					reversible: true,
+					classificationComplete: true,
+					surfaces: ["user-interface"],
+					verification: "strong",
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			const text = await readFile(join(root, "src/b.py"), "utf8");
+			expect(text).toMatch(/from src\.a import slugify/);
+			expect(text).toContain("slugify('Hello')");
+		},
+	);
+});
+
+test("an ambiguous Python missing import is not added", async () => {
+	await withProject(
+		{
+			"src/a.py": "def slugify():\n    return 'a'\n",
+			"src/c.py": "def slugify():\n    return 'c'\n",
+			"src/b.py": "label = slugify()\n",
+		},
+		async (root) => {
+			const before = await readFile(join(root, "src/b.py"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: {
+					operation: "import-only",
+					files: ["src/b.py"],
+					reversible: true,
+					classificationComplete: true,
+					surfaces: ["user-interface"],
+					verification: "strong",
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			expect(await readFile(join(root, "src/b.py"), "utf8")).toBe(before);
+		},
+	);
+});
+
 test("a Python star import is refused", async () => {
 	await withProject(
 		{
@@ -690,6 +742,58 @@ test("unused Java imports are removed without a worker", async () => {
 			expect(text).toContain("import java.util.List;");
 			expect(text).not.toContain("import java.util.Map;");
 			expect(text).toContain("List<String> values");
+		},
+	);
+});
+
+test("a unique Java missing import is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/A.java": "package src;\npublic class Slugify {\n  public String value;\n}\n",
+			"src/B.java": "package src.app;\nclass Host { Slugify label; }\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					operation: "import-only",
+					files: ["src/B.java"],
+					reversible: true,
+					classificationComplete: true,
+					surfaces: ["user-interface"],
+					verification: "strong",
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			const text = await readFile(join(root, "src/B.java"), "utf8");
+			expect(text).toContain("import src.Slugify;");
+			expect(text).toContain("Slugify label");
+		},
+	);
+});
+
+test("an ambiguous Java missing import is not added", async () => {
+	await withProject(
+		{
+			"src/A.java": "package src;\npublic class Slugify {}\n",
+			"src/C.java": "package src.other;\npublic class Slugify {}\n",
+			"src/B.java": "package src.app;\nclass Host { Slugify label; }\n",
+		},
+		async (root) => {
+			const before = await readFile(join(root, "src/B.java"), "utf8");
+			const result = await applyMechanicalEdit({
+				payload: {
+					operation: "import-only",
+					files: ["src/B.java"],
+					reversible: true,
+					classificationComplete: true,
+					surfaces: ["user-interface"],
+					verification: "strong",
+				},
+				root,
+			});
+			expect(result.apply).toBe("script");
+			expect(await readFile(join(root, "src/B.java"), "utf8")).toBe(before);
 		},
 	);
 });

@@ -413,8 +413,8 @@ rewrite for TypeScript, JavaScript, Python, or Java:
   reference is in the listed files. A unique Java type also renames
   `From.java` to `To.java` when the listed file name matches
 - import-only: unused TypeScript or JavaScript imports, a unique missing
-  TypeScript import, unused Python top-level names, or unused Java
-  single-type imports, when the rest of the file is unchanged
+  TypeScript, Python, or Java import, unused Python top-level names, or
+  unused Java single-type imports, when the rest of the file is unchanged
 - format-only: spacing that leaves names and literals identical, using a
   repo Prettier, Ruff, or google-java-format binary when one is present
 
@@ -446,8 +446,9 @@ A model does not start when a script can already prove the outcome:
 
 - `/execute` skips the test-writer, red gate, and implementer on a proven
   rename, unused or unique missing import, or format-only unit, including a
-  unique Python parameter or local, a unique Java field, and a Java type
-  whose listed file name matches. Green, lint, typecheck, and holdout still
+  unique Python parameter or local, a unique Java field, a Java type
+  whose listed file name matches, and a unique TypeScript, Python, or Java
+  missing import. Green, lint, typecheck, and holdout still
   run
 - `/groom` skips the explorer, grilling, and writer when the input already
   verifies as a ticket, including a fill of missing Out of scope and Blocked

@@ -637,6 +637,176 @@ function javaImports(
 	return { ok: true, imports };
 }
 
+const JAVA_LANG_TYPES = new Set([
+	"AbstractMethodError",
+	"Appendable",
+	"AutoCloseable",
+	"Boolean",
+	"Byte",
+	"Character",
+	"CharSequence",
+	"Class",
+	"ClassLoader",
+	"Cloneable",
+	"Comparable",
+	"Deprecated",
+	"Double",
+	"Enum",
+	"Error",
+	"Exception",
+	"Float",
+	"FunctionalInterface",
+	"Integer",
+	"Iterable",
+	"Long",
+	"Math",
+	"Number",
+	"Object",
+	"Override",
+	"Process",
+	"Record",
+	"Runnable",
+	"RuntimeException",
+	"SafeVarargs",
+	"Short",
+	"String",
+	"StringBuilder",
+	"SuppressWarnings",
+	"System",
+	"Thread",
+	"Throwable",
+	"Void",
+]);
+
+const TYPE_MODIFIERS = new Set([
+	"public",
+	"protected",
+	"private",
+	"abstract",
+	"final",
+	"sealed",
+	"static",
+	"strictfp",
+	"non-sealed",
+]);
+
+function javaPackage(source: string, tokens: JavaToken[]): string | undefined {
+	if (tokens[0]?.text !== "package") {
+		return undefined;
+	}
+	const parts: string[] = [];
+	for (let index = 1; index < tokens.length; index += 1) {
+		const token = tokens[index];
+		if (!token) {
+			break;
+		}
+		if (token.kind === "id" || token.kind === "kw" || token.kind === "type") {
+			parts.push(token.text);
+			if (source[skipSpaces(source, token.end)] === ";") {
+				break;
+			}
+			continue;
+		}
+		if (token.kind === "dot") {
+			continue;
+		}
+		break;
+	}
+	return parts.length > 0 ? parts.join(".") : undefined;
+}
+
+function declaredTypeNames(tokens: JavaToken[]): string[] {
+	const names: string[] = [];
+	for (let index = 0; index < tokens.length; index += 1) {
+		const token = tokens[index];
+		if (!token || token.kind !== "kw" || !TYPE_KEYWORDS.has(token.text)) {
+			continue;
+		}
+		const name = tokens[index + 1];
+		if (name && (name.kind === "id" || name.kind === "type")) {
+			names.push(name.text);
+		}
+	}
+	return names;
+}
+
+function publicTypeNames(tokens: JavaToken[]): string[] {
+	const names: string[] = [];
+	for (let index = 0; index < tokens.length; index += 1) {
+		const token = tokens[index];
+		if (!token || token.kind !== "kw" || !TYPE_KEYWORDS.has(token.text)) {
+			continue;
+		}
+		let cursor = index - 1;
+		let visible = false;
+		let rejected = false;
+		while (cursor >= 0) {
+			const previous = tokens[cursor];
+			if (!previous || !TYPE_MODIFIERS.has(previous.text)) {
+				break;
+			}
+			if (previous.text === "public") {
+				visible = true;
+			}
+			if (previous.text === "private" || previous.text === "protected") {
+				rejected = true;
+			}
+			cursor -= 1;
+		}
+		const name = tokens[index + 1];
+		if (visible && !rejected && name && (name.kind === "id" || name.kind === "type")) {
+			names.push(name.text);
+		}
+	}
+	return names;
+}
+
+function importInsertionIndex(source: string, imports: JavaImport[]): number {
+	if (imports.length > 0) {
+		return Math.max(...imports.map((item) => item.end));
+	}
+	const match = source.match(/^package\b[^\n]*\n/);
+	return match ? match[0].length : 0;
+}
+
+function addUniqueJavaImports(
+	source: string,
+	tokens: JavaToken[],
+	imports: JavaImport[],
+	used: Set<string>,
+	exports: Map<string, string[]>,
+	currentPackage: string | undefined,
+): string {
+	const already = new Set(imports.map((item) => item.simple));
+	const additions: string[] = [];
+	for (const name of [...used].sort()) {
+		if (already.has(name) || JAVA_LANG_TYPES.has(name) || TYPE_PRIMITIVES.has(name)) {
+			continue;
+		}
+		if (declaredTypeNames(tokens).includes(name)) {
+			continue;
+		}
+		const qualified = [...new Set(exports.get(name) ?? [])];
+		if (qualified.length !== 1 || !qualified[0]) {
+			continue;
+		}
+		const nextImport = qualified[0];
+		const pkg = nextImport.includes(".")
+			? nextImport.slice(0, nextImport.lastIndexOf("."))
+			: "";
+		if (pkg === currentPackage) {
+			continue;
+		}
+		additions.push(`import ${nextImport};`);
+	}
+	if (additions.length === 0) {
+		return source;
+	}
+	const index = importInsertionIndex(source, imports);
+	const block = `${additions.join("\n")}\n`;
+	return `${source.slice(0, index)}${block}${source.slice(index)}`;
+}
+
 function dropJavaImports(source: string, unused: JavaImport[]): string {
 	let next = source;
 	for (const item of [...unused].sort((left, right) => right.start - left.start)) {
@@ -661,12 +831,38 @@ function nonImportIdentifiers(tokens: JavaToken[], imports: JavaImport[]): Set<s
 	return names;
 }
 
+async function indexPublicJavaTypes(
+	root: string,
+): Promise<Map<string, string[]>> {
+	const found = new Map<string, string[]>();
+	for (const file of await listJavaFiles(root)) {
+		const text = await Bun.file(file)
+			.text()
+			.catch(() => undefined);
+		if (text === undefined) {
+			continue;
+		}
+		const tokens = tokenizeJava(text);
+		const pkg = javaPackage(text, tokens);
+		for (const name of publicTypeNames(tokens)) {
+			const qualified = pkg ? `${pkg}.${name}` : name;
+			const list = found.get(name) ?? [];
+			if (!list.includes(qualified)) {
+				list.push(qualified);
+			}
+			found.set(name, list);
+		}
+	}
+	return found;
+}
+
 export async function planJavaImports(input: {
 	root: string;
 	files: string[];
 }): Promise<JavaRenamePlan> {
 	const root = resolve(input.root);
 	const listed = input.files.map((file) => resolve(root, file));
+	const exports = await indexPublicJavaTypes(root);
 	const rewritten: Record<string, string> = {};
 	for (const file of listed) {
 		const text = await Bun.file(file)
@@ -688,10 +884,20 @@ export async function planJavaImports(input: {
 		}
 		const used = nonImportIdentifiers(tokens, parsed.imports);
 		const unused = parsed.imports.filter((item) => !used.has(item.simple));
-		if (unused.length === 0) {
-			continue;
+		let next = unused.length > 0 ? dropJavaImports(text, unused) : text;
+		const droppedTokens = tokenizeJava(next);
+		const droppedParsed = javaImports(next, droppedTokens);
+		if (!droppedParsed.ok) {
+			return { ok: false, reason: "import rewrite would change code that is not an import" };
 		}
-		const next = dropJavaImports(text, unused);
+		next = addUniqueJavaImports(
+			next,
+			droppedTokens,
+			droppedParsed.imports,
+			nonImportIdentifiers(droppedTokens, droppedParsed.imports),
+			exports,
+			javaPackage(next, droppedTokens),
+		);
 		if (next === text) {
 			continue;
 		}
