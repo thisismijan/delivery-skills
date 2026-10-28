@@ -467,6 +467,10 @@ A model does not start when a script can already prove the outcome:
 
 Holdout still runs on new or changed code. Composer stays evaluation-only.
 
+Each of those skips is recorded by `record-skip.ts` even when diagnostic
+profiling is off. The run scorecard prints how many workers were avoided
+and never estimates tokens saved.
+
 Diagnostic shadow profiling defaults off so a ticket does not pay extra
 frontier calls that cannot affect live dispatch. Set
 `ROUTING_PROFILING=always` only when collecting evaluation evidence. Live
@@ -548,8 +552,10 @@ ambiguous match stops the run instead of guessing.
   only then is a cheaper shadow recommendation recorded, never dispatched.
   Each recorded task captures wall time automatically, overlays host token and cost
   figures when the runtime writes them, and otherwise stores character
-  counts of named artifacts. After each task, the run scorecard refreshes with
-  actual gate, repair, escalation, time, cost, and usage totals. It labels
+  counts of named artifacts. Scripted skipped workers are recorded even
+  when profiling is off. After each task, the run scorecard refreshes with
+  actual gate, repair, escalation, time, cost, and usage totals, plus the
+  count of workers avoided. It never estimates tokens saved. It labels
   shadow quality and savings as unevaluated until a paired benchmark has
   actually run. The paired-evidence generator hashes fixed inputs and managed
   trees, reads captured usage and gate results, and measures output size

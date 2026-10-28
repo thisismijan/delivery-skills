@@ -54,7 +54,15 @@ Write the resolved input to `<output-dir>/source.md`. Run:
 bun "${FACTORY_ROOT}/scripts/verify-ticket.ts" "<output-dir>/source.md"
 ```
 When the exit is zero, the input is already a structurally valid ticket.
-Do not dispatch the `groom-explorer`. Do not run the grilling loop or
+Do not dispatch the `groom-explorer`. Write
+`<output-dir>/skipped-workers.json` naming `groom-explorer` and persist
+even when `routingProfiling` is `off`:
+```
+bun "${FACTORY_ROOT}/scripts/record-skip.ts" persist "<repo>/.delivery/routing" "groom-<slug>" "<output-dir>/skipped-workers.json"
+bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "groom-<slug>"
+```
+The scorecard counts avoided workers. It never estimates tokens saved.
+Do not run the grilling loop or
 synthesize a PRD. Record `Agent decided:` in `decisions.md` that the
 input passed structural verification. Classify it as a single ticket and
 continue at Step 7 with that content. Operator approval is still
@@ -67,7 +75,9 @@ bun "${FACTORY_ROOT}/scripts/verify-ticket.ts" --fill-housekeeping \
 ```
 When that exit is zero, the helper appended missing Out of scope and
 Blocked by sections as `None.` and the file now passes. Treat it as a
-valid ticket: skip the explorer, grilling, and PRD, and continue at
+valid ticket: skip the explorer, grilling, and PRD, persist that skip
+with `record-skip.ts` naming `groom-explorer`, refresh
+`routing-scorecard.ts`, and continue at
 Step 7. Operator approval is still required.
 When that exit is still non-zero, keep `source.md` as the raw input and
 continue at Step 3. A raw idea is expected to fail this check.
@@ -162,6 +172,9 @@ On explicit operator approval of the ticket (single-ticket path) or the slice br
 
 0. When Step 2a passed and the operator approved that same content
    without requesting a rewrite, do not dispatch the `groom-writer`.
+   Persist that skip with `record-skip.ts` naming `groom-writer`, then
+   refresh `routing-scorecard.ts`, even when `routingProfiling` is `off`.
+   The scorecard counts avoided workers. It never estimates tokens saved.
    Re-run `verify-ticket.ts` on `<output-dir>/source.md`. Non-zero exit
    is a stop; never write it as the final artifact. Zero exit: require
    `bun "${FACTORY_ROOT}/scripts/groom-paths.ts" verify "<repoRoot>"

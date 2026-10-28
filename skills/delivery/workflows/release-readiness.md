@@ -130,11 +130,18 @@ The returned `mode` is authoritative. Invalid input or a non-zero exit stops
 the stage; never guess a reduced fan-out.
 
 - **`empty`:** the measured diff has no reviewable code. Do not dispatch lens
-  subagents and do not run the rollback lens yourself. Continue at step 4
+  subagents and do not run the rollback lens yourself. Persist that skip:
+  ```
+  bun "${FACTORY_ROOT}/scripts/record-skip.ts" persist "<repo>/.delivery/routing" "<changeName>" "<ledger-dir>/skipped-workers.json"
+  bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
+  ```
+  The scorecard counts avoided workers. It never estimates tokens saved. Continue at step 4
   with no lens findings.
 - **`small`:** at most 2 files, fewer than 50 changed lines, two-way, and none
   of Data, Contract, Config, Auth, or Infra. Skip the subagents in step 3 and
-  run the rollback lens yourself.
+  run the rollback lens yourself. Persist that skip with `record-skip.ts`, then
+  refresh `routing-scorecard.ts`. The scorecard counts avoided workers. It
+  never estimates tokens saved.
 - **`full`:** resolve `standard` and run the lenses the classification turned
   on.
 

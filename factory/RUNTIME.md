@@ -197,6 +197,9 @@ current session may use. At the start of a factory run:
    `record-routing.ts persist` requires an explicit outcome
    file validated against the outcome schema. A missing or invalid outcome is
    refused and writes nothing; it is never stored as a successful result.
+   `record-skip.ts persist` records each scripted skipped worker under the
+   same run. The scorecard counts those skips and never estimates tokens saved.
+   Skip recording still runs when diagnostic profiling is off.
    Usage files come from `capture-usage.ts`: start a timer before the worker,
    finish after the outcome exists, overlay host tokens and cost only from a
    host-written file, and otherwise record character counts of named artifacts.

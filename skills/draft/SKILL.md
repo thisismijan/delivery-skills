@@ -66,7 +66,14 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
    ```
    Non-zero exit → **stop and escalate**. When `skipAssessor` is true, copy
    `verdict` to `<reviewDir>/assessment.json` and go to step 3. Do not
-   dispatch the `ticket-assessor`. Recorded blockers skip the assessor even
+   dispatch the `ticket-assessor`. Write
+   `<reviewDir>/skipped-workers.json` naming `ticket-assessor` and persist
+   even when `routingProfiling` is `off`:
+   ```
+   bun "${FACTORY_ROOT}/scripts/record-skip.ts" persist "<repo>/.delivery/routing" "<work-item-key>" "<reviewDir>/skipped-workers.json"
+   bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<work-item-key>"
+   ```
+   The scorecard counts avoided workers. It never estimates tokens saved. Recorded blockers skip the assessor even
    when the body is otherwise valid. A complete ticket with no question mark
    in Context, User stories, What to build, or Acceptance criteria copies a
    scripted good verdict. A size warning skips the assessor as too large.
@@ -94,7 +101,11 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
    ```
    Non-zero exit → **stop and escalate**. When `skipAnalyst` is true, copy
    `verdict` to `<reviewDir>/feasibility.json` and go to step 5. Do not
-   dispatch the `feasibility-analyst`. A complete ticket with no question
+   dispatch the `feasibility-analyst`. Write
+   `<reviewDir>/skipped-workers.json` naming `feasibility-analyst` and persist
+   with `record-skip.ts`, then refresh `routing-scorecard.ts`, even when
+   `routingProfiling` is `off`. The scorecard counts avoided workers. It never
+   estimates tokens saved. A complete ticket with no question
    mark and no named authentication, authorization, secrets, credentials,
    OAuth, OIDC, JWT, or data, schema, or database migration copies a
    scripted feasible verdict at medium complexity. A question still uses
@@ -215,9 +226,11 @@ selection.
    persistence refuses a missing outcome. The usage file comes from
    `capture-usage.ts`. It always records wall time, uses host tokens and cost
    when present, and otherwise records character counts of those artifacts.
-   Never write `{ "source": "unavailable" }` by hand. When
+   Never write `{ "source": "unavailable" }` by hand.    When
    `routingProfiling` is `off`, skip this entire profiling, usage-capture,
    routing-persistence, and scorecard block and continue to verification.
+   Still persist scripted skips with `record-skip.ts` and refresh the
+   scorecard after those skips.
    This setting only removes diagnostic work; it never changes authoring
    dispatch or weakens a quality gate.
 
