@@ -160,6 +160,7 @@ export function hasOpenQuestion(text: string): boolean {
 	return scoped
 		.replace(/`[^`]+`/g, "")
 		.replace(/https?:\/\/[^\s)]+/gi, "")
+		.replace(/\?\?|\?\.|\?:/g, "")
 		.includes("?");
 }
 

@@ -113,3 +113,15 @@ test("a URL query string does not count as an open question", async () => {
 		expect(result.verdict.feasible).toBe("yes");
 	}
 });
+
+test("optional syntax does not count as an open question", async () => {
+	const body = ordinary.replace(
+		"Add an export control that downloads the visible rows as CSV.",
+		"Accept timeout?: number, read user?.id, and fall back with ?? none.",
+	);
+	const result = await inspectTicketFeasibility(item(body));
+	expect(result.skipAnalyst).toBe(true);
+	if (result.skipAnalyst) {
+		expect(result.verdict.feasible).toBe("yes");
+	}
+});

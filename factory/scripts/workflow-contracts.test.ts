@@ -390,7 +390,7 @@ describe("small-context ticket scope", () => {
 			/complete ticket with no question mark[\s\S]*scripted feasible verdict/i,
 		);
 		expect(draftContract).toMatch(
-			/question mark in a URL or inline code does not count/i,
+			/question mark in a URL, inline code, or optional syntax does not count/i,
 		);
 		expect(plain(read("agents/feasibility-analyst.md"))).toMatch(
 			/already complete with no open questions/i,
