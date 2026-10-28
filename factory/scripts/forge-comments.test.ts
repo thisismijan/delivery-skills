@@ -351,6 +351,45 @@ test("a URL-only body is outdated", () => {
 	]);
 });
 
+test("an emoji-only body is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "thumb",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "👍",
+			},
+			{
+				id: "shortcode",
+				discussionId: "t2",
+				author: "reviewer",
+				body: ":+1:",
+			},
+			{
+				id: "kept",
+				discussionId: "t3",
+				author: "reviewer",
+				body: "👍 please add a test.",
+			},
+		],
+		{},
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual(["kept"]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "thumb",
+			classification: "outdated",
+			reasoning: "comment is only emoji",
+		},
+		{
+			commentId: "shortcode",
+			classification: "outdated",
+			reasoning: "comment is only emoji",
+		},
+	]);
+});
+
 test("an applied suggestion-only comment is outdated", () => {
 	const scoped = scopeComments(
 		[

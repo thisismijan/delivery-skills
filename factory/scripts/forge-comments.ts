@@ -82,6 +82,17 @@ function urlOnly(body: string): boolean {
 	);
 }
 
+function emojiOnly(body: string): boolean {
+	const trimmed = body.trim();
+	if (trimmed === "") return false;
+	const stripped = trimmed
+		.replace(/:[a-z0-9_+-]+:/gi, "")
+		.replace(/\p{Extended_Pictographic}/gu, "")
+		.replace(/[\uFE0F\u200D\u20E3]/g, "")
+		.replace(/\s+/g, "");
+	return stripped === "";
+}
+
 function appliedSuggestion(body: string, contents: string): boolean {
 	const trimmed = body.trim();
 	const match = /^```suggestion[^\n]*\n([\s\S]*?)^```$/m.exec(trimmed);
@@ -127,6 +138,14 @@ export function scopeComments(
 				commentId: String(comment.id),
 				classification: "outdated",
 				reasoning: "comment is only a URL",
+			});
+			continue;
+		}
+		if (emojiOnly(comment.body)) {
+			outdated.push({
+				commentId: String(comment.id),
+				classification: "outdated",
+				reasoning: "comment is only emoji",
 			});
 			continue;
 		}
