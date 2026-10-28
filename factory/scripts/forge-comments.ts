@@ -74,6 +74,14 @@ function mentionOnly(body: string): boolean {
 	return /^@[A-Za-z0-9._-]+$/.test(body.trim());
 }
 
+function urlOnly(body: string): boolean {
+	const trimmed = body.trim();
+	return (
+		/^https?:\/\/\S+$/i.test(trimmed) ||
+		/^\[[^\]]*\]\(https?:\/\/[^)]+\)$/i.test(trimmed)
+	);
+}
+
 function appliedSuggestion(body: string, contents: string): boolean {
 	const trimmed = body.trim();
 	const match = /^```suggestion[^\n]*\n([\s\S]*?)^```$/m.exec(trimmed);
@@ -111,6 +119,14 @@ export function scopeComments(
 				commentId: String(comment.id),
 				classification: "outdated",
 				reasoning: "comment is only a mention",
+			});
+			continue;
+		}
+		if (urlOnly(comment.body)) {
+			outdated.push({
+				commentId: String(comment.id),
+				classification: "outdated",
+				reasoning: "comment is only a URL",
 			});
 			continue;
 		}

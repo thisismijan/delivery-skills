@@ -177,6 +177,18 @@ When gather-and-scope finds a comment whose body is only a mention, `/address-co
 - **WHEN** the body contains a mention and other review text
 - **THEN** that comment stays in scope for the comment-assessor
 
+### Requirement: A URL-only comment does not start the comment-assessor
+
+When gather-and-scope finds a comment whose body is only a URL, `/address-comments` SHALL NOT send that comment to the comment-assessor. Remaining in-scope comments SHALL still dispatch exactly one assessor.
+
+#### Scenario: A URL-only body skips the assessor
+- **WHEN** a remaining comment body is only a URL
+- **THEN** that comment is not passed to the comment-assessor
+
+#### Scenario: A URL with extra prose still uses the assessor
+- **WHEN** the body contains a URL and other review text
+- **THEN** that comment stays in scope for the comment-assessor
+
 ### Requirement: A structurally incomplete ticket does not start a ticket assessor
 
 When `/draft` fetches a work item whose body fails `verify-ticket.ts`, it SHALL write an assessment from the verifier gaps and SHALL NOT dispatch the ticket-assessor. When the body passes, has no size warning, and Context, User stories, What to build, and Acceptance criteria contain no `?`, it SHALL write a `good` atomic assessment from those criteria and SHALL NOT dispatch the ticket-assessor. When the body passes with a size warning, it SHALL write a `too_large` assessment from that warning and SHALL NOT dispatch the ticket-assessor. A question mark without a size warning SHALL still dispatch exactly one ticket-assessor.
