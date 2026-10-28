@@ -94,7 +94,8 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    Non-zero exit → **stop + escalate**. A missing path or a new-side line past
    the end of the file is outdated. An empty or whitespace-only body is
-   outdated. An unanchored comment, an old-side
+   outdated. A comment whose body is only a suggestion fence, and whose
+   suggested text is already in that file, is outdated. An unanchored comment, an old-side
    anchor, or a path you did not look up stays in scope. Replace
    `comments.json` with the `inScope` array. Copy the `outdated` array into
    `<reviewDir>/classification.json` (or `[]` when there were none). Write

@@ -234,6 +234,46 @@ test("an empty or whitespace-only body is outdated", () => {
 	]);
 });
 
+test("an applied suggestion-only comment is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "applied",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "```suggestion\nexport const n = 2;\n```",
+				anchor: { path: "src/keep.ts", line: 1, side: "new" },
+			},
+			{
+				id: "unapplied",
+				discussionId: "t2",
+				author: "reviewer",
+				body: "```suggestion\nexport const n = 3;\n```",
+				anchor: { path: "src/keep.ts", line: 1, side: "new" },
+			},
+			{
+				id: "prose",
+				discussionId: "t3",
+				author: "reviewer",
+				body: "Please also rename this.\n```suggestion\nexport const n = 2;\n```",
+				anchor: { path: "src/keep.ts", line: 1, side: "new" },
+			},
+		],
+		{ "src/keep.ts": "export const n = 2;\n" },
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual([
+		"unapplied",
+		"prose",
+	]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "applied",
+			classification: "outdated",
+			reasoning: "suggestion is already present in src/keep.ts",
+		},
+	]);
+});
+
 test("an empty comment list stays empty", () => {
 	expect(scopeComments([], { "src/a.ts": "x\n" })).toEqual({
 		inScope: [],
