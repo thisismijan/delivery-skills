@@ -70,8 +70,8 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
    when the body is otherwise valid. A complete ticket with no question mark
    in Context, User stories, What to build, or Acceptance criteria copies a
    scripted good verdict. A size warning skips the assessor as too large.
-   A question still uses the assessor. A question mark in a URL or inline
-   code does not count. When `skipAssessor` is false, resolve
+   A question still uses the assessor. A question mark in a URL, inline
+   code, or optional syntax does not count. When `skipAssessor` is false, resolve
    `standard` against the runtime
    model inventory, then dispatch the `ticket-assessor` subagent with that exact
    available model and the ticket. Persist its single JSON `AssessmentVerdict`
@@ -97,7 +97,8 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
    dispatch the `feasibility-analyst`. A complete ticket with no question
    mark and no named authentication, secrets, or data migration copies a
    scripted feasible verdict at medium complexity. A question still uses
-   the analyst. A question mark in a URL or inline code does not count.
+   the analyst. A question mark in a URL, inline code, or optional syntax
+   does not count.
    When `skipAnalyst` is false, resolve
    `standard`, then dispatch the
    `feasibility-analyst` subagent with that exact available model against the

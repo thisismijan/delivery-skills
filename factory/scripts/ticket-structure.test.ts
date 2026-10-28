@@ -108,6 +108,18 @@ test("a URL query string does not count as an open question", async () => {
 	}
 });
 
+test("optional syntax does not count as an open question", async () => {
+	const body = validBody.replace(
+		"Add an export control that downloads the visible rows as CSV.",
+		"Accept timeout?: number, read user?.id, and fall back with ?? none.",
+	);
+	const result = await inspectTicketStructure(item(body));
+	expect(result.skipAssessor).toBe(true);
+	if (result.skipAssessor) {
+		expect(result.verdict.quality).toBe("good");
+	}
+});
+
 test("missing sections skip the assessor with those gaps", async () => {
 	const result = await inspectTicketStructure(item("TBD"));
 	expect(result.skipAssessor).toBe(true);
