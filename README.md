@@ -536,8 +536,9 @@ ambiguous match stops the run instead of guessing.
   stand-in rewrites never promote.
 - **Review spend follows demonstrated risk.** Independently adjudicated review
   lenses use the standard model tier. Release-readiness lens subagents use that
-  same resolved standard model; the main conversation still decides GO or
-  NO-GO. `review-fanout.ts` chooses no lenses when the measured diff has no
+  same resolved standard model; `review-fanout.ts readiness` skips those
+  subagents on an empty or proven small reversible measured diff. The main
+  conversation still decides GO or NO-GO. `review-fanout.ts` chooses no lenses when the measured diff has no
   reviewable code, two essential
   lenses for a proven small reversible or contained change, and all four lenses
   otherwise.

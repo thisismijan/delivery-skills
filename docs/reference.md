@@ -50,8 +50,10 @@ returns `none` when no lens raised a candidate, `standard` when every
 candidate is Low, and `main` when any is Medium or above.
 
 Release-readiness lens subagents resolve the same `standard` capability and
-pass that exact identifier. The main conversation still decides GO or NO-GO.
-Fast-tier models do not run those lenses.
+pass that exact identifier. `review-fanout.ts readiness` skips those
+subagents on an empty or proven small reversible measured diff. The main
+conversation still decides GO or NO-GO. Fast-tier models do not run those
+lenses.
 
 `diff-scan.ts` marks sensitive surfaces, one-way signals, and lowered quality
 bars in a `base...head` diff from paths and changed lines, for TypeScript,

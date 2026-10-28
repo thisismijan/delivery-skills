@@ -7,6 +7,7 @@ import {
 	type ReviewFanoutInput,
 	measureReviewableDiff,
 	planAdjudication,
+	planReadinessFanout,
 	planReviewFanout,
 } from "./review-fanout";
 
@@ -58,6 +59,71 @@ test("a reversible non-sensitive change within the contained bounds runs the two
 			"correctness-security",
 			"tests-specification",
 		]);
+	}
+});
+
+test("readiness skips every lens subagent on an empty or small diff", () => {
+	expect(
+		planReadinessFanout({
+			changedFiles: 0,
+			changedLines: 0,
+			reversible: true,
+			classificationComplete: true,
+			surfaces: [],
+		}),
+	).toEqual({
+		mode: "empty",
+		lenses: [],
+		reason: "no reviewable code in the pinned diff",
+	});
+	expect(planReadinessFanout(smallInput)).toEqual({
+		mode: "small",
+		lenses: [],
+		reason: "small reversible change with no sensitive surface",
+	});
+	expect(
+		planReadinessFanout({ ...smallInput, surfaces: ["dependencies"] }).mode,
+	).toBe("small");
+});
+
+test("readiness keeps every lens on an unproven or sensitive change", () => {
+	expect(
+		planReadinessFanout({
+			...smallInput,
+			classificationComplete: false,
+		}).mode,
+	).toBe("full");
+	expect(planReadinessFanout({ ...smallInput, reversible: false }).mode).toBe(
+		"full",
+	);
+	expect(planReadinessFanout({ ...smallInput, changedFiles: 3 }).mode).toBe(
+		"full",
+	);
+	expect(
+		planReadinessFanout({ ...smallInput, surfaces: ["auth"] }).lenses,
+	).toEqual(["rollback", "compatibility", "security", "operability"]);
+});
+
+test("the readiness CLI emits the deterministic plan", async () => {
+	const inputPath = join(import.meta.dir, ".readiness-fanout-input.test.json");
+	try {
+		await Bun.write(inputPath, JSON.stringify(smallInput));
+		const proc = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "review-fanout.ts"),
+				"readiness",
+				inputPath,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		expect(await proc.exited).toBe(0);
+		expect(JSON.parse(await new Response(proc.stdout).text())).toMatchObject({
+			mode: "small",
+			lenses: [],
+		});
+	} finally {
+		await Bun.file(inputPath).delete();
 	}
 });
 

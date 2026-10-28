@@ -49,32 +49,90 @@ export interface ReviewFanoutPlan {
 	reason: string;
 }
 
-export function planReviewFanout(input: ReviewFanoutInput): ReviewFanoutPlan {
-	const parsed = ReviewFanoutInput.parse(input);
-	const sensitive = parsed.surfaces.filter((surface) =>
-		SENSITIVE_SURFACES.has(surface),
-	);
-	if (
+export const READINESS_LENSES = [
+	"rollback",
+	"compatibility",
+	"security",
+	"operability",
+] as const;
+
+export interface ReadinessFanoutPlan {
+	mode: "empty" | "small" | "full";
+	lenses: (typeof READINESS_LENSES)[number][];
+	reason: string;
+}
+
+function sensitiveSurfaces(parsed: ReviewFanoutInput): string[] {
+	return parsed.surfaces.filter((surface) => SENSITIVE_SURFACES.has(surface));
+}
+
+function emptyChange(parsed: ReviewFanoutInput, sensitive: string[]): boolean {
+	return (
 		parsed.classificationComplete &&
 		parsed.changedFiles === 0 &&
 		parsed.changedLines === 0 &&
 		parsed.reversible &&
 		sensitive.length === 0
-	) {
+	);
+}
+
+function smallChange(parsed: ReviewFanoutInput, sensitive: string[]): boolean {
+	return (
+		parsed.classificationComplete &&
+		parsed.changedFiles <= 2 &&
+		parsed.changedLines < 50 &&
+		parsed.reversible &&
+		sensitive.length === 0
+	);
+}
+
+export function planReadinessFanout(
+	input: ReviewFanoutInput,
+): ReadinessFanoutPlan {
+	const parsed = ReviewFanoutInput.parse(input);
+	const sensitive = sensitiveSurfaces(parsed);
+	if (emptyChange(parsed, sensitive)) {
 		return {
 			mode: "empty",
 			lenses: [],
 			reason: "no reviewable code in the pinned diff",
 		};
 	}
-	const small =
-		parsed.classificationComplete &&
-		parsed.changedFiles <= 2 &&
-		parsed.changedLines < 50 &&
-		parsed.reversible &&
-		sensitive.length === 0;
+	if (smallChange(parsed, sensitive)) {
+		return {
+			mode: "small",
+			lenses: [],
+			reason: "small reversible change with no sensitive surface",
+		};
+	}
+	const reasons = [
+		!parsed.classificationComplete ? "classification incomplete" : undefined,
+		parsed.changedFiles > 2 ? "more than 2 changed files" : undefined,
+		parsed.changedLines >= 50 ? "at least 50 changed lines" : undefined,
+		!parsed.reversible ? "one-way change" : undefined,
+		sensitive.length > 0
+			? `sensitive surfaces: ${sensitive.join(", ")}`
+			: undefined,
+	].filter((reason): reason is string => reason !== undefined);
+	return {
+		mode: "full",
+		lenses: [...READINESS_LENSES],
+		reason: reasons.join("; "),
+	};
+}
 
-	if (small) {
+export function planReviewFanout(input: ReviewFanoutInput): ReviewFanoutPlan {
+	const parsed = ReviewFanoutInput.parse(input);
+	const sensitive = sensitiveSurfaces(parsed);
+	if (emptyChange(parsed, sensitive)) {
+		return {
+			mode: "empty",
+			lenses: [],
+			reason: "no reviewable code in the pinned diff",
+		};
+	}
+
+	if (smallChange(parsed, sensitive)) {
 		return {
 			mode: "small",
 			lenses: [...REVIEW_LENSES.slice(0, 2)],
@@ -203,6 +261,7 @@ const USAGE = [
 	"usage: review-fanout <input.json>",
 	"       review-fanout measure <base> <head>",
 	"       review-fanout adjudication <candidates.json>",
+	"       review-fanout readiness <input.json>",
 ].join("\n");
 
 if (import.meta.main) {
@@ -227,6 +286,13 @@ if (import.meta.main) {
 			}
 			const input = LensCandidates.parse(await Bun.file(rest[0]).json());
 			console.log(JSON.stringify(planAdjudication(input), null, 2));
+		} else if (first === "readiness") {
+			if (!rest[0]) {
+				console.error(USAGE);
+				process.exit(2);
+			}
+			const input = ReviewFanoutInput.parse(await Bun.file(rest[0]).json());
+			console.log(JSON.stringify(planReadinessFanout(input), null, 2));
 		} else {
 			const input = ReviewFanoutInput.parse(await Bun.file(first).json());
 			console.log(JSON.stringify(planReviewFanout(input), null, 2));

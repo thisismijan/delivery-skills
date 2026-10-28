@@ -998,6 +998,13 @@ describe("release-readiness lens tier", () => {
 			/pass that exact model identifier to every lens subagent/i,
 		);
 		expect(readiness).toMatch(/main conversation still decides GO or NO-GO/i);
+		expect(readiness).toMatch(/review-fanout\.ts" readiness/i);
+		expect(readiness).toMatch(
+			/empty.*do not dispatch lens\s+subagents and do not run the rollback lens yourself/i,
+		);
+		expect(readiness).toMatch(
+			/small.*skip the subagents in step 3 and\s+run the rollback lens yourself/i,
+		);
 		expect(readiness).toMatch(/do not dispatch a fast model for these lenses/i);
 		expect(readiness).toMatch(
 			/missing live standard candidate stops the stage/i,
