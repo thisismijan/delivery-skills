@@ -103,7 +103,15 @@ This command consumes the review comments on the **existing** MR for this ticket
    `outdated` `commentId`. The resulting `inScope` comments are **in scope**.
 
 5. **Classify (single batch, read-only).** If in-scope comments are empty,
-   do not dispatch the `comment-assessor`. Keep `classification.json` as the
+   do not dispatch the `comment-assessor`. Write
+   `<reviewDir>/skipped-workers.json` naming `comment-assessor` and persist
+   even when `routingProfiling` is `off`:
+   ```
+   bun "${FACTORY_ROOT}/scripts/record-skip.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/skipped-workers.json"
+   bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
+   ```
+   The scorecard counts avoided workers. It never estimates tokens saved.
+   Keep `classification.json` as the
    scripted outdated verdicts, or `[]` when there were none, then continue
    at step 6. When at least one in-scope comment remains, resolve `standard`
    against the runtime
@@ -128,7 +136,7 @@ This command consumes the review comments on the **existing** MR for this ticket
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-outcome.json" "<reviewDir>/classify-usage.json" <controller-model> <standard-model>
    bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
    ```
-   Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. `classify-outcome.json` records whether classification completed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Classification still used the current semantic standard route; the shadow file must not change that. When `routingProfiling` is `off`, skip the timer, profile, usage capture, routing persistence, and scorecard commands. This setting only removes diagnostic work; it never changes classification dispatch or weakens a quality gate.
+   Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. `classify-outcome.json` records whether classification completed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Classification still used the current semantic standard route; the shadow file must not change that. When `routingProfiling` is `off`, skip the timer, profile, usage capture, routing persistence, and scorecard commands. Still persist scripted skips with `record-skip.ts` and refresh the scorecard after those skips. This setting only removes diagnostic work; it never changes classification dispatch or weakens a quality gate.
 
 6. **Route each comment.** For every entry, derive its action group:
    ```
@@ -145,6 +153,9 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    Non-zero exit → **stop + escalate**. When `apply` is `script`, the helper
    already replaced that line, so do not dispatch the `implementer` for it.
+   Persist that skip with `record-skip.ts` naming `implementer`, then refresh
+   `routing-scorecard.ts`, even when `routingProfiling` is `off`. The
+   scorecard counts avoided workers. It never estimates tokens saved.
    When `apply` is `model`, continue as below. A bug still needs its red test
    first, and the green gate, lint, typecheck, and holdout still run.
 
@@ -165,7 +176,9 @@ This command consumes the review comments on the **existing** MR for this ticket
      unique TypeScript missing import, and format-only through a repo Prettier,
      Ruff, or google-java-format binary when names and literals stay identical.
      When `apply` is `script`, the helper
-     already wrote the files. Otherwise
+     already wrote the files. Persist that skip with `record-skip.ts` naming
+     `implementer`, then refresh `routing-scorecard.ts`. The scorecard counts
+     avoided workers. It never estimates tokens saved. Otherwise
      dispatch the `implementer` to write the fix. Do not ask the implementer
      whether the work is menial. Do not dispatch a catalogue fast model. A
      payload flag is not proof that a script ran. Then bring the
@@ -177,7 +190,8 @@ This command consumes the review comments on the **existing** MR for this ticket
 
    - **`non-functional`** (action, green-only): apply a mechanical-edit unit
      the same way as a bug action. When `apply` is `script`, the helper already
-     wrote the files. Otherwise make the change with the current `select-model`
+     wrote the files. Persist that skip with `record-skip.ts` naming
+     `implementer`, then refresh `routing-scorecard.ts`. Otherwise make the change with the current `select-model`
      worker (no new test required), then require the **green gate** plus lint
      plus typecheck to pass (commands as above). Do not ask the implementer
      whether the work is menial. Do not dispatch a catalogue fast model. A
@@ -223,9 +237,12 @@ This command consumes the review comments on the **existing** MR for this ticket
 
 8. **Cumulative gates and holdout re-review when code changed (quality gate
    for this round; Stage 3 dual review is the only authority that may
-   undraft).** If the head still equals the step 2 revision and no
+   undraft).**    If the head still equals the step 2 revision and no
    `re-review-pending.json` existed on entry, skip the cumulative gates and
-   holdout re-review because their code input is unchanged. Post the single
+   holdout re-review because their code input is unchanged. Persist that skip
+   with `record-skip.ts` naming `holdout-reviewer`, then refresh
+   `routing-scorecard.ts`, even when `routingProfiling` is `off`. The
+   scorecard counts avoided workers. It never estimates tokens saved. Post the single
    provider summary note with the change URL, state that no code changed, and
    include the answered/disputed/skipped counts in plain language. Leave the
    change draft, set status to `[addressed !N]`, and stop. Stage 3 still runs
@@ -254,7 +271,8 @@ This command consumes the review comments on the **existing** MR for this ticket
    `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that
    file. Never write `{ "source": "unavailable" }` by hand. When
    `routingProfiling` is `off`, skip the timer, profile, usage-capture,
-   routing-persistence, and scorecard commands.
+   routing-persistence, and scorecard commands. Still persist scripted skips
+   with `record-skip.ts` and refresh the scorecard after those skips.
    Regardless of this setting, resolve `frontier`, then dispatch a **fresh**
    `holdout-reviewer` subagent
    with that exact available model over the **cumulative** diff (not

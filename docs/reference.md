@@ -38,6 +38,8 @@ bun "$FACTORY_ROOT/scripts/forge-comments.ts" apply-suggestion <comment.json> <r
 bun "$FACTORY_ROOT/scripts/ticket-structure.ts" <work-item.json>
 bun "$FACTORY_ROOT/scripts/ticket-feasibility.ts" <work-item.json>
 bun "$FACTORY_ROOT/scripts/apply-mechanical-edit.ts" <input.json> <repo-root>
+bun "$FACTORY_ROOT/scripts/record-skip.ts" persist <routing-root> <run-id> <skips.json>
+bun "$FACTORY_ROOT/scripts/routing-scorecard.ts" <routing-root> <run-id>
 bun "$FACTORY_ROOT/scripts/review-packet.ts" --ticket <file> --spec <change-dir> [--diff <file>] [--evidence <file>]... --out <file>
 ```
 
@@ -71,6 +73,10 @@ mention-only, URL-only, and emoji-only notes, and already-applied
 suggestions, as outdated. `apply-suggestion` replaces the named span of a
 whole-body suggestion fence, including a `:-N+M` range, or writes nothing
 and reports `model`.
+
+`record-skip.ts` stores each scripted skipped worker under the run id. The
+scorecard counts those skips beside measured usage and never estimates
+tokens saved. Skip recording does not depend on `ROUTING_PROFILING`.
 
 `ticket-structure.ts` and `ticket-feasibility.ts` skip the draft assessor and
 analyst when the ticket is complete, blocked, oversized, or names

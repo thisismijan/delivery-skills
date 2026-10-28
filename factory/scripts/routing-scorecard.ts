@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { sanitizeHumanText } from "./human-text";
 import { loadObservations } from "./record-routing";
+import { loadSkips, type SkippedDispatch } from "./record-skip";
 import type { RoutingObservation } from "./routing-observation";
 import { tierRelation } from "./routing-report";
 import { SafePathSegment } from "./task-profile";
@@ -8,6 +9,10 @@ import { SafePathSegment } from "./task-profile";
 export interface RunRoutingScorecard {
 	runId: string;
 	taskCount: number;
+	workersAvoided: {
+		count: number;
+		byWorker: Record<string, number>;
+	};
 	actual: {
 		gatesPassed: number;
 		gatesFailed: number;
@@ -41,20 +46,46 @@ function sumOptional(
 		: values.reduce((sum, value) => sum + value, 0);
 }
 
+function countWorkers(skips: SkippedDispatch[]): Record<string, number> {
+	const byWorker: Record<string, number> = {};
+	for (const skip of skips) {
+		byWorker[skip.worker] = (byWorker[skip.worker] ?? 0) + 1;
+	}
+	return byWorker;
+}
+
+function formatAvoidedWorkers(scorecard: RunRoutingScorecard): string {
+	const { count, byWorker } = scorecard.workersAvoided;
+	if (count === 0) {
+		return "Workers avoided: none. Token savings are not estimated.";
+	}
+	const parts = Object.entries(byWorker)
+		.sort(([left], [right]) => left.localeCompare(right))
+		.map(([worker, total]) => (total === 1 ? worker : `${total} ${worker}`));
+	return `Workers avoided: ${count} (${parts.join(", ")}). Token savings are not estimated.`;
+}
+
 export function buildRunRoutingScorecard(
 	observations: RoutingObservation[],
 	runId: string,
+	skips: SkippedDispatch[] = [],
 ): RunRoutingScorecard {
 	const safeRunId = SafePathSegment.parse(runId);
 	const run = observations.filter((item) => item.runId === safeRunId);
-	if (run.length === 0)
+	const runSkips = skips.filter((item) => item.runId === safeRunId);
+	if (run.length === 0 && runSkips.length === 0) {
 		throw new Error(`no routing observations found for run ${safeRunId}`);
+	}
 	const relations = run.map((item) =>
 		tierRelation(item.currentTier, item.shadowTier),
 	);
 	return {
 		runId: safeRunId,
 		taskCount: run.length,
+		workersAvoided: {
+			count: runSkips.length,
+			byWorker: countWorkers(runSkips),
+		},
 		actual: {
 			gatesPassed: run.filter((item) => item.currentOutcome.gatesPassed).length,
 			gatesFailed: run.filter((item) => !item.currentOutcome.gatesPassed)
@@ -92,6 +123,7 @@ export function formatRunRoutingScorecard(
 		[
 			`# Routing scorecard for ${scorecard.runId}`,
 			`Actual work: ${scorecard.taskCount} tasks; ${scorecard.actual.gatesPassed} passed gates; ${scorecard.actual.gatesFailed} failed gates; ${scorecard.actual.repairs} repairs; ${scorecard.actual.escalations} escalations.`,
+			formatAvoidedWorkers(scorecard),
 			`Measured usage: ${displayOptional(scorecard.actual.wallTimeMs, " ms")} wall time; ${displayOptional(scorecard.actual.costUsd, " USD")} cost; ${displayOptional(scorecard.actual.inputTokens)} input tokens; ${displayOptional(scorecard.actual.outputTokens)} output tokens; ${displayOptional(scorecard.actual.inputChars)} input characters; ${displayOptional(scorecard.actual.outputChars)} output characters.`,
 			`Shadow routing: ${scorecard.shadow.cheaper} cheaper, ${scorecard.shadow.sameTier} same capability, ${scorecard.shadow.stronger} stronger; ${scorecard.shadow.floorRaised} recommendations raised by a safety floor.`,
 			"Shadow quality and savings are not evaluated by this scorecard because the shadow model did not run. Use a paired benchmark before promoting a cheaper model.",
@@ -109,6 +141,7 @@ if (import.meta.main) {
 		const scorecard = buildRunRoutingScorecard(
 			await loadObservations(root),
 			runId,
+			await loadSkips(root),
 		);
 		const text = formatRunRoutingScorecard(scorecard);
 		const runRoot = join(root, scorecard.runId);

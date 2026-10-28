@@ -120,7 +120,14 @@ The returned `lenses` array is authoritative. Invalid input or a non-zero exit
 stops the review; never guess a reduced fan-out. Persist the result beside the
 input.
 
-When `lenses` is empty, do not dispatch review-lens subagents. Continue at
+When `lenses` is empty, do not dispatch review-lens subagents. Write
+`.review/mr-<iid>/skipped-workers.json` naming `review-lens` and persist
+even when `routingProfiling` is `off`:
+```
+bun "${FACTORY_ROOT}/scripts/record-skip.ts" persist "<repo>/.delivery/routing" "review-mr-<iid>" ".review/mr-<iid>/skipped-workers.json"
+bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "review-mr-<iid>"
+```
+The scorecard counts avoided workers. It never estimates tokens saved. Continue at
 adjudication with no candidates. Start fresh read-only subagents in one
 parallel batch only when the array names lenses. For a small reversible
 or contained change, run lenses 1 and 2.

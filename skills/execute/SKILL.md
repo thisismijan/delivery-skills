@@ -106,7 +106,15 @@ re-run the gate. Do not reuse it.
    Ruff, or google-java-format binary when names and literals stay identical.
    When `apply` is `script`, the helper
    already wrote the files. Do not dispatch the `test-writer` or the
-   `implementer`. Do not run a red gate. Write `none` to
+   `implementer`. Do not run a red gate. Write
+   `<reviewDir>/skipped-workers.json` naming those two workers and persist
+   even when `routingProfiling` is `off`:
+   ```
+   bun "${FACTORY_ROOT}/scripts/record-skip.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/skipped-workers.json"
+   bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
+   ```
+   The scorecard counts avoided workers. It never estimates tokens saved.
+   Write `none` to
    `<reviewDir>/test-writer-handoff.md`, `<reviewDir>/implementer-handoff.md`,
    and `<reviewDir>/skips.md`. Continue at the green gates. When the verdict
    is `not-mechanical`, apply is `select-model`, or there is no unit, keep
@@ -182,9 +190,11 @@ re-run the gate. Do not reuse it.
    from `capture-usage.ts`. It always records wall time, uses host tokens and
    cost when present, and otherwise records character counts of those
    artifacts. Never write `{ "source": "unavailable" }` by hand.
-   Persist both exact resolved model identifiers. When `routingProfiling` is
+   Persist both exact resolved model identifiers.    When `routingProfiling` is
    `off`, skip this entire profiling, usage-capture, routing-persistence, and
-   scorecard block and dispatch the same implementation worker directly. This
+   scorecard block and dispatch the same implementation worker directly. Still
+   persist scripted skips with `record-skip.ts` and refresh the scorecard after
+   those skips. This
    setting only removes diagnostic work; it never changes the live model or
    weakens a quality gate.
    Do not dispatch a catalogue fast model unless it is live and
@@ -216,7 +226,11 @@ re-run the gate. Do not reuse it.
    unique TypeScript missing import, and format-only through a repo Prettier,
    Ruff, or google-java-format binary when names and literals stay identical.
    When `apply` is `script`, the helper
-   already wrote the files. Do not dispatch the `implementer`. Write `none`
+   already wrote the files. Do not dispatch the `implementer`. Write
+   `<reviewDir>/skipped-workers.json` naming `implementer` and persist with
+   `record-skip.ts`, then refresh `routing-scorecard.ts`, even when
+   `routingProfiling` is `off`. The scorecard counts avoided workers. It never
+   estimates tokens saved. Write `none`
    to `<reviewDir>/implementer-handoff.md` if it is empty, and continue at
    the green gates (step 8). When the verdict is `not-mechanical`, apply is
    `select-model`, or there is no unit, keep the model from step 6. Do not

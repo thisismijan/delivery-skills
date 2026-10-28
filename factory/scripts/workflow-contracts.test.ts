@@ -738,6 +738,20 @@ describe("bounded recovery and replay safety", () => {
 		expect(delivery).toContain("Test-repo stand-in scores never promote");
 	});
 
+	test("scripted skips are recorded even when profiling is off", () => {
+		for (const skill of [draft, execute, addressComments, groom]) {
+			expect(skill).toContain("record-skip.ts");
+			expect(skill).toContain("routing-scorecard.ts");
+			expect(plain(skill)).toMatch(/never estimates tokens saved/i);
+		}
+		expect(codeReviewMax).toContain("record-skip.ts");
+		expect(releaseReadiness).toContain("record-skip.ts");
+		expect(runtime).toContain("record-skip.ts");
+		expect(plain(runtime)).toMatch(/never estimates tokens saved/i);
+		expect(plain(rootReadme)).toMatch(/never estimates tokens saved/i);
+		expect(plain(referenceDocs)).toMatch(/never estimates tokens saved/i);
+	});
+
 	test("record-routing persist always supplies an explicit outcome file", () => {
 		expect(draft).toContain("author-outcome.json");
 		expect(execute).toContain("implement-outcome.json");

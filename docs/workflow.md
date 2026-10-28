@@ -34,7 +34,9 @@ gate.
 Live dispatch still uses the required capability, then the catalogue, then an
 exact advertised model. Diagnostic shadow profiling defaults off. Set
 `ROUTING_PROFILING=always` only when collecting evaluation evidence; a cheaper
-shadow recommendation is recorded, never dispatched.
+shadow recommendation is recorded, never dispatched. Scripted skipped workers
+are still recorded, and the run scorecard counts them without estimating
+tokens saved.
 
 `/code-review-max` starts independently adjudicated lenses on the standard
 tier. Release-readiness lens subagents use that same resolved standard model;
