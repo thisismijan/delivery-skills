@@ -72,6 +72,35 @@ test("a complete TypeScript rename is applied without a worker", async () => {
 	);
 });
 
+test("a complete JavaScript rename is applied without a worker", async () => {
+	await withProject(
+		{
+			"src/a.js": "export function slugifyTitle(value) {\n  return value;\n}\n",
+			"src/b.js":
+				'import { slugifyTitle } from "./a";\nexport const label = slugifyTitle("Hello");\n',
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: { ...unit, files: ["src/a.js", "src/b.js"] },
+				root,
+			});
+			expect(result).toMatchObject({
+				verdict: "mechanical",
+				apply: "script",
+			});
+			expect(await readFile(join(root, "src/a.js"), "utf8")).toContain(
+				"function slugify",
+			);
+			expect(await readFile(join(root, "src/a.js"), "utf8")).not.toContain(
+				"slugifyTitle",
+			);
+			expect(await readFile(join(root, "src/b.js"), "utf8")).toContain(
+				"slugify(",
+			);
+		},
+	);
+});
+
 test("an incomplete file list leaves files unchanged", async () => {
 	await withProject(
 		{
@@ -351,8 +380,7 @@ const pythonImportUnit = {
 test("unused Python imports are removed without a worker", async () => {
 	await withProject(
 		{
-			"src/a.py":
-				"from os.path import join, dirname\nvalue = join('a', 'b')\n",
+			"src/a.py": "from os.path import join, dirname\nvalue = join('a', 'b')\n",
 		},
 		async (root) => {
 			const result = await applyMechanicalEdit({
@@ -518,9 +546,9 @@ test("a Java format-only rewrite is applied without a worker", async () => {
 			const text = await readFile(join(root, "src/A.java"), "utf8");
 			expect(text).toContain("slugify");
 			expect(text).toContain("return value");
-			expect(text === before || result.filesChanged.includes("src/A.java")).toBe(
-				true,
-			);
+			expect(
+				text === before || result.filesChanged.includes("src/A.java"),
+			).toBe(true);
 		},
 	);
 });

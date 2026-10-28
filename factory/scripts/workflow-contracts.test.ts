@@ -392,6 +392,10 @@ describe("small-context ticket scope", () => {
 		expect(draftContract).toMatch(
 			/question mark in a URL, inline code, or optional syntax does not count/i,
 		);
+		expect(draft).toMatch(
+			/no named authentication, authorization, secrets, credentials/i,
+		);
+		expect(plain(execute)).toMatch(/typescript, javascript, python, and java/i);
 		expect(plain(read("agents/feasibility-analyst.md"))).toMatch(
 			/already complete with no open questions/i,
 		);
@@ -592,7 +596,7 @@ describe("bounded recovery and replay safety", () => {
 		expect(comments).toMatch(/drops resolved discussions and resolved notes/i);
 		expect(comments).toMatch(/empty or whitespace-only body is outdated/i);
 		expect(comments).toMatch(
-			/only an acknowledgement such as LGTM, thanks, approved, or done is outdated/i,
+			/only acknowledgements such as LGTM, thanks, approved, or done is outdated/i,
 		);
 		expect(comments).toMatch(/only a mention is outdated/i);
 		expect(comments).toMatch(/only a URL is outdated/i);

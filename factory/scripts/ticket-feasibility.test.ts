@@ -80,6 +80,36 @@ test("a mention only in out of scope is not treated as sensitive", async () => {
 	}
 });
 
+test("authorization or a token protocol in what to build skips the analyst", async () => {
+	for (const phrase of [
+		"Add authorization for the export control.",
+		"Add OAuth for the export control.",
+		"Issue a JWT for the export control.",
+	]) {
+		const body = ordinary.replace(
+			"Add an export control that downloads the visible rows as CSV.",
+			phrase,
+		);
+		const result = await inspectTicketFeasibility(item(body));
+		expect(result.skipAnalyst).toBe(true);
+		if (result.skipAnalyst) {
+			expect(result.verdict.feasible).toBe("needs_human");
+		}
+	}
+});
+
+test("a schema migration in acceptance criteria skips the analyst", async () => {
+	const body = ordinary.replace(
+		"Then a CSV file downloads",
+		"Then a schema migration rewrites the rows",
+	);
+	const result = await inspectTicketFeasibility(item(body));
+	expect(result.skipAnalyst).toBe(true);
+	if (result.skipAnalyst) {
+		expect(result.verdict.feasible).toBe("needs_human");
+	}
+});
+
 test("a data migration in acceptance criteria skips the analyst", async () => {
 	const body = ordinary.replace(
 		"Then a CSV file downloads",

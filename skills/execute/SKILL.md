@@ -99,7 +99,7 @@ re-run the gate. Do not reuse it.
    bun "${FACTORY_ROOT}/scripts/apply-mechanical-edit.ts" "<reviewDir>/mechanical-edit.json" "<repoRoot>"
    ```
    Incomplete or free-text findings are not a unit. Persist the JSON plan.
-   Proven TypeScript, Python, and Java rename, import-only, and format-only
+   Proven TypeScript, JavaScript, Python, and Java rename, import-only, and format-only
    units apply here without a model. When `apply` is `script`, the helper
    already wrote the files. Do not dispatch the `test-writer` or the
    `implementer`. Do not run a red gate. Write `none` to
@@ -206,7 +206,7 @@ re-run the gate. Do not reuse it.
    bun "${FACTORY_ROOT}/scripts/apply-mechanical-edit.ts" "<reviewDir>/mechanical-edit.json" "<repoRoot>"
    ```
    Incomplete or free-text findings are not a unit. Persist the JSON plan.
-   Proven TypeScript, Python, and Java rename, import-only, and format-only
+   Proven TypeScript, JavaScript, Python, and Java rename, import-only, and format-only
    units apply here without a model. When `apply` is `script`, the helper
    already wrote the files. Do not dispatch the `implementer`. Write `none`
    to `<reviewDir>/implementer-handoff.md` if it is empty, and continue at
