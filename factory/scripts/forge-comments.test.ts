@@ -1,6 +1,25 @@
 import { expect, test } from "bun:test";
-import { parseForgeDiscussions, scopeComments } from "./forge-comments";
-import { AUDIT_PREFIX, excludeHandledThreads } from "./glab-comments";
+import {
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	symlink,
+	writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+	applySuggestion,
+	parseForgeDiscussions,
+	planSuggestion,
+	scopeComments,
+} from "./forge-comments";
+import {
+	AUDIT_PREFIX,
+	type MrComment,
+	excludeHandledThreads,
+} from "./glab-comments";
 import { parseClassificationVerdict } from "./verdicts";
 
 function discussions() {
@@ -447,4 +466,102 @@ test("malformed normalized discussions fail closed", () => {
 			discussions: [{ id: "thread-1", notes: [] }],
 		}),
 	).toThrow();
+});
+
+function suggestionComment(body: string, line = 2): MrComment {
+	return {
+		id: "s1",
+		discussionId: "t1",
+		author: "reviewer",
+		body,
+		anchor: { path: "src/a.ts", line, side: "new" },
+	};
+}
+
+test("a single-line suggestion replaces only the anchored line", () => {
+	expect(
+		planSuggestion(
+			suggestionComment("```suggestion\nconst b = 3;\n```"),
+			"const a = 1;\nconst b = 2;\nconst c = 3;\n",
+		),
+	).toEqual({
+		apply: "script",
+		path: "src/a.ts",
+		contents: "const a = 1;\nconst b = 3;\nconst c = 3;\n",
+	});
+	expect(
+		planSuggestion(
+			suggestionComment("```suggestion:-0+0\nconst b = 3;\n```"),
+			"const a = 1;\r\nconst b = 2;\r\n",
+		),
+	).toEqual({
+		apply: "script",
+		path: "src/a.ts",
+		contents: "const a = 1;\r\nconst b = 3;\r\n",
+	});
+});
+
+test("anything but one single-line suggestion on a live line needs a model", () => {
+	const file = "const a = 1;\nconst b = 2;\n";
+	const cases: [MrComment, string | null][] = [
+		[suggestionComment("Please fix.\n```suggestion\nx\n```"), file],
+		[suggestionComment("```suggestion:-1+0\nx\n```"), file],
+		[suggestionComment("```suggestion\nx\ny\n```"), file],
+		[suggestionComment("```suggestion\n\n```"), file],
+		[suggestionComment("```suggestion\nx\n```", 3), file],
+		[suggestionComment("```suggestion\nconst b = 2;\n```"), file],
+		[suggestionComment("```suggestion\nx\n```"), null],
+		[
+			{
+				...suggestionComment("```suggestion\nx\n```"),
+				anchor: { path: "src/a.ts", line: 2, side: "old" },
+			},
+			file,
+		],
+		[
+			{ ...suggestionComment("```suggestion\nx\n```"), anchor: undefined },
+			file,
+		],
+	];
+	for (const [comment, contents] of cases) {
+		expect(planSuggestion(comment, contents).apply).toBe("model");
+	}
+});
+
+test("apply-suggestion writes inside the repository and refuses escapes", async () => {
+	const root = await mkdtemp(join(tmpdir(), "suggestion-"));
+	const outside = await mkdtemp(join(tmpdir(), "suggestion-outside-"));
+	try {
+		await mkdir(join(root, "src"));
+		await writeFile(join(root, "src/a.ts"), "const a = 1;\nconst b = 2;\n");
+		await writeFile(join(outside, "x.ts"), "const a = 1;\nconst b = 2;\n");
+		await symlink(join(outside, "x.ts"), join(root, "src/link.ts"));
+
+		expect(
+			await applySuggestion(
+				suggestionComment("```suggestion\nconst b = 3;\n```"),
+				root,
+			),
+		).toEqual({ apply: "script", path: "src/a.ts" });
+		expect(await readFile(join(root, "src/a.ts"), "utf8")).toBe(
+			"const a = 1;\nconst b = 3;\n",
+		);
+
+		for (const path of ["../x.ts", join(outside, "x.ts"), "src/link.ts"]) {
+			const result = await applySuggestion(
+				{
+					...suggestionComment("```suggestion\nconst b = 9;\n```"),
+					anchor: { path, line: 2, side: "new" },
+				},
+				root,
+			);
+			expect(result.apply).toBe("model");
+		}
+		expect(await readFile(join(outside, "x.ts"), "utf8")).toBe(
+			"const a = 1;\nconst b = 2;\n",
+		);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+		await rm(outside, { recursive: true, force: true });
+	}
 });
