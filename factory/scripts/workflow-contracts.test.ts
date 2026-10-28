@@ -675,6 +675,17 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(workflowDocs)).toMatch(/reply-only round/i);
 		expect(plain(referenceDocs)).toMatch(/lenses array is authoritative/i);
 		expect(plain(runtime)).toMatch(/lenses array is authoritative/i);
+		expect(plain(rootReadme)).toMatch(
+			/typescript, javascript, python, or java/i,
+		);
+		expect(plain(rootReadme)).toMatch(
+			/acknowledgement-only, mention-only, url-only, and emoji-only/i,
+		);
+		expect(plain(referenceDocs)).toMatch(/forge-comments\.ts" apply-suggestion/i);
+		expect(plain(referenceDocs)).toMatch(/ticket-feasibility\.ts/i);
+		expect(plain(workflowDocs)).toMatch(
+			/whole-body suggestion fence is applied without the implementer/i,
+		);
 	});
 
 	test("the profile controller is frontier-level and read-only", () => {

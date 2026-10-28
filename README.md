@@ -406,12 +406,13 @@ commit. Independent tests, security-sensitive feasibility, and dual review
 before readiness still run. A bounded rename, import-only, or format-only
 unit is classified by `mechanical-edit.ts` before any extra worker.
 `apply-mechanical-edit.ts` applies it without a model when it can prove the
-rewrite for TypeScript, Python, or Java:
+rewrite for TypeScript, JavaScript, Python, or Java:
 
-- rename: a TypeScript identifier, a Python function or class, or a single
-  Java type or method, when every reference is in the listed files
-- import-only: unused TypeScript imports, unused Python top-level names, or
-  unused Java single-type imports, when the rest of the file is unchanged
+- rename: a TypeScript or JavaScript identifier, a Python function or class,
+  or a single Java type or method, when every reference is in the listed files
+- import-only: unused TypeScript or JavaScript imports, unused Python
+  top-level names, or unused Java single-type imports, when the rest of the
+  file is unchanged
 - format-only: spacing that leaves names and literals identical
 
 Anything the helper cannot prove — overloads, incomplete file lists, mixed
@@ -435,6 +436,26 @@ after an exact operator promotion approval. `muse-spark-1.3-medium` and
 `haiku` are live after that path. Live resolve may return an advertised
 alias the host accepts (`claude-haiku-5-5-medium` for Haiku). Composer stays evaluation-only. Scores do not carry to a
 later version id. The worker never decides that its own job is menial.
+
+A model does not start when a script can already prove the outcome:
+
+- `/groom` skips the explorer, grilling, and writer when the input already
+  verifies as a ticket, including a fill of missing Out of scope and Blocked
+  by as `None.`
+- `/draft` skips the ticket assessor and feasibility analyst on a complete
+  ordinary ticket, on recorded blockers, on a size warning, and when What to
+  build or Acceptance criteria name authentication, authorization, secrets,
+  credentials, OAuth, OIDC, JWT, or a data, schema, or database migration
+- `/address-comments` skips the comment assessor on resolved, empty,
+  acknowledgement-only, mention-only, URL-only, and emoji-only notes, and on
+  a suggestion already present in the file. A whole-body suggestion fence,
+  including a `:-N+M` range, is applied without the implementer
+- `/code-review-max` starts no review lenses when the measured diff has no
+  reviewable code. `/delivery` release readiness does the same for empty and
+  proven small diffs; a small code change still runs rollback in the main
+  conversation
+
+Holdout still runs on new or changed code. Composer stays evaluation-only.
 
 Diagnostic shadow profiling defaults off so a ticket does not pay extra
 frontier calls that cannot affect live dispatch. Set
