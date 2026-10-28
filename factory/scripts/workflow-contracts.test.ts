@@ -691,6 +691,14 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(workflowDocs)).toMatch(
 			/whole-body suggestion fence is applied without the implementer/i,
 		);
+		expect(plain(rootReadme)).toMatch(
+			/\/execute skips the test-writer, red gate, and implementer/i,
+		);
+		expect(plain(workflowDocs)).toMatch(
+			/unique python parameter or local/i,
+		);
+		expect(plain(referenceDocs)).toMatch(/node_modules\/\.bin\/prettier/i);
+		expect(plain(referenceDocs)).toMatch(/bin\/google-java-format/i);
 	});
 
 	test("the profile controller is frontier-level and read-only", () => {

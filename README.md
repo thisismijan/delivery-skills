@@ -419,7 +419,9 @@ rewrite for TypeScript, JavaScript, Python, or Java:
   repo Prettier, Ruff, or google-java-format binary when one is present
 
 Anything the helper cannot prove — overloads, incomplete file lists, mixed
-languages, star imports — keeps today's worker. Those units sit in
+languages, star imports, a Python attribute or `exec`/`eval` of the same
+name, `serialVersionUID`, extract method, or a repo formatter that changes
+names or literals — keeps today's worker. Those units sit in
 `mechanical-edit-scoring.ts`. `mechanical-edit-test-repos.ts` materializes
 them as temporary git repositories and runs a paired baseline/candidate
 loop. A local listed-file rewrite is recorded as `test-repo-stand-in` and
@@ -442,6 +444,11 @@ later version id. The worker never decides that its own job is menial.
 
 A model does not start when a script can already prove the outcome:
 
+- `/execute` skips the test-writer, red gate, and implementer on a proven
+  rename, unused or unique missing import, or format-only unit, including a
+  unique Python parameter or local, a unique Java field, and a Java type
+  whose listed file name matches. Green, lint, typecheck, and holdout still
+  run
 - `/groom` skips the explorer, grilling, and writer when the input already
   verifies as a ticket, including a fill of missing Out of scope and Blocked
   by as `None.`
