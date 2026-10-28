@@ -81,7 +81,7 @@ This command consumes the review comments on the **existing** MR for this ticket
      | bun "${FACTORY_ROOT}/scripts/forge-comments.ts" \
      > "<reviewDir>/comments.json"
    ```
-   Non-zero exit or unparseable output → **stop + escalate**. The provider result is normalized JSON bound to the requested change and head revision. `forge-comments.ts` flattens it to one entry per non-system note, carries each parent `discussionId` (needed to reply on its thread), and applies `excludeHandledThreads`: if an authenticated factory note in a discussion starts with the audit prefix, the **entire discussion** is excluded. Removing only the factory reply would leave the original human note in scope and cause a duplicate action on re-entry.
+   Non-zero exit or unparseable output → **stop + escalate**. The provider result is normalized JSON bound to the requested change and head revision. `forge-comments.ts` flattens it to one entry per non-system note, drops resolved discussions and resolved notes, carries each parent `discussionId` (needed to reply on its thread), and applies `excludeHandledThreads`: if an authenticated factory note in a discussion starts with the audit prefix, the **entire discussion** is excluded. Removing only the factory reply would leave the original human note in scope and cause a duplicate action on re-entry.
 
    For every remaining comment with a new-side `anchor`, read that path at the
    pinned head (`git show <head>:<path>`). Write those contents, or `null` when
@@ -93,7 +93,8 @@ This command consumes the review comments on the **existing** MR for this ticket
      > "<reviewDir>/scoped-comments.json"
    ```
    Non-zero exit → **stop + escalate**. A missing path or a new-side line past
-   the end of the file is outdated. An unanchored comment, an old-side
+   the end of the file is outdated. An empty or whitespace-only body is
+   outdated. An unanchored comment, an old-side
    anchor, or a path you did not look up stays in scope. Replace
    `comments.json` with the `inScope` array. Copy the `outdated` array into
    `<reviewDir>/classification.json` (or `[]` when there were none). Write

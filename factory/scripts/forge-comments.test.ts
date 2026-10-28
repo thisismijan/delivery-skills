@@ -161,6 +161,79 @@ test("a missing head file or past-EOF new-side line is outdated", () => {
 	]);
 });
 
+test("resolved discussions and resolved notes are dropped before scope", () => {
+	const parsed = parseForgeDiscussions({
+		version: 1,
+		provider: "sample-forge",
+		ref: "change-1",
+		headRevision: "abc123",
+		discussions: [
+			{
+				id: "open-thread",
+				resolved: false,
+				notes: [
+					{
+						id: "open-note",
+						author: "reviewer",
+						body: "Please add a test.",
+						system: false,
+						resolved: false,
+					},
+					{
+						id: "resolved-note",
+						author: "reviewer",
+						body: "Already done.",
+						system: false,
+						resolved: true,
+					},
+				],
+			},
+			{
+				id: "resolved-thread",
+				resolved: true,
+				notes: [
+					{
+						id: "old-note",
+						author: "reviewer",
+						body: "Please rename this.",
+						system: false,
+						resolved: false,
+					},
+				],
+			},
+		],
+	});
+	expect(parsed.map((comment) => comment.id)).toEqual(["open-note"]);
+});
+
+test("an empty or whitespace-only body is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "empty",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "   \n",
+			},
+			{
+				id: "kept",
+				discussionId: "t2",
+				author: "reviewer",
+				body: "Please add a test.",
+			},
+		],
+		{},
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual(["kept"]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "empty",
+			classification: "outdated",
+			reasoning: "comment body is empty",
+		},
+	]);
+});
+
 test("an empty comment list stays empty", () => {
 	expect(scopeComments([], { "src/a.ts": "x\n" })).toEqual({
 		inScope: [],
