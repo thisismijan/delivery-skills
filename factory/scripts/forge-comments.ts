@@ -40,6 +40,15 @@ function lineCount(contents: string): number {
 	return contents.endsWith("\n") ? lines.length - 1 : lines.length;
 }
 
+function appliedSuggestion(body: string, contents: string): boolean {
+	const trimmed = body.trim();
+	const match = /^```suggestion[^\n]*\n([\s\S]*?)^```$/m.exec(trimmed);
+	if (!match || match[0] !== trimmed) return false;
+	const suggestion = (match[1] ?? "").replace(/\n$/, "");
+	if (suggestion.trim() === "") return false;
+	return contents.includes(suggestion);
+}
+
 export function scopeComments(
 	comments: MrComment[],
 	headFiles: Record<string, string | null>,
@@ -85,6 +94,14 @@ export function scopeComments(
 				commentId: id,
 				classification: "outdated",
 				reasoning: `anchor line ${anchor.line} is past the end of ${anchor.path} (${lines} lines)`,
+			});
+			continue;
+		}
+		if (appliedSuggestion(comment.body, contents)) {
+			outdated.push({
+				commentId: id,
+				classification: "outdated",
+				reasoning: `suggestion is already present in ${anchor.path}`,
 			});
 			continue;
 		}
