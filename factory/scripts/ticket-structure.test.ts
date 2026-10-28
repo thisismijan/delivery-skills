@@ -96,6 +96,18 @@ test("a question in what to build still uses the assessor", async () => {
 	});
 });
 
+test("a URL query string does not count as an open question", async () => {
+	const body = validBody.replace(
+		"Add an export control that downloads the visible rows as CSV.",
+		"Call https://example.test/export?format=csv and keep `GET /rows?limit=10`.",
+	);
+	const result = await inspectTicketStructure(item(body));
+	expect(result.skipAssessor).toBe(true);
+	if (result.skipAssessor) {
+		expect(result.verdict.quality).toBe("good");
+	}
+});
+
 test("missing sections skip the assessor with those gaps", async () => {
 	const result = await inspectTicketStructure(item("TBD"));
 	expect(result.skipAssessor).toBe(true);

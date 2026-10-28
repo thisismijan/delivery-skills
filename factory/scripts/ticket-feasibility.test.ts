@@ -101,3 +101,15 @@ test("a question in what to build still uses the analyst", async () => {
 		skipAnalyst: false,
 	});
 });
+
+test("a URL query string does not count as an open question", async () => {
+	const body = ordinary.replace(
+		"Add an export control that downloads the visible rows as CSV.",
+		"Call https://example.test/export?format=csv and keep `GET /rows?limit=10`.",
+	);
+	const result = await inspectTicketFeasibility(item(body));
+	expect(result.skipAnalyst).toBe(true);
+	if (result.skipAnalyst) {
+		expect(result.verdict.feasible).toBe("yes");
+	}
+});

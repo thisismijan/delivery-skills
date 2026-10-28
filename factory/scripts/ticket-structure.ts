@@ -1,7 +1,7 @@
 import type { AssessmentVerdict } from "./verdicts";
 import {
 	acceptanceCriterionLines,
-	sectionBody,
+	hasOpenQuestion,
 	verifyTicket,
 } from "./verify-ticket";
 import { WorkItem } from "./work-item-provider";
@@ -55,10 +55,7 @@ export async function inspectTicketStructure(
 				},
 			};
 		}
-		const scoped = ["Context", "User stories", "What to build", "Acceptance criteria"]
-			.map((name) => sectionBody(body, name))
-			.join("\n");
-		if (scoped.includes("?")) return { skipAssessor: false };
+		if (hasOpenQuestion(body)) return { skipAssessor: false };
 		return {
 			skipAssessor: true,
 			verdict: {
