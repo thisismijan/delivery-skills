@@ -312,6 +312,45 @@ test("a mention-only body is outdated", () => {
 	]);
 });
 
+test("a URL-only body is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "link",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "https://example.test/comment",
+			},
+			{
+				id: "md",
+				discussionId: "t2",
+				author: "reviewer",
+				body: "[docs](https://example.test/comment)",
+			},
+			{
+				id: "kept",
+				discussionId: "t3",
+				author: "reviewer",
+				body: "See https://example.test/comment",
+			},
+		],
+		{},
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual(["kept"]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "link",
+			classification: "outdated",
+			reasoning: "comment is only a URL",
+		},
+		{
+			commentId: "md",
+			classification: "outdated",
+			reasoning: "comment is only a URL",
+		},
+	]);
+});
+
 test("an applied suggestion-only comment is outdated", () => {
 	const scoped = scopeComments(
 		[
