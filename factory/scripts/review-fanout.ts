@@ -44,7 +44,7 @@ export const CONTAINED_MAX_FILES = 6;
 export const CONTAINED_MAX_LINES = 400;
 
 export interface ReviewFanoutPlan {
-	mode: "small" | "contained" | "full";
+	mode: "empty" | "small" | "contained" | "full";
 	lenses: (typeof REVIEW_LENSES)[number][];
 	reason: string;
 }
@@ -54,6 +54,19 @@ export function planReviewFanout(input: ReviewFanoutInput): ReviewFanoutPlan {
 	const sensitive = parsed.surfaces.filter((surface) =>
 		SENSITIVE_SURFACES.has(surface),
 	);
+	if (
+		parsed.classificationComplete &&
+		parsed.changedFiles === 0 &&
+		parsed.changedLines === 0 &&
+		parsed.reversible &&
+		sensitive.length === 0
+	) {
+		return {
+			mode: "empty",
+			lenses: [],
+			reason: "no reviewable code in the pinned diff",
+		};
+	}
 	const small =
 		parsed.classificationComplete &&
 		parsed.changedFiles <= 2 &&

@@ -40,7 +40,7 @@ bun "$FACTORY_ROOT/scripts/review-packet.ts" --ticket <file> --spec <change-dir>
 
 `review-fanout.ts` decides which `/code-review-max` lenses to start from
 measured file and line counts, reversibility, classification completeness, and
-surfaces. A proven small reversible change, or a contained one (reversible, at
+surfaces. A measured diff with no reviewable code returns no lenses. A proven small reversible change, or a contained one (reversible, at
 most 6 files and fewer than 400 lines, no sensitive surface or dependency
 change), returns the two essential lenses; every other input, including
 incomplete classification, returns all four. The returned `lenses` array is

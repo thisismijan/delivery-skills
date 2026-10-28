@@ -18,6 +18,22 @@ const smallInput: ReviewFanoutInput = {
 	surfaces: ["user-facing"],
 };
 
+test("a pinned diff with no reviewable code skips every lens", () => {
+	expect(
+		planReviewFanout({
+			changedFiles: 0,
+			changedLines: 0,
+			reversible: true,
+			classificationComplete: true,
+			surfaces: [],
+		}),
+	).toEqual({
+		mode: "empty",
+		lenses: [],
+		reason: "no reviewable code in the pinned diff",
+	});
+});
+
 test("small reversible changes use the two essential lenses", () => {
 	expect(planReviewFanout(smallInput)).toEqual({
 		mode: "small",
@@ -43,6 +59,18 @@ test("a reversible non-sensitive change within the contained bounds runs the two
 			"tests-specification",
 		]);
 	}
+});
+
+test("an unproven empty diff still uses the full review", () => {
+	const plan = planReviewFanout({
+		changedFiles: 0,
+		changedLines: 0,
+		reversible: true,
+		classificationComplete: false,
+		surfaces: [],
+	});
+	expect(plan.mode).toBe("full");
+	expect(plan.lenses).toEqual([...REVIEW_LENSES]);
 });
 
 test("every threshold boundary fails to the full review", () => {

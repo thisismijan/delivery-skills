@@ -38,7 +38,7 @@ shadow recommendation is recorded, never dispatched.
 
 `/code-review-max` starts independently adjudicated lenses on the standard
 tier. Release-readiness lens subagents use that same resolved standard model;
-the main conversation still decides GO or NO-GO. `review-fanout.ts` chooses two essential lenses for a proven small
+the main conversation still decides GO or NO-GO. `review-fanout.ts` chooses no lenses when the measured diff has no reviewable code, two essential lenses for a proven small
 reversible change (at most 2 files, fewer than 50 changed lines, two-way, no
 Data/Contract/Config/Auth/Infra) or a contained one (at most 6 files, fewer
 than 400 lines, two-way, none of those surfaces and no dependency change), and
