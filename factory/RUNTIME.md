@@ -200,6 +200,8 @@ current session may use. At the start of a factory run:
    `record-skip.ts persist` records each scripted skipped worker under the
    same run. The scorecard counts those skips and never estimates tokens saved.
    Skip recording still runs when diagnostic profiling is off.
+   `generate-tasks.ts` writes `tasks.md` from delta spec scenarios after
+   `/draft` authors the specs. A spec with no scenarios fails closed.
    Usage files come from `capture-usage.ts`: start a timer before the worker,
    finish after the outcome exists, overlay host tokens and cost only from a
    host-written file, and otherwise record character counts of named artifacts.

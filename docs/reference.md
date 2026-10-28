@@ -38,6 +38,7 @@ bun "$FACTORY_ROOT/scripts/forge-comments.ts" apply-suggestion <comment.json> <r
 bun "$FACTORY_ROOT/scripts/ticket-structure.ts" <work-item.json>
 bun "$FACTORY_ROOT/scripts/ticket-feasibility.ts" <work-item.json>
 bun "$FACTORY_ROOT/scripts/apply-mechanical-edit.ts" <input.json> <repo-root>
+bun "$FACTORY_ROOT/scripts/generate-tasks.ts" <change-dir>
 bun "$FACTORY_ROOT/scripts/record-skip.ts" persist <routing-root> <run-id> <skips.json>
 bun "$FACTORY_ROOT/scripts/routing-scorecard.ts" <routing-root> <run-id>
 bun "$FACTORY_ROOT/scripts/review-packet.ts" --ticket <file> --spec <change-dir> [--diff <file>] [--evidence <file>]... --out <file>
@@ -73,6 +74,9 @@ mention-only, URL-only, and emoji-only notes, and already-applied
 suggestions, as outdated. `apply-suggestion` replaces the named span of a
 whole-body suggestion fence, including a `:-N+M` range, or writes nothing
 and reports `model`.
+
+`generate-tasks.ts` writes `tasks.md` from delta spec scenarios. A spec
+without scenarios fails closed.
 
 `record-skip.ts` stores each scripted skipped worker under the run id. The
 scorecard counts those skips beside measured usage and never estimates

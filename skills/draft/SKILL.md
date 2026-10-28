@@ -170,7 +170,11 @@ selection.
    ```
    All factory comments use the `scripts/audit.ts` prefix.
 
-7. **Author the OpenSpec change.** Use `openspec instructions <artifact> --change <changeName>` for `proposal`, `specs`, `design`, and `tasks`, then write each instructed artifact under `openspec/changes/<changeName>/`. Ground them in the ticket, the `derivedAcceptanceCriteria` from the assessment, and the feasibility `approachSketch`. Every derived acceptance criterion must map to a scenario under the delta headings required by the installed OpenSpec CLI; order `tasks.md` **tests-first**. Do **not** rely on `/opsx:propose`, because the generic pack does not install host-specific OpenSpec slash commands. Do **not** write implementation code here.
+7. **Author the OpenSpec change.** Use `openspec instructions <artifact> --change <changeName>` for `proposal`, `specs`, and `design`, then write each instructed artifact under `openspec/changes/<changeName>/`. Ground them in the ticket, the `derivedAcceptanceCriteria` from the assessment, and the feasibility `approachSketch`. Every derived acceptance criterion must map to a scenario under the delta headings required by the installed OpenSpec CLI. Do **not** ask a model to invent `tasks.md`. After the specs exist, generate it:
+   ```
+   bun "${FACTORY_ROOT}/scripts/generate-tasks.ts" openspec/changes/<changeName>
+   ```
+   Non-zero exit → **stop and escalate**. The file is tests-first by construction. Do **not** rely on `/opsx:propose`, because the generic pack does not install host-specific OpenSpec slash commands. Do **not** write implementation code here.
 
    **Specify the smallest complete change.** Reuse the target repository's
    stable contracts, seams, capabilities, and established patterns before
@@ -240,7 +244,7 @@ selection.
    openspec validate <changeName> --strict
    ```
    - **Either non-zero exit** (missing or invalid artifacts) → post a provider note naming what is missing or invalid and **stop + escalate**. Do not post the spec-ready note.
-   - A `tasks.md not tests-first` result is a blocking failure, not advisory → fix `tasks.md` and re-run until clean.
+   - A `tasks.md not tests-first` result is a blocking failure, not advisory → re-run `generate-tasks.ts` and verify again. Do not hand-write the task list.
 
 9. **Commit the spec to a branch.** Commit the change folder to a branch named `<changeName>` in the target repo (the spec is versioned and reviewable). Code is NOT written here.
 
