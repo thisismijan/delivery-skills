@@ -28,6 +28,7 @@ import {
 	loadConstitution,
 } from "./sdlc-constitution";
 import { MAX_DERIVED_ACCEPTANCE_CRITERIA } from "./verdicts";
+import { WORKTREE_CLOSE_INVOCATION } from "./worktree-close";
 
 const ROOT = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
@@ -1190,4 +1191,17 @@ describe("auto lands approved, green changes through the land gate", () => {
 			}
 		}
 	});
+});
+
+test("auto closes worker worktrees only through worktree-close", () => {
+	const contract = plain(auto);
+	expect(auto).toContain('scripts/worktree-close.ts" <worktree-path>');
+	expect(WORKTREE_CLOSE_INVOCATION).toStartWith(
+		"scripts/worktree-close.ts <worktree-path>",
+	);
+	expect(contract).toMatch(/never remove a worktree any other way/i);
+	for (const doc of [auto, ledger]) {
+		expect(doc).toContain("kept worktree <path> for <KEY>: <reasons>");
+	}
+	expect(plain(ledger)).toMatch(/\/delivery status lists every kept worktree/);
 });

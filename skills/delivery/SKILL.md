@@ -487,6 +487,8 @@ Read-only. Read the ledger and the real state, then report:
   what happens if nobody answers.
 - The next command for each open key, from the next-step table in
   `workflows/auto.md`.
+- Every kept worker worktree that still exists, with the reasons recorded
+  when it was kept.
 
 ## Fan-out brief
 

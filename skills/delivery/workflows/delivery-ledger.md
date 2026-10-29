@@ -117,6 +117,11 @@ validates each journal against git and the forge and applies the wave's key
 updates to the run ledger in one compare-and-swap write. Missing or conflicting
 evidence stops only that key. Worker prose is never merged into the ledger.
 
+When the coordinator closes a worker's worktree with `worktree-close.ts` and it
+is kept, the coordinator appends `kept worktree <path> for <KEY>: <reasons>` to
+Decisions. `/delivery status` lists every kept worktree that still exists, so
+nothing uncommitted or unpushed is forgotten.
+
 ## Reconciling with real state
 
 On opening a ledger, before acting:

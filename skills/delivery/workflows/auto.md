@@ -176,9 +176,13 @@ other way.
      one coordinator compare-and-swap write, then dispatch the next batch of
      remaining ready keys. A malformed, missing, or conflicting result stops
      that key without cancelling successful siblings.
-  6. Append `dispatched <KEY> to <worktree>` for each key. Remove a worktree only
-     after its branch and artifacts are durably pushed and the worker has
-     stopped.
+  6. Append `dispatched <KEY> to <worktree>` for each key. After a worker
+     stops, close its worktree with
+     `bun "${FACTORY_ROOT}/scripts/worktree-close.ts" <worktree-path>`. It removes
+     the folder only when nothing is uncommitted or untracked and the last
+     commit is on a remote branch. Otherwise it keeps the folder and prints why;
+     append `kept worktree <path> for <KEY>: <reasons>` to Decisions. Never
+     remove a worktree any other way, and never force it.
 - If the runtime cannot dispatch isolated mutating workers, stop once with the
   missing capability and the fan-out commands. Do not silently run an
   independent ready wave sequentially.
