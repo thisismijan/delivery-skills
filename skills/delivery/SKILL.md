@@ -376,6 +376,14 @@ tree, say they need committing; do not commit them.
   `bun "${FACTORY_ROOT}/scripts/board-status.ts" confirm "<repoRoot>" <board-map.json>`.
   When `propose` fails or the operator declines, record that tickets will not
   move and continue; every sync then skips.
+  Then ask which local files git ignores should be copied into each worker's
+  worktree, such as `.env`. Run
+  `bun "${FACTORY_ROOT}/scripts/worktree-files.ts" propose "<repoRoot>"` and show
+  the candidate paths; never show their contents. Only exact paths the operator
+  names are saved: write them with their exact words under `approval` and run
+  `bun "${FACTORY_ROOT}/scripts/worktree-files.ts" confirm "<repoRoot>" <worktree-files.json>`.
+  When the operator names none, write nothing; workers then get only tracked
+  files.
 
 ### Entry 0 — Discovery
 

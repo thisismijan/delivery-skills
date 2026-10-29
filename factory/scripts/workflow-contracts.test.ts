@@ -29,6 +29,12 @@ import {
 } from "./sdlc-constitution";
 import { MAX_DERIVED_ACCEPTANCE_CRITERIA } from "./verdicts";
 import { WORKTREE_CLOSE_INVOCATION } from "./worktree-close";
+import {
+	WORKTREE_FILES_CONFIRM_INVOCATION,
+	WORKTREE_FILES_COPY_INVOCATION,
+	WORKTREE_FILES_PATH,
+	WORKTREE_FILES_PROPOSE_INVOCATION,
+} from "./worktree-files";
 
 const ROOT = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
@@ -1204,4 +1210,24 @@ test("auto closes worker worktrees only through worktree-close", () => {
 		expect(doc).toContain("kept worktree <path> for <KEY>: <reasons>");
 	}
 	expect(plain(ledger)).toMatch(/\/delivery status lists every kept worktree/);
+});
+
+test("worker worktrees get only the local files the operator confirmed", () => {
+	expect(auto).toContain('scripts/worktree-files.ts" copy <repoRoot> <path>');
+	expect(plain(auto)).toMatch(/Never copy other files into a worktree/);
+	expect(delivery).toContain('scripts/worktree-files.ts" propose "<repoRoot>"');
+	expect(delivery).toContain(
+		'scripts/worktree-files.ts" confirm "<repoRoot>" <worktree-files.json>',
+	);
+	expect(plain(delivery)).toMatch(/never show their contents/);
+	for (const invocation of [
+		WORKTREE_FILES_PROPOSE_INVOCATION,
+		WORKTREE_FILES_CONFIRM_INVOCATION,
+		WORKTREE_FILES_COPY_INVOCATION,
+	]) {
+		expect(
+			referenceDocs.replace(/"\$FACTORY_ROOT\/([^"]+)"/g, "$1"),
+		).toContain(invocation);
+	}
+	expect(referenceDocs).toContain(WORKTREE_FILES_PATH);
 });
