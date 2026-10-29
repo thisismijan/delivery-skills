@@ -88,14 +88,14 @@ analyst when the ticket is complete, blocked, oversized, or names
 authentication, authorization, secrets, credentials, OAuth, OIDC, JWT, or a
 data, schema, or database migration.
 
-`apply-mechanical-edit.ts` applies a proven TypeScript, JavaScript, Python,
-or Java rename, import-only, or format-only unit without a model. Rename
+`apply-mechanical-edit.ts` applies a proven TypeScript, JavaScript, Python, Java,
+or Go rename, import-only, or format-only unit without a model. Rename
 covers a unique Python parameter or local and a unique Java field, and it
 moves `From.java` when a unique type matches the listed file name.
-Import-only also adds a unique TypeScript, Python, or Java missing import. Format-only uses
+Import-only also adds a unique TypeScript, Python, Java, or Go missing import. Format-only uses
 `node_modules/.bin/prettier`, `.venv/bin/ruff` or `venv/bin/ruff`, or
 `bin/google-java-format` when that binary is inside the repository and names
-and literals stay identical. A missing binary keeps the built-in formatter.
+and literals stay identical. A missing binary keeps the built-in formatter. Go uses its standard-library parser and formatter helper.
 Overloads, attributes, `exec`/`eval`, `serialVersionUID`, extract method, and
 a formatter that changes names keep the worker.
 

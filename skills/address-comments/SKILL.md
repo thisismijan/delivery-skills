@@ -170,11 +170,11 @@ This command consumes the review comments on the **existing** MR for this ticket
      bun "${FACTORY_ROOT}/scripts/apply-mechanical-edit.ts" "<reviewDir>/mechanical-edit-<commentId>.json" "<repoRoot>"
      ```
      Incomplete or free-text comments are not a unit. Persist the JSON plan.
-     Proven TypeScript, JavaScript, Python, and Java rename, import-only, and format-only
+     Proven TypeScript, JavaScript, Python, Java, and Go rename, import-only, and format-only
      units apply here without a model. That includes a unique Python parameter or
      local, a unique Java field, a Java type whose listed file name matches, a
-     unique TypeScript, Python, or Java missing import, and format-only through a repo Prettier,
-     Ruff, or google-java-format binary when names and literals stay identical.
+     unique TypeScript, Python, Java, or Go missing import, and format-only through a repo Prettier,
+     Ruff, or google-java-format binary, or the Go standard formatter, when names and literals stay identical.
      When `apply` is `script`, the helper
      already wrote the files. Persist that skip with `record-skip.ts` naming
      `implementer`, then refresh `routing-scorecard.ts`. The scorecard counts

@@ -1,5 +1,12 @@
 import { expect, test } from "bun:test";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	chmod,
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { applyMechanicalEdit } from "./apply-mechanical-edit";
@@ -169,6 +176,175 @@ test("unsupported languages keep the standard worker", async () => {
 			});
 			expect(result.apply).toBe("select-model");
 			expect(result.reason).toContain("supported language");
+		},
+	);
+});
+
+const goUnit = {
+	operation: "rename" as const,
+	from: "slugifyTitle",
+	to: "slugify",
+	files: ["src/a.go", "src/b.go"],
+	reversible: true,
+	classificationComplete: true,
+	surfaces: ["user-interface"],
+	verification: "strong" as const,
+};
+
+test("a complete unexported Go rename is applied without changing strings", async () => {
+	await withProject(
+		{
+			"go.mod": "module example.test/app\n\ngo 1.22\n",
+			"src/a.go":
+				'package demo\n\nfunc slugifyTitle(value string) string { return value + "slugifyTitle" }\n',
+			"src/b.go":
+				'package demo\n\nfunc label() string { return slugifyTitle("Hello") }\n',
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({ payload: goUnit, root });
+			expect(result).toMatchObject({
+				verdict: "mechanical",
+				apply: "script",
+				filesChanged: ["src/a.go", "src/b.go"],
+			});
+			expect(await readFile(join(root, "src/a.go"), "utf8")).toContain(
+				"func slugify(",
+			);
+			expect(await readFile(join(root, "src/a.go"), "utf8")).toContain(
+				'"slugifyTitle"',
+			);
+			expect(await readFile(join(root, "src/b.go"), "utf8")).toContain(
+				"slugify(",
+			);
+		},
+	);
+});
+
+test("Go rename refuses exported names, shadowing, and unlisted package files", async () => {
+	await withProject(
+		{
+			"go.mod": "module example.test/app\n\ngo 1.22\n",
+			"src/a.go": "package demo\n\nfunc slugifyTitle() {}\n",
+			"src/b.go": "package demo\n\nfunc use() { slugifyTitle() }\n",
+		},
+		async (root) => {
+			const before = await readFile(join(root, "src/a.go"), "utf8");
+			const incomplete = await applyMechanicalEdit({
+				payload: { ...goUnit, files: ["src/a.go"] },
+				root,
+			});
+			expect(incomplete.apply).toBe("select-model");
+			expect(incomplete.reason).toContain("not listed");
+			expect(await readFile(join(root, "src/a.go"), "utf8")).toBe(before);
+
+			const exported = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					from: "SlugifyTitle",
+					to: "Slugify",
+					files: ["src/a.go", "src/b.go"],
+				},
+				root,
+			});
+			expect(exported.apply).toBe("select-model");
+			expect(exported.reason).toContain("exported");
+		},
+	);
+	await withProject(
+		{
+			"go.mod": "module example.test/app\n\ngo 1.22\n",
+			"src/a.go":
+				"package demo\n\nfunc slugifyTitle() {}\nfunc other() { slugifyTitle := 1; _ = slugifyTitle }\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: { ...goUnit, files: ["src/a.go"] },
+				root,
+			});
+			expect(result.apply).toBe("select-model");
+			expect(result.reason).toContain("ambiguous");
+		},
+	);
+});
+
+test("Go import-only removes an unused import and adds one unique local package", async () => {
+	await withProject(
+		{
+			"go.mod": "module example.test/app\n\ngo 1.22\n",
+			"src/a.go":
+				'package demo\n\nimport (\n  "fmt"\n  "strings"\n)\n\nfunc label() string { fmt.Println("x"); return helper.Value() }\n',
+			"helper/value.go":
+				'package helper\n\nconst ValueText = "x"\nfunc Value() string { return ValueText }\n',
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					operation: "import-only",
+					files: ["src/a.go"],
+				},
+				root,
+			});
+			expect(result).toMatchObject({ apply: "script" });
+			const next = await readFile(join(root, "src/a.go"), "utf8");
+			expect(next).toContain('"example.test/app/helper"');
+			expect(next).toContain('"fmt"');
+			expect(next).not.toContain('"strings"');
+		},
+	);
+});
+
+test("Go import-only skips ambiguous missing imports and keeps side effects", async () => {
+	await withProject(
+		{
+			"go.mod": "module example.test/app\n\ngo 1.22\n",
+			"src/a.go":
+				'package demo\n\nimport _ "example.test/app/setup"\n\nfunc label() string { return helper.Value() }\n',
+			"one/value.go": 'package helper\nfunc Value() string { return "one" }\n',
+			"two/value.go": 'package helper\nfunc Value() string { return "two" }\n',
+			"setup/setup.go": "package setup\nfunc init() {}\n",
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					operation: "import-only",
+					files: ["src/a.go"],
+				},
+				root,
+			});
+			expect(result).toMatchObject({ apply: "script", filesChanged: [] });
+			const next = await readFile(join(root, "src/a.go"), "utf8");
+			expect(next).toContain('import _ "example.test/app/setup"');
+			expect(next).not.toContain('"example.test/app/one"');
+			expect(next).not.toContain('"example.test/app/two"');
+		},
+	);
+});
+
+test("Go format-only uses the standard formatter without changing tokens", async () => {
+	await withProject(
+		{
+			"go.mod": "module example.test/app\n\ngo 1.22\n",
+			"src/a.go":
+				'package demo\n\nfunc label( value string ) string { return value + "literal" }\n',
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					operation: "format-only",
+					files: ["src/a.go"],
+				},
+				root,
+			});
+			expect(result).toMatchObject({
+				apply: "script",
+				filesChanged: ["src/a.go"],
+			});
+			const next = await readFile(join(root, "src/a.go"), "utf8");
+			expect(next).toContain("func label(value string) string");
+			expect(next).toContain('"literal"');
 		},
 	);
 });
@@ -411,8 +587,7 @@ test("a Python exec use stays on the worker", async () => {
 test("a Python attribute of the same name stays on the worker", async () => {
 	await withProject(
 		{
-			"src/a.py":
-				"def slugify(value):\n    return host.value\n",
+			"src/a.py": "def slugify(value):\n    return host.value\n",
 		},
 		async (root) => {
 			const before = await readFile(join(root, "src/a.py"), "utf8");
@@ -534,8 +709,8 @@ test("a unique TypeScript missing import is applied without a worker", async () 
 test("an ambiguous TypeScript missing import is not added", async () => {
 	await withProject(
 		{
-			"src/a.ts": "export function slugify(): string { return \"a\"; }\n",
-			"src/c.ts": "export function slugify(): string { return \"c\"; }\n",
+			"src/a.ts": 'export function slugify(): string { return "a"; }\n',
+			"src/c.ts": 'export function slugify(): string { return "c"; }\n',
 			"src/b.ts": "export const label = slugify();\n",
 		},
 		async (root) => {
@@ -560,7 +735,7 @@ test("an ambiguous TypeScript missing import is not added", async () => {
 test("a repo formatter that changes names stays on the worker", async () => {
 	await withProject(
 		{
-			"src/a.ts": "export const label = \"Hello\";\n",
+			"src/a.ts": 'export const label = "Hello";\n',
 		},
 		async (root) => {
 			const bin = join(root, "node_modules", ".bin");
@@ -749,7 +924,8 @@ test("unused Java imports are removed without a worker", async () => {
 test("a unique Java missing import is applied without a worker", async () => {
 	await withProject(
 		{
-			"src/A.java": "package src;\npublic class Slugify {\n  public String value;\n}\n",
+			"src/A.java":
+				"package src;\npublic class Slugify {\n  public String value;\n}\n",
 			"src/B.java": "package src.app;\nclass Host { Slugify label; }\n",
 		},
 		async (root) => {
