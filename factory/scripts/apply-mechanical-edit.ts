@@ -5,6 +5,12 @@ import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import * as ts from "typescript";
 import { z } from "zod";
 import {
+	applyCSharpFormat,
+	planCSharpImports,
+	planCSharpRename,
+	writeCSharpPlan,
+} from "./apply-csharp-mechanical-edit";
+import {
 	javaFormatIdentityHolds,
 	planJavaFormat,
 	planJavaImports,
@@ -28,9 +34,10 @@ const TYPESCRIPT_EXTENSIONS = new Set([
 const PYTHON_EXTENSIONS = new Set([".py", ".pyi"]);
 const JAVA_EXTENSIONS = new Set([".java"]);
 const GO_EXTENSIONS = new Set([".go"]);
+const CSHARP_EXTENSIONS = new Set([".cs"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
 
-type ApplyLanguage = "typescript" | "python" | "java" | "go";
+type ApplyLanguage = "typescript" | "python" | "java" | "go" | "csharp";
 
 function extensionOf(fileName: string): string {
 	const dot = fileName.lastIndexOf(".");
@@ -50,6 +57,9 @@ function languageOf(fileName: string): ApplyLanguage | undefined {
 	}
 	if (GO_EXTENSIONS.has(extension)) {
 		return "go";
+	}
+	if (CSHARP_EXTENSIONS.has(extension)) {
+		return "csharp";
 	}
 	return undefined;
 }
@@ -339,6 +349,24 @@ async function applyGoEdit(
 			.delete()
 			.catch(() => undefined);
 	}
+}
+
+async function applyCSharpPlan(
+	classified: MechanicalEditPlan,
+	root: string,
+	planned: Awaited<ReturnType<typeof planCSharpRename>>,
+	reason: string,
+): Promise<ApplyMechanicalEditResult> {
+	if (!planned.ok || !planned.files) {
+		return plan(classified, planned.reason ?? "csharp rewrite was not proven");
+	}
+	const filesChanged = await writeCSharpPlan(root, planned);
+	return {
+		verdict: "mechanical",
+		reason,
+		apply: "script",
+		filesChanged,
+	};
 }
 
 async function applyPythonEdit(
@@ -1047,6 +1075,14 @@ export async function applyMechanicalEdit(input: {
 				"applied Go import-only rewrite",
 			);
 		}
+		if (language === "csharp") {
+			return applyCSharpPlan(
+				classified,
+				root,
+				await planCSharpImports({ root, files: payload.files }),
+				"applied C# import-only rewrite",
+			);
+		}
 		if (language !== "typescript") {
 			return plan(classified, "no proven script for this operation");
 		}
@@ -1066,6 +1102,18 @@ export async function applyMechanicalEdit(input: {
 				root,
 				listed,
 				"applied Go format-only rewrite",
+			);
+		}
+		if (language === "csharp") {
+			return applyCSharpPlan(
+				classified,
+				root,
+				await applyCSharpFormat({
+					root,
+					files: payload.files,
+					run: spawnStdin,
+				}),
+				"applied C# format-only rewrite",
 			);
 		}
 		if (language !== "typescript") {
@@ -1095,6 +1143,19 @@ export async function applyMechanicalEdit(input: {
 			root,
 			listed,
 			"applied Go identifier rename",
+		);
+	}
+	if (language === "csharp") {
+		return applyCSharpPlan(
+			classified,
+			root,
+			await planCSharpRename({
+				root,
+				files: payload.files,
+				from: payload.from,
+				to: payload.to,
+			}),
+			"applied C# identifier rename",
 		);
 	}
 	if (language !== "typescript") {

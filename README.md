@@ -416,19 +416,21 @@ commit. Independent tests, security-sensitive feasibility, and dual review
 before readiness still run. A bounded rename, import-only, or format-only
 unit is classified by `mechanical-edit.ts` before any extra worker.
 `apply-mechanical-edit.ts` applies it without a model when it can prove the
-rewrite for TypeScript, JavaScript, Python, Java, or Go:
+rewrite for TypeScript, JavaScript, Python, Java, Go, or C#:
 
 - rename: a TypeScript or JavaScript identifier, a Python function, class,
   parameter, or local, a single Java type, method, or field, or one unexported
-  Go identifier, when every reference is in the listed files. A unique Java type also renames
-  `From.java` to `To.java` when the listed file name matches
+  Go identifier or C# declaration, when every reference is in the listed
+  files. A unique Java type also renames `From.java` to `To.java` when the
+  listed file name matches
 - import-only: unused TypeScript or JavaScript imports, a unique missing
   TypeScript, Python, or Java import, unused Python top-level names, unused
-  Java single-type imports, unused Go imports, or a unique local Go package
-  import, when the rest of the file is unchanged
+  Java single-type imports, unused Go imports, a unique local Go package
+  import, or a unique repository C# type import, when the rest of the file is
+  unchanged
 - format-only: spacing that leaves names and literals identical, using a
-  repo Prettier, Ruff, or google-java-format binary when one is present, and
-  Go standard formatting
+  repo Prettier, Ruff, google-java-format, or `bin/csharpier` binary when one
+  is present, and Go standard formatting
 
 Anything the helper cannot prove — overloads, incomplete file lists, mixed
 languages, star imports, a Python attribute or `exec`/`eval` of the same
@@ -459,7 +461,7 @@ A model does not start when a script can already prove the outcome:
 - `/execute` skips the test-writer, red gate, and implementer on a proven
   rename, unused or unique missing import, or format-only unit, including a
   unique Python parameter or local, a unique Java field, a Java type
-  whose listed file name matches, and a unique TypeScript, Python, Java, or Go
+  whose listed file name matches, and a unique TypeScript, Python, Java, Go, or C#
   missing import. Green, lint, typecheck, and holdout still
   run
 - `/groom` skips the explorer, grilling, and writer when the input already

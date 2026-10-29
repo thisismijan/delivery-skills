@@ -349,6 +349,36 @@ test("Go format-only uses the standard formatter without changing tokens", async
 	);
 });
 
+test("a proven C# rename is dispatched to the C# helper", async () => {
+	await withProject(
+		{
+			"src/A.cs":
+				'class Host { string slugifyTitle(string value) { return value + "slugifyTitle"; } }\n',
+			"src/B.cs":
+				'class Use { string Run(Host host) { return host.slugifyTitle("x"); } }\n',
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					files: ["src/A.cs", "src/B.cs"],
+				},
+				root,
+			});
+			expect(result).toMatchObject({
+				apply: "script",
+				filesChanged: ["src/A.cs", "src/B.cs"],
+			});
+			expect(await readFile(join(root, "src/A.cs"), "utf8")).toContain(
+				"string slugify(",
+			);
+			expect(await readFile(join(root, "src/A.cs"), "utf8")).toContain(
+				'"slugifyTitle"',
+			);
+		},
+	);
+});
+
 const pythonUnit = {
 	operation: "rename" as const,
 	from: "slugify_title",

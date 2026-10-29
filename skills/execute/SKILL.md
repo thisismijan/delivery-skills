@@ -103,11 +103,11 @@ re-run the gate. Do not reuse it.
    bun "${FACTORY_ROOT}/scripts/apply-mechanical-edit.ts" "<reviewDir>/mechanical-edit.json" "<repoRoot>"
    ```
    Incomplete or free-text findings are not a unit. Persist the JSON plan.
-   Proven TypeScript, JavaScript, Python, Java, and Go rename, import-only, and format-only
+   Proven TypeScript, JavaScript, Python, Java, Go, and C# rename, import-only, and format-only
    units apply here without a model. That includes a unique Python parameter or
    local, a unique Java field, a Java type whose listed file name matches, a
-   unique TypeScript, Python, Java, or Go missing import, and format-only through a repo Prettier,
-   Ruff, or google-java-format binary, or the Go standard formatter, when names and literals stay identical.
+   unique TypeScript, Python, Java, Go, or C# missing import, and format-only through a repo Prettier,
+   Ruff, or google-java-format binary, the Go standard formatter, or repo-local `bin/csharpier`, when names and literals stay identical.
    When `apply` is `script`, the helper
    already wrote the files. Do not dispatch the `test-writer` or the
    `implementer`. Do not run a red gate. Write
@@ -224,11 +224,11 @@ re-run the gate. Do not reuse it.
    bun "${FACTORY_ROOT}/scripts/apply-mechanical-edit.ts" "<reviewDir>/mechanical-edit.json" "<repoRoot>"
    ```
    Incomplete or free-text findings are not a unit. Persist the JSON plan.
-   Proven TypeScript, JavaScript, Python, Java, and Go rename, import-only, and format-only
+   Proven TypeScript, JavaScript, Python, Java, Go, and C# rename, import-only, and format-only
    units apply here without a model. That includes a unique Python parameter or
    local, a unique Java field, a Java type whose listed file name matches, a
-   unique TypeScript, Python, Java, or Go missing import, and format-only through a repo Prettier,
-   Ruff, or google-java-format binary, or the Go standard formatter, when names and literals stay identical.
+   unique TypeScript, Python, Java, Go, or C# missing import, and format-only through a repo Prettier,
+   Ruff, or google-java-format binary, the Go standard formatter, or repo-local `bin/csharpier`, when names and literals stay identical.
    When `apply` is `script`, the helper
    already wrote the files. Do not dispatch the `implementer`. Write
    `<reviewDir>/skipped-workers.json` naming `implementer` and persist with
