@@ -22,8 +22,10 @@ Environment:
 | `CLAUDE_SKILLS_DIR` | Claude wrapper destination |
 | `CLAUDE_SETTINGS_FILE` | Claude settings for the mutation hook and agent-summary preload |
 | `CURSOR_HOOKS_FILE` | Cursor `hooks.json` for the mutation hook |
+| `DELIVERY_LEVEL` | The run's level, `min`, `standard`, or `max` (`scripts/config.ts`, default `standard`). Unknown values fail closed |
 | `MAX_FIX_ATTEMPTS` | Bounded repair attempts (`scripts/config.ts`, default 2) |
 | `MAX_PARALLEL_WORKTREES` | Concurrent isolated auto worktrees (`scripts/config.ts`, default 4) |
+| `MAX_REVIEW_ROUNDS` | Review rounds auto runs without a ready verdict before it stops (`scripts/config.ts`, default 3) |
 | `WORKER_IDLE_MINUTES` | Minutes without a journal write before auto stops a parallel worker as idle (`scripts/config.ts`, default 20) |
 | `ROUTING_PROFILING` | Diagnostic shadow-routing evidence. Defaults to `off`. Set `always` to collect evaluation evidence. Does not change live model selection, holdout review of new or changed code, or quality gates |
 
@@ -45,8 +47,31 @@ bun "$FACTORY_ROOT/scripts/routing-scorecard.ts" <routing-root> <run-id>
 bun "$FACTORY_ROOT/scripts/review-packet.ts" --ticket <file> --spec <change-dir> [--diff <file>] [--evidence <file>]... --out <file>
 ```
 
-`config.ts` prints the validated knobs, including `maxParallelWorktrees` and
+`config.ts` prints the validated knobs, including `level`,
+`maxParallelWorktrees`, `maxReviewRounds`, `overrides`, and
 `routingProfiling`. Unknown `ROUTING_PROFILING` values fail closed.
+
+## Levels
+
+```text
+bun "$FACTORY_ROOT/scripts/levels.ts" [level]
+bun "$FACTORY_ROOT/scripts/sdlc-constitution.ts" level <run-contract.json> [requested-level]
+```
+
+A level is the word after the verb or the first word: `/delivery auto max
+MDF-1234`, `/delivery min MDF-5678`. It is frozen in the run contract as
+`level`; a contract without one runs as `standard`. `sdlc-constitution.ts
+level` prints the approved level and exits 1 when the requested one differs,
+so a run changes level only through a superseding plan with a new approval.
+
+`levels.ts` prints the presets. A level sets `maxParallelWorktrees`,
+`maxFixAttempts`, `maxReviewRounds`, the review breadth that
+`review-fanout.ts` applies, and the implementer tier that `select-model.ts`
+applies. An explicit variable for one of the first three wins and is listed
+under `overrides`. No level changes holdout, the review chain, the frontier
+reviewer, every lens on a sensitive, dependency, one-way, or partly
+classified change, release-readiness lenses, the land gate, fast-model
+evaluation, or any human-owned decision.
 
 `review-fanout.ts` decides which `/code-review-max` lenses to start from
 measured file and line counts, reversibility, classification completeness, and

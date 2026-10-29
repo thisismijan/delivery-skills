@@ -45,7 +45,8 @@ The single-step verbs use the same table to tell the operator what to type next.
    The freeze input is version 1 and contains `runId`, `planVersion`, `goal`,
    `scope`, `nonGoals`, `tickets` (`key`, `title`, one to three `acceptance`
    criteria, `blockedBy`), `permittedWrites`, every `humanOwned` boundary, and
-   `approval` (`who`, exact `words`, ISO `at`). A later plan also records
+   `approval` (`who`, exact `words`, ISO `at`), plus `level` when the
+   invocation named `min` or `max` (see `SKILL.md` **Levels**). A later plan also records
    `supersedesHash`, `reason`, and `affectedInvariant`. `permittedWrites`
    includes `change-land` so auto may land approved, green changes; a contract
    frozen without it leaves every merge to the operator.
@@ -55,7 +56,9 @@ The single-step verbs use the same table to tell the operator what to type next.
    groomed plan in the full-epic path. This standing authorization covers the
    non-human stages named above. Do not ask a second build, test-seam,
    review-publication, archive, retro, or improvement-preparation question.
-4. Append a Decision: `auto started at <stage> for <keys>`.
+4. Append a Decision: `auto started at <stage> for <keys>`. Then append
+   `level <level>: <effective values>` from
+   `DELIVERY_LEVEL=<level> bun "${FACTORY_ROOT}/scripts/config.ts"`.
 
 ## The loop
 
@@ -98,8 +101,9 @@ Between steps, do not ask whether to continue. Continue.
 | `[waiting: <what>]` | Check whether it has arrived, then carry on or keep waiting | Nothing new |
 
 **Review rounds.** Review, then address-comments, then review again counts as one
-round. After three rounds without `[ready !N]`, stop and ask the operator how to
-proceed. Unanswered comments are answered by one `/address-comments` round
+round. After `maxReviewRounds` rounds (`MAX_REVIEW_ROUNDS`, default 3; the
+run level sets 2 at `min` and 4 at `max`) without `[ready !N]`, stop and ask
+the operator how to proceed. Unanswered comments are answered by one `/address-comments` round
 that takes every open comment on the change together, never one round per
 thread, and that round counts as one review round.
 
@@ -147,7 +151,7 @@ other way.
 - More than one key can start now: automatically fan out the ready wave in
   batches of at most `maxParallelWorktrees` concurrent worktrees. Read that
   limit from `bun "${FACTORY_ROOT}/scripts/config.ts"` (`MAX_PARALLEL_WORKTREES`,
-  default 4). Remaining ready keys stay ready-now until the current batch
+  default 4; the run level sets 2 at `min` and 8 at `max`). Remaining ready keys stay ready-now until the current batch
   settles, then the coordinator dispatches the next batch.
   Serial execution is allowed only for a real blocking edge recorded in the
   approved plan.
@@ -182,7 +186,9 @@ other way.
      Otherwise, dispatch one mutating isolated worker per worktree through the
      runtime's `agent.dispatch` capability. Its command is `/delivery auto <KEY>`, its cwd
      is that worktree, and its environment includes the shared state root plus
-     `DELIVERY_WORKER_JOURNAL=<state-root>/workers/<run-id>/<key>.md`. Give it
+     `DELIVERY_WORKER_JOURNAL=<state-root>/workers/<run-id>/<key>.md` and
+     `DELIVERY_LEVEL=<the run's level>`, so the worker runs at its
+     coordinator's level. Give it
      the reserved ledger generation and immutable key row. A worker writes only
      its own journal through `ledger-store.ts`; it never mutates the run ledger.
      It writes its journal at every step boundary and immediately before and
@@ -303,7 +309,7 @@ merges, stops, and accepted retro proposals.
 
 | Stop | Message | Next command |
 |------|---------|--------------|
-| Review rounds | Three review rounds without a ready verdict on !<iid> | `/delivery review <iid>` after deciding |
+| Review rounds | <maxReviewRounds> review rounds without a ready verdict on !<iid> | `/delivery review <iid>` after deciding |
 | Every key blocked | Every remaining key waits on a blocker that is not merged | `/delivery status <EPIC>` |
 | A stage stopped | Whatever that stage's stop says | Its next command |
 | Interrupted single-step execute | Execute stopped before a merge request existed and continuous authorization is absent | `/delivery execute <KEY>` |

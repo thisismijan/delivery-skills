@@ -116,8 +116,10 @@ field was proved, and normalized surfaces to
 bun "${FACTORY_ROOT}/scripts/review-fanout.ts" \
   ".review/mr-<iid>/<full-head-sha>/review-fanout-input.json"
 ```
-The returned `lenses` array is authoritative. Invalid input or a non-zero exit
-stops the review; never guess a reduced fan-out. Persist the result beside the
+The returned `lenses` array is authoritative. It reflects the run's
+`DELIVERY_LEVEL`: `max` adds every lens, `min` drops only lenses that size
+alone added. Invalid input or a non-zero exit stops the review; never guess a
+reduced fan-out. Persist the result beside the
 input.
 
 When `lenses` is empty, do not dispatch review-lens subagents. Write

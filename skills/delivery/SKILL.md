@@ -56,6 +56,13 @@ Classify the skill arguments (trim whitespace). Rows are checked top to bottom a
 first match wins, so the verb rows never collide with the bare-key and bare-iid
 rows.
 
+First take one optional level word, `min`, `standard`, or `max`, from the
+first position or right after the verb: `/delivery auto max MDF-1234`,
+`/delivery min MDF-5678`. The rows below match what is left. A level anywhere
+else is ordinary text, and two level words is a stop. With no level word, an
+existing run keeps its recorded level and a new run is `standard`. See
+**Levels**.
+
 | Match | Entry | Runs |
 |-------|-------|------|
 | `^doctor$` | Doctor | Installed runtime diagnosis |
@@ -194,6 +201,13 @@ State the chosen entry and what it runs in one line, then continue.
    bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" supersede <current.json> <proposal.json>
    bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" report <run-contract.json> <stage> <results.json> [ticket-key]
    ```
+   Put the invocation's level in the freeze input as `level` (omit it for
+   `standard`). On every later turn, run
+   `bun "${FACTORY_ROOT}/scripts/sdlc-constitution.ts" level <run-contract.json> [requested-level]`,
+   passing the level word when the operator typed one. Non-zero exit is a
+   terminal stop: the run keeps its approved level until a superseding plan
+   is approved. Use the level it prints as `DELIVERY_LEVEL` for every factory
+   command and worker in the run.
    Write the frozen file to `.delivery/runs/<id>.run-contract.json`. A
    constitution hash that no longer matches this pack, or a ticket outside the
    frozen plan, is a terminal stop. Scope changes need a new plan version,
@@ -252,6 +266,37 @@ its fix.
 | Spec tool | The selected spec provider's version probe succeeds | draft, execute, archive | Install and configure the selected spec provider |
 | Deployed environment | The environment's hostnames resolve and answer | verify | Run verify on a machine on the internal network, such as the operator's self-hosted worker |
 | Skill evaluation | The pinned Bun version runs `checks/delivery-specs.test.ts`, and the skill store is writable | improve | Use the Bun version from the target repository and a skill store the runtime can write |
+
+## Levels
+
+A level trades cost against speed and depth for one run. It changes how much
+the factory spends, never what must be true before a change lands.
+
+| Level | Workers at once | Fix attempts | Review rounds | Review lenses | Implementer |
+|-------|-----------------|--------------|---------------|---------------|-------------|
+| `min` | 2 | 1 | 2 | Size alone never adds lenses | Standard tier; frontier when the change is justified as complex |
+| `standard` | 4 | 2 | 3 | Measured from the diff | Standard tier; frontier when the change is justified as complex |
+| `max` | 8 | 3 | 4 | Every lens on every change | Frontier |
+
+`bun "${FACTORY_ROOT}/scripts/levels.ts" [level]` prints these values.
+`config.ts`, `review-fanout.ts`, and `select-model.ts` read `DELIVERY_LEVEL`.
+An explicit `MAX_PARALLEL_WORKTREES`, `MAX_FIX_ATTEMPTS`, or
+`MAX_REVIEW_ROUNDS` still wins for that one knob; `config.ts` lists it under
+`overrides`. Record the level and the effective values `config.ts` prints in
+the ledger's Decisions.
+
+No level changes any of these:
+
+- holdout review, the `/code-review-max` and `/mr-review` chain, and the
+  frontier model for review;
+- every review lens on a change that touches a sensitive surface, changes a
+  dependency, is one-way, or was not fully classified;
+- release-readiness lenses, the readiness GO and its rollback plan, and the
+  land gate;
+- the rule that fast models stay evaluation-only;
+- any human-owned decision.
+
+A single-step run without a run contract uses the level for that step only.
 
 ## When the operator answers asynchronously
 
@@ -730,6 +775,7 @@ Run in the **target repo** cwd with this delivery pack loaded. This is everythin
 
 ```
 /delivery auto [idea | KEY | iid]    # the whole lifecycle; stops only for your decisions
+/delivery auto min|max <...>         # the same at a cheaper or a faster, deeper level
 /delivery status [KEY]               # where everything is, and what to type next
 /delivery doctor                     # live readiness and exact setup remedies
 /delivery init                       # initialize this target repository safely
@@ -753,6 +799,7 @@ Run in the **target repo** cwd with this delivery pack loaded. This is everythin
 /delivery improve rollback <VERSION> # approve restoring this exact version
 
 /delivery <KEY>                      # resume from the ledger; next legal step only
+/delivery min|max <KEY>              # resume, checking the run's approved level
 /delivery <iid> | <idea>             # review-only, or a full epic
 /delivery help                       # this list
 ```

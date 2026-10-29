@@ -1,6 +1,6 @@
 ---
 name: implementer-opus
-description: Opus variant of the implementer. Used by /execute only when select-model.ts returns opus (high complexity + a recorded justification) and the host cannot override a plugin agent's model at dispatch. Identical behaviour to implementer, on Opus.
+description: Opus variant of the implementer. Used by /execute only when select-model.ts returns opus (high complexity + a recorded justification, or the max level) and the host cannot override a plugin agent's model at dispatch. Identical behaviour to implementer, on Opus.
 model: opus
 tools: Read, Write, Edit, Grep, Glob
 ---

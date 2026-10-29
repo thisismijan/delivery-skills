@@ -1,12 +1,22 @@
 import { z } from "zod";
+import { DeliveryLevel, LEVEL_SETTINGS, parseLevel } from "./levels";
 
+// The standard level's values. levels.test.ts holds LEVEL_SETTINGS.standard
+// equal to these, and the skill checks read them from this file's source.
 export const DEFAULT_MAX_FIX_ATTEMPTS = 2;
 export const DEFAULT_MAX_PARALLEL_WORKTREES = 4;
+export const DEFAULT_MAX_REVIEW_ROUNDS = 3;
 export const DEFAULT_ROUTING_PROFILING = "off" as const;
 export const DEFAULT_WORKER_IDLE_MINUTES = 20;
 
-const MaxParallelWorktrees = z.preprocess((value) => {
-	if (value === undefined) return DEFAULT_MAX_PARALLEL_WORKTREES;
+// Environment variables that replace a level's value when set.
+export const LEVEL_OVERRIDES = {
+	MAX_PARALLEL_WORKTREES: "maxParallelWorktrees",
+	MAX_FIX_ATTEMPTS: "maxFixAttempts",
+	MAX_REVIEW_ROUNDS: "maxReviewRounds",
+} as const;
+
+const DecimalCount = z.preprocess((value) => {
 	if (typeof value === "string" && /^[1-9]\d*$/.test(value)) {
 		return Number(value);
 	}
@@ -14,14 +24,15 @@ const MaxParallelWorktrees = z.preprocess((value) => {
 }, z.number().int().safe().positive());
 
 const ConfigSchema = z.object({
+	level: DeliveryLevel,
 	commandDraft: z.literal("/draft").default("/draft"),
 	commandExecute: z.literal("/execute").default("/execute"),
-	maxFixAttempts: z.coerce
-		.number()
-		.int()
-		.positive()
-		.default(DEFAULT_MAX_FIX_ATTEMPTS),
-	maxParallelWorktrees: MaxParallelWorktrees,
+	maxFixAttempts: z.coerce.number().int().positive(),
+	maxParallelWorktrees: DecimalCount,
+	maxReviewRounds: DecimalCount,
+	reviewBreadth: z.enum(["size-trimmed", "measured", "every-lens"]),
+	implementerTier: z.enum(["measured", "frontier"]),
+	overrides: z.array(z.string()),
 	workerIdleMinutes: z.coerce
 		.number()
 		.int()
@@ -56,11 +67,22 @@ export function selectReadyWave<T>(
 export function loadConfig(
 	env: Record<string, string | undefined> = process.env,
 ): Config {
+	const level = parseLevel(env.DELIVERY_LEVEL);
+	const preset = LEVEL_SETTINGS[level];
+	const overrides = Object.keys(LEVEL_OVERRIDES).filter(
+		(name) => env[name] !== undefined,
+	);
 	return ConfigSchema.parse({
+		level,
 		commandDraft: env.COMMAND_DRAFT,
 		commandExecute: env.COMMAND_EXECUTE,
-		maxFixAttempts: env.MAX_FIX_ATTEMPTS,
-		maxParallelWorktrees: env.MAX_PARALLEL_WORKTREES,
+		maxFixAttempts: env.MAX_FIX_ATTEMPTS ?? preset.maxFixAttempts,
+		maxParallelWorktrees:
+			env.MAX_PARALLEL_WORKTREES ?? preset.maxParallelWorktrees,
+		maxReviewRounds: env.MAX_REVIEW_ROUNDS ?? preset.maxReviewRounds,
+		reviewBreadth: preset.reviewBreadth,
+		implementerTier: preset.implementerTier,
+		overrides,
 		workerIdleMinutes: env.WORKER_IDLE_MINUTES,
 		modelDefault: env.MODEL_DEFAULT,
 		routingProfiling: env.ROUTING_PROFILING,

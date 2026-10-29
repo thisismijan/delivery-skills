@@ -67,7 +67,7 @@ Default to **no comment**. Code that needs a comment to be understood usually ne
 The command runs the **green gate**: the full suite + lint + typecheck must pass. If they don't, you'll be asked to fix (bounded attempts) — fix the source, not the tests.
 
 ## Model
-Your model is selected by `select-model.ts`: **Sonnet by default**; **Opus only** when the change's `complexitySignal` is `high` AND a specific justification was recorded. If you are running on Opus, a justification naming the genuine complexity (e.g. concurrency, intricate algorithm, cross-cutting refactor) must be in the MR description. Do not decide that remaining work is menial or request a cheaper model.
+Your model is selected by `select-model.ts`: **Sonnet by default**; **Opus only** when the change's `complexitySignal` is `high` AND a specific justification was recorded, or when the run's level is `max`. If you are running on Opus, the MR description must carry the justification: the genuine complexity (e.g. concurrency, intricate algorithm, cross-cutting refactor) or the `max` level. Do not decide that remaining work is menial or request a cheaper model.
 
 Report a compact handoff with exactly these headings:
 

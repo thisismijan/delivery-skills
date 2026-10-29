@@ -157,7 +157,7 @@ re-run the gate. Do not reuse it.
    ```
    bun "${FACTORY_ROOT}/scripts/select-model.ts" implement <complexitySignal> "<frontierJustification from the meta>"
    ```
-   If the meta read exits non-zero (a change drafted before this file existed, or a corrupt file), **do not guess** — treat it as no defended case and use `sonnet` (PRD §9: absent a recorded, defended complexity case, Sonnet). Map `sonnet` to the `standard` capability and `opus` to `frontier`, then resolve that tier against `.delivery/routing/model-inventory.json`. The resolver's exact model identifier is the implementation worker. If the semantic selection prints `opus`, the recorded justification must appear in the MR description.
+   If the meta read exits non-zero (a change drafted before this file existed, or a corrupt file), **do not guess** — treat it as no defended case and use `sonnet` (PRD §9: absent a recorded, defended complexity case, Sonnet). Map `sonnet` to the `standard` capability and `opus` to `frontier`, then resolve that tier against `.delivery/routing/model-inventory.json`. The resolver's exact model identifier is the implementation worker. If the semantic selection prints `opus`, the recorded justification must appear in the MR description. At the `max` level `select-model.ts` prints `opus` for every implementation; the justification is then the run's level, and the MR description says so.
 
    **Optionally profile and shadow-route implementation.** Read
    `routingProfiling` from

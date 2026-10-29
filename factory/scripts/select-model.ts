@@ -1,3 +1,6 @@
+import { loadConfig } from "./config";
+import type { ImplementerTier } from "./levels";
+
 export type Model = "sonnet" | "opus";
 
 export type Step =
@@ -14,12 +17,18 @@ export interface ModelSelectionInput {
 	step: Step;
 	complexitySignal?: "low" | "medium" | "high";
 	frontierJustification?: string;
+	implementerTier?: ImplementerTier;
 }
 
 // PRD §9: Sonnet by default; review always Opus; implementation may use Opus
-// only when complexity is high AND a non-empty justification is supplied.
+// only when complexity is high AND a non-empty justification is supplied, or
+// when the run's level asks for a frontier implementer. A level never lowers
+// a step below this table.
 export function selectModel(input: ModelSelectionInput): Model {
 	if (input.step === "review") return "opus";
+	if (input.step === "implement" && input.implementerTier === "frontier") {
+		return "opus";
+	}
 	if (
 		input.step === "implement" &&
 		input.complexitySignal === "high" &&
@@ -44,5 +53,17 @@ if (import.meta.main) {
 		);
 		process.exit(2);
 	}
-	console.log(selectModel({ step, complexitySignal, frontierJustification }));
+	try {
+		console.log(
+			selectModel({
+				step,
+				complexitySignal,
+				frontierJustification,
+				implementerTier: loadConfig().implementerTier,
+			}),
+		);
+	} catch (error) {
+		console.error(error instanceof Error ? error.message : String(error));
+		process.exit(1);
+	}
 }
