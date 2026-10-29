@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
+import { DEFAULT_DELIVERY_LEVEL, DeliveryLevel, parseLevel } from "./levels";
 
 export const CONSTITUTION_VERSION = 1 as const;
 export const RUN_CONTRACT_VERSION = 1 as const;
@@ -21,6 +22,9 @@ export const CONSTITUTION_REPORT_INVOCATION =
 // biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
 export const CONSTITUTION_SUPERSEDE_INVOCATION =
 	"scripts/sdlc-constitution.ts supersede <current.json> <proposal.json>";
+// biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
+export const CONSTITUTION_LEVEL_INVOCATION =
+	"scripts/sdlc-constitution.ts level <run-contract.json> [requested-level]";
 
 export const RUN_CONTRACT_RELATIVE_PATH =
 	".delivery/runs/<id>.run-contract.json";
@@ -166,6 +170,7 @@ const RunContractFields = {
 		.optional(),
 	reason: z.string().min(1).optional(),
 	affectedInvariant: z.string().min(1).optional(),
+	level: DeliveryLevel.optional(),
 };
 
 function refineRunContract(
@@ -504,6 +509,30 @@ export function checkRunContract(input: {
 	return { ok: true };
 }
 
+export interface ContractLevelResult {
+	ok: boolean;
+	level: DeliveryLevel;
+	reason?: string;
+}
+
+// A contract frozen before levels existed has no level and runs as standard.
+export function contractLevel(
+	frozen: FrozenRunContract,
+	requested?: string,
+): ContractLevelResult {
+	const level = frozen.level ?? DEFAULT_DELIVERY_LEVEL;
+	if (requested === undefined) return { ok: true, level };
+	const asked = parseLevel(requested);
+	if (asked !== level) {
+		return {
+			ok: false,
+			level,
+			reason: `this run was approved at the ${level} level; supersede the plan with a new approval to run at ${asked}`,
+		};
+	}
+	return { ok: true, level };
+}
+
 function omitHash(
 	frozen: FrozenRunContract,
 ): Omit<FrozenRunContract, "contractHash"> {
@@ -691,6 +720,17 @@ async function main(argv: string[]): Promise<number> {
 		console.log(JSON.stringify(result));
 		return result.ok ? 0 : 1;
 	}
+	if (command === "level") {
+		const path = argv[1];
+		if (!path) {
+			console.error(`usage: ${CONSTITUTION_LEVEL_INVOCATION}`);
+			return 2;
+		}
+		const frozen = parseFrozenRunContract(await readJsonFile(path, path));
+		const result = contractLevel(frozen, argv[2]);
+		console.log(JSON.stringify(result));
+		return result.ok ? 0 : 1;
+	}
 	if (command === "supersede") {
 		const currentPath = argv[1];
 		const proposalPath = argv[2];
@@ -741,7 +781,7 @@ async function main(argv: string[]): Promise<number> {
 		return report.allRequiredPassed ? 0 : 1;
 	}
 	console.error(
-		"usage: sdlc-constitution.ts preflight|hash|freeze|check|supersede|report ...",
+		"usage: sdlc-constitution.ts preflight|hash|freeze|check|level|supersede|report ...",
 	);
 	return 2;
 }

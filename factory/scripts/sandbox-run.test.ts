@@ -231,6 +231,30 @@ test("the plan passes only allow-listed variables by name, never their values", 
 	]);
 });
 
+test("the plan passes the run's level so a worker runs at the coordinator's level", () => {
+	const r = repo();
+	expect(pairs(plan(r).create, "--env")).not.toContainEqual(
+		expect.stringMatching(/^DELIVERY_LEVEL=/),
+	);
+	const withLevel = planSandbox({
+		repoRoot: r.root,
+		worktreePath: r.worktree,
+		stateRoot: r.state,
+		runId: "run-7",
+		key: "MDF-12",
+		config,
+		enginePath: "/usr/bin/podman",
+		uid: 1000,
+		gid: 1000,
+		factoryRoot: r.base,
+		level: "min",
+	});
+	expect(pairs(withLevel.create, "--env")).toContain("DELIVERY_LEVEL=min");
+	expect(() =>
+		confirmSandbox(r.root, { ...config, env: ["DELIVERY_LEVEL"] }),
+	).toThrow(/set by the sandbox runner/);
+});
+
 test("open network leaves the engine default; setup and the worker run inside", () => {
 	const r = repo();
 	const p = plan(r, { network: "open" });

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { loadConfig } from "./config";
+import type { ReviewBreadth } from "./levels";
 
 export const REVIEW_LENSES = [
 	"correctness-security",
@@ -88,6 +90,7 @@ function smallChange(parsed: ReviewFanoutInput, sensitive: string[]): boolean {
 
 export function planReadinessFanout(
 	input: ReviewFanoutInput,
+	breadth: ReviewBreadth = "measured",
 ): ReadinessFanoutPlan {
 	const parsed = ReviewFanoutInput.parse(input);
 	const sensitive = sensitiveSurfaces(parsed);
@@ -96,6 +99,13 @@ export function planReadinessFanout(
 			mode: "empty",
 			lenses: [],
 			reason: "no reviewable code in the pinned diff",
+		};
+	}
+	if (breadth === "every-lens") {
+		return {
+			mode: "full",
+			lenses: [...READINESS_LENSES],
+			reason: "the max level runs every readiness lens on every change",
 		};
 	}
 	if (smallChange(parsed, sensitive)) {
@@ -121,7 +131,10 @@ export function planReadinessFanout(
 	};
 }
 
-export function planReviewFanout(input: ReviewFanoutInput): ReviewFanoutPlan {
+export function planReviewFanout(
+	input: ReviewFanoutInput,
+	breadth: ReviewBreadth = "measured",
+): ReviewFanoutPlan {
 	const parsed = ReviewFanoutInput.parse(input);
 	const sensitive = sensitiveSurfaces(parsed);
 	if (emptyChange(parsed, sensitive)) {
@@ -129,6 +142,14 @@ export function planReviewFanout(input: ReviewFanoutInput): ReviewFanoutPlan {
 			mode: "empty",
 			lenses: [],
 			reason: "no reviewable code in the pinned diff",
+		};
+	}
+
+	if (breadth === "every-lens") {
+		return {
+			mode: "full",
+			lenses: [...REVIEW_LENSES],
+			reason: "the max level runs every lens on every change",
 		};
 	}
 
@@ -154,6 +175,20 @@ export function planReviewFanout(input: ReviewFanoutInput): ReviewFanoutPlan {
 			mode: "contained",
 			lenses: [...REVIEW_LENSES.slice(0, 2)],
 			reason: `reversible change within ${CONTAINED_MAX_FILES} files and ${CONTAINED_MAX_LINES} lines with no sensitive surface or dependency change`,
+		};
+	}
+
+	const sizeOnly =
+		parsed.classificationComplete &&
+		parsed.reversible &&
+		sensitive.length === 0 &&
+		!dependencies;
+	if (breadth === "size-trimmed" && sizeOnly) {
+		return {
+			mode: "contained",
+			lenses: [...REVIEW_LENSES.slice(0, 2)],
+			reason:
+				"the min level does not add lenses for size alone on a reversible change with no sensitive surface or dependency change",
 		};
 	}
 
@@ -292,10 +327,22 @@ if (import.meta.main) {
 				process.exit(2);
 			}
 			const input = ReviewFanoutInput.parse(await Bun.file(rest[0]).json());
-			console.log(JSON.stringify(planReadinessFanout(input), null, 2));
+			console.log(
+				JSON.stringify(
+					planReadinessFanout(input, loadConfig().reviewBreadth),
+					null,
+					2,
+				),
+			);
 		} else {
 			const input = ReviewFanoutInput.parse(await Bun.file(first).json());
-			console.log(JSON.stringify(planReviewFanout(input), null, 2));
+			console.log(
+				JSON.stringify(
+					planReviewFanout(input, loadConfig().reviewBreadth),
+					null,
+					2,
+				),
+			);
 		}
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));

@@ -6,6 +6,7 @@ import {
 	type ExecuteRecoveryEvidence,
 	recoverExecuting,
 } from "./execute-recovery";
+import { type DeliveryLevel, splitLevel } from "./levels";
 
 // biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
 export const NEXT_ACTION_INVOCATION = "scripts/next-action.ts <args> <status|-> [context.json]";
@@ -14,14 +15,21 @@ export type LedgerWriter = {
 	write: (markdown: string) => void | Promise<void>;
 };
 
-export type ClassifiedEntry =
+export type ClassifiedEntry = (
 	| { kind: "bare-key"; key: string }
 	| { kind: "explicit-verb"; verb: string; rest: string }
 	| { kind: "unknown"; args: string }
-	| { kind: "other"; args: string };
+	| { kind: "other"; args: string }
+) & { level?: DeliveryLevel };
 
 export type NextAction =
-	| { kind: "run"; verb: string; singleStep: boolean; iid?: number }
+	| {
+			kind: "run";
+			verb: string;
+			singleStep: boolean;
+			iid?: number;
+			level?: DeliveryLevel;
+	  }
 	| { kind: "stop"; reason: string; nextCommand?: string }
 	| { kind: "wait"; reason: string }
 	| { kind: "escalate"; reason: string };
@@ -215,27 +223,29 @@ function prettyVerb(verb: string): string {
 }
 
 export function classifyEntry(args: string): ClassifiedEntry {
-	const trimmed = args.trim();
+	const verbs = knownVerbs(readSkill());
+	const { level, args: trimmed } = splitLevel(args, verbs);
+	const withLevel = level ? { level } : {};
 	if (TICKET_KEY.test(trimmed)) {
-		return { kind: "bare-key", key: trimmed };
+		return { kind: "bare-key", key: trimmed, ...withLevel };
 	}
 	const first = trimmed.split(/\s+/, 2)[0] ?? "";
 	const rest = trimmed.slice(first.length).trim();
-	const verbs = knownVerbs(readSkill());
 	if (verbs.has(first)) {
 		return {
 			kind: "explicit-verb",
 			verb: first === "build" ? "execute" : first,
 			rest,
+			...withLevel,
 		};
 	}
 	if (
 		COMMAND_WORD.test(first) &&
 		(rest === "" || TICKET_KEY.test(rest) || IID.test(rest))
 	) {
-		return { kind: "unknown", args: trimmed };
+		return { kind: "unknown", args: trimmed, ...withLevel };
 	}
-	return { kind: "other", args: trimmed };
+	return { kind: "other", args: trimmed, ...withLevel };
 }
 
 function stopped(reason: string, nextCommand?: string): NextAction {
@@ -299,7 +309,22 @@ export function selectNextAction(
 	writer?: LedgerWriter,
 ): NextAction {
 	void writer;
-	const entry = classifyEntry(input.args);
+	let entry: ClassifiedEntry;
+	try {
+		entry = classifyEntry(input.args);
+	} catch (error) {
+		return stopped(error instanceof Error ? error.message : String(error));
+	}
+	const action = selectForEntry(entry, input);
+	return action.kind === "run" && entry.level
+		? { ...action, level: entry.level }
+		: action;
+}
+
+function selectForEntry(
+	entry: ClassifiedEntry,
+	input: NextActionInput,
+): NextAction {
 	if (entry.kind === "unknown" || entry.kind === "other") {
 		return stopped("That is not a known delivery command.");
 	}

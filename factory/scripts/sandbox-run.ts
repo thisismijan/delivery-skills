@@ -7,6 +7,8 @@ import {
 } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { z } from "zod";
+import { loadConfig } from "./config";
+import type { DeliveryLevel } from "./levels";
 
 // biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
 export const SANDBOX_CONFIRM_INVOCATION =
@@ -32,6 +34,7 @@ const RESERVED_ENV = new Set([
 	"DELIVERY_STATE_ROOT",
 	"DELIVERY_WORKER_JOURNAL",
 	"DELIVERY_SANDBOX",
+	"DELIVERY_LEVEL",
 	"FACTORY_ROOT",
 	"HOME",
 ]);
@@ -270,6 +273,7 @@ export function planSandbox(options: {
 	uid: number;
 	gid: number;
 	factoryRoot?: string;
+	level?: DeliveryLevel;
 }): SandboxPlan {
 	const key = Key.parse(options.key);
 	const name = containerName(options.runId, key);
@@ -337,6 +341,7 @@ export function planSandbox(options: {
 		`DELIVERY_STATE_ROOT=${stateRoot}`,
 		"--env",
 		`DELIVERY_WORKER_JOURNAL=${journal}`,
+		...(options.level ? ["--env", `DELIVERY_LEVEL=${options.level}`] : []),
 		...options.config.env.flatMap((variable) => ["--env", variable]),
 		"--entrypoint",
 		"sleep",
@@ -471,6 +476,7 @@ if (import.meta.main) {
 				enginePath: realHost.which(config.engine) as string,
 				uid: realHost.uid(),
 				gid: realHost.gid(),
+				level: loadConfig().level,
 			});
 			if (args.includes("--dry-run")) {
 				console.log(JSON.stringify(plan, null, 2));

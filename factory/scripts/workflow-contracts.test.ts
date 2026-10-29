@@ -9,11 +9,13 @@ import {
 } from "./board-status";
 import {
 	DEFAULT_MAX_PARALLEL_WORKTREES,
+	DEFAULT_MAX_REVIEW_ROUNDS,
 	DEFAULT_ROUTING_PROFILING,
 	DEFAULT_WORKER_IDLE_MINUTES,
 } from "./config";
 import { FAST_SAFETY_FLOORS } from "./fast-dispatch";
 import { FORGE_OPERATIONS } from "./forge-provider";
+import { DELIVERY_LEVELS, LEVEL_SETTINGS } from "./levels";
 import {
 	invokeProvider,
 	missingProvider,
@@ -33,6 +35,7 @@ import {
 import {
 	CONSTITUTION_CHECK_INVOCATION,
 	CONSTITUTION_FREEZE_INVOCATION,
+	CONSTITUTION_LEVEL_INVOCATION,
 	CONSTITUTION_PREFLIGHT_INVOCATION,
 	CONSTITUTION_REPORT_INVOCATION,
 	CONSTITUTION_VERSION,
@@ -1304,4 +1307,61 @@ test("auto runs workers in the confirmed sandbox and never silently without it",
 		expect(referenceDocs).toContain(`\`${engine}\``);
 		expect(delivery).toContain(`\`${engine}\``);
 	}
+});
+
+test("the docs state each level's values from the level table and its fixed floors", () => {
+	const start = delivery.indexOf("\n## Levels\n");
+	expect(start).toBeGreaterThan(-1);
+	const end = delivery.indexOf("\n## ", start + 1);
+	const levels = delivery.slice(start, end);
+	for (const level of DELIVERY_LEVELS) {
+		const settings = LEVEL_SETTINGS[level];
+		const row = levels
+			.split("\n")
+			.find((line) => line.startsWith(`| \`${level}\` |`));
+		expect(row).toBeDefined();
+		const cells = (row ?? "").split("|").map((cell) => cell.trim());
+		expect(cells.slice(2, 5)).toEqual([
+			String(settings.maxParallelWorktrees),
+			String(settings.maxFixAttempts),
+			String(settings.maxReviewRounds),
+		]);
+	}
+	const floors = plain(levels);
+	for (const floor of [
+		/holdout review/,
+		/frontier model for review/,
+		/sensitive surface, changes a dependency, is one-way, or was not fully classified/,
+		/release-readiness lenses/,
+		/land gate/,
+		/fast models stay evaluation-only/,
+		/any human-owned decision/,
+	]) {
+		expect(floors).toMatch(floor);
+	}
+	expect(delivery).toContain(
+		'scripts/sdlc-constitution.ts" level <run-contract.json> [requested-level]',
+	);
+	expect(CONSTITUTION_LEVEL_INVOCATION).toBe(
+		"scripts/sdlc-constitution.ts level <run-contract.json> [requested-level]",
+	);
+	expect(plain(delivery)).toMatch(/two level words is a stop/);
+	const contract = plain(auto).replace(/\s+([,;.)])/g, "$1");
+	expect(contract).toContain(
+		`MAX_REVIEW_ROUNDS, default ${DEFAULT_MAX_REVIEW_ROUNDS}; the run level sets ${LEVEL_SETTINGS.min.maxReviewRounds} at min and ${LEVEL_SETTINGS.max.maxReviewRounds} at max`,
+	);
+	expect(contract).toContain(
+		`default ${DEFAULT_MAX_PARALLEL_WORKTREES}; the run level sets ${LEVEL_SETTINGS.min.maxParallelWorktrees} at min and ${LEVEL_SETTINGS.max.maxParallelWorktrees} at max`,
+	);
+	expect(contract).toMatch(
+		/<maxReviewRounds> review rounds without a ready verdict/,
+	);
+	expect(contract).not.toMatch(/Three review rounds/);
+	expect(auto).toContain("DELIVERY_LEVEL=<the run's level>");
+	for (const name of ["DELIVERY_LEVEL", "MAX_REVIEW_ROUNDS"]) {
+		expect(referenceDocs).toContain(`| \`${name}\` |`);
+	}
+	expect(conventions).toContain(
+		`MAX_REVIEW_ROUNDS\` default ${DEFAULT_MAX_REVIEW_ROUNDS}`,
+	);
 });
