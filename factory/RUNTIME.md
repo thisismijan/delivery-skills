@@ -177,11 +177,11 @@ current session may use. At the start of a factory run:
    evidence does not change live availability without an exact operator
    promotion approval naming that candidate. A classified mechanical-edit may
    be scored for later graduation. The command classifies it with
-   `mechanical-edit.ts` and applies proven TypeScript, JavaScript, Python, Java, Go, and C#
+   `mechanical-edit.ts` and applies proven TypeScript, JavaScript, Python, Java, Go, C#, and Kotlin
    rename, import-only, and format-only units with `apply-mechanical-edit.ts`,
    including a unique Python parameter or local, a unique Java field, a Java
-   type whose listed file name matches, a unique TypeScript, Python, Java, Go, or C# missing import, and
-   a repo Prettier, Ruff, or google-java-format binary, the Go standard formatter, or repo-local `bin/csharpier` when names and literals
+   type whose listed file name matches, a unique TypeScript, Python, Java, Go, C#, or Kotlin missing import, and
+   a repo Prettier, Ruff, or google-java-format binary, the Go standard formatter, repo-local `bin/csharpier`, or repo-local `bin/ktfmt` when names and literals
    stay identical.
    Units the scripts cannot prove are listed in `mechanical-edit-scoring.ts`
    for representative scoring only. `mechanical-edit-test-repos.ts`

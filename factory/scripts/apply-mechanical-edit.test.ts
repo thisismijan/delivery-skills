@@ -379,6 +379,35 @@ test("a proven C# rename is dispatched to the C# helper", async () => {
 	);
 });
 
+test("a proven Kotlin rename is dispatched to the Kotlin helper", async () => {
+	await withProject(
+		{
+			"src/A.kt":
+				'package demo\n\nfun slugifyTitle(value: String) = value + "slugifyTitle"\n',
+			"src/B.kt": 'package demo\n\nval label = slugifyTitle("x")\n',
+		},
+		async (root) => {
+			const result = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					files: ["src/A.kt", "src/B.kt"],
+				},
+				root,
+			});
+			expect(result).toMatchObject({
+				apply: "script",
+				filesChanged: ["src/A.kt", "src/B.kt"],
+			});
+			expect(await readFile(join(root, "src/A.kt"), "utf8")).toContain(
+				"fun slugify(",
+			);
+			expect(await readFile(join(root, "src/A.kt"), "utf8")).toContain(
+				'"slugifyTitle"',
+			);
+		},
+	);
+});
+
 const pythonUnit = {
 	operation: "rename" as const,
 	from: "slugify_title",
