@@ -722,6 +722,7 @@ async function handleCreate(
 		source_branch: requireText(input, "sourceBranch"),
 		target_branch: requireText(input, "targetBranch"),
 		description: asString(input.description) ?? "",
+		squash: true,
 	};
 	if (input.draft !== true) fail("GitLab change creation must be draft.");
 	body.title = `Draft: ${body.title}`;

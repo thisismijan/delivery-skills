@@ -423,6 +423,7 @@ test("approved mutations return receipts and never expose credentials", async ()
 				source_branch: "cursor/generic-forge-provider-327b",
 				target_branch: "main",
 				description: "Created from the normalized envelope.",
+				squash: true,
 			});
 			return loadFixture("create-mr.json");
 		}

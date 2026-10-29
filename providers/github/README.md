@@ -28,7 +28,8 @@ Enterprise. Credentials come from `GITHUB_TOKEN`, `GH_TOKEN`,
 
 `github-forge` operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`,
 `discussions`, `anchors`, `create`, `set-draft`, `note`, `reply`. Listings
-paginate. Truncated diffs are refused. Draft pull requests are created. The
+paginate. Truncated diffs are refused. Draft pull requests are created. GitHub has no per-pull-request squash
+flag, so set squash merging as the repository default. The
 adapter does not merge, close, approve, delete, or resolve discussions.
 
 `github-tracker` operations: `list`, `read`, `create`, `link`, `note`. Create
