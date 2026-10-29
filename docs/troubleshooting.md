@@ -38,8 +38,8 @@ Reload Cursor after install so `~/.cursor/hooks.json` loads. Doctor should
 show Mutation guard as ready. If it still asks you to rerun the Cursor
 adapter, set `CURSOR_HOOKS_FILE` if you keep hooks outside the default path,
 then reinstall. Read-only stages still run while the hook is missing.
-Do not merge, close, force-push, hard-reset, or mutate tracker status from
-the agent.
+Do not merge, close, force-push, or hard-reset from the agent, and do not
+move tickets other than through `board-status.ts sync`.
 
 ## GitHub install still looked like GitLab
 

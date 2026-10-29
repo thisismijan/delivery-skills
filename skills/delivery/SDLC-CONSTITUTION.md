@@ -42,7 +42,7 @@ terminal stop until the operator re-approves.
    Id `concurrent-independence`. Isolated worktrees, coordinator-owned
    ledger. Missing isolation stops rather than silently serialising.
 9. **NEVER** take human-owned actions.
-   Id `human-owned-actions`. Humans own merge, tracker status, release-risk
+   Id `human-owned-actions`. Humans own merge, tracker close, release-risk
    acceptance, failed-gate override, and live-skill install.
 10. **NEVER** weaken security, validation, accessibility, recovery, or data
     protection for speed.
@@ -58,8 +58,11 @@ terminal stop until the operator re-approves.
 
 ## Human-owned actions
 
-Humans own merge, tracker-status transitions, release-risk acceptance,
-gate-override of a failed gate, and skill-install or rollback. Plan approval
+Humans own merge, tracker-close (closing, reopening, deleting, or moving a
+ticket backwards), release-risk acceptance, gate-override of a failed gate,
+and skill-install or rollback. A forward move to the column an
+operator-confirmed board map names is the `board-status` stage write, run
+only through `board-status.ts sync`. Plan approval
 and `/delivery auto` authorize routine delivery only.
 
 ## Frozen run contract

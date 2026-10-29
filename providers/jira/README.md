@@ -15,9 +15,14 @@ credentials or issue keys.
 
 ## Protocol
 
-`jira-tracker` takes `list`, `read`, `create`, `link`, or `note` and a
-version-1 JSON envelope on stdin. It talks to Jira Cloud over HTTPS. It does
-not transition status or delete issues.
+`jira-tracker` takes `list`, `read`, `create`, `link`, `note`, `statuses`, or
+`transition` and a version-1 JSON envelope on stdin. It talks to Jira Cloud
+over HTTPS. It does not delete issues.
+
+Board moves need the board id, recorded with `--setting board=<board-id>`.
+`statuses` reads that board's column order. `transition` applies the one
+workflow transition whose destination is the target status, and fails when
+there is none or more than one.
 
 Create and link require `approved: true`. Create reuses an existing issue
 with the same audit id when content matches. Notes keep one comment per audit
@@ -57,4 +62,4 @@ If the host exposes Atlassian or Jira session tools, `/delivery doctor`
 records them. Authenticated mappings cover list, read, create, link, and note
 without `jira-tracker` on PATH. Record the site URL with
 `--setting site=https://example.atlassian.net`; host tools use it as `cloudId`.
-Status transitions stay unused.
+Board moves never use session tools; they run only through `jira-tracker`.

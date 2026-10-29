@@ -736,7 +736,8 @@ describe("capabilities", () => {
 describe("hard rules survive", () => {
   const rules = [
     "Never merge via the forge provider",
-    "never transition work-item status",
+    "never close, reopen, or move a ticket backwards",
+    "Tickets move forward only through `board-status.ts sync`",
     "Create work items only from approved, verified groom drafts",
     "Never substitute another review skill",
     "A lightweight built-in review is **out of this chain**",

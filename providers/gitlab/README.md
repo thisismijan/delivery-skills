@@ -21,9 +21,14 @@ Cursor and Claude wrappers already pass `--provider gitlab`. Extra
 
 `gitlab-forge` takes `find`, `read`, `pipeline`, `files`, `diff`, `commits`,
 `discussions`, `anchors`, `create`, `set-draft`, `note`, or `reply`.
-`gitlab-work-item` takes `list`, `read`, `create`, `link`, or `note`. Both
-read stdin JSON and write versioned JSON. They do not merge, close, approve,
-delete, resolve discussions, or transition issue status.
+`gitlab-work-item` takes `list`, `read`, `create`, `link`, `note`,
+`statuses`, or `transition`. Both read stdin JSON and write versioned JSON.
+They do not merge, close, reopen, approve, delete, or resolve discussions.
+
+Board columns are the label lists of the project's issue board, in board
+order. With more than one board, record the one to use with
+`--setting board=<board-id>`. A move adds the target list label and removes
+the previous one. A closed issue is never moved or reopened.
 
 Host and project come from origin. Override with `GL_HOST` and `GL_PROJECT`
 for self-hosted GitLab when origin is not enough. Credentials:

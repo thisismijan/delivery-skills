@@ -463,24 +463,18 @@ test("notes keep one tagged comment per audit id", async () => {
 	);
 });
 
-test("status transitions and deletes stay human-owned", async () => {
+test("deletes, closes, and raw status changes stay human-owned", async () => {
 	const { deps, requests } = recordingDeps(() => {
 		throw new Error("network should not run");
 	});
-	for (const operation of [
-		"transition",
-		"delete",
-		"close",
-		"resolve",
-		"status",
-	]) {
+	for (const operation of ["delete", "close", "resolve", "status"]) {
 		await expect(
 			runJiraTracker(
 				operation,
 				envelope({ approved: true, ref: "DELIV-1" }),
 				deps,
 			),
-		).rejects.toThrow(/does not transition status, delete issues/);
+		).rejects.toThrow(/does not delete issues/);
 	}
 	expect(requests).toEqual([]);
 });
@@ -662,4 +656,117 @@ test("settings in a flat envelope are not read as operation input", async () => 
 		deps,
 	);
 	expect(item).toMatchObject({ ref: "DELIV-1" });
+});
+
+function boardHandler(state: { status: string }, transitions: unknown[]) {
+	return (request: JiraRequest) => {
+		const path = new URL(request.url).pathname;
+		if (path === "/rest/agile/1.0/board/12/configuration") {
+			return {
+				columnConfig: {
+					columns: [
+						{ name: "To Do", statuses: [{ id: "1" }] },
+						{ name: "In Progress", statuses: [{ id: "3" }] },
+						{ name: "Review", statuses: [{ id: "4" }] },
+						{ name: "Done", statuses: [{ id: "5" }] },
+					],
+				},
+			};
+		}
+		if (path === "/rest/api/3/status") {
+			return [
+				{ id: "5", name: "Done" },
+				{ id: "1", name: "To Do" },
+				{ id: "4", name: "In Review" },
+				{ id: "3", name: "In Progress" },
+			];
+		}
+		if (path === "/rest/api/3/issue/DELIV-1") {
+			return { key: "DELIV-1", fields: { status: { name: state.status } } };
+		}
+		if (path === "/rest/api/3/issue/DELIV-1/transitions") {
+			if (request.method === "GET") return { transitions };
+			const id = (request.body as { transition: { id: string } }).transition.id;
+			const chosen = transitions.find(
+				(transition) => (transition as { id: string }).id === id,
+			) as { to: { name: string } };
+			state.status = chosen.to.name;
+			return null;
+		}
+		throw new Error(`unexpected ${request.method} ${path}`);
+	};
+}
+
+const BOARD_SETTINGS = { settings: { project: PROJECT, board: "12" } };
+
+test("statuses reads the board's statuses in column order", async () => {
+	const { deps } = recordingDeps(boardHandler({ status: "In Progress" }, []));
+	expect(
+		await runJiraTracker(
+			"statuses",
+			envelope({ ref: "DELIV-1" }, BOARD_SETTINGS),
+			deps,
+		),
+	).toEqual({
+		version: 1,
+		provider: "jira",
+		ref: "DELIV-1",
+		current: "In Progress",
+		statuses: ["To Do", "In Progress", "In Review", "Done"],
+	});
+	await expect(
+		runJiraTracker("statuses", envelope({ ref: "DELIV-1" }), deps),
+	).rejects.toThrow(/Set the Jira board setting/);
+});
+
+test("transition applies the one workflow transition into the target status", async () => {
+	const state = { status: "To Do" };
+	const { deps, requests } = recordingDeps(
+		boardHandler(state, [
+			{ id: "21", to: { name: "In Progress" } },
+			{ id: "31", to: { name: "Done" } },
+		]),
+	);
+	const moved = await runJiraTracker(
+		"transition",
+		envelope(
+			{ approved: true, ref: "DELIV-1", to: "In Progress" },
+			BOARD_SETTINGS,
+		),
+		deps,
+	);
+	expect(moved).toMatchObject({ current: "In Progress" });
+	expect(requests.find((request) => request.method === "POST")?.body).toEqual({
+		transition: { id: "21" },
+	});
+	await expect(
+		runJiraTracker(
+			"transition",
+			envelope({ ref: "DELIV-1", to: "Done" }, BOARD_SETTINGS),
+			deps,
+		),
+	).rejects.toThrow(/approved/);
+	await expect(
+		runJiraTracker(
+			"transition",
+			envelope(
+				{ approved: true, ref: "DELIV-1", to: "In Review" },
+				BOARD_SETTINGS,
+			),
+			deps,
+		),
+	).rejects.toThrow(/no transition from 'In Progress' to 'In Review'/);
+	await expect(
+		runJiraTracker(
+			"transition",
+			envelope(
+				{ approved: true, ref: "DELIV-1", to: "Blocked" },
+				BOARD_SETTINGS,
+			),
+			deps,
+		),
+	).rejects.toThrow(/not a status on the Jira board/);
+	expect(requests.filter((request) => request.method === "POST")).toHaveLength(
+		1,
+	);
 });

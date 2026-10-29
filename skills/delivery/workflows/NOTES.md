@@ -80,7 +80,7 @@ Factory stages (this clone's `skills/` + `factory/`):
 ## Factory non-goals (v1)
 
 - No merge, close, or thread resolution through `scripts/forge-provider.ts`
-- No tracker status transitions
+- No ticket closes, reopens, or backwards moves
 - No automatic work-item create from groom
 - No host-native port of a source framework
 
@@ -103,7 +103,7 @@ Recorded so workflows do not re-litigate them:
 
 - Runtime: any host that satisfies the advertised capabilities.
 - Work-item creation and merge: human.
-- No tracker status automation in v1.
+- Tickets move forward only to the columns of the operator-confirmed board map.
 - Orchestrator (if any) invokes existing commands; does not reimplement holdout, test gates, or mr-review phases.
 - Epic workflow input: freeform / file / HLD / PRD to groom (same as `/groom`). Optional epic key is operator-provided context pasted or exported into that input — groom itself does not call the tracker.
 - Historical only: an earlier three-stage orchestrator sequenced the stage files. Live behaviour is the conductor in `SKILL.md`, not that orchestrator.
@@ -135,7 +135,7 @@ Implement against the live sources named in `SKILL.md`; do not invent new stage 
 5. **Forge provider metadata**
    - Change meta/discussions/notes only through `scripts/forge-provider.ts`
 6. **Still deferred**
-   - Tracker status transitions from the factory (humans own status unless policy changes)
+   - Ticket closes, reopens, and backwards moves from the factory (humans own them)
    - Auto-spawn worktrees / cloud agents from the conductor (brief-only fan-out remains)
    - Replacing the max correctness pass with a lightweight built-in review
    - Auto-merge or auto `/openspec-archive`

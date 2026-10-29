@@ -22,6 +22,8 @@ export const GITLAB_WORK_ITEM_OPERATIONS = [
 	"create",
 	"link",
 	"note",
+	"statuses",
+	"transition",
 ] as const;
 export type GitLabWorkItemOperation =
 	(typeof GITLAB_WORK_ITEM_OPERATIONS)[number];
@@ -33,7 +35,6 @@ const FORBIDDEN_OPERATIONS = new Set([
 	"approve",
 	"resolve",
 	"reopen",
-	"transition",
 	"status",
 ]);
 
@@ -55,6 +56,14 @@ export interface GitLabWorkItem {
 	blockedBy: string[];
 	sourceAuditId?: string;
 	notes: Array<{ auditId: string; body: string }>;
+}
+
+export interface GitLabWorkItemBoard {
+	version: 1;
+	provider: typeof PROVIDER_ID;
+	ref: string;
+	current: string | null;
+	statuses: string[];
 }
 
 export type GitLabWorkItemDeps = GitLabHostDeps;
@@ -466,15 +475,138 @@ async function handleNote(
 	return loadIssue(deps, token, target, iid);
 }
 
+function boardSetting(envelope: unknown): string | undefined {
+	if (!isRecord(envelope) || !isRecord(envelope.settings)) return undefined;
+	return asString(envelope.settings.board)?.trim() || undefined;
+}
+
+async function boardColumns(
+	deps: GitLabWorkItemDeps,
+	token: string,
+	target: GitLabTarget,
+	boardId: string | undefined,
+): Promise<string[]> {
+	const boards = await gitlabPaged(deps, token, target, "/boards");
+	const board = boardId
+		? boards.find((entry) => isRecord(entry) && String(entry.id) === boardId)
+		: boards.length === 1
+			? boards[0]
+			: undefined;
+	if (!board) {
+		fail(
+			boardId
+				? `GitLab issue board ${boardId} was not found in this project.`
+				: boards.length === 0
+					? "This GitLab project has no issue board."
+					: "This GitLab project has more than one issue board. Set the board setting to the board id.",
+		);
+	}
+	if (!isRecord(board) || !Array.isArray(board.lists)) {
+		fail("GitLab issue board is malformed.");
+	}
+	const columns = board.lists
+		.filter((list) => isRecord(list) && isRecord(list.label))
+		.map((list) => {
+			const record = list as Record<string, unknown>;
+			const position = record.position;
+			return {
+				position: typeof position === "number" ? position : 0,
+				name:
+					asString((record.label as Record<string, unknown>).name)?.trim() ??
+					"",
+			};
+		})
+		.filter((column) => column.name.length > 0)
+		.sort((left, right) => left.position - right.position)
+		.map((column) => column.name);
+	if (columns.length === 0)
+		fail("The GitLab issue board has no label columns.");
+	return columns;
+}
+
+function issueBoard(
+	issue: unknown,
+	iid: string,
+	columns: string[],
+): GitLabWorkItemBoard {
+	if (!isRecord(issue)) fail("GitLab issue is malformed.");
+	const labels = Array.isArray(issue.labels)
+		? issue.labels.filter((label): label is string => typeof label === "string")
+		: [];
+	const onBoard = columns.filter((column) => labels.includes(column));
+	if (onBoard.length > 1) {
+		fail("The GitLab issue carries more than one board column label.");
+	}
+	const current =
+		asString(issue.state) === "closed" ? "Closed" : (onBoard[0] ?? null);
+	return {
+		version: 1,
+		provider: PROVIDER_ID,
+		ref: iid,
+		current,
+		statuses: columns,
+	};
+}
+
+async function handleStatuses(
+	envelope: unknown,
+	deps: GitLabWorkItemDeps,
+): Promise<GitLabWorkItemBoard> {
+	const { input, token, target } = await context(envelope, deps);
+	unexpectedKeys(input, ["ref"]);
+	const iid = gitlabIssueIidFromRef(parseReference(input.ref, "ref"));
+	const columns = await boardColumns(
+		deps,
+		token,
+		target,
+		boardSetting(envelope),
+	);
+	const issue = await gitlabGet(deps, token, apiUrl(target, `/issues/${iid}`));
+	return issueBoard(issue, iid, columns);
+}
+
+async function handleTransition(
+	envelope: unknown,
+	deps: GitLabWorkItemDeps,
+): Promise<GitLabWorkItemBoard> {
+	const { input, token, target } = await context(envelope, deps);
+	unexpectedKeys(input, ["approved", "ref", "to"]);
+	requireApproved(input);
+	const iid = gitlabIssueIidFromRef(parseReference(input.ref, "ref"));
+	const to = parseText(input.to, "to");
+	const columns = await boardColumns(
+		deps,
+		token,
+		target,
+		boardSetting(envelope),
+	);
+	if (!columns.includes(to))
+		fail(`'${to}' is not a column on the GitLab issue board.`);
+	const issue = await gitlabGet(deps, token, apiUrl(target, `/issues/${iid}`));
+	const before = issueBoard(issue, iid, columns);
+	if (before.current === "Closed") {
+		fail("This GitLab issue is closed. Reopening it is a human decision.");
+	}
+	if (before.current === to) return before;
+	const body: Record<string, string> = { add_labels: to };
+	if (before.current) body.remove_labels = before.current;
+	const updated = await gitlabCall(
+		deps,
+		token,
+		"PUT",
+		apiUrl(target, `/issues/${iid}`),
+		body,
+	);
+	return issueBoard(updated, iid, columns);
+}
+
 export async function runGitLabWorkItem(
 	operation: string,
 	envelope: unknown,
 	deps: GitLabWorkItemDeps,
-): Promise<GitLabWorkItem | GitLabWorkItem[]> {
+): Promise<GitLabWorkItem | GitLabWorkItem[] | GitLabWorkItemBoard> {
 	if (FORBIDDEN_OPERATIONS.has(operation)) {
-		fail(
-			"This work-item adapter does not close, delete, or transition issues.",
-		);
+		fail("This work-item adapter does not close, reopen, or delete issues.");
 	}
 	if (!isWorkItemOperation(operation)) {
 		fail(`Unknown GitLab work-item operation '${operation}'.`);
@@ -490,6 +622,10 @@ export async function runGitLabWorkItem(
 			return handleLink(envelope, deps);
 		case "note":
 			return handleNote(envelope, deps);
+		case "statuses":
+			return handleStatuses(envelope, deps);
+		case "transition":
+			return handleTransition(envelope, deps);
 	}
 }
 
@@ -510,7 +646,9 @@ export async function handleGitLabWorkItemCli(options: {
 }): Promise<number> {
 	const operation = options.argv[0];
 	if (!operation) {
-		options.stderr("usage: gitlab-work-item <list|read|create|link|note>\n");
+		options.stderr(
+			"usage: gitlab-work-item <list|read|create|link|note|statuses|transition>\n",
+		);
 		return 2;
 	}
 	let envelope: unknown;

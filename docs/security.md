@@ -18,7 +18,7 @@ setup. Cursor enforces them with `hooks.json` (`beforeShellExecution`,
 `beforeMCPExecution`, and `preToolUse`, all `failClosed`) after adapter
 setup. Reload the host so the hook is loaded. Until doctor shows Mutation
 guard as ready, treat the agent shell as unconstrained and do not ask it to
-merge or mutate tracker status.
+merge, close tickets, or move tickets outside `board-status.ts sync`.
 
 ## Credentials
 

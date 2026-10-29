@@ -5,6 +5,12 @@ import {
 	DEFAULT_MAX_PARALLEL_WORKTREES,
 	DEFAULT_ROUTING_PROFILING,
 } from "./config";
+import { SDLC_BOARD_PHASES } from "./board-map";
+import {
+	BOARD_CONFIRM_INVOCATION,
+	BOARD_PROPOSE_INVOCATION,
+	BOARD_SYNC_INVOCATION,
+} from "./board-status";
 import { FAST_SAFETY_FLOORS } from "./fast-dispatch";
 import {
 	invokeProvider,
@@ -1087,4 +1093,54 @@ test("a factory change always squashes its commits on merge", () => {
 	expect(conventions).toMatch(
 		/Every factory change squashes its commits on merge/,
 	);
+});
+
+describe("board status sync", () => {
+	const [script, subcommand] = BOARD_SYNC_INVOCATION.split(" ");
+	const call = new RegExp(
+		`bun "\\$\\{FACTORY_ROOT\\}/${script}" ${subcommand} "<repoRoot>" "\\$\\{FACTORY_ROOT\\}/runtime-manifest\\.json" <work-item-key> ([a-z-]+)`,
+		"g",
+	);
+	const phasesIn = (text: string) =>
+		[...text.matchAll(call)].map((match) => match[1] ?? "");
+	const verify = read("../skills/delivery/workflows/post-merge-verify.md");
+
+	test("each stage syncs only its own phases", () => {
+		expect(phasesIn(draft)).toEqual(["ready"]);
+		expect(phasesIn(execute)).toEqual(["in-progress", "in-review"]);
+		expect(phasesIn(verify)).toEqual(["done"]);
+		expect(phasesIn(addressComments)).toEqual([]);
+		for (const phase of [draft, execute, verify].flatMap(phasesIn)) {
+			expect(SDLC_BOARD_PHASES as readonly string[]).toContain(phase);
+		}
+	});
+
+	test("a skipped or failed sync never blocks the stage", () => {
+		for (const text of [draft, execute, verify]) {
+			expect(plain(text)).toMatch(
+				/A skipped sync prints its reason; name it in the stage summary and continue\. A non-zero exit is a provider failure: report it in plain words and continue\./,
+			);
+		}
+		expect(verify).toMatch(/on a verified result only/);
+	});
+
+	test("init proposes and confirms the board map with the operator", () => {
+		for (const invocation of [
+			BOARD_PROPOSE_INVOCATION,
+			BOARD_CONFIRM_INVOCATION,
+		]) {
+			const [path, command] = invocation.split(" ");
+			expect(delivery).toContain(`bun "\${FACTORY_ROOT}/${path}" ${command}`);
+		}
+		expect(delivery).toMatch(
+			/Never pick a column for\s+an unresolved phase yourself/,
+		);
+	});
+
+	test("closing, reopening, and backwards moves stay human-owned", () => {
+		expect(conventions).toMatch(
+			/Humans own closing, reopening, deleting, and backwards moves/,
+		);
+		expect(addressComments).toMatch(/NEVER moves the ticket here/);
+	});
 });

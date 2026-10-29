@@ -93,7 +93,7 @@ Factory behavior this workflow must not override:
   change is reported ready (`release-readiness.md`)
 - On changes-requested: bounded fix loop, still no MR until approve
 - On reject / exhausted attempts: push branch, escalate, **no** MR
-- Never merge, never tracker status transition
+- Never merge, never close a ticket; tickets move only through `board-status.ts sync`
 
 ### 4. Done
 
@@ -124,7 +124,7 @@ Workflow is done when either:
 
 - Groom / epic breakdown
 - The host's max correctness pass, `/mr-review`, `/address-comments`
-- Merge, archive, tracker status
+- Merge, archive, ticket close
 - Multi-ticket batches inside one execute
 
 ## Implementer notes

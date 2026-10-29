@@ -123,7 +123,8 @@ Workflow is done when the operator states they are ready to merge (or abandon).
 
 1. Human merges the MR in the forge
 2. Human runs `/openspec-archive <change-name>` in the target repo
-3. Human updates tracker status if their team process requires it
+3. Human closes the ticket if their team process requires it; post-merge
+   verify moves it to the board's `done` column when the map names one
 
 ## Handoff
 

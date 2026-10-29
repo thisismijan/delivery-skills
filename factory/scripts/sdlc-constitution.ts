@@ -39,7 +39,7 @@ export type CommandmentKind = z.infer<typeof CommandmentKind>;
 
 export const HumanOwnedAction = z.enum([
 	"merge",
-	"tracker-status",
+	"tracker-close",
 	"release-risk",
 	"gate-override",
 	"skill-install",
