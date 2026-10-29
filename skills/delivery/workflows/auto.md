@@ -89,7 +89,7 @@ Between steps, do not ask whether to continue. Continue.
 | `[addressed !N]` | Review the new head | Nothing |
 | `[ready !N]` | Release readiness, which reads the comments on the change before any GO | Nothing |
 | `[no-go !N]` | Classify the readiness blockers: address code/comment blockers (every unanswered comment on the change is a comment blocker, fixed in one batched round) then run ship again; wait on pipeline/conflicts; ask only for operator-owned risk acceptance | Whether to accept an operator-owned risk |
-| `[go !N]` | Land it (see **Land**). `landed` sets `[merged !N]`; `wait` sets `[waiting: <reason>]`; `stop` sets `[no-go !N]` for a new comment or a moved head, otherwise `[stopped: <reason>]` | Nothing; a person approves the change on the forge |
+| `[go !N]` | Before landing, read the comments on the change again, then land it (see **Land**). `landed` sets `[merged !N]`; `wait` sets `[waiting: <reason>]`; `stop` sets `[no-go !N]` for a new comment or a moved head, otherwise `[stopped: <reason>]` | Nothing; a person approves the change on the forge |
 | `[merged !N]` | Follow `pipeline-monitoring.md` for the exact merged revision; after the default-branch pipeline passes, archive, wait for deploy, then verify | Nothing |
 | `[verified !N]` | The key is done. Choose the next key; when none is left, retro | Nothing |
 | `[regressed !N]` | Nothing. Show the rollback recommendation or the bug report | Nothing; the operator decides |
@@ -200,7 +200,7 @@ other way.
      names it. Cancel that worker if the runtime can; for a sandboxed worker,
      `bun "${FACTORY_ROOT}/scripts/sandbox-run.ts" stop <repoRoot> <run-id> <KEY>`
      removes its container and so ends its processes. Set its key to
-     `[stopped: worker idle]`, record the minutes in Decisions, close its
+     `[stopped: <reason>]` with the reason worker idle, record the minutes in Decisions, close its
      worktree, and ignore anything it writes afterwards. Its siblings keep
      running. Never restart an idle worker in the same turn.
      Reconcile each result from its journal, git, and forge, not from prose.

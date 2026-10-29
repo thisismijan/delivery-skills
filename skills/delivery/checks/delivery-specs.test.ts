@@ -543,9 +543,9 @@ describe("auto", () => {
     expect(tagsWithANextStep.filter((t) => !vocabulary.has(t))).toEqual([]);
   });
 
-  test("continuous delivery asks for merge but not routine post-merge progression", () => {
+  test("continuous delivery asks for forge approval but not routine post-merge progression", () => {
     const asks = (tag: string) => cells(rows.find((l) => l.startsWith(`| \`${tag}\``)) ?? "")[3];
-    expect(asks("[go !N]")).toBe("The merge");
+    expect(asks("[go !N]")).toBe("Nothing; a person approves the change on the forge");
     expect(asks("[merged !N]")).toBe("Nothing");
   });
 
@@ -1012,7 +1012,7 @@ describe("portable factory pack", () => {
       "correctness review pass",
       "mr-review",
       "address-comments",
-      "Human merges",
+      "Human approves; auto lands",
       "archive",
       "improve",
       "Operator apply, reject, or rollback",
@@ -1062,13 +1062,15 @@ describe("portable factory pack", () => {
     );
     expect(readme).toContain("one isolated git worktree and");
     expect(readme).toContain("It does not ask whether to proceed");
+    const flowing = readme.replace(/\s+/g, " ");
+    expect(flowing).toContain("only through the land gate");
     for (const boundary of [
-      "merge",
-      "release-risk\nacceptance",
+      "any other merge",
+      "release-risk acceptance",
       "bypassing a gate",
       "installing a skill candidate",
     ]) {
-      expect(readme).toContain(boundary);
+      expect(flowing).toContain(boundary);
     }
     expect(readme).toContain(".delivery/workers/<run>/<key>.md");
     expect(readme).toMatch(
@@ -1403,7 +1405,7 @@ describe("comments on an open change", () => {
     const next = (tag: string) => cells(table.split("\n").find((l) => l.startsWith(`| \`${tag}\``)) ?? "")[2];
     expect(next("[ready !N]")).toMatch(/reads the comments on the change before any GO/);
     expect(next("[no-go !N]")).toMatch(/unanswered comment on the change is a comment blocker, fixed in one batched round/);
-    expect(next("[go !N]")).toMatch(/Before it is queued, read the comments on the change again/);
+    expect(next("[go !N]")).toMatch(/Before landing, read the comments on the change again, then land it/);
     expect(AUTO).toMatch(/never one round per\s+thread, and that round counts as one review round/);
   });
 
