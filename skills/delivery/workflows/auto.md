@@ -172,10 +172,22 @@ other way.
      `DELIVERY_WORKER_JOURNAL=<state-root>/workers/<run-id>/<key>.md`. Give it
      the reserved ledger generation and immutable key row. A worker writes only
      its own journal through `ledger-store.ts`; it never mutates the run ledger.
+     It writes its journal at every step boundary and immediately before and
+     after any command that may run for minutes, so the journal is its
+     heartbeat.
   4. Give each worker the fan-out brief and forbid merge (the coordinator
      lands), tracker transitions,
      sibling worktrees, and work outside its key.
   5. Start every worker in the current batch before awaiting any one of them.
+     Write `<state-root>/workers/<run-id>/dispatch.json` with each key and its
+     ISO `dispatchedAt`. While the batch runs, check it with
+     `bun "${FACTORY_ROOT}/scripts/worker-watch.ts" <workers-dir> <dispatch.json>`
+     whenever the coordinator wakes. A worker whose journal has not changed for
+     `workerIdleMinutes` (`WORKER_IDLE_MINUTES`, default 20) is idle: exit 3
+     names it. Cancel that worker if the runtime can, set its key to
+     `[stopped: worker idle]`, record the minutes in Decisions, close its
+     worktree, and ignore anything it writes afterwards. Its siblings keep
+     running. Never restart an idle worker in the same turn.
      Reconcile each result from its journal, git, and forge, not from prose.
      After the batch settles, apply validated key updates to the run ledger in
      one coordinator compare-and-swap write, then dispatch the next batch of

@@ -3,6 +3,7 @@ import { z } from "zod";
 export const DEFAULT_MAX_FIX_ATTEMPTS = 2;
 export const DEFAULT_MAX_PARALLEL_WORKTREES = 4;
 export const DEFAULT_ROUTING_PROFILING = "off" as const;
+export const DEFAULT_WORKER_IDLE_MINUTES = 20;
 
 const MaxParallelWorktrees = z.preprocess((value) => {
 	if (value === undefined) return DEFAULT_MAX_PARALLEL_WORKTREES;
@@ -21,6 +22,11 @@ const ConfigSchema = z.object({
 		.positive()
 		.default(DEFAULT_MAX_FIX_ATTEMPTS),
 	maxParallelWorktrees: MaxParallelWorktrees,
+	workerIdleMinutes: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(DEFAULT_WORKER_IDLE_MINUTES),
 	modelDefault: z.enum(["sonnet", "opus"]).default("sonnet"),
 	routingProfiling: z
 		.enum(["off", "always"])
@@ -55,6 +61,7 @@ export function loadConfig(
 		commandExecute: env.COMMAND_EXECUTE,
 		maxFixAttempts: env.MAX_FIX_ATTEMPTS,
 		maxParallelWorktrees: env.MAX_PARALLEL_WORKTREES,
+		workerIdleMinutes: env.WORKER_IDLE_MINUTES,
 		modelDefault: env.MODEL_DEFAULT,
 		routingProfiling: env.ROUTING_PROFILING,
 		codeHost: env.CODE_HOST,
