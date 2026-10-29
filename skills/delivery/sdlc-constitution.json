@@ -13,7 +13,7 @@
 	],
 	"humanOwned": [
 		"merge",
-		"tracker-status",
+		"tracker-close",
 		"release-risk",
 		"gate-override",
 		"skill-install"
@@ -147,7 +147,7 @@
 		},
 		"draft": {
 			"inputs": ["run-contract", "ticket"],
-			"writes": ["spec-branch", "tracker-comment", "routing-artifacts"],
+			"writes": ["spec-branch", "tracker-comment", "board-status", "routing-artifacts"],
 			"outputs": ["openspec-change"],
 			"next": ["execute"],
 			"stops": ["weak-ticket", "infeasible", "too-large"],
@@ -161,6 +161,7 @@
 				"gates",
 				"draft-change-request",
 				"tracker-comment",
+				"board-status",
 				"routing-artifacts"
 			],
 			"outputs": ["draft-change-request"],
@@ -208,7 +209,7 @@
 		},
 		"verify": {
 			"inputs": ["deployed-change"],
-			"writes": ["verify-verdict"],
+			"writes": ["verify-verdict", "board-status"],
 			"outputs": ["verified-or-regressed"],
 			"next": ["retro"],
 			"stops": ["inconclusive-deploy"],

@@ -27,7 +27,7 @@ This command implements the approved change and, **only after the holdout review
 - **No pressure bypass.** Time pressure never permits skipping the red gate (except a scripted mechanical-edit unit), the green gate, holdout review, or operator-owned action.
 - **Review before the MR.** The holdout review runs against the **committed branch diff + gate results** — there is no MR yet. **An MR is opened only after the review returns `approve`.** Never open an MR for un-reviewed, changes-requested, rejected, or escalated work.
 - **Open the change as soon as the first holdout review is satisfied, then check back on it.** The first `approve` opens the draft change in the same step; never hold it back for extra local review rounds. Reviewers, people or automated, often comment only once a change is posted. Release readiness reads those comments before the change is reported ready, and any unanswered one is answered in one `/address-comments` round.
-- **Gated writes only:** the only writes are the branch commit/push, the change (created post-approval), and notes (on the change and the selected work item). **The factory NEVER merges, closes, or resolves threads, and never changes work-item status; humans own merge, close, thread resolution, and status.**
+- **Gated writes only:** the only writes are the branch commit/push, the change (created post-approval), and notes (on the change and the selected work item). **The factory NEVER merges, closes, or resolves threads.** It moves the ticket only forward, only through `board-status.ts sync`; humans own merge, close, thread resolution, and any other status change.
 - **Fail closed:** no matching spec, more than one match, a gate that didn't run, or a gate failure with attempts exhausted → stop + escalate. Never open an MR on un-green code.
 - **Mutation boundary.** Run `canStartStage` before any write, using the runtime's mutation-guard identifier:
   ```
@@ -52,7 +52,11 @@ This command implements the approved change and, **only after the holdout review
    ```
    Non-zero exit → stop + escalate.
 
-3. **Check out** the spec branch `<changeName>`, resolve `<repoRoot>` with `git rev-parse --show-toplevel`, then create `<reviewDir> = <repoRoot>/.review/<changeName>` (`mkdir -p` it). It holds append-only gate evidence and the diff; it is worktree-local scratch state and must be gitignored, never committed.
+3. **Check out** the spec branch `<changeName>`, resolve `<repoRoot>` with `git rev-parse --show-toplevel`, then create `<reviewDir> = <repoRoot>/.review/<changeName>` (`mkdir -p` it). It holds append-only gate evidence and the diff; it is worktree-local scratch state and must be gitignored, never committed. Then move the ticket to the board's `in-progress` column:
+   ```
+   bun "${FACTORY_ROOT}/scripts/board-status.ts" sync "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <work-item-key> in-progress
+   ```
+   A skipped sync prints its reason; name it in the stage summary and continue. A non-zero exit is a provider failure: report it in plain words and continue. Never retry it or move the ticket any other way.
 
 3a. **Re-entry reconciliation.** Before writing or changing anything, reconcile
 the durable state from a prior interrupted run: the **existing MR**, existing
@@ -305,7 +309,7 @@ re-run the gate. Do not reuse it.
       ```
       bun "${FACTORY_ROOT}/scripts/forge-provider.ts" create "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/create-input.json"
       ```
-      Non-zero exit → **stop + escalate** (fail closed). Record the returned change `ref` (a user-facing MR iid is an alias for that ref). Stage 3 review, not execute, marks it ready. Render the holdout outcome for the change note and the tracker comment with the summary helper (Rule 2 — never paste raw verdict fields):
+      Non-zero exit → **stop + escalate** (fail closed). Record the returned change `ref` (a user-facing MR iid is an alias for that ref). Then move the ticket to the board's `in-review` column with `bun "${FACTORY_ROOT}/scripts/board-status.ts" sync "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <work-item-key> in-review`; the same skip and failure rule applies. Stage 3 review, not execute, marks it ready. Render the holdout outcome for the change note and the tracker comment with the summary helper (Rule 2 — never paste raw verdict fields):
       ```
       bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
       ```
@@ -317,4 +321,4 @@ re-run the gate. Do not reuse it.
     - **`fix`** → dispatch the `implementer` subagent to address the verdict `findings`, re-run the **green gate** (step 8), increment `attempt`, and **go back to step 10** (re-review runs fresh — it does not see the fixer's reasoning). **No MR is created during the fix loop.** If two failed fixes share the same assumption, apply the premise checkpoint from step 8 before any third fix.
     - **`escalate`** → push the branch (`git push -u origin <changeName>`) so a human can inspect the work, post the `reason` (and any `findings`) as a selected-provider note, and stop (NEEDS_HUMAN). **Do not open an MR**; the review did not pass and the human decides what happens next.
 
-12. **Invariants.** A change exists **only** for review-approved work. The factory **creates draft changes but NEVER merges, archives, closes, or resolves threads**; humans own merge, close, thread resolution, and the post-merge archive. The reviewer never sees implementer reasoning; the factory never changes work-item status. Every forge read or mutation uses `scripts/forge-provider.ts` with an exact operation; never invent a helper name.
+12. **Invariants.** A change exists **only** for review-approved work. The factory **creates draft changes but NEVER merges, archives, closes, or resolves threads**; humans own merge, close, thread resolution, and the post-merge archive. The reviewer never sees implementer reasoning; the factory moves the ticket only forward through `board-status.ts sync`, at start and after the change exists. Every forge read or mutation uses `scripts/forge-provider.ts` with an exact operation; never invent a helper name.

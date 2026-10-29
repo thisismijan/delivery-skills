@@ -50,7 +50,7 @@ export function isAttributionViolation(command: string): GuardResult {
 const MERGE_CLOSE_REASON =
 	"Merge, close, approval, and thread resolution are human-owned actions.";
 const JIRA_REASON =
-	"Jira status and destructive changes are human-owned actions.";
+	"Closing or deleting a work item is human-owned, and ticket moves run only through board-status.ts sync.";
 const FORCE_REASON = "Force-pushing is not permitted.";
 const RESET_REASON = "Destructive hard resets are not permitted.";
 

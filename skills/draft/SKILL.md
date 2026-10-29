@@ -36,7 +36,7 @@ This command does Phase-1 assessment and feasibility, then **stops** (spec autho
   ```
   A missing or unavailable selection stops with `/delivery init`; never infer
   one from the reference, remote, credentials, or environment.
-- The confirmed work-item provider is **read-only** here. The only write is one provider note on clarify/reject/escalate. For `local-files`, update the item's Notes section atomically; for a remote provider, use its normalized note operation. **Never** transition work-item status; humans own that.
+- The confirmed work-item provider is **read-only** here. The writes are one provider note on clarify/reject/escalate and the `ready` board sync after the spec-ready note. For `local-files`, update the item's Notes section atomically; for a remote provider, use its normalized note operation. Move the ticket only through `board-status.ts sync`; humans own closing, reopening, and backwards moves.
 - **No spec is authored on a weak or infeasible ticket.**
 - **No spec is authored for an oversized ticket.** One ticket must be a complete vertical outcome that can be understood, tested, implemented, and reviewed in one fresh small-context session. The assessor's `scopeFit` verdict is deterministic routing input, not advice.
 - **Readiness is evidence, not rank.** Sponsor urgency or authority never turns failed readiness into `proceed`; use the deterministic route and require the same operator approvals.
@@ -260,6 +260,12 @@ selection.
 
     The same prefix-match-then-update rule applies to clarify, reject,
     escalate, and verification-failure notes: one live factory note per work
-    item, updated in place, never duplicated. **Do not change work-item status.**
+    item, updated in place, never duplicated.
+
+    After the spec-ready note, move the ticket to the board's `ready` column:
+    ```
+    bun "${FACTORY_ROOT}/scripts/board-status.ts" sync "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <work-item-key> ready
+    ```
+    A skipped sync prints its reason; name it in the stage summary and continue. A non-zero exit is a provider failure: report it in plain words and continue. Never retry it or move the ticket any other way.
 
 11. **Stop at SPEC_LINKED.** The spec is committed to the `<changeName>` branch and linked from the work item. Running `/execute` later is the approval.

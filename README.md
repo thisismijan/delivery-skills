@@ -255,9 +255,11 @@ The kernel requires delivery to:
 - resume from durable artifacts rather than conversational memory; and
 - record deviations with the affected invariant and a new approval.
 
-Humans always own merge, work-item status (called tracker status in the
-version-1 constitution), release-risk acceptance, failed-gate override, and
-every live-skill install or rollback.
+Humans always own merge, tracker close (closing, reopening, deleting, or
+moving a ticket backwards), release-risk acceptance, failed-gate override,
+and every live-skill install or rollback. Tickets move forward on the board
+as delivery progresses, but only to the columns of a board map the operator
+confirmed during `/delivery init`.
 
 ### Frozen scope
 

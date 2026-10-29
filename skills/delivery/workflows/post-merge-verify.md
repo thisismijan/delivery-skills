@@ -108,6 +108,10 @@ Follow the human-facing output rules.
 ## Ledger writes
 
 - Verdicts: one `verify` row with the deployed commit and the result.
+- Board: on a verified result only, move the ticket to the board's `done`
+  column with `bun "${FACTORY_ROOT}/scripts/board-status.ts" sync "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <work-item-key> done`.
+  A skipped sync prints its reason; name it in the stage summary and continue. A non-zero exit is a provider failure: report it in plain words and continue. Never retry it or move the ticket any other way.
+  A regressed or inconclusive result leaves the ticket where it is.
 - Keys: status `[verified !N]` or `[regressed !N]`. An inconclusive result leaves
   `[merged !N]` and adds a Decision line naming the gaps.
 - When every key in the epic is verified or stopped, recommend
@@ -125,6 +129,7 @@ Follow the human-facing output rules.
 ## Never
 
 - Roll back, deploy, restart, or change a flag.
+- Close or reopen a ticket.
 - Treat the open-change pipeline as default-branch evidence.
 - Write to the environment without the operator's go-ahead.
 - Treat a signal you could not read as healthy.

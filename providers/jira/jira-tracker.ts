@@ -15,11 +15,12 @@ export const JIRA_TRACKER_OPERATIONS = [
 	"create",
 	"link",
 	"note",
+	"statuses",
+	"transition",
 ] as const;
 export type JiraTrackerOperation = (typeof JIRA_TRACKER_OPERATIONS)[number];
 
 const FORBIDDEN_OPERATIONS = new Set([
-	"transition",
 	"delete",
 	"close",
 	"resolve",
@@ -55,6 +56,14 @@ export interface JiraCredentials {
 export interface JiraConfig extends JiraCredentials {
 	site: string;
 	project: string;
+}
+
+interface NormalizedBoard {
+	version: 1;
+	provider: "jira";
+	ref: string;
+	current: string | null;
+	statuses: string[];
 }
 
 interface NormalizedWorkItem {
@@ -115,7 +124,9 @@ export function parseJiraSite(raw: string, secrets: string[] = []): string {
 	if (!trimmed) fail("Set JIRA_SITE to your Jira Cloud site URL.", secrets);
 	let url: URL;
 	try {
-		url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+		url = new URL(
+			/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`,
+		);
 	} catch {
 		fail("JIRA_SITE is not a valid URL.", secrets);
 	}
@@ -213,9 +224,7 @@ export function textToAdf(text: string): Record<string, unknown> {
 	};
 }
 
-export function mapIssueType(
-	name: string,
-): "bug" | "story" | "task" | "other" {
+export function mapIssueType(name: string): "bug" | "story" | "task" | "other" {
 	const lower = name.trim().toLowerCase();
 	if (lower === "bug" || lower === "fault") return "bug";
 	if (lower === "story" || lower === "user story") return "story";
@@ -324,8 +333,14 @@ function assertSafeRequest(request: JiraRequest, secrets: string[]): void {
 		}
 	}
 	const path = (request.url.split("?")[0] ?? "").toLowerCase();
-	if (path.includes("/transitions")) {
-		fail("Jira adapter does not transition issue status.", secrets);
+	if (
+		path.includes("/transitions") &&
+		!/\/rest\/api\/3\/issue\/[^/]+\/transitions$/.test(path)
+	) {
+		fail(
+			"Jira adapter only moves issues through the issue transitions endpoint.",
+			secrets,
+		);
 	}
 	if (
 		request.method === "DELETE" &&
@@ -384,9 +399,7 @@ function searchUrl(
 }
 
 function issueUrl(config: JiraConfig, ref: string): string {
-	const url = new URL(
-		apiUrl(config, `/issue/${encodeURIComponent(ref)}`),
-	);
+	const url = new URL(apiUrl(config, `/issue/${encodeURIComponent(ref)}`));
 	url.searchParams.set("fields", ISSUE_FIELDS);
 	url.searchParams.set("properties", PROPERTY_KEY);
 	return url.toString();
@@ -480,7 +493,10 @@ export function parseTaggedNote(
 			.match(/^delivery-audit-id:\s*([a-z0-9][a-z0-9._:-]*)$/);
 		const auditId = match?.[1];
 		if (!auditId || auditId.length > 200) continue;
-		const body = lines.slice(index + 1).join("\n").trim();
+		const body = lines
+			.slice(index + 1)
+			.join("\n")
+			.trim();
 		if (!body) continue;
 		return { auditId, body };
 	}
@@ -623,7 +639,10 @@ function envelopeSettings(
 	return settings;
 }
 
-function envelopeInput(raw: unknown, secrets: string[]): {
+function envelopeInput(
+	raw: unknown,
+	secrets: string[],
+): {
 	input: Record<string, unknown>;
 	settings: Record<string, string>;
 } {
@@ -675,10 +694,7 @@ function requireText(
 	return value;
 }
 
-function requireRef(
-	input: Record<string, unknown>,
-	secrets: string[],
-): string {
+function requireRef(input: Record<string, unknown>, secrets: string[]): string {
 	return requireText(input, "ref", secrets);
 }
 
@@ -702,7 +718,11 @@ function requireAuditId(
 	secrets: string[],
 ): string {
 	const auditId = asString(input.auditId)?.trim();
-	if (!auditId || !/^[a-z0-9][a-z0-9._:-]*$/.test(auditId) || auditId.length > 200) {
+	if (
+		!auditId ||
+		!/^[a-z0-9][a-z0-9._:-]*$/.test(auditId) ||
+		auditId.length > 200
+	) {
 		fail("Jira audit id is invalid.", secrets);
 	}
 	return auditId;
@@ -810,9 +830,10 @@ async function setBlockedBy(
 	const current = currentItem.blockedBy;
 	const toAdd = desired.filter((key) => !current.includes(key));
 	const toRemove = current.filter((key) => !desired.includes(key));
-	const fields = isRecord(currentRaw) && isRecord(currentRaw.fields)
-		? currentRaw.fields
-		: {};
+	const fields =
+		isRecord(currentRaw) && isRecord(currentRaw.fields)
+			? currentRaw.fields
+			: {};
 	const links = Array.isArray(fields.issuelinks) ? fields.issuelinks : [];
 	for (const blocker of toAdd) {
 		await jiraCall(deps, config, "POST", apiUrl(config, "/issueLink"), {
@@ -882,15 +903,21 @@ async function handleCreate(
 		);
 	}
 	const issueType = await resolveCreateType(deps, config, type);
-	const created = await jiraCall(deps, config, "POST", apiUrl(config, "/issue"), {
-		fields: {
-			project: { key: config.project },
-			summary: title,
-			description: textToAdf(body),
-			issuetype: { name: issueType },
-			labels: [auditLabel(auditId)],
+	const created = await jiraCall(
+		deps,
+		config,
+		"POST",
+		apiUrl(config, "/issue"),
+		{
+			fields: {
+				project: { key: config.project },
+				summary: title,
+				description: textToAdf(body),
+				issuetype: { name: issueType },
+				labels: [auditLabel(auditId)],
+			},
 		},
-	});
+	);
 	if (!isRecord(created) || !asString(created.key)?.trim()) {
 		fail("Jira did not return a created issue key.", secrets);
 	}
@@ -906,7 +933,12 @@ async function handleCreate(
 		{ auditId },
 	);
 	if (blockedBy.length > 0) {
-		const currentRaw = await jiraCall(deps, config, "GET", issueUrl(config, ref));
+		const currentRaw = await jiraCall(
+			deps,
+			config,
+			"GET",
+			issueUrl(config, ref),
+		);
 		const current = normalizeIssue(currentRaw, secrets, ref);
 		await setBlockedBy(deps, config, ref, blockedBy, current, currentRaw);
 	}
@@ -987,19 +1019,166 @@ async function handleNote(
 	return loadIssue(deps, config, ref);
 }
 
+function requireBoard(
+	settings: Record<string, string>,
+	secrets: string[],
+): string {
+	const board = settings.board?.trim();
+	if (!board) {
+		fail(
+			"Set the Jira board setting to the board id so the factory can read the column order.",
+			secrets,
+		);
+	}
+	if (!/^\d+$/.test(board))
+		fail("The Jira board setting must be a numeric board id.", secrets);
+	return board;
+}
+
+async function boardStatuses(
+	deps: JiraTrackerDeps,
+	config: JiraConfig,
+	board: string,
+): Promise<string[]> {
+	const secrets = secretsOf(config.email, config.token);
+	const configuration = await jiraCall(
+		deps,
+		config,
+		"GET",
+		`${config.site}/rest/agile/1.0/board/${board}/configuration`,
+	);
+	const columns =
+		isRecord(configuration) && isRecord(configuration.columnConfig)
+			? configuration.columnConfig.columns
+			: undefined;
+	if (!Array.isArray(columns))
+		fail("Jira board configuration is malformed.", secrets);
+	const known = await jiraCall(deps, config, "GET", apiUrl(config, "/status"));
+	if (!Array.isArray(known)) fail("Jira status listing is malformed.", secrets);
+	const names = new Map<string, string>();
+	for (const status of known) {
+		if (!isRecord(status)) continue;
+		const id = asString(status.id);
+		const name = asString(status.name)?.trim();
+		if (id && name) names.set(id, name);
+	}
+	const statuses: string[] = [];
+	for (const column of columns) {
+		if (!isRecord(column) || !Array.isArray(column.statuses)) continue;
+		for (const status of column.statuses) {
+			const id = isRecord(status) ? asString(status.id) : undefined;
+			const name = id ? names.get(id) : undefined;
+			if (!name)
+				fail("Jira board column names a status Jira did not list.", secrets);
+			if (!statuses.includes(name)) statuses.push(name);
+		}
+	}
+	if (statuses.length === 0)
+		fail("The Jira board has no mapped statuses.", secrets);
+	return statuses;
+}
+
+async function currentStatus(
+	deps: JiraTrackerDeps,
+	config: JiraConfig,
+	ref: string,
+): Promise<string | null> {
+	const url = new URL(apiUrl(config, `/issue/${encodeURIComponent(ref)}`));
+	url.searchParams.set("fields", "status");
+	const issue = await jiraCall(deps, config, "GET", url.toString());
+	const fields =
+		isRecord(issue) && isRecord(issue.fields) ? issue.fields : undefined;
+	const status =
+		fields && isRecord(fields.status)
+			? asString(fields.status.name)?.trim()
+			: undefined;
+	return status || null;
+}
+
+async function handleStatuses(
+	deps: JiraTrackerDeps,
+	config: JiraConfig,
+	input: Record<string, unknown>,
+	settings: Record<string, string>,
+): Promise<NormalizedBoard> {
+	const secrets = secretsOf(config.email, config.token);
+	const ref = requireRef(input, secrets);
+	const statuses = await boardStatuses(
+		deps,
+		config,
+		requireBoard(settings, secrets),
+	);
+	return {
+		version: 1,
+		provider: PROVIDER_ID,
+		ref,
+		current: await currentStatus(deps, config, ref),
+		statuses,
+	};
+}
+
+async function handleTransition(
+	deps: JiraTrackerDeps,
+	config: JiraConfig,
+	input: Record<string, unknown>,
+	settings: Record<string, string>,
+): Promise<NormalizedBoard> {
+	const secrets = secretsOf(config.email, config.token);
+	requireApproved(input, secrets);
+	const ref = requireRef(input, secrets);
+	const to = requireText(input, "to", secrets);
+	const board = requireBoard(settings, secrets);
+	const statuses = await boardStatuses(deps, config, board);
+	if (!statuses.includes(to))
+		fail(`'${to}' is not a status on the Jira board.`, secrets);
+	const current = await currentStatus(deps, config, ref);
+	if (current !== to) {
+		const url = apiUrl(config, `/issue/${encodeURIComponent(ref)}/transitions`);
+		const listed = await jiraCall(deps, config, "GET", url);
+		const transitions =
+			isRecord(listed) && Array.isArray(listed.transitions)
+				? listed.transitions
+				: [];
+		const matches = transitions.filter(
+			(transition) =>
+				isRecord(transition) &&
+				isRecord(transition.to) &&
+				asString(transition.to.name)?.trim() === to,
+		) as Array<Record<string, unknown>>;
+		if (matches.length !== 1) {
+			fail(
+				matches.length === 0
+					? `Jira has no transition from '${current ?? "no status"}' to '${to}' for ${ref}.`
+					: `Jira has more than one transition to '${to}' for ${ref}.`,
+				secrets,
+			);
+		}
+		const id = asString(matches[0]?.id)?.trim();
+		if (!id) fail("Jira transition is missing an id.", secrets);
+		await jiraCall(deps, config, "POST", url, { transition: { id } });
+	}
+	return {
+		version: 1,
+		provider: PROVIDER_ID,
+		ref,
+		current: await currentStatus(deps, config, ref),
+		statuses,
+	};
+}
+
 export async function runJiraTracker(
 	operation: string,
 	rawEnvelope: unknown,
 	deps: JiraTrackerDeps,
-): Promise<NormalizedWorkItem | NormalizedWorkItem[]> {
+): Promise<NormalizedWorkItem | NormalizedWorkItem[] | NormalizedBoard> {
 	if (FORBIDDEN_OPERATIONS.has(operation)) {
 		fail(
-			"Jira adapter does not transition status, delete issues, or perform other human-owned lifecycle actions.",
+			"Jira adapter does not delete issues or perform other human-owned lifecycle actions.",
 		);
 	}
 	if (!isJiraTrackerOperation(operation)) {
 		fail(
-			"usage: jira-tracker <list|read|create|link|note>",
+			"usage: jira-tracker <list|read|create|link|note|statuses|transition>",
 		);
 	}
 	const { input, settings } = envelopeInput(rawEnvelope, []);
@@ -1016,6 +1195,10 @@ export async function runJiraTracker(
 			return handleLink(deps, config, input);
 		case "note":
 			return handleNote(deps, config, input);
+		case "statuses":
+			return handleStatuses(deps, config, input, settings);
+		case "transition":
+			return handleTransition(deps, config, input, settings);
 	}
 }
 
@@ -1064,7 +1247,9 @@ export async function handleJiraTrackerCli(options: {
 }): Promise<number> {
 	const operation = options.argv[0];
 	if (!operation) {
-		options.stderr("usage: jira-tracker <list|read|create|link|note>\n");
+		options.stderr(
+			"usage: jira-tracker <list|read|create|link|note|statuses|transition>\n",
+		);
 		return 2;
 	}
 	let envelope: unknown;

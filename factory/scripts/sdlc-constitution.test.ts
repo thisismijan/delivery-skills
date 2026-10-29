@@ -23,7 +23,7 @@ const script = join(import.meta.dir, "sdlc-constitution.ts");
 
 const HUMAN_OWNED = [
 	"merge",
-	"tracker-status",
+	"tracker-close",
 	"release-risk",
 	"gate-override",
 	"skill-install",
@@ -50,6 +50,7 @@ function sampleDraft(overrides: Record<string, unknown> = {}) {
 		permittedWrites: [
 			"spec-branch",
 			"tracker-comment",
+			"board-status",
 			"routing-artifacts",
 			"implementation",
 			"tests",
@@ -439,4 +440,15 @@ describe("CLI", () => {
 			"scripts/sdlc-constitution.ts supersede <current.json> <proposal.json>",
 		);
 	});
+});
+
+test("only draft, execute, and verify may move tickets, and closing stays human-owned", () => {
+	const live = loadConstitution();
+	const movers = Object.entries(live.document.stages)
+		.filter(([, stage]) => stage.writes.includes("board-status"))
+		.map(([name]) => name)
+		.sort();
+	expect(movers).toEqual(["draft", "execute", "verify"]);
+	expect(live.document.humanOwned).toContain("tracker-close");
+	expect(live.markdown).toContain("board-status.ts sync");
 });

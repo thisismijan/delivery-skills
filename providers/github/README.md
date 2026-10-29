@@ -34,7 +34,8 @@ adapter does not merge, close, approve, delete, or resolve discussions.
 
 `github-tracker` operations: `list`, `read`, `create`, `link`, `note`. Create
 and note replay by audit id. Dependency links are additive only. Status and
-delete stay human-owned.
+delete stay human-owned: GitHub issues have no board columns this adapter
+reads, so board sync always skips on GitHub.
 
 Note bodies are checked by delivery core before `note` or `reply`.
 

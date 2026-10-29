@@ -9,6 +9,7 @@ import {
 } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { z } from "zod";
+import { mappedColumns, readBoardMap } from "./board-map";
 import { loadMcpInventory } from "./mcp-inventory";
 import { mapMcpWorkItemResult } from "./mcp-normalize";
 import {
@@ -52,6 +53,7 @@ export const WorkItem = z
 		body: z.string().trim().min(1),
 		blockedBy: z.array(Reference),
 		sourceAuditId: AuditId.optional(),
+		status: z.string().trim().min(1).optional(),
 		notes: z.array(
 			z.object({
 				auditId: AuditId,
@@ -61,6 +63,17 @@ export const WorkItem = z
 	})
 	.strict();
 export type WorkItem = z.infer<typeof WorkItem>;
+
+export const WorkItemBoard = z
+	.object({
+		version: z.literal(1),
+		provider: z.string().min(1),
+		ref: Reference,
+		current: z.string().trim().min(1).nullable(),
+		statuses: z.array(z.string().trim().min(1)).min(1),
+	})
+	.strict();
+export type WorkItemBoard = z.infer<typeof WorkItemBoard>;
 
 export const WorkItemReceipt = z
 	.object({
@@ -104,7 +117,33 @@ export const NoteWorkItemInput = z
 
 export const ReadWorkItemInput = z.object({ ref: Reference }).strict();
 
-export type WorkItemOperation = "list" | "read" | "create" | "link" | "note";
+export const TransitionWorkItemInput = z
+	.object({
+		approved: z.literal(true),
+		ref: Reference,
+		to: z.string().trim().min(1),
+	})
+	.strict();
+
+export const WORK_ITEM_OPERATIONS = [
+	"list",
+	"read",
+	"create",
+	"link",
+	"note",
+	"statuses",
+	"transition",
+] as const;
+export type WorkItemOperation = (typeof WORK_ITEM_OPERATIONS)[number];
+
+const BOARD_OPERATIONS = new Set<WorkItemOperation>(["statuses", "transition"]);
+
+export const LOCAL_BOARD_STATUSES = [
+	"To Do",
+	"In Progress",
+	"In Review",
+	"Done",
+] as const;
 
 type OperationInput = unknown;
 
@@ -318,12 +357,81 @@ export async function noteLocalWorkItem(
 	return updated;
 }
 
+function localBoard(item: WorkItem): WorkItemBoard {
+	return WorkItemBoard.parse({
+		version: 1,
+		provider: "local-files",
+		ref: item.ref,
+		current: item.status ?? null,
+		statuses: [...LOCAL_BOARD_STATUSES],
+	});
+}
+
+export async function localWorkItemStatuses(
+	repositoryRoot: string,
+	raw: unknown,
+): Promise<WorkItemBoard> {
+	const input = ReadWorkItemInput.parse(raw);
+	return localBoard(await readLocalWorkItem(repositoryRoot, input.ref));
+}
+
+export async function transitionLocalWorkItem(
+	repositoryRoot: string,
+	raw: unknown,
+): Promise<WorkItemBoard> {
+	const input = TransitionWorkItemInput.parse(raw);
+	if (!(LOCAL_BOARD_STATUSES as readonly string[]).includes(input.to)) {
+		throw new Error(`'${input.to}' is not a local board column`);
+	}
+	const item = await readLocalWorkItem(repositoryRoot, input.ref);
+	const updated = WorkItem.parse({ ...item, status: input.to });
+	await writeLocalItem(repositoryRoot, updated);
+	return localBoard(updated);
+}
+
+async function assertMappedTransition(
+	repositoryRoot: string,
+	provider: string,
+	raw: unknown,
+): Promise<z.infer<typeof TransitionWorkItemInput>> {
+	const input = TransitionWorkItemInput.parse(raw);
+	const map = await readBoardMap(repositoryRoot);
+	if (!map) {
+		throw new Error(
+			"No confirmed board map. Confirm one with board-status.ts confirm before moving tickets.",
+		);
+	}
+	if (map.provider !== provider) {
+		throw new Error(
+			`The confirmed board map is for '${map.provider}', not '${provider}'. Confirm the map again.`,
+		);
+	}
+	if (!mappedColumns(map).includes(input.to)) {
+		throw new Error(
+			`'${input.to}' is not a column the confirmed board map moves tickets to.`,
+		);
+	}
+	return input;
+}
+
+function assertLanded(board: WorkItemBoard, to: string): WorkItemBoard {
+	if (board.current !== to) {
+		throw new Error(
+			`The ticket did not move to '${to}'; the board shows '${board.current ?? "no column"}'.`,
+		);
+	}
+	return board;
+}
+
 function operationSchema(operation: WorkItemOperation): z.ZodType {
 	switch (operation) {
 		case "list":
 			return z.object({}).strict();
 		case "read":
+		case "statuses":
 			return ReadWorkItemInput;
+		case "transition":
+			return TransitionWorkItemInput;
 		case "create":
 			return CreateWorkItemInput;
 		case "link":
@@ -340,7 +448,7 @@ async function invokeRemoteProvider(options: {
 	repositoryRoot: string;
 	input: unknown;
 	settings?: Record<string, string>;
-}): Promise<WorkItem | WorkItem[]> {
+}): Promise<WorkItem | WorkItem[] | WorkItemBoard> {
 	if (!options.invocation.startsWith("exec:")) {
 		throw new Error(
 			`provider '${options.provider}' needs an executable bridge invocation`,
@@ -385,6 +493,15 @@ async function invokeRemoteProvider(options: {
 		);
 	}
 	const parsed = JSON.parse(stdout) as unknown;
+	if (BOARD_OPERATIONS.has(options.operation)) {
+		const board = WorkItemBoard.parse(parsed);
+		if (board.provider !== options.provider) {
+			throw new Error(
+				`Provider '${options.provider}' returned a board for '${board.provider}'.`,
+			);
+		}
+		return board;
+	}
 	return options.operation === "list"
 		? z.array(WorkItem).parse(parsed)
 		: WorkItem.parse(parsed);
@@ -466,10 +583,16 @@ export function normalizeWorkItemSessionResult(options: {
 	raw: unknown;
 	input?: unknown;
 }): WorkItem | WorkItem[] | WorkItemReceipt {
+	const operation = options.operation;
+	if (operation === "statuses" || operation === "transition") {
+		throw new Error(
+			"Board statuses and transitions run only through the work-item adapter, never through session tools.",
+		);
+	}
 	const resultSchema =
-		options.operation === "list"
+		operation === "list"
 			? z.array(WorkItem)
-			: options.operation === "read"
+			: operation === "read"
 				? WorkItem
 				: WorkItemReceipt;
 	try {
@@ -477,7 +600,7 @@ export function normalizeWorkItemSessionResult(options: {
 	} catch {
 		const mapped = mapMcpWorkItemResult({
 			provider: options.provider,
-			operation: options.operation,
+			operation,
 			raw: options.raw,
 			input: options.input,
 		});
@@ -490,7 +613,7 @@ export async function runWorkItemOperation(options: {
 	repositoryRoot: string;
 	runtime: RuntimeManifest;
 	input?: OperationInput;
-}): Promise<WorkItem | WorkItem[]> {
+}): Promise<WorkItem | WorkItem[] | WorkItemBoard> {
 	const input = operationSchema(options.operation).parse(options.input ?? {});
 	const status = await workItemSelectionStatus(
 		options.repositoryRoot,
@@ -499,8 +622,23 @@ export async function runWorkItemOperation(options: {
 	if (status.state !== "ready" || !status.selection) {
 		throw new Error(status.remedy ?? "work-item provider is not ready");
 	}
+	const transition =
+		options.operation === "transition"
+			? await assertMappedTransition(
+					options.repositoryRoot,
+					status.selection.provider.id,
+					input,
+				)
+			: undefined;
 	if (status.selection.provider.kind === "local-files") {
 		switch (options.operation) {
+			case "statuses":
+				return localWorkItemStatuses(options.repositoryRoot, input);
+			case "transition":
+				return assertLanded(
+					await transitionLocalWorkItem(options.repositoryRoot, input),
+					(transition as z.infer<typeof TransitionWorkItemInput>).to,
+				);
 			case "list":
 				return listLocalWorkItems(options.repositoryRoot);
 			case "read":
@@ -519,6 +657,7 @@ export async function runWorkItemOperation(options: {
 	const provider = status.selection.provider.id;
 	const inventory = await loadMcpInventory(options.repositoryRoot);
 	if (
+		!BOARD_OPERATIONS.has(options.operation) &&
 		planMcpOperation({
 			route: routeMcpInventory(inventory),
 			kind: "tracker",
@@ -539,7 +678,7 @@ export async function runWorkItemOperation(options: {
 	) {
 		throw new Error(`selected provider '${provider}' is not available`);
 	}
-	return invokeRemoteProvider({
+	const result = await invokeRemoteProvider({
 		provider: status.selection.provider.id,
 		invocation: tracker.invocation,
 		operation: options.operation,
@@ -547,6 +686,9 @@ export async function runWorkItemOperation(options: {
 		settings: status.selection.provider.settings,
 		input,
 	});
+	return transition
+		? assertLanded(WorkItemBoard.parse(result), transition.to)
+		: result;
 }
 
 if (import.meta.main) {
@@ -559,7 +701,7 @@ if (import.meta.main) {
 			const runtimePath = inputPath;
 			const planInput = process.argv[6];
 			if (
-				!["list", "read", "create", "link", "note"].includes(plannedOp) ||
+				!(WORK_ITEM_OPERATIONS as readonly string[]).includes(plannedOp) ||
 				!repo ||
 				!runtimePath
 			) {
@@ -580,7 +722,7 @@ if (import.meta.main) {
 			const rawPath = inputPath;
 			const originalInput = process.argv[6];
 			if (
-				!["list", "read", "create", "link", "note"].includes(normalizedOp) ||
+				!(WORK_ITEM_OPERATIONS as readonly string[]).includes(normalizedOp) ||
 				!provider ||
 				!rawPath
 			) {
@@ -597,13 +739,15 @@ if (import.meta.main) {
 			console.log(JSON.stringify(result, null, 2));
 		} else {
 			if (
-				!["list", "read", "create", "link", "note"].includes(operation ?? "") ||
+				!(WORK_ITEM_OPERATIONS as readonly string[]).includes(
+					operation ?? "",
+				) ||
 				!repositoryRoot ||
 				!manifestPath ||
 				(operation !== "list" && !inputPath)
 			) {
 				console.error(
-					"usage: work-item-provider.ts <list|read|create|link|note> <repository-root> <runtime-manifest> [input.json]",
+					"usage: work-item-provider.ts <list|read|create|link|note|statuses|transition> <repository-root> <runtime-manifest> [input.json]",
 				);
 				process.exit(2);
 			}

@@ -61,7 +61,7 @@ Union of the stage preconditions for the entry point chosen. Do not start stage
 4. **Further waves:** when the operator reports merges (or skips), recompute
    the ready-now set and either fan out again or run remaining blockers.
 5. Epic-level closing brief when nothing remains: keys, MR iids / merges,
-   stops; human owns leftover merge/archive/tracker status.
+   stops; human owns leftover merge/archive/ticket close.
 
 Fan-out brief shape:
 
@@ -95,7 +95,7 @@ Keys: KEY-1, KEY-2, KEY-3, …
 ## Done
 
 Conductor done when the chosen entry's stages have stopped and the operator has
-the final brief (artifacts + human exits: merge, `/openspec-archive`, tracker status).
+the final brief (artifacts + human exits: merge, `/openspec-archive`, ticket close).
 
 ## Out of scope
 

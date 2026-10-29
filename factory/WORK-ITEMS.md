@@ -69,8 +69,28 @@ A custom adapter uses a lowercase provider id and implements normalized
 work-item list, read, create, link, and note operations behind `tracker.item`.
 Readiness overlay currently maps GitHub, GitLab, and Jira in
 `scripts/provider-contract.ts`; a new name needs that mapping. Credentials
-stay in the host integration. Human-owned status transitions remain outside
-delivery regardless of provider.
+stay in the host integration.
+
+## Board status
+
+Two more operations let delivery move tickets on the board. `statuses` takes
+`{ "ref" }` and returns `{ version, provider, ref, current, statuses }`:
+the settable columns in board order, and the ticket's column (`null` when it
+sits before the first one). `transition` takes `{ "approved": true, "ref",
+"to" }` and returns the same shape after the move. Core refuses a transition
+unless `.delivery/board-status.json` is confirmed for the selected provider
+and names the target, and fails when the ticket did not land there. Both run
+only through the executable adapter, never through session tools.
+
+`scripts/board-status.ts propose` maps the columns to the phases `ready`,
+`in-progress`, `in-review`, and `done`, and leaves an ambiguous column or a
+phase with two candidates for the operator. `confirm` writes the map with the
+operator's approval words. `sync` moves a ticket forward to its phase's column
+and skips, with a reason, when there is no map, the board changed, or the
+ticket is already at or past that column. Local files, GitLab, and Jira
+implement both operations; Jira needs a `board` setting for the column order.
+Closing, reopening, deleting, and backwards moves stay human-owned regardless
+of provider.
 
 See [`docs/extending.md`](../docs/extending.md) and
 [`providers/README.md`](../providers/README.md).

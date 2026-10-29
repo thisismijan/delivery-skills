@@ -363,6 +363,16 @@ tree, say they need committing; do not commit them.
   Use `--replace` only after explicit confirmation of a changed choice. Init may
   add `.delivery/` and `.review/` to `.gitignore` and persist
   `.delivery/work-items.json`; it creates no remote resource or work item.
+  Then map the board. Pick one existing ticket and run
+  `bun "${FACTORY_ROOT}/scripts/board-status.ts" propose "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <work-item-key>`.
+  Show the operator the board columns, each proposed phase (`ready`,
+  `in-progress`, `in-review`, `done`), and every ambiguous column or
+  unresolved phase, with the **Human decision brief**. Never pick a column for
+  an unresolved phase yourself. After the operator confirms or edits the map,
+  write it with their exact words under `approval` and run
+  `bun "${FACTORY_ROOT}/scripts/board-status.ts" confirm "<repoRoot>" <board-map.json>`.
+  When `propose` fails or the operator declines, record that tickets will not
+  move and continue; every sync then skips.
 
 ### Entry 0 — Discovery
 
@@ -671,7 +681,7 @@ line in the ledger.
 - Dependents wait on **merged** blockers, not ready MRs.
 - A review or readiness verdict holds only for the head it was given on. A new
   head voids it unless the patch-id is unchanged.
-- Never merge via the forge provider and never transition work-item status.
+- Never merge via the forge provider and never close, reopen, or move a ticket backwards. Tickets move forward only through `board-status.ts sync`.
   Never close a change or resolve threads. Create work items only from approved, verified groom drafts in continuous
   mode, with the run-and-slice audit marker and idempotency check.
 - Generic stages call only `bun "${FACTORY_ROOT}/scripts/forge-provider.ts"

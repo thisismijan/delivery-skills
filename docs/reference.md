@@ -160,9 +160,25 @@ thread, or transitions work-item status.
 
 ```text
 bun "$FACTORY_ROOT/scripts/work-item-provider.ts" \
-  <list|read|create|link|note> <repoRoot> \
+  <list|read|create|link|note|statuses|transition> <repoRoot> \
   "$FACTORY_ROOT/runtime-manifest.json" [input.json]
 ```
+
+## Board status
+
+```text
+bun "$FACTORY_ROOT/scripts/board-status.ts" propose <repoRoot> "$FACTORY_ROOT/runtime-manifest.json" <work-item-key>
+bun "$FACTORY_ROOT/scripts/board-status.ts" confirm <repoRoot> <board-map.json>
+bun "$FACTORY_ROOT/scripts/board-status.ts" sync <repoRoot> "$FACTORY_ROOT/runtime-manifest.json" <work-item-key> <ready|in-progress|in-review|done>
+```
+
+`/delivery init` proposes a map from the board's columns to the four
+delivery phases and confirms it with the operator. Draft syncs `ready`,
+execute syncs `in-progress` and then `in-review`, and post-merge verify
+syncs `done` after a verified deploy. A sync only moves a ticket forward, to
+a column the confirmed map names. It skips, and the stage continues, when
+there is no map, the board changed, or the ticket is already there or
+further along. Closing, reopening, and backwards moves stay with people.
 
 ## Provider credentials and overrides
 
@@ -170,7 +186,7 @@ bun "$FACTORY_ROOT/scripts/work-item-provider.ts" \
 |----------|-------------|--------------------|
 | GitHub | `GITHUB_TOKEN`, `GH_TOKEN`, `GH_TOKEN_FILE`, `~/token` | `GH_HOST` / `GITHUB_HOST`, `GH_REPO` / `GITHUB_REPOSITORY` |
 | GitLab | `GITLAB_TOKEN`, `GL_TOKEN_FILE`, `~/token` | `GL_HOST`, `GL_PROJECT` |
-| Jira | `JIRA_SITE`, email+token or token file | Project key per repository: `delivery-init.ts --work-items jira --setting project=<KEY>`; MCP transport also records `--setting site=<url>` for `cloudId` |
+| Jira | `JIRA_SITE`, email+token or token file | Project key per repository: `delivery-init.ts --work-items jira --setting project=<KEY>`; MCP transport also records `--setting site=<url>` for `cloudId`. Board moves need `--setting board=<board-id>` |
 
 ## Artifacts (gitignored in the target repo)
 
@@ -178,6 +194,7 @@ bun "$FACTORY_ROOT/scripts/work-item-provider.ts" \
 |------|-------|
 | `.delivery/work-items.json` | Confirmed work-item provider and its per-repository settings |
 | `.delivery/work-items/` | Local-files items |
+| `.delivery/board-status.json` | Operator-confirmed map from board columns to delivery phases |
 | `.delivery/runs/` | Ledgers, run contracts, retros |
 | `.delivery/workers/` | Parallel worker journals |
 | `.delivery/routing/` | Model inventory and scorecards |

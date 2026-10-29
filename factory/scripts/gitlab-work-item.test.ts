@@ -339,24 +339,18 @@ test("note replay updates the existing audit note", async () => {
 	expect(requests.some((request) => request.method === "PUT")).toBe(true);
 });
 
-test("close, delete, and status stay human-owned", async () => {
+test("close, delete, and reopen stay human-owned", async () => {
 	const { deps, requests } = recordingDeps(() => {
 		throw new Error("network should not run");
 	});
-	for (const operation of [
-		"close",
-		"delete",
-		"transition",
-		"status",
-		"reopen",
-	]) {
+	for (const operation of ["close", "delete", "status", "reopen"]) {
 		await expect(
 			runGitLabWorkItem(
 				operation,
 				envelope({ approved: true, ref: "12" }),
 				deps,
 			),
-		).rejects.toThrow(/does not close, delete, or transition/);
+		).rejects.toThrow(/does not close, reopen, or delete/);
 	}
 	expect(requests).toEqual([]);
 });
@@ -452,4 +446,141 @@ test("token files are used when GITLAB_TOKEN is absent", async () => {
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
+});
+
+const BOARD = {
+	id: 7,
+	lists: [
+		{ id: 3, position: 2, label: { name: "workflow::review" } },
+		{ id: 1, position: 0, label: { name: "workflow::ready" } },
+		{ id: 2, position: 1, label: { name: "workflow::doing" } },
+	],
+};
+
+function boardHandler(
+	issue: Record<string, unknown>,
+	boards: unknown[] = [BOARD],
+) {
+	return (request: GitLabRequest) => {
+		const path = new URL(request.url).pathname;
+		if (request.method === "GET" && path.endsWith("/boards")) {
+			return pageOf(request.url) === 1 ? boards : [];
+		}
+		if (request.method === "GET" && path.endsWith("/issues/12")) return issue;
+		if (request.method === "PUT" && path.endsWith("/issues/12")) {
+			const body = request.body as Record<string, string>;
+			const labels = (issue.labels as string[])
+				.filter((label) => label !== body.remove_labels)
+				.concat(body.add_labels ?? []);
+			return { ...issue, labels };
+		}
+		throw new Error(`unexpected ${request.method} ${path}`);
+	};
+}
+
+test("statuses reads board columns in position order and the issue's column", async () => {
+	const { deps } = recordingDeps(
+		boardHandler({
+			iid: 12,
+			state: "opened",
+			labels: ["bug", "workflow::doing"],
+		}),
+		10,
+	);
+	expect(
+		await runGitLabWorkItem("statuses", envelope({ ref: "12" }), deps),
+	).toEqual({
+		version: 1,
+		provider: "gitlab",
+		ref: "12",
+		current: "workflow::doing",
+		statuses: ["workflow::ready", "workflow::doing", "workflow::review"],
+	});
+	const { deps: fresh } = recordingDeps(
+		boardHandler({ iid: 12, state: "opened", labels: [] }),
+		10,
+	);
+	expect(
+		await runGitLabWorkItem("statuses", envelope({ ref: "12" }), fresh),
+	).toMatchObject({
+		current: null,
+	});
+});
+
+test("statuses refuses an unknown or unchosen board", async () => {
+	const { deps } = recordingDeps(
+		boardHandler({ iid: 12, state: "opened", labels: [] }, [
+			BOARD,
+			{ ...BOARD, id: 8 },
+		]),
+		10,
+	);
+	await expect(
+		runGitLabWorkItem("statuses", envelope({ ref: "12" }), deps),
+	).rejects.toThrow(/more than one issue board/);
+	expect(
+		await runGitLabWorkItem(
+			"statuses",
+			envelope({ ref: "12" }, { settings: { board: "8" } }),
+			deps,
+		),
+	).toMatchObject({
+		statuses: ["workflow::ready", "workflow::doing", "workflow::review"],
+	});
+	await expect(
+		runGitLabWorkItem(
+			"statuses",
+			envelope({ ref: "12" }, { settings: { board: "9" } }),
+			deps,
+		),
+	).rejects.toThrow(/board 9 was not found/);
+});
+
+test("transition swaps the column label and refuses closed issues", async () => {
+	const { deps, requests } = recordingDeps(
+		boardHandler({
+			iid: 12,
+			state: "opened",
+			labels: ["bug", "workflow::ready"],
+		}),
+		10,
+	);
+	const moved = await runGitLabWorkItem(
+		"transition",
+		envelope({ approved: true, ref: "12", to: "workflow::doing" }),
+		deps,
+	);
+	expect(moved).toMatchObject({ current: "workflow::doing" });
+	expect(requests.find((request) => request.method === "PUT")?.body).toEqual({
+		add_labels: "workflow::doing",
+		remove_labels: "workflow::ready",
+	});
+	await expect(
+		runGitLabWorkItem(
+			"transition",
+			envelope({ ref: "12", to: "workflow::doing" }),
+			deps,
+		),
+	).rejects.toThrow(/approved/);
+	await expect(
+		runGitLabWorkItem(
+			"transition",
+			envelope({ approved: true, ref: "12", to: "Done" }),
+			deps,
+		),
+	).rejects.toThrow(/not a column/);
+	const { deps: closed, requests: closedRequests } = recordingDeps(
+		boardHandler({ iid: 12, state: "closed", labels: [] }),
+		10,
+	);
+	await expect(
+		runGitLabWorkItem(
+			"transition",
+			envelope({ approved: true, ref: "12", to: "workflow::doing" }),
+			closed,
+		),
+	).rejects.toThrow(/closed/);
+	expect(closedRequests.some((request) => request.method === "PUT")).toBe(
+		false,
+	);
 });

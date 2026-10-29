@@ -12,8 +12,8 @@ from `skills/delivery/SKILL.md`.
 3. **Shape.** `/delivery <idea>` or `/delivery discover` / `groom` until the
    atomic ticket plan is honest.
 4. **Approve the plan.** That is the single routine authorization for the run.
-   It does not authorize merge, tracker status, risk acceptance, or skill
-   install.
+   It does not authorize merge, closing tickets, risk acceptance, or skill
+   install. Tickets move forward on the confirmed board map as stages finish.
 5. **Auto.** `/delivery auto <key>` creates approved items, fans out
    independent tickets into isolated worktrees (at most `maxParallelWorktrees`
    at a time, default 4, override with `MAX_PARALLEL_WORKTREES`), drafts,
