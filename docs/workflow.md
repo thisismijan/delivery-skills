@@ -65,8 +65,8 @@ only authority that may mark the change ready.
 `/execute` applies a proven rename, unused or unique missing import, or
 format-only unit without the test-writer or the implementer. That includes a
 unique Python parameter or local, a unique Java field, a Java type whose
-listed file name matches, a unique TypeScript, Python, Java, or Go missing import, and format-only
-through a repo Prettier, Ruff, or google-java-format binary, or the Go standard formatter when names and
+listed file name matches, a unique TypeScript, Python, Java, Go, or C# missing import, and format-only
+through a repo Prettier, Ruff, or google-java-format binary, the Go standard formatter, or repo-local `bin/csharpier` when names and
 literals stay identical. Extract method, inlining, and a formatter that
 changes names still use the implementer. Green, lint, typecheck, and holdout
 still run.
