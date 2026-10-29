@@ -3,6 +3,10 @@ import { access, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { bunRuntimeDetail, expectedBunVersion } from "./bun-runtime";
+import {
+	AGENT_SUMMARY_PRELOAD_RELATIVE,
+	claudeSettingsCarryPreload,
+} from "./claude-settings";
 import { cursorHooksContainGuard } from "./cursor-settings";
 import { loadMcpInventory } from "./mcp-inventory";
 import {
@@ -361,6 +365,12 @@ export async function runDoctor(options: {
 			env,
 		}),
 	);
+	const agentSummary = await agentSummaryDoctorCheck({
+		factoryRoot: options.factoryRoot,
+		runtime,
+		env,
+	});
+	if (agentSummary) checks.push(agentSummary);
 
 	let route: McpRouteResult = { families: [] };
 	try {
@@ -399,6 +409,36 @@ export async function runDoctor(options: {
 	}
 
 	return { checks, ...doctorReadiness(checks) };
+}
+
+export async function agentSummaryDoctorCheck(options: {
+	factoryRoot: string;
+	runtime: RuntimeManifest | null;
+	env: Record<string, string | undefined>;
+}): Promise<DoctorCheck | undefined> {
+	const invocation =
+		options.runtime?.capabilities["mutation.guard"]?.invocation ?? "";
+	if (!invocation.includes("claude-code")) return undefined;
+	const settingsPath =
+		options.env.CLAUDE_SETTINGS_FILE ??
+		join(homedir(), ".claude", "settings.json");
+	const preload = join(options.factoryRoot, AGENT_SUMMARY_PRELOAD_RELATIVE);
+	let settings: unknown = {};
+	try {
+		settings = JSON.parse(await readFile(settingsPath, "utf8")) as unknown;
+	} catch {
+		settings = {};
+	}
+	if (existsSync(preload) && claudeSettingsCarryPreload(settings, preload)) {
+		return ready(
+			"Agent status summaries",
+			"preload is in Claude settings; restart the Claude daemon if this session started before install",
+		);
+	}
+	return setup(
+		"Agent status summaries",
+		"rerun the Claude adapter, then restart the Claude daemon so background workers skip the status-line summary",
+	);
 }
 
 export async function mutationGuardDoctorCheck(options: {

@@ -15,8 +15,12 @@ provider. Extra arguments are forwarded, so `--provider github` or
 `--provider github --provider jira` replace or compose that default. It
 additively installs and verifies the Bash `PreToolUse` mutation hook in
 `${CLAUDE_SETTINGS_FILE:-$HOME/.claude/settings.json}`, preserving unrelated
-settings and writing a `.delivery-backup` before replacement. Reload Claude
-Code, enter the target repository, and run:
+settings and writing a `.delivery-backup` before replacement. It also copies
+the agent-summary preload into the installed factory and adds `--preload` to
+`BUN_OPTIONS` in those settings, so background workers skip the status-line
+summary query. Other `BUN_OPTIONS` flags stay. Restart the Claude daemon
+after install (`claude daemon stop --any`) so already-running sessions pick
+this up. Reload Claude Code, enter the target repository, and run:
 
 ```bash
 export FACTORY_ROOT="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}/_factory"
@@ -38,3 +42,6 @@ Claude-only behaviour:
   hard reset, tracker mutation, and equivalent API calls, and it denies a
   payload with no command. A failed hook setup restores the prior skill install
   and leaves mutating stages blocked.
+- The status-line summary preload is MIT-licensed from Flamerix AI. It wraps
+  only Claude Code's compiled Bun image. Doctor reports it as setup until the
+  live settings carry the preload; missing it does not block a stage.
