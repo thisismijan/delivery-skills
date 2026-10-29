@@ -24,6 +24,7 @@ Environment:
 | `CURSOR_HOOKS_FILE` | Cursor `hooks.json` for the mutation hook |
 | `MAX_FIX_ATTEMPTS` | Bounded repair attempts (`scripts/config.ts`, default 2) |
 | `MAX_PARALLEL_WORKTREES` | Concurrent isolated auto worktrees (`scripts/config.ts`, default 4) |
+| `WORKER_IDLE_MINUTES` | Minutes without a journal write before auto stops a parallel worker as idle (`scripts/config.ts`, default 20) |
 | `ROUTING_PROFILING` | Diagnostic shadow-routing evidence. Defaults to `off`. Set `always` to collect evaluation evidence. Does not change live model selection, holdout review of new or changed code, or quality gates |
 
 ## Cost-control scripts
@@ -195,6 +196,7 @@ bun "$FACTORY_ROOT/scripts/worktree-files.ts" propose <repoRoot>
 bun "$FACTORY_ROOT/scripts/worktree-files.ts" confirm <repoRoot> <worktree-files.json>
 bun "$FACTORY_ROOT/scripts/worktree-files.ts" copy <repoRoot> <worktree-path>
 bun "$FACTORY_ROOT/scripts/worktree-close.ts" <worktree-path> [--dry-run]
+bun "$FACTORY_ROOT/scripts/worker-watch.ts" <workers-dir> <dispatch.json>
 ```
 
 `/delivery init` proposes the local files git ignores (for example `.env`)
@@ -205,6 +207,8 @@ places those files in it, and stops that key without writing anything if one
 is missing or already present. `worktree-close.ts` removes a worker's
 worktree only when nothing is uncommitted or untracked and its last commit is
 on a remote branch; otherwise it keeps the folder and says why.
+`worker-watch.ts` reports each dispatched worker as active or idle from its
+journal's last write and exits 3 when any is idle.
 
 ## Provider credentials and overrides
 

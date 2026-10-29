@@ -117,6 +117,11 @@ validates each journal against git and the forge and applies the wave's key
 updates to the run ledger in one compare-and-swap write. Missing or conflicting
 evidence stops only that key. Worker prose is never merged into the ledger.
 
+A worker writes its journal at every step boundary and around any long
+command, so each write is a heartbeat. When `worker-watch.ts` reports a worker
+idle, the coordinator records `worker <KEY> idle for <N> minutes; stopped` in
+Decisions and applies nothing that worker writes afterwards.
+
 When the coordinator closes a worker's worktree with `worktree-close.ts` and it
 is kept, the coordinator appends `kept worktree <path> for <KEY>: <reasons>` to
 Decisions. `/delivery status` lists every kept worktree that still exists, so

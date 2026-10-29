@@ -10,6 +10,7 @@ import {
 import {
 	DEFAULT_MAX_PARALLEL_WORKTREES,
 	DEFAULT_ROUTING_PROFILING,
+	DEFAULT_WORKER_IDLE_MINUTES,
 } from "./config";
 import { FAST_SAFETY_FLOORS } from "./fast-dispatch";
 import { FORGE_OPERATIONS } from "./forge-provider";
@@ -28,6 +29,7 @@ import {
 	loadConstitution,
 } from "./sdlc-constitution";
 import { MAX_DERIVED_ACCEPTANCE_CRITERIA } from "./verdicts";
+import { WORKER_WATCH_INVOCATION } from "./worker-watch";
 import { WORKTREE_CLOSE_INVOCATION } from "./worktree-close";
 import {
 	WORKTREE_FILES_CONFIRM_INVOCATION,
@@ -1225,9 +1227,30 @@ test("worker worktrees get only the local files the operator confirmed", () => {
 		WORKTREE_FILES_CONFIRM_INVOCATION,
 		WORKTREE_FILES_COPY_INVOCATION,
 	]) {
-		expect(
-			referenceDocs.replace(/"\$FACTORY_ROOT\/([^"]+)"/g, "$1"),
-		).toContain(invocation);
+		expect(referenceDocs.replace(/"\$FACTORY_ROOT\/([^"]+)"/g, "$1")).toContain(
+			invocation,
+		);
 	}
 	expect(referenceDocs).toContain(WORKTREE_FILES_PATH);
+});
+
+test("auto stops idle workers from their journal heartbeat", () => {
+	const contract = plain(auto);
+	expect(auto).toContain(
+		'scripts/worker-watch.ts" <workers-dir> <dispatch.json>',
+	);
+	expect(WORKER_WATCH_INVOCATION).toBe(
+		"scripts/worker-watch.ts <workers-dir> <dispatch.json>",
+	);
+	expect(contract).toContain(`default ${DEFAULT_WORKER_IDLE_MINUTES}`);
+	expect(contract).toMatch(/WORKER_IDLE_MINUTES/);
+	expect(contract).toMatch(/\[stopped: worker idle\]/);
+	expect(contract).toMatch(/ignore anything it writes afterwards/);
+	expect(contract).toMatch(/Its siblings keep running/);
+	expect(plain(ledger)).toMatch(
+		/applies nothing that worker writes afterwards/,
+	);
+	expect(referenceDocs).toContain(
+		`\`WORKER_IDLE_MINUTES\` | Minutes without a journal write before auto stops a parallel worker as idle (\`scripts/config.ts\`, default ${DEFAULT_WORKER_IDLE_MINUTES})`,
+	);
 });

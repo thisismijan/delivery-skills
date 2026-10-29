@@ -125,7 +125,7 @@ Unlike test durability, this rubric is **deliberately not a review gate**: `hold
 
 ## Hardening (N6)
 
-- **Config is the single source for knobs**: `scripts/config.ts` validates and defaults everything (`MAX_FIX_ATTEMPTS` default 2, `MAX_PARALLEL_WORKTREES` default 4, `ROUTING_PROFILING` default `off`); malformed config throws (fail closed).
+- **Config is the single source for knobs**: `scripts/config.ts` validates and defaults everything (`MAX_FIX_ATTEMPTS` default 2, `MAX_PARALLEL_WORKTREES` default 4, `WORKER_IDLE_MINUTES` default 20, `ROUTING_PROFILING` default `off`); malformed config throws (fail closed).
 - **`scripts/find-change.ts` is the only change-locator**: both commands use it; **more than one match is `ambiguous` → escalate**, never guess.
 - **`scripts/generate-tasks.ts` writes `tasks.md`**: `/draft` authors proposal, specs, and design, then generates one test task per spec scenario plus implementation. A spec with no scenarios fails closed.
 - **Re-draft replaces in place**: re-running `/draft` on a key with an existing change re-proposes over the same folder, not a duplicate.
