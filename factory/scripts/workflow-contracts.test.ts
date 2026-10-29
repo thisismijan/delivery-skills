@@ -421,7 +421,9 @@ describe("small-context ticket scope", () => {
 		expect(draft).toMatch(
 			/no named authentication, authorization, secrets, credentials/i,
 		);
-		expect(plain(execute)).toMatch(/typescript, javascript, python, and java/i);
+		expect(plain(execute)).toMatch(
+			/typescript, javascript, python, java, and go/i,
+		);
 		expect(plain(read("agents/feasibility-analyst.md"))).toMatch(
 			/already complete with no open questions/i,
 		);
@@ -531,10 +533,11 @@ describe("bounded recovery and replay safety", () => {
 		expect(runtime).toContain("TypeScript");
 		expect(runtime).toContain("Python");
 		expect(runtime).toContain("Java");
+		expect(runtime).toContain("Go");
 		expect(plain(execute)).toMatch(/unique python parameter or local/i);
 		expect(plain(execute)).toMatch(/unique java field/i);
 		expect(plain(execute)).toMatch(
-			/unique typescript, python, or java missing import/i,
+			/unique typescript, python, java, or go missing import/i,
 		);
 		expect(plain(execute)).toMatch(/google-java-format/i);
 		expect(plain(rootReadme)).toMatch(
@@ -711,7 +714,7 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(referenceDocs)).toMatch(/lenses array is authoritative/i);
 		expect(plain(runtime)).toMatch(/lenses array is authoritative/i);
 		expect(plain(rootReadme)).toMatch(
-			/typescript, javascript, python, or java/i,
+			/typescript, javascript, python, java, or go/i,
 		);
 		expect(plain(rootReadme)).toMatch(
 			/acknowledgement-only, mention-only, url-only, and emoji-only/i,
@@ -728,7 +731,7 @@ describe("bounded recovery and replay safety", () => {
 		);
 		expect(plain(workflowDocs)).toMatch(/unique python parameter or local/i);
 		expect(plain(rootReadme)).toMatch(
-			/unique typescript, python, or java missing import/i,
+			/unique typescript, python, java, or go missing import/i,
 		);
 		expect(plain(referenceDocs)).toMatch(/node_modules\/\.bin\/prettier/i);
 		expect(plain(referenceDocs)).toMatch(/bin\/google-java-format/i);

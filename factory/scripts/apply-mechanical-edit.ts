@@ -27,9 +27,10 @@ const TYPESCRIPT_EXTENSIONS = new Set([
 ]);
 const PYTHON_EXTENSIONS = new Set([".py", ".pyi"]);
 const JAVA_EXTENSIONS = new Set([".java"]);
+const GO_EXTENSIONS = new Set([".go"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
 
-type ApplyLanguage = "typescript" | "python" | "java";
+type ApplyLanguage = "typescript" | "python" | "java" | "go";
 
 function extensionOf(fileName: string): string {
 	const dot = fileName.lastIndexOf(".");
@@ -46,6 +47,9 @@ function languageOf(fileName: string): ApplyLanguage | undefined {
 	}
 	if (JAVA_EXTENSIONS.has(extension)) {
 		return "java";
+	}
+	if (GO_EXTENSIONS.has(extension)) {
+		return "go";
 	}
 	return undefined;
 }
@@ -270,6 +274,73 @@ const PythonRenameResult = z.object({
 	files: z.record(z.string()).optional(),
 });
 
+async function applyGoEdit(
+	classified: MechanicalEditPlan,
+	payload: {
+		operation: string;
+		from?: string;
+		to?: string;
+		files: string[];
+	},
+	root: string,
+	listed: string[],
+	appliedReason: string,
+): Promise<ApplyMechanicalEditResult> {
+	const inputPath = join(
+		tmpdir(),
+		`apply-go-mechanical-edit-${Date.now()}.json`,
+	);
+	await writeFile(inputPath, JSON.stringify(payload), "utf8");
+	try {
+		const proc = Bun.spawn(
+			[
+				"go",
+				"run",
+				join(import.meta.dir, "go-mechanical-edit.go"),
+				root,
+				inputPath,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		const exit = await proc.exited;
+		const stdout = await new Response(proc.stdout).text();
+		if (exit !== 0) {
+			return plan(classified, "go helper failed");
+		}
+		const parsed = PythonRenameResult.safeParse(JSON.parse(stdout));
+		if (!parsed.success || !parsed.data.ok || !parsed.data.files) {
+			return plan(
+				classified,
+				parsed.success
+					? (parsed.data.reason ?? "go rewrite was not proven")
+					: "go helper returned invalid JSON",
+			);
+		}
+		const listedSet = new Set(listed);
+		const written: string[] = [];
+		for (const [relativePath, text] of Object.entries(parsed.data.files)) {
+			const fileName = resolve(root, relativePath);
+			if (!listedSet.has(fileName)) {
+				return plan(classified, "go helper wrote an unlisted file");
+			}
+			const original = await Bun.file(fileName).text();
+			if (text === original) continue;
+			await writeFile(fileName, text, "utf8");
+			written.push(relativePath.split(sep).join("/"));
+		}
+		return {
+			verdict: "mechanical",
+			reason: appliedReason,
+			apply: "script",
+			filesChanged: written.sort(),
+		};
+	} finally {
+		await Bun.file(inputPath)
+			.delete()
+			.catch(() => undefined);
+	}
+}
+
 async function applyPythonEdit(
 	classified: MechanicalEditPlan,
 	payload: {
@@ -472,7 +543,10 @@ async function applyJavaFormat(
 				.text()
 				.catch(() => undefined);
 			if (original === undefined) {
-				return plan(classified, `missing file: ${relative(root, file) || file}`);
+				return plan(
+					classified,
+					`missing file: ${relative(root, file) || file}`,
+				);
 			}
 			const next = await spawnStdin([formatter, "-"], original);
 			if (next === undefined) {
@@ -663,7 +737,10 @@ async function applyUniqueMissingImports(
 		for (const file of listed) {
 			const original = working.get(file);
 			if (original === undefined) {
-				return { ok: false, reason: `missing file: ${relative(root, file) || file}` };
+				return {
+					ok: false,
+					reason: `missing file: ${relative(root, file) || file}`,
+				};
 			}
 			for (const diagnostic of service.getSemanticDiagnostics(file)) {
 				if (diagnostic.code !== 2304 || diagnostic.start === undefined) {
@@ -684,7 +761,9 @@ async function applyUniqueMissingImports(
 					continue;
 				}
 				const changes = fixes[0].changes;
-				if (changes.some((change) => !listedSet.has(resolve(change.fileName)))) {
+				if (
+					changes.some((change) => !listedSet.has(resolve(change.fileName)))
+				) {
 					continue;
 				}
 				const edits: RenameEdit[] = [];
@@ -711,7 +790,9 @@ async function applyUniqueMissingImports(
 						};
 					}
 					const next = applyEditsToText(current, fileEdits);
-					if (nonImportText(current, fileName) !== nonImportText(next, fileName)) {
+					if (
+						nonImportText(current, fileName) !== nonImportText(next, fileName)
+					) {
 						return {
 							ok: false,
 							reason: "import rewrite would change code that is not an import",
@@ -841,7 +922,10 @@ async function applyTypeScriptFormat(
 		for (const file of listed) {
 			const original = ts.sys.readFile(file);
 			if (original === undefined) {
-				return plan(classified, `missing file: ${relative(root, file) || file}`);
+				return plan(
+					classified,
+					`missing file: ${relative(root, file) || file}`,
+				);
 			}
 			const next = await spawnStdin(
 				[prettier, "--stdin-filepath", file],
@@ -954,6 +1038,15 @@ export async function applyMechanicalEdit(input: {
 		if (language === "java") {
 			return applyJavaImports(classified, root, listed, payload.files);
 		}
+		if (language === "go") {
+			return applyGoEdit(
+				classified,
+				payload,
+				root,
+				listed,
+				"applied Go import-only rewrite",
+			);
+		}
 		if (language !== "typescript") {
 			return plan(classified, "no proven script for this operation");
 		}
@@ -965,6 +1058,15 @@ export async function applyMechanicalEdit(input: {
 		}
 		if (language === "java") {
 			return applyJavaFormat(classified, root, listed, payload.files);
+		}
+		if (language === "go") {
+			return applyGoEdit(
+				classified,
+				payload,
+				root,
+				listed,
+				"applied Go format-only rewrite",
+			);
 		}
 		if (language !== "typescript") {
 			return plan(classified, "no proven script for this operation");
@@ -985,6 +1087,15 @@ export async function applyMechanicalEdit(input: {
 	}
 	if (language === "java") {
 		return applyJavaRename(classified, payload, root, listed);
+	}
+	if (language === "go") {
+		return applyGoEdit(
+			classified,
+			payload,
+			root,
+			listed,
+			"applied Go identifier rename",
+		);
 	}
 	if (language !== "typescript") {
 		return plan(classified, "no proven script for this language");
