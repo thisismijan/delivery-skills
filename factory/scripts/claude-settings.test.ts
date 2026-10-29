@@ -1,9 +1,13 @@
 import { expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+	bunOptionsWithPreload,
+	claudeSettingsCarryPreload,
 	installClaudeMutationHook,
+	mergeClaudeAgentSummaryPreload,
 	mergeClaudeMutationHook,
 } from "./claude-settings";
 
@@ -79,4 +83,69 @@ test("malformed settings fail without changing the original", async () => {
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
+});
+
+test("preload merge keeps other env and existing BUN_OPTIONS flags", () => {
+	const path = "/skills/_factory/host/no-agent-summary.js";
+	const merged = mergeClaudeAgentSummaryPreload(
+		{
+			theme: "dark",
+			env: { ANTHROPIC_API_KEY: "kept", BUN_OPTIONS: "--smol" },
+		},
+		path,
+	);
+	expect(merged.theme).toBe("dark");
+	expect(merged.env).toEqual({
+		ANTHROPIC_API_KEY: "kept",
+		BUN_OPTIONS: `--smol --preload ${path}`,
+	});
+	expect(
+		mergeClaudeAgentSummaryPreload(merged, path).env as { BUN_OPTIONS: string },
+	).toMatchObject({ BUN_OPTIONS: `--smol --preload ${path}` });
+	expect(() => bunOptionsWithPreload("", "relative.js")).toThrow(
+		/absolute file path/,
+	);
+	expect(claudeSettingsCarryPreload(merged, path)).toBe(true);
+	expect(claudeSettingsCarryPreload(merged, "/other.js")).toBe(false);
+});
+
+test("install writes the preload into settings env", async () => {
+	const root = await mkdtemp(join(tmpdir(), "claude-settings-preload-"));
+	try {
+		const settings = join(root, "settings.json");
+		const factory = join(root, "factory");
+		const evidence = join(factory, ".mutation-guard-enforced");
+		const preload = join(factory, "host", "no-agent-summary.js");
+		await mkdir(join(factory, "host"), { recursive: true });
+		await writeFile(preload, "// hook\n");
+		await writeFile(settings, '{"env":{"KEEP":"yes"}}\n');
+		await installClaudeMutationHook(settings, factory, evidence, preload);
+		const persisted = JSON.parse(await readFile(settings, "utf8")) as {
+			env: { KEEP: string; BUN_OPTIONS: string };
+		};
+		expect(persisted.env.KEEP).toBe("yes");
+		expect(persisted.env.BUN_OPTIONS).toBe(`--preload ${preload}`);
+		expect(await readFile(settings, "utf8")).toContain("commit-guard.ts");
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("the vendored preload only installs inside Claude Code's compiled image", () => {
+	const source = readFileSync(
+		join(
+			import.meta.dir,
+			"..",
+			"..",
+			"adapters",
+			"claude-code",
+			"no-agent-summary.js",
+		),
+		"utf8",
+	);
+	expect(source).toContain('Bun.main.startsWith("/$bunfs/")');
+	expect(source).toContain("if (IN_COMPILED_BUN) install();");
+	expect(source).toContain("[AgentSummary] Timer fired");
+	expect(source).toContain("agent_summary");
+	expect(source).toMatch(/SPDX-License-Identifier: MIT/);
 });

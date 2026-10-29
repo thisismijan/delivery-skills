@@ -1,5 +1,10 @@
 import { expect, test } from "bun:test";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { AGENT_SUMMARY_PRELOAD_RELATIVE } from "./claude-settings";
 import {
+	agentSummaryDoctorCheck,
 	type DoctorReport,
 	doctorReadiness,
 	formatDoctorReport,
@@ -358,4 +363,56 @@ test("unresolved formatting hides ready and human-owned rows", () => {
 	expect(output).toContain("Bun runtime");
 	expect(output).not.toContain("READY NOW");
 	expect(output).not.toContain("HUMAN-OWNED");
+});
+
+test("agent status summaries are setup on Claude until the preload is live, and never a blocked stage", async () => {
+	const root = await mkdtemp(join(tmpdir(), "doctor-summary-"));
+	try {
+		const factory = join(root, "factory");
+		const settings = join(root, "settings.json");
+		const preload = join(factory, AGENT_SUMMARY_PRELOAD_RELATIVE);
+		await mkdir(join(factory, "host"), { recursive: true });
+		const runtime = overlayRuntimeManifest(defaultRuntimeManifest(true), {
+			version: 1,
+			capabilities: {
+				...defaultRuntimeManifest(true).capabilities,
+				"mutation.guard": {
+					available: true,
+					mode: "native",
+					enforcement: "enforced",
+					invocation: "adapters/claude-code/settings.json",
+				},
+			},
+		});
+		const env = { CLAUDE_SETTINGS_FILE: settings };
+		expect(
+			await agentSummaryDoctorCheck({ factoryRoot: factory, runtime, env }),
+		).toMatchObject({
+			name: "Agent status summaries",
+			category: "Needs setup",
+			required: false,
+			ok: false,
+		});
+		await writeFile(preload, "// hook\n");
+		await writeFile(
+			settings,
+			JSON.stringify({ env: { BUN_OPTIONS: `--preload ${preload}` } }),
+		);
+		expect(
+			await agentSummaryDoctorCheck({ factoryRoot: factory, runtime, env }),
+		).toMatchObject({
+			category: "Ready now",
+			required: false,
+			ok: true,
+		});
+		expect(
+			await agentSummaryDoctorCheck({
+				factoryRoot: factory,
+				runtime: defaultRuntimeManifest(true),
+				env,
+			}),
+		).toBeUndefined();
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
 });

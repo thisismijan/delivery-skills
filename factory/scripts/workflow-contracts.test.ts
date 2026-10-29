@@ -849,6 +849,8 @@ describe("portable mutation boundaries", () => {
 			'bun "$DELIVERY_FACTORY_ROOT/scripts/commit-guard.ts"',
 		);
 		expect(claudeAdapter).toMatch(/enforced/i);
+		expect(claudeAdapter).toMatch(/BUN_OPTIONS/);
+		expect(claudeAdapter).toMatch(/claude daemon stop --any/);
 	});
 
 	test("Cursor hook targets the real commit-guard script", () => {

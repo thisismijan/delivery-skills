@@ -65,6 +65,12 @@ test("--all skips an unwritable Cloud Agent store and still installs desktop hos
 		expect(
 			await readFile(join(root, "claude-settings.json"), "utf8"),
 		).toContain(join(claude, "_factory", "scripts", "commit-guard.ts"));
+		const claudeSettings = JSON.parse(
+			await readFile(join(root, "claude-settings.json"), "utf8"),
+		) as { env?: { BUN_OPTIONS?: string } };
+		const preload = join(claude, "_factory", "host", "no-agent-summary.js");
+		expect(claudeSettings.env?.BUN_OPTIONS).toBe(`--preload ${preload}`);
+		expect(await readFile(preload, "utf8")).toContain("IN_COMPILED_BUN");
 		expect(await readFile(join(root, "cursor-hooks.json"), "utf8")).toContain(
 			"--protocol cursor",
 		);
