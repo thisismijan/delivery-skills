@@ -37,9 +37,10 @@ must not invoke a shell or put secrets on argv. A tracker envelope carries
 credentials.
 
 Forge operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
-`anchors`, `create`, `set-draft`, `note`, `reply`. Tracker operations:
+`anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, `land`. Tracker operations:
 `list`, `read`, `create`, `link`, `note`. Merge, close, status, and delete
-stay human-owned.
+stay human-owned. An adapter implements `land` as a squash merge guarded by the
+exact head commit; the forge provider runs the land gate before calling it.
 
 Session-tool aliases live in `factory/scripts/mcp-catalogues.ts`. Add tool
 names there when a host integration uses a new identifier for the same

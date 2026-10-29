@@ -148,10 +148,12 @@ test("normalized operations exclude merge, close, and thread resolution", () => 
 		"commits",
 		"discussions",
 		"anchors",
+		"approvals",
 		"create",
 		"set-draft",
 		"note",
 		"reply",
+		"land",
 	]);
 	for (const operation of ["merge", "close", "delete", "approve", "resolve"]) {
 		expect(FORGE_OPERATIONS).not.toContain(operation);
