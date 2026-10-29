@@ -1,17 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-	DEFAULT_MAX_PARALLEL_WORKTREES,
-	DEFAULT_ROUTING_PROFILING,
-} from "./config";
 import { SDLC_BOARD_PHASES } from "./board-map";
 import {
 	BOARD_CONFIRM_INVOCATION,
 	BOARD_PROPOSE_INVOCATION,
 	BOARD_SYNC_INVOCATION,
 } from "./board-status";
+import {
+	DEFAULT_MAX_PARALLEL_WORKTREES,
+	DEFAULT_ROUTING_PROFILING,
+} from "./config";
 import { FAST_SAFETY_FLOORS } from "./fast-dispatch";
+import { FORGE_OPERATIONS } from "./forge-provider";
 import {
 	invokeProvider,
 	missingProvider,
@@ -1144,5 +1145,49 @@ describe("board status sync", () => {
 			/Humans own closing, reopening, deleting, and backwards moves/,
 		);
 		expect(addressComments).toMatch(/NEVER moves the ticket here/);
+	});
+});
+
+describe("auto lands approved, green changes through the land gate", () => {
+	const contract = plain(auto);
+
+	test("auto names the land command, every gate check, and its outcomes", () => {
+		expect(auto).toContain('scripts/forge-provider.ts" land');
+		for (const check of [
+			/open and not a draft/,
+			/approved by at least one person with every approval rule met/,
+			/latest pipeline passed/,
+			/no conflicts/,
+			/no comment readiness did not see/,
+			/readiness GO at that head/,
+			/continuous-delivery: yes/,
+			/permits change-land for the ticket/,
+		]) {
+			expect(contract).toMatch(check);
+		}
+		expect(contract).toMatch(/Exit 0 is landed.*3 is wait.*1 is stop/);
+		expect(auto).toMatch(/\| `\[go !N\]` \| Land it/);
+		expect(contract).toMatch(/kind: "archive"/);
+		expect(contract).toMatch(/outside openspec\//);
+		expect(contract).toMatch(/never merge any other way/i);
+	});
+
+	test("every other merge stays a person's", () => {
+		expect(contract).toMatch(/not authorization to merge any other way/);
+		expect(contract).toMatch(
+			/with session tools only, the merge stays the operator's/i,
+		);
+		expect(delivery).toContain("forge-provider.ts land");
+		expect(plain(conventions)).toMatch(/merges only through the land gate/);
+		expect(plain(rootReadme)).toMatch(/Human approves; auto lands/);
+		expect(plain(runtime)).toMatch(/never through session tools/);
+	});
+
+	test("operation lists in the docs name every normalized forge operation", () => {
+		for (const doc of [runtime, rootReadme, referenceDocs]) {
+			for (const operation of FORGE_OPERATIONS) {
+				expect(doc).toContain(`\`${operation}\``);
+			}
+		}
 	});
 });

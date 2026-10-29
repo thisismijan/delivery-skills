@@ -1,6 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { z } from "zod";
+import { decideLand } from "./land-gate";
 import { loadMcpInventory } from "./mcp-inventory";
 import { mapMcpForgeResult } from "./mcp-normalize";
 import {
@@ -18,6 +19,11 @@ import {
 	lookupCapability,
 	missingCapability,
 } from "./runtime-manifest";
+import {
+	checkRunContract,
+	loadConstitution,
+	parseFrozenRunContract,
+} from "./sdlc-constitution";
 
 const PROVIDER_PROTOCOL_VERSION = 1;
 
@@ -47,10 +53,12 @@ export const FORGE_OPERATIONS = [
 	"commits",
 	"discussions",
 	"anchors",
+	"approvals",
 	"create",
 	"set-draft",
 	"note",
 	"reply",
+	"land",
 ] as const;
 export type ForgeOperation = (typeof FORGE_OPERATIONS)[number];
 
@@ -67,6 +75,7 @@ const MUTATION_OPERATIONS = new Set<ForgeOperation>([
 	"set-draft",
 	"note",
 	"reply",
+	"land",
 ]);
 const PUBLICATION_OPERATIONS = new Set<ForgeOperation>(["note", "reply"]);
 
@@ -265,6 +274,23 @@ export const ForgeAnchors = z
 	.strict();
 export type ForgeAnchors = z.infer<typeof ForgeAnchors>;
 
+export const ForgeApprovals = z
+	.object({
+		...EvidenceIdentity,
+		approval: z.discriminatedUnion("available", [
+			z.object({ available: z.literal(false) }).strict(),
+			z
+				.object({
+					available: z.literal(true),
+					approvedBy: z.array(z.string().trim().min(1)),
+					rulesMet: z.boolean(),
+				})
+				.strict(),
+		]),
+	})
+	.strict();
+export type ForgeApprovals = z.infer<typeof ForgeApprovals>;
+
 const MutationBase = {
 	approved: z.literal(true).optional(),
 	dryRun: z.boolean().optional(),
@@ -345,16 +371,42 @@ export type ReplyForgeDiscussionInput = z.input<
 	typeof ReplyForgeDiscussionInput
 >;
 
+export const LandForgeChangeInput = approvedMutation({
+	ref: ChangeRef,
+	headRevision: Revision,
+	kind: z.enum(["change", "archive"]),
+	ticketKey: z.string().regex(/^[A-Z][A-Z0-9]+-\d+$/),
+	ledgerPath: z.string().trim().min(1),
+	runContractPath: z.string().trim().min(1),
+	readNoteIds: z.array(z.string().trim().min(1)),
+});
+export type LandForgeChangeInput = z.input<typeof LandForgeChangeInput>;
+
+export const ForgeLandResult = z
+	.object({
+		version: z.literal(1),
+		provider: ProviderId,
+		ref: ChangeRef,
+		operation: z.literal("land"),
+		decision: z.enum(["landed", "wait", "stop"]),
+		reasons: z.array(z.string().min(1)),
+		url: z.string().trim().min(1).optional(),
+		mergedRevision: Revision.optional(),
+	})
+	.strict();
+export type ForgeLandResult = z.infer<typeof ForgeLandResult>;
+
 export const ForgeReceipt = z
 	.object({
 		version: z.literal(1),
 		provider: ProviderId,
 		ref: ChangeRef,
-		operation: z.enum(["create", "set-draft", "note", "reply"]),
+		operation: z.enum(["create", "set-draft", "note", "reply", "land"]),
 		url: z.string().trim().min(1).optional(),
 		noteId: z.string().trim().min(1).optional(),
 		discussionId: z.string().trim().min(1).optional(),
 		draft: z.boolean().optional(),
+		mergedRevision: Revision.optional(),
 	})
 	.strict()
 	.superRefine((receipt, ctx) => {
@@ -363,9 +415,11 @@ export const ForgeReceipt = z
 				? ["url"]
 				: receipt.operation === "set-draft"
 					? ["draft"]
-					: receipt.operation === "reply"
-						? ["noteId", "discussionId"]
-						: ["noteId"];
+					: receipt.operation === "land"
+						? ["mergedRevision"]
+						: receipt.operation === "reply"
+							? ["noteId", "discussionId"]
+							: ["noteId"];
 		for (const field of required) {
 			if (receipt[field] === undefined) {
 				ctx.addIssue({
@@ -382,7 +436,7 @@ export const ForgeDryRun = z
 	.object({
 		version: z.literal(1),
 		provider: ProviderId,
-		operation: z.enum(["create", "set-draft", "note", "reply"]),
+		operation: z.enum(["create", "set-draft", "note", "reply", "land"]),
 		dryRun: z.literal(true),
 		input: z.unknown(),
 	})
@@ -398,7 +452,9 @@ export type ForgeOperationResult =
 	| ForgeCommits
 	| ForgeDiscussions
 	| ForgeAnchors
+	| ForgeApprovals
 	| ForgeReceipt
+	| ForgeLandResult
 	| ForgeDryRun;
 
 export function isForgeOperation(value: string): value is ForgeOperation {
@@ -445,6 +501,7 @@ function operationSchema(operation: ForgeOperation): z.ZodType {
 		case "commits":
 		case "discussions":
 		case "anchors":
+		case "approvals":
 			return ReadForgeEvidenceInput;
 		case "create":
 			return CreateForgeChangeInput;
@@ -454,6 +511,8 @@ function operationSchema(operation: ForgeOperation): z.ZodType {
 			return PublishForgeNoteInput;
 		case "reply":
 			return ReplyForgeDiscussionInput;
+		case "land":
+			return LandForgeChangeInput;
 	}
 }
 
@@ -475,10 +534,13 @@ function resultSchema(operation: ForgeOperation): z.ZodType {
 			return ForgeDiscussions;
 		case "anchors":
 			return ForgeAnchors;
+		case "approvals":
+			return ForgeApprovals;
 		case "create":
 		case "set-draft":
 		case "note":
 		case "reply":
+		case "land":
 			return ForgeReceipt;
 	}
 }
@@ -669,6 +731,124 @@ async function invokeForgeAdapter(options: {
 	return result;
 }
 
+function repositoryPath(path: string, repositoryRoot: string): string {
+	return isAbsolute(path) ? path : join(repositoryRoot, path);
+}
+
+function landOutcome(
+	provider: string,
+	ref: string,
+	decision: "landed" | "wait" | "stop",
+	reasons: string[],
+	extra: { url?: string; mergedRevision?: string } = {},
+): ForgeLandResult {
+	return ForgeLandResult.parse({
+		version: 1,
+		provider,
+		ref,
+		operation: "land",
+		decision,
+		reasons,
+		...extra,
+	});
+}
+
+async function runLand(options: {
+	provider: string;
+	executable: string;
+	repositoryRoot: string;
+	input: z.output<typeof LandForgeChangeInput>;
+}): Promise<ForgeLandResult | ForgeDryRun> {
+	const { input, provider, executable, repositoryRoot } = options;
+	const read = (operation: ForgeOperation, request: unknown) =>
+		invokeForgeAdapter({
+			provider,
+			executable,
+			operation,
+			repositoryRoot,
+			input: request,
+		});
+	const evidence = { ref: input.ref, headRevision: input.headRevision };
+	const change = (await read("read", { ref: input.ref })) as ForgeChange;
+	const approvals = (await read("approvals", evidence)) as ForgeApprovals;
+	const discussions = (await read("discussions", evidence)) as ForgeDiscussions;
+	const files =
+		input.kind === "archive"
+			? ((await read("files", evidence)) as ForgeFiles)
+			: undefined;
+
+	let ledger = "";
+	let contract: { ok: boolean; reason?: string } = {
+		ok: false,
+		reason: "the run contract could not be read",
+	};
+	let contractHash: string | undefined;
+	try {
+		ledger = readFileSync(
+			repositoryPath(input.ledgerPath, repositoryRoot),
+			"utf8",
+		);
+	} catch {
+		ledger = "";
+	}
+	try {
+		const frozen = parseFrozenRunContract(
+			JSON.parse(
+				readFileSync(
+					repositoryPath(input.runContractPath, repositoryRoot),
+					"utf8",
+				),
+			),
+		);
+		contractHash = frozen.contractHash;
+		contract = checkRunContract({
+			frozen,
+			constitution: loadConstitution(),
+			stage: "land",
+			ticketKey: input.ticketKey,
+		});
+	} catch (error) {
+		contract = {
+			ok: false,
+			reason: error instanceof Error ? error.message : String(error),
+		};
+	}
+
+	const gate = decideLand({
+		request: input,
+		change,
+		approvals,
+		discussions,
+		files,
+		ledger,
+		contract,
+		contractHash,
+	});
+	if (gate.decision !== "land") {
+		return landOutcome(provider, input.ref, gate.decision, gate.reasons);
+	}
+	const request = { ref: input.ref, headRevision: input.headRevision };
+	if (input.dryRun === true) {
+		return ForgeDryRun.parse({
+			version: 1,
+			provider,
+			operation: "land",
+			dryRun: true,
+			input: request,
+		});
+	}
+	const receipt = (await read("land", {
+		...request,
+		approved: true,
+	})) as ForgeReceipt;
+	return landOutcome(provider, input.ref, "landed", [], {
+		...(receipt.url ? { url: receipt.url } : {}),
+		...(receipt.mergedRevision
+			? { mergedRevision: receipt.mergedRevision }
+			: {}),
+	});
+}
+
 export async function planForgeOperation(options: {
 	operation: string;
 	repositoryRoot: string;
@@ -694,6 +874,23 @@ export async function planForgeOperation(options: {
 	}
 	const input = parseForgeOperationInput(options.operation, options.input);
 	const advertised = lookupCapability(options.runtime, "forge.change");
+	if (options.operation === "land") {
+		if (
+			!advertised?.available ||
+			!advertised.provider ||
+			!advertised.invocation
+		) {
+			throw new Error(
+				"Landing a change needs the executable forge adapter; session tools never merge. Leave the merge to a person.",
+			);
+		}
+		executablePath(advertised.invocation);
+		return {
+			transport: "adapter",
+			provider: advertised.provider,
+			operation: "land",
+		};
+	}
 	const inventory = await loadMcpInventory(options.repositoryRoot);
 	const route = routeMcpInventory(inventory);
 	const provider =
@@ -762,6 +959,9 @@ export function normalizeForgeSessionResult(options: {
 	if (!isForgeOperation(options.operation)) {
 		throw new Error(`Unsupported forge operation '${options.operation}'.`);
 	}
+	if (options.operation === "land") {
+		throw new Error("Session tools never land a change.");
+	}
 	try {
 		return parseForgeOperationResult(options.operation, options.raw);
 	} catch {
@@ -814,6 +1014,15 @@ export async function runForgeOperation(options: {
 	if (options.operation === "note" || options.operation === "reply") {
 		const publication = input as { bodyPath: string };
 		body = resolvePublicationBody(publication.bodyPath, options.repositoryRoot);
+	}
+
+	if (options.operation === "land") {
+		return runLand({
+			provider: forge.provider,
+			executable,
+			repositoryRoot: options.repositoryRoot,
+			input: input as z.output<typeof LandForgeChangeInput>,
+		});
 	}
 
 	const request = adapterInput(options.operation, input, body);
@@ -883,7 +1092,7 @@ if (import.meta.main) {
 		} else {
 			if (!operation || !repositoryRoot || !manifestPath || !inputPath) {
 				console.error(
-					"usage: forge-provider.ts <find|read|pipeline|files|diff|commits|discussions|anchors|create|set-draft|note|reply> <repository-root> <runtime-manifest> <input.json>",
+					"usage: forge-provider.ts <find|read|pipeline|files|diff|commits|discussions|anchors|approvals|create|set-draft|note|reply|land> <repository-root> <runtime-manifest> <input.json>",
 				);
 				process.exit(2);
 			}
@@ -894,6 +1103,11 @@ if (import.meta.main) {
 				input: await Bun.file(inputPath).json(),
 			});
 			console.log(JSON.stringify(result, null, 2));
+			if ("decision" in result && result.operation === "land") {
+				process.exit(
+					result.decision === "landed" ? 0 : result.decision === "wait" ? 3 : 1,
+				);
+			}
 		}
 	} catch (error) {
 		console.error(error instanceof Error ? error.message : String(error));

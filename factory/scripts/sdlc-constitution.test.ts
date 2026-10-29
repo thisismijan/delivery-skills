@@ -452,3 +452,45 @@ test("only draft, execute, and verify may move tickets, and closing stays human-
 	expect(live.document.humanOwned).toContain("tracker-close");
 	expect(live.markdown).toContain("board-status.ts sync");
 });
+
+test("only the gated land stage merges, and merge stays human-owned", () => {
+	const live = loadConstitution();
+	const landers = Object.entries(live.document.stages)
+		.filter(([, stage]) => stage.writes.includes("change-land"))
+		.map(([name]) => name);
+	expect(landers).toEqual(["land"]);
+	expect(live.document.stages.land?.writes).toEqual(["change-land"]);
+	expect(live.document.stages.land?.next).toEqual(["archive"]);
+	expect(live.document.humanOwned).toContain("merge");
+	expect(live.markdown).toContain("forge-provider.ts land");
+
+	const without = freezeAgainstLiveConstitution(sampleDraft());
+	expect(
+		checkRunContract({
+			frozen: without,
+			constitution: live,
+			stage: "land",
+			ticketKey: "WORK-2101",
+		}).reason,
+	).toMatch(/change-land/);
+	const withLand = freezeAgainstLiveConstitution(
+		sampleDraft({
+			permittedWrites: [...sampleDraft().permittedWrites, "change-land"],
+		}),
+	);
+	expect(
+		checkRunContract({
+			frozen: withLand,
+			constitution: live,
+			stage: "land",
+		}).reason,
+	).toMatch(/requires a ticket key/);
+	expect(
+		checkRunContract({
+			frozen: withLand,
+			constitution: live,
+			stage: "land",
+			ticketKey: "WORK-2101",
+		}),
+	).toEqual({ ok: true });
+});

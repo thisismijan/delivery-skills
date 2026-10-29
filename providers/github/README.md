@@ -27,10 +27,15 @@ Enterprise. Credentials come from `GITHUB_TOKEN`, `GH_TOKEN`,
 `~/token` if GitLab might also use that file.
 
 `github-forge` operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`,
-`discussions`, `anchors`, `create`, `set-draft`, `note`, `reply`. Listings
+`discussions`, `anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`,
+`land`. Listings
 paginate. Truncated diffs are refused. Draft pull requests are created. GitHub has no per-pull-request squash
 flag, so set squash merging as the repository default. The
-adapter does not merge, close, approve, delete, or resolve discussions.
+adapter does not merge, close, approve, delete, or resolve discussions, except
+that `land` squash-merges with the head commit as its guard after the forge
+provider's land gate holds. `approvals` uses each reviewer's latest decision:
+at least one approval and no outstanding change request. Branch protection
+still applies, because GitHub refuses a merge it does not allow.
 
 `github-tracker` operations: `list`, `read`, `create`, `link`, `note`. Create
 and note replay by audit id. Dependency links are additive only. Status and

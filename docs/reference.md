@@ -116,8 +116,16 @@ bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
 ```
 
 Operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
-`anchors`, `create`, `set-draft`, `note`, `reply`. Also `plan` and `normalize`
-for session-tool transport.
+`anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, `land`. Also `plan` and `normalize`
+for session-tool transport. `land` is adapter-only: `plan` refuses it when no
+executable adapter is advertised, and `normalize` never accepts it.
+
+`approvals` takes `{ "ref": "<change>" }` and returns who approved the change
+and whether every approval rule is met, at the head it read. `land` takes
+`ref`, `headRevision`, `kind` (`change` or `archive`), `ticketKey`,
+`ledgerPath`, `runContractPath`, `readNoteIds` (the comment ids readiness saw),
+and `approved: true`. It returns `decision` `landed`, `wait`, or `stop` with
+plain reasons, and exits 0, 3, or 1 to match.
 
 `pipeline` takes `{ "revision": "<sha>" }` and returns evidence bound to that
 exact revision. Delivery uses normalized pipeline evidence from `read` for the

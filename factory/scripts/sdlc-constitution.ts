@@ -253,6 +253,7 @@ const TICKET_SCOPED_STAGES = new Set([
 	"review",
 	"address-comments",
 	"ship",
+	"land",
 	"archive",
 	"verify",
 ]);

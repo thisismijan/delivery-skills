@@ -199,6 +199,14 @@
 			"stops": ["draft-change-request", "missing-review-verdict"],
 			"humanApprovals": ["release-risk"]
 		},
+		"land": {
+			"inputs": ["go-change-request", "run-contract", "ledger"],
+			"writes": ["change-land"],
+			"outputs": ["merged-change"],
+			"next": ["archive"],
+			"stops": ["land-gate-stop", "head-moved"],
+			"humanApprovals": ["change-approval"]
+		},
 		"archive": {
 			"inputs": ["merged-change"],
 			"writes": ["spec-archive"],
@@ -253,7 +261,12 @@
 			"outputs": ["next-stage"],
 			"next": [],
 			"stops": ["missing-isolation", "failed-gate"],
-			"humanApprovals": ["groomed-plan", "merge", "release-risk", "skill-install"]
+			"humanApprovals": [
+				"groomed-plan",
+				"change-approval",
+				"release-risk",
+				"skill-install"
+			]
 		}
 	}
 }

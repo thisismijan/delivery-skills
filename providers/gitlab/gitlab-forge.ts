@@ -40,10 +40,12 @@ export const GITLAB_FORGE_OPERATIONS = [
 	"commits",
 	"discussions",
 	"anchors",
+	"approvals",
 	"create",
 	"set-draft",
 	"note",
 	"reply",
+	"land",
 ] as const;
 export type GitLabForgeOperation = (typeof GITLAB_FORGE_OPERATIONS)[number];
 
@@ -401,6 +403,7 @@ function receipt(options: {
 	discussionId?: string;
 	url?: string;
 	draft?: boolean;
+	mergedRevision?: string;
 }): Record<string, unknown> {
 	return {
 		version: PROTOCOL_VERSION,
@@ -411,6 +414,9 @@ function receipt(options: {
 		...(options.discussionId ? { discussionId: options.discussionId } : {}),
 		...(options.url ? { url: options.url } : {}),
 		...(options.draft !== undefined ? { draft: options.draft } : {}),
+		...(options.mergedRevision
+			? { mergedRevision: options.mergedRevision }
+			: {}),
 	};
 }
 
@@ -711,6 +717,79 @@ async function handleAnchors(
 	});
 }
 
+function approvalEvidence(raw: unknown): Record<string, unknown> {
+	if (!isRecord(raw) || asBoolean(raw.approved) === undefined) {
+		return { available: false };
+	}
+	const approvedBy = Array.isArray(raw.approved_by)
+		? raw.approved_by
+				.map((entry) =>
+					isRecord(entry) && isRecord(entry.user)
+						? asString(entry.user.username)?.trim() ||
+							asString(entry.user.name)?.trim()
+						: undefined,
+				)
+				.filter((name): name is string => Boolean(name))
+		: [];
+	const left = asNumber(raw.approvals_left);
+	return {
+		available: true,
+		approvedBy,
+		rulesMet: asBoolean(raw.approved) === true && (left ?? 0) === 0,
+	};
+}
+
+async function handleApprovals(
+	envelope: unknown,
+	deps: GitLabForgeDeps,
+): Promise<unknown> {
+	const { input, target, token } = await withContext(envelope, deps);
+	const ref = requireText(input, "ref");
+	const iid = gitlabIidFromRef(ref);
+	const change = await loadMergeRequest(deps, token, target, iid, ref);
+	const raw = await gitlabGet(
+		deps,
+		token,
+		apiUrl(target, `/merge_requests/${iid}/approvals`),
+	);
+	return evidenceEnvelope(change, { approval: approvalEvidence(raw) });
+}
+
+async function handleLand(
+	envelope: unknown,
+	deps: GitLabForgeDeps,
+): Promise<unknown> {
+	const { input, target, token } = await withContext(envelope, deps);
+	requireApproved(input);
+	const ref = requireText(input, "ref");
+	const headRevision = requireText(input, "headRevision");
+	const iid = gitlabIidFromRef(ref);
+	const current = await loadMergeRequest(deps, token, target, iid, ref);
+	if (headRevisionOf(current) !== headRevision) {
+		fail("The change has new commits; it was not landed.");
+	}
+	const merged = await gitlabCall(
+		deps,
+		token,
+		"PUT",
+		apiUrl(target, `/merge_requests/${iid}/merge`),
+		{ sha: headRevision, squash: true, should_remove_source_branch: true },
+	);
+	if (!isRecord(merged) || asString(merged.state) !== "merged") {
+		fail("GitLab did not merge the change.");
+	}
+	const mergedRevision =
+		asString(merged.squash_commit_sha)?.trim() ||
+		asString(merged.merge_commit_sha)?.trim();
+	if (!mergedRevision) fail("GitLab did not report the merged commit.");
+	return receipt({
+		operation: "land",
+		ref,
+		url: asString(merged.web_url),
+		mergedRevision,
+	});
+}
+
 async function handleCreate(
 	envelope: unknown,
 	deps: GitLabForgeDeps,
@@ -907,6 +986,10 @@ export async function runGitLabForge(
 			return handleDiscussions(envelope, deps);
 		case "anchors":
 			return handleAnchors(envelope, deps);
+		case "approvals":
+			return handleApprovals(envelope, deps);
+		case "land":
+			return handleLand(envelope, deps);
 		case "create":
 			return handleCreate(envelope, deps);
 		case "set-draft":
@@ -936,7 +1019,7 @@ export async function handleGitLabForgeCli(options: {
 	const operation = options.argv[0];
 	if (!operation) {
 		options.stderr(
-			"usage: gitlab-forge <find|read|pipeline|files|diff|commits|discussions|anchors|create|set-draft|note|reply>\n",
+			"usage: gitlab-forge <find|read|pipeline|files|diff|commits|discussions|anchors|approvals|create|set-draft|note|reply|land>\n",
 		);
 		return 2;
 	}

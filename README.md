@@ -15,7 +15,7 @@ The pack includes:
 - `/delivery` — thin conductor, ledger, auto, retro, approval-gated improvement
 - `/groom` `/draft` `/execute` `/address-comments` — portable factory stages
 - `/code-review-max` `/mr-review` — dual-pass change review
-- exact-revision pipeline monitoring before and after a human merge
+- exact-revision pipeline monitoring before and after merge
 - a bundled OpenSpec archive stage, which requires the OpenSpec CLI
 
 ## Install
@@ -127,11 +127,13 @@ bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
 ```
 
 Operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
-`anchors`, `create`, `set-draft`, `note`, `reply`. Review evidence is fetched
+`anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, `land`. Review evidence is fetched
 one view at a time in the order the review skill names. Notes are dry-run,
 shown, then posted one at a time after human confirmation (or standing
-continuous-delivery authorization). Merge, close, and thread resolution stay
-human-owned. Provider-native helpers are not generic workflow commands.
+continuous-delivery authorization). Close and thread resolution stay
+human-owned. Merge does too, except that `/delivery auto` lands a change a
+person approved on the forge once its pipeline is green, through the gated
+`land` operation. Provider-native helpers are not generic workflow commands.
 
 If the current session exposes matching integration tools, `/delivery doctor`
 records them and later stages prefer those tools over CLI adapters. The result
@@ -184,11 +186,14 @@ It does not ask whether to proceed between those stages. It stops only when:
 - a failed gate cannot be repaired safely inside the approved contract and
   bounded attempt budget, or evidence is missing or contradictory;
 - a release requires explicit risk acceptance;
-- a merge is ready for a human;
+- a change is waiting for a person to approve it on the forge (auto then
+  lands it once its pipeline is green);
 - an evaluated skill candidate is ready for exact install or rollback approval.
 
-Plan approval never authorizes merge, work-item status transitions, release-risk
-acceptance, bypassing a gate, or installing a skill candidate.
+Plan approval authorizes landing a change only through the land gate: a person
+approved it on the forge, its pipeline passed, and readiness gave GO, all at
+the same commit. It never authorizes any other merge, closing work items,
+release-risk acceptance, bypassing a gate, or installing a skill candidate.
 
 ### Pipeline monitoring and recovery
 
@@ -212,8 +217,8 @@ reproduction to classify the failure:
   escalates with the revision, failed checks, sanitized evidence, and suggested
   human action.
 
-Provider job retries, rollback, merge, close, revert, and protected-branch
-writes remain human-owned.
+Provider job retries, rollback, an ungated merge, close, revert, and
+protected-branch writes remain human-owned.
 
 That same approval freezes a hashed run contract at
 `.delivery/runs/<id>.run-contract.json`. Later stages check the hash. A ticket,
@@ -255,8 +260,9 @@ The kernel requires delivery to:
 - resume from durable artifacts rather than conversational memory; and
 - record deviations with the affected invariant and a new approval.
 
-Humans always own merge, tracker close (closing, reopening, deleting, or
-moving a ticket backwards), release-risk acceptance, failed-gate override,
+Humans own approving each change and every merge outside the land gate in
+`/delivery auto`, tracker close (closing, reopening, deleting, or moving a
+ticket backwards), release-risk acceptance, failed-gate override,
 and every live-skill install or rollback. Tickets move forward on the board
 as delivery progresses, but only to the columns of a board map the operator
 confirmed during `/delivery init`.
@@ -297,8 +303,9 @@ deliberately does not maintain a second numbered rule catalogue.
 `/delivery` is the only command to remember. It routes into the stage skills
 below, records state in the target repository's `.delivery/runs/`, and stops for
 operator-owned decisions. Approval of the final groomed plan authorizes routine
-progression through delivery. Humans still own merge, work-item status, explicit
-risk acceptance, and any live-skill install.
+progression through delivery, including landing changes a person approved.
+Humans still own approval, any other merge, closing work items, explicit risk
+acceptance, and any live-skill install.
 
 ```mermaid
 flowchart TD
@@ -350,7 +357,7 @@ flowchart TD
 
   ship -->|"GO"| changePipeline["Exact-head pipeline"]
   ship -->|"NO-GO"| address
-  changePipeline -->|"passed"| mergeWait["Human merges"]
+  changePipeline -->|"passed"| mergeWait["Human approves; auto lands"]
   changePipeline -->|"repairable"| address
   mergeWait --> mergedPipeline["Exact merged-revision pipeline"]
   mergedPipeline -->|"passed"| archive
@@ -372,7 +379,8 @@ Human-owned stops, in order:
 
 1. Product decisions while shaping the work, then one final groomed-plan
    approval.
-2. Merge, or explicit acceptance of a release risk.
+2. Approving each change on the forge (auto lands it once green), or explicit
+   acceptance of a release risk.
 3. Installing or rolling back an exact delivery-skill candidate.
 
 ## Learning while the factory runs
@@ -383,7 +391,7 @@ are not writing the code.
 - **The factory takes simple decisions.** Facts, one viable path, and cheap
   reversible defaults are decided, logged as agent-owned, and not asked.
 - **Escalate only what you must own.** Product intent, irreversible trade-offs,
-  merge, release risk, and skill install stop for you. Everything else
+  approving a change, release risk, and skill install stop for you. Everything else
   continues.
 - **When it does stop, decide before you see a preferred answer.** The brief
   opens with evidence, options, and trade-offs. The recommendation comes after

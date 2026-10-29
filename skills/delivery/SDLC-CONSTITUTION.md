@@ -43,7 +43,9 @@ terminal stop until the operator re-approves.
    ledger. Missing isolation stops rather than silently serialising.
 9. **NEVER** take human-owned actions.
    Id `human-owned-actions`. Humans own merge, tracker close, release-risk
-   acceptance, failed-gate override, and live-skill install.
+   acceptance, failed-gate override, and live-skill install. The one merge
+   the factory performs is the gated `land` stage inside a continuous auto
+   run.
 10. **NEVER** weaken security, validation, accessibility, recovery, or data
     protection for speed.
     Id `safety-floors`. Named safety floors stay on the frontier
@@ -64,6 +66,16 @@ and skill-install or rollback. A forward move to the column an
 operator-confirmed board map names is the `board-status` stage write, run
 only through `board-status.ts sync`. Plan approval
 and `/delivery auto` authorize routine delivery only.
+
+Inside a continuous auto run, the `land` stage squash-merges a change a
+person has approved on the forge, through the `change-land` write and only
+through `forge-provider.ts land`. Its gate needs, at one head commit: an open,
+non-draft change; the forge's approval rules met with at least one approver; a
+passed pipeline; no conflicts; no comment the GO did not see; a readiness GO
+in the ledger; `continuous-delivery: yes`; and a run contract permitting
+`change-land` for the ticket. An archive change needs no readiness verdict but
+may touch only `openspec/` files. Missing or contradictory evidence waits or
+stops; it never merges. Every other merge is a person's.
 
 ## Frozen run contract
 

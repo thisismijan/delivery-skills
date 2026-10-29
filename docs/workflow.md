@@ -12,13 +12,16 @@ from `skills/delivery/SKILL.md`.
 3. **Shape.** `/delivery <idea>` or `/delivery discover` / `groom` until the
    atomic ticket plan is honest.
 4. **Approve the plan.** That is the single routine authorization for the run.
-   It does not authorize merge, closing tickets, risk acceptance, or skill
-   install. Tickets move forward on the confirmed board map as stages finish.
+   It does not authorize an ungated merge, closing tickets, risk acceptance,
+   or skill install. Tickets move forward on the confirmed board map as stages finish.
 5. **Auto.** `/delivery auto <key>` creates approved items, fans out
    independent tickets into isolated worktrees (at most `maxParallelWorktrees`
    at a time, default 4, override with `MAX_PARALLEL_WORKTREES`), drafts,
    executes, reviews, and monitors the exact-head pipeline without polling.
-6. **You merge.** Delivery never merges, closes, or resolves threads.
+6. **You approve; auto lands.** Approve the change on the forge. Under
+   `/delivery auto`, delivery squash-merges it once readiness gave GO and the
+   pipeline passed at that same commit. Outside auto, you merge. Delivery never
+   closes or resolves threads.
 7. **After merge.** Delivery monitors the exact merged revision on the default
    branch. An attributable in-scope failure fixes forward through a new
    reviewed change within a bounded budget; ambiguous, unrelated, transient,
@@ -79,7 +82,7 @@ holdout still run when the ticket proceeds.
 
 | Checkpoint | Evidence | On success | Repairable failure |
 |------------|----------|------------|--------------------|
-| Open change | Current pipeline for the exact change head | Continue release readiness and wait for human merge | Repair the same branch, rerun invalidated gates, and monitor the new head |
+| Open change | Current pipeline for the exact change head | Continue release readiness, then land once approved (auto) or wait for a human merge | Repair the same branch, rerun invalidated gates, and monitor the new head |
 | After merge | Default-branch pipeline for the exact merged revision | Archive, verify deployment, and continue to retro | Open a new draft recovery change and run the normal review and readiness path |
 
 Missing or running evidence is a wait, not a pass. Delivery uses a host event

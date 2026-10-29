@@ -93,9 +93,10 @@ Continue or resume the lifecycle with:
 Before merge, delivery checks the pipeline for the exact change head. If it is
 still running, delivery subscribes to a completion event when the host supports
 that and ends the turn. Otherwise it leaves the same command as the resume
-instruction. A green pipeline returns the change to the human merge boundary.
+instruction. A green pipeline returns the change to the land gate: once you
+approve it on the forge, auto squash-merges it at that exact head.
 
-After you merge, run `/delivery auto <KEY>` again if no event wakes the run.
+After it merges, run `/delivery auto <KEY>` again if no event wakes the run.
 Delivery reads the merged revision and checks that exact commit on the default
 branch. Only a passing result proceeds to archive, deployment verification, and
 retro. Do not run archive early based only on the pre-merge pipeline.

@@ -664,3 +664,91 @@ test("token files are used when GITLAB_TOKEN is absent", async () => {
 		await rm(root, { recursive: true, force: true });
 	}
 });
+
+test("approvals report who approved and whether every rule is met", async () => {
+	for (const [body, expected] of [
+		[
+			{
+				approved: true,
+				approvals_left: 0,
+				approved_by: [{ user: { username: "reviewer" } }],
+			},
+			{ available: true, approvedBy: ["reviewer"], rulesMet: true },
+		],
+		[
+			{ approved: false, approvals_left: 1, approved_by: [] },
+			{ available: true, approvedBy: [], rulesMet: false },
+		],
+		[{}, { available: false }],
+	] as const) {
+		const { deps } = recordingDeps((request) =>
+			resource(request.url) === "/merge_requests/42/approvals"
+				? body
+				: loadFixture("merge-request.json"),
+		);
+		const result = (await runGitLabForge(
+			"approvals",
+			envelope({ ref: "42" }),
+			deps,
+		)) as Record<string, unknown>;
+		expect(result.approval).toEqual(expected);
+		expect(result.headRevision).toBe(HEAD);
+		expect(() => parseForgeOperationResult("approvals", result)).not.toThrow();
+	}
+});
+
+test("land squash-merges with the head guard and reports the merged commit", async () => {
+	const merged = "f".repeat(40);
+	const { deps, requests } = recordingDeps((request) => {
+		if (request.method === "PUT") {
+			return {
+				...(loadFixture("merge-request.json") as Record<string, unknown>),
+				state: "merged",
+				squash_commit_sha: merged,
+			};
+		}
+		return loadFixture("merge-request.json");
+	});
+	const result = (await runGitLabForge(
+		"land",
+		envelope({ approved: true, ref: "42", headRevision: HEAD }),
+		deps,
+	)) as Record<string, unknown>;
+	expect(result).toMatchObject({
+		operation: "land",
+		ref: "42",
+		mergedRevision: merged,
+	});
+	expect(() => parseForgeOperationResult("land", result)).not.toThrow();
+	const put = requests.find((request) => request.method === "PUT");
+	expect(resource(put?.url ?? "")).toBe("/merge_requests/42/merge");
+	expect(put?.body).toEqual({
+		sha: HEAD,
+		squash: true,
+		should_remove_source_branch: true,
+	});
+});
+
+test("land refuses a moved head, a missing approval, or an unmerged response", async () => {
+	const { deps, requests } = recordingDeps(() =>
+		loadFixture("merge-request.json"),
+	);
+	await expect(
+		runGitLabForge(
+			"land",
+			envelope({ approved: true, ref: "42", headRevision: "b".repeat(40) }),
+			deps,
+		),
+	).rejects.toThrow(/new commits/);
+	await expect(
+		runGitLabForge("land", envelope({ ref: "42", headRevision: HEAD }), deps),
+	).rejects.toThrow(/approved/);
+	expect(requests.some((request) => request.method === "PUT")).toBe(false);
+	await expect(
+		runGitLabForge(
+			"land",
+			envelope({ approved: true, ref: "42", headRevision: HEAD }),
+			deps,
+		),
+	).rejects.toThrow(/did not merge/);
+});

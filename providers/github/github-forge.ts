@@ -40,10 +40,12 @@ export const GITHUB_FORGE_OPERATIONS = [
 	"commits",
 	"discussions",
 	"anchors",
+	"approvals",
 	"create",
 	"set-draft",
 	"note",
 	"reply",
+	"land",
 ] as const;
 export type GitHubForgeOperation = (typeof GITHUB_FORGE_OPERATIONS)[number];
 
@@ -220,6 +222,7 @@ function receipt(options: {
 	discussionId?: string;
 	url?: string;
 	draft?: boolean;
+	mergedRevision?: string;
 }): Record<string, unknown> {
 	return {
 		version: PROTOCOL_VERSION,
@@ -230,6 +233,9 @@ function receipt(options: {
 		...(options.discussionId ? { discussionId: options.discussionId } : {}),
 		...(options.url ? { url: options.url } : {}),
 		...(options.draft !== undefined ? { draft: options.draft } : {}),
+		...(options.mergedRevision
+			? { mergedRevision: options.mergedRevision }
+			: {}),
 	};
 }
 
@@ -686,6 +692,80 @@ async function handleAnchors(
 	});
 }
 
+export function approvalEvidence(reviews: unknown[]): Record<string, unknown> {
+	const latest = new Map<string, string>();
+	for (const review of reviews) {
+		if (!isRecord(review) || !isRecord(review.user)) continue;
+		const login = asString(review.user.login)?.trim();
+		const state = asString(review.state)?.trim();
+		if (!login || !state) continue;
+		if (state !== "APPROVED" && state !== "CHANGES_REQUESTED" && state !== "DISMISSED") {
+			continue;
+		}
+		latest.set(login, state);
+	}
+	const approvedBy = [...latest]
+		.filter(([, state]) => state === "APPROVED")
+		.map(([login]) => login);
+	const changesRequested = [...latest.values()].includes("CHANGES_REQUESTED");
+	return {
+		available: true,
+		approvedBy,
+		rulesMet: approvedBy.length > 0 && !changesRequested,
+	};
+}
+
+async function handleApprovals(
+	envelope: unknown,
+	deps: GitHubDeps,
+): Promise<unknown> {
+	const { input, target, token } = await withGitHubContext(envelope, deps);
+	const ref = requireText(input, "ref");
+	const number = githubNumberFromRef(ref);
+	const loaded = await loadPull(deps, token, target, number, ref);
+	const reviews = await githubPaged(
+		deps,
+		token,
+		repoUrl(target, `/pulls/${number}/reviews`),
+	);
+	return evidenceEnvelope(loaded.change, {
+		approval: approvalEvidence(reviews),
+	});
+}
+
+async function handleLand(
+	envelope: unknown,
+	deps: GitHubDeps,
+): Promise<unknown> {
+	const { input, target, token } = await withGitHubContext(envelope, deps);
+	requireApproved(input);
+	const ref = requireText(input, "ref");
+	const headRevision = requireText(input, "headRevision");
+	const number = githubNumberFromRef(ref);
+	const loaded = await loadPull(deps, token, target, number, ref);
+	if (headRevisionOf(loaded.change) !== headRevision) {
+		fail("The change has new commits; it was not landed.");
+	}
+	const merged = await githubCall(
+		deps,
+		token,
+		"PUT",
+		repoUrl(target, `/pulls/${number}/merge`),
+		{ sha: headRevision, merge_method: "squash" },
+	);
+	if (!isRecord(merged) || merged.merged !== true) {
+		fail("GitHub did not merge the change.");
+	}
+	const mergedRevision = asString(merged.sha)?.trim();
+	if (!mergedRevision) fail("GitHub did not report the merged commit.");
+	return receipt({
+		operation: "land",
+		ref,
+		url: asString(loaded.change.url),
+		mergedRevision,
+	});
+}
+
 async function handleCreate(
 	envelope: unknown,
 	deps: GitHubDeps,
@@ -856,6 +936,10 @@ export async function runGitHubForge(
 			return handleDiscussions(envelope, deps);
 		case "anchors":
 			return handleAnchors(envelope, deps);
+		case "approvals":
+			return handleApprovals(envelope, deps);
+		case "land":
+			return handleLand(envelope, deps);
 		case "create":
 			return handleCreate(envelope, deps);
 		case "set-draft":
@@ -877,7 +961,7 @@ export async function handleGitHubForgeCli(options: {
 	const operation = options.argv[0];
 	if (!operation) {
 		options.stderr(
-			"usage: github-forge <find|read|pipeline|files|diff|commits|discussions|anchors|create|set-draft|note|reply>\n",
+			"usage: github-forge <find|read|pipeline|files|diff|commits|discussions|anchors|approvals|create|set-draft|note|reply|land>\n",
 		);
 		return 2;
 	}

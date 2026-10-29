@@ -3,7 +3,7 @@
 This workflow watches two separate integration points:
 
 1. the open change pipeline at its exact head revision; and
-2. after a human merge, the default-branch pipeline at the exact merged
+2. after merge (a human merge or auto's gated land), the default-branch pipeline at the exact merged
    revision.
 
 It waits through host event subscriptions when they exist. It never busy-polls,

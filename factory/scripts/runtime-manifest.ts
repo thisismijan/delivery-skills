@@ -147,6 +147,7 @@ export const MUTATING_STAGES = new Set([
 	"draft",
 	"execute",
 	"address-comments",
+	"land",
 	"archive",
 	"improve-apply",
 	"improve-rollback",

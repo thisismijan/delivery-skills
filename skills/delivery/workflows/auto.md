@@ -5,9 +5,11 @@ the groomed ticket or slice plan is standing authorization to draft, build,
 review, publish review notes, archive, verify, write the retro, and prepare
 evidence-backed improvement candidates for that run. It also authorizes bounded
 fix-forward work when a pipeline failure is attributable and the repair stays
-inside the frozen scope and permitted writes. It is not authorization to merge,
-accept a release risk, retry provider CI, install an improvement candidate,
-override a failed gate, or expand scope.
+inside the frozen scope and permitted writes, and landing a change once a
+person has approved it on the forge and its pipeline is green (see **Land**).
+It is not authorization to merge any other way, accept a release risk, retry
+provider CI, install an improvement candidate, override a failed gate, or
+expand scope.
 
 The full-epic `/delivery <idea-or-file>` path enters this same continuous mode
 as soon as the operator approves the groomed plan. The operator does not need
@@ -44,7 +46,9 @@ The single-step verbs use the same table to tell the operator what to type next.
    `scope`, `nonGoals`, `tickets` (`key`, `title`, one to three `acceptance`
    criteria, `blockedBy`), `permittedWrites`, every `humanOwned` boundary, and
    `approval` (`who`, exact `words`, ISO `at`). A later plan also records
-   `supersedesHash`, `reason`, and `affectedInvariant`.
+   `supersedesHash`, `reason`, and `affectedInvariant`. `permittedWrites`
+   includes `change-land` so auto may land approved, green changes; a contract
+   frozen without it leaves every merge to the operator.
 3. **Continuous authorization.** Only after the frozen contract exists, record
    `continuous-delivery: yes`, scoped to this run. The authorizing words are the
    `/delivery auto` invocation or the operator's explicit approval of the
@@ -85,7 +89,7 @@ Between steps, do not ask whether to continue. Continue.
 | `[addressed !N]` | Review the new head | Nothing |
 | `[ready !N]` | Release readiness, which reads the comments on the change before any GO | Nothing |
 | `[no-go !N]` | Classify the readiness blockers: address code/comment blockers (every unanswered comment on the change is a comment blocker, fixed in one batched round) then run ship again; wait on pipeline/conflicts; ask only for operator-owned risk acceptance | Whether to accept an operator-owned risk |
-| `[go !N]` | The operator merges. Before it is queued, read the comments on the change again; a new unanswered one turns it to `[no-go !N]` | The merge |
+| `[go !N]` | Land it (see **Land**). `landed` sets `[merged !N]`; `wait` sets `[waiting: <reason>]`; `stop` sets `[no-go !N]` for a new comment or a moved head, otherwise `[stopped: <reason>]` | Nothing; a person approves the change on the forge |
 | `[merged !N]` | Follow `pipeline-monitoring.md` for the exact merged revision; after the default-branch pipeline passes, archive, wait for deploy, then verify | Nothing |
 | `[verified !N]` | The key is done. Choose the next key; when none is left, retro | Nothing |
 | `[regressed !N]` | Nothing. Show the rollback recommendation or the bug report | Nothing; the operator decides |
@@ -104,10 +108,36 @@ one match is required, so `MDF-1234` can never select `MDF-12345`. If it is
 already under `openspec/changes/archive/`, skip the archive. Otherwise run
 `/openspec-archive <change-name>` under the run's continuous authorization.
 Commit and push the archive through the repository's normal protected-branch
-path; open a follow-up change request when direct push is unavailable. Never
-merge it. Archive publication may wait for that human merge, but it does not
-block deployed verification, retro, or improvement preparation for the
-already-merged product change.
+path; open a follow-up change request when direct push is unavailable. That
+change lands through the same gate with `kind: "archive"`, which needs no
+readiness verdict but stops if any file is outside `openspec/`. Archive
+publication may wait for its approval, but it does not block deployed
+verification, retro, or improvement preparation for the already-merged product
+change.
+
+**Land.** At `[go !N]`, read the comments on the change again. Then write the
+land input and run, under the run's continuous authorization:
+
+```
+bun "$FACTORY_ROOT/scripts/forge-provider.ts" land <repoRoot> \
+  "$FACTORY_ROOT/runtime-manifest.json" <land-input.json>
+```
+
+The input names `ref`, the `headRevision` the GO was given at, `kind`
+(`change`), `ticketKey`, `ledgerPath`, `runContractPath`, `readNoteIds` (every
+comment id readiness read), and `approved: true`. The command re-reads the
+change, its approvals, and its comments, and merges only when all of these
+hold at that one head: open and not a draft; approved by at least one person
+with every approval rule met; the latest pipeline passed; no conflicts; no
+comment readiness did not see; a readiness GO at that head in the ledger;
+`continuous-delivery: yes` in the ledger; and a run contract that permits
+`change-land` for the ticket. It squash-merges with the head as a guard and
+removes the source branch where the forge supports it. Exit 0 is `landed` with
+the merged revision, 3 is `wait`, and 1 is `stop`; each prints plain reasons.
+Record the decision and reasons in the ledger. `land` runs only through the
+executable adapter; with session tools only, the merge stays the operator's.
+Never set the change to merge when its pipeline succeeds, and never merge any
+other way.
 
 ### Choosing a key
 
@@ -137,7 +167,8 @@ already-merged product change.
      `DELIVERY_WORKER_JOURNAL=<state-root>/workers/<run-id>/<key>.md`. Give it
      the reserved ledger generation and immutable key row. A worker writes only
      its own journal through `ledger-store.ts`; it never mutates the run ledger.
-  4. Give each worker the fan-out brief and forbid merge, tracker transitions,
+  4. Give each worker the fan-out brief and forbid merge (the coordinator
+     lands), tracker transitions,
      sibling worktrees, and work outside its key.
   5. Start every worker in the current batch before awaiting any one of them.
      Reconcile each result from its journal, git, and forge, not from prose.
@@ -163,7 +194,8 @@ it as a simple, reversible, or discoverable choice:
 1. Product intent during discovery or grooming that the codebase cannot
    answer, followed by approval of the final ticket or slice plan.
 2. Accepting a risk on a NO-GO.
-3. The merge. It is always the operator's.
+3. Approving the change on the forge. Auto lands it once it is approved and
+   green; any other merge is the operator's.
 4. Installing an evaluated delivery improvement candidate. Retro acceptance is
    not installation approval.
 5. Anything a stage stops on because required evidence is missing or
@@ -192,7 +224,7 @@ the same log without asking.
   merge, query the exact `revisions.merged` value with the normalized
   `pipeline` operation; the open-change pipeline does not prove the
   default-branch pipeline passed. Do not sleep or poll in the same turn.
-- **For a person** (a merge, a reporter, an answer): do not poll. Set
+- **For a person** (an approval, a merge, a reporter, an answer): do not poll. Set
   `[waiting: <what>]`, ask, and end the turn. Their reply resumes the loop.
 - **Never retry a failed stage.** A failure is a terminal stop, exactly as when
   the stage runs on its own. Waiting with a time limit for something still
@@ -226,8 +258,8 @@ merges, stops, and accepted retro proposals.
 
 - Approvals: `continuous-delivery: yes`, every merge confirmation, and every
   exact improvement installation or rollback command.
-- Decisions: `auto started`, every `dispatched <KEY> to <worktree>`, automatic
-  archive, retro proposal disposition, and every candidate prepared.
+- Decisions: `auto started`, every `dispatched <KEY> to <worktree>`, every
+  land decision with its reasons, automatic archive, retro proposal disposition, and every candidate prepared.
 - Keys: `[waiting: <what>]` while waiting, replaced by the next status.
 - Everything each stage spec writes, as if its verb had been run.
 
@@ -242,13 +274,14 @@ merges, stops, and accepted retro proposals.
 
 ## Never
 
-- Merge, or set an MR to merge when its pipeline succeeds.
+- Merge any way except `forge-provider.ts land`, or set an MR to merge when its
+  pipeline succeeds.
 - Create work items outside the approved verified groom drafts, or transition,
   label, or close work items.
 - Run independent ready tickets sequentially when isolated dispatch is
   available.
-- Treat continuous authorization as permission to merge, accept risk, bypass a
-  gate, or install a candidate.
+- Treat continuous authorization as permission to merge without the land gate,
+  accept risk, bypass a gate, or install a candidate.
 - Retry a failed stage.
 - Skip a correctness, security, test, review, or readiness gate because auto is
   running.

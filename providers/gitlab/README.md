@@ -20,10 +20,15 @@ Cursor and Claude wrappers already pass `--provider gitlab`. Extra
 ## Protocol
 
 `gitlab-forge` takes `find`, `read`, `pipeline`, `files`, `diff`, `commits`,
-`discussions`, `anchors`, `create`, `set-draft`, `note`, or `reply`.
+`discussions`, `anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`,
+or `land`.
 `gitlab-work-item` takes `list`, `read`, `create`, `link`, `note`,
 `statuses`, or `transition`. Both read stdin JSON and write versioned JSON.
-They do not merge, close, reopen, approve, delete, or resolve discussions.
+They do not merge, close, reopen, approve, delete, or resolve discussions,
+except that `land` squash-merges with the head commit as its guard and removes
+the source branch, after the forge provider's land gate holds. `approvals`
+counts the merge request's approval rules as met only when GitLab reports it
+approved with no approvals left.
 
 Board columns are the label lists of the project's issue board, in board
 order. With more than one board, record the one to use with

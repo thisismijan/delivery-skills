@@ -752,3 +752,100 @@ test("token files are used when GITHUB_TOKEN is absent", async () => {
 		await rm(root, { recursive: true, force: true });
 	}
 });
+
+function pullDeps(extra: (request: GitHubRequest) => unknown | undefined) {
+	return recordingDeps((request) => {
+		const handled = extra(request);
+		if (handled !== undefined) return handled;
+		if (request.url.includes("/status"))
+			return loadFixture("combined-status.json");
+		if (request.url.includes("/check-runs"))
+			return loadFixture("empty-check-runs.json");
+		return loadFixture("pull.json");
+	});
+}
+
+test("approvals use each reviewer's latest decision", async () => {
+	const { deps } = pullDeps((request) =>
+		request.url.includes("/pulls/42/reviews")
+			? /[?&]page=2\b/.test(request.url)
+				? [{ user: { login: "ben" }, state: "COMMENTED" }]
+				: /[?&]page=1\b/.test(request.url)
+					? [
+							{ user: { login: "ana" }, state: "CHANGES_REQUESTED" },
+							{ user: { login: "ana" }, state: "APPROVED" },
+						]
+					: []
+			: undefined,
+	);
+	const result = (await runGitHubForge(
+		"approvals",
+		envelope({ ref: "42" }),
+		deps,
+	)) as Record<string, unknown>;
+	expect(result.approval).toEqual({
+		available: true,
+		approvedBy: ["ana"],
+		rulesMet: true,
+	});
+	expect(() => parseForgeOperationResult("approvals", result)).not.toThrow();
+
+	const blocked = pullDeps((request) =>
+		request.url.includes("/pulls/42/reviews")
+			? /[?&]page=1\b/.test(request.url)
+				? [
+						{ user: { login: "ana" }, state: "APPROVED" },
+						{ user: { login: "ben" }, state: "CHANGES_REQUESTED" },
+					]
+				: []
+			: undefined,
+	);
+	const refused = (await runGitHubForge(
+		"approvals",
+		envelope({ ref: "42" }),
+		blocked.deps,
+	)) as Record<string, unknown>;
+	expect(refused.approval).toEqual({
+		available: true,
+		approvedBy: ["ana"],
+		rulesMet: false,
+	});
+});
+
+test("land squash-merges with the head guard and reports the merged commit", async () => {
+	const merged = "f".repeat(40);
+	const { deps, requests } = pullDeps((request) =>
+		request.method === "PUT" ? { merged: true, sha: merged } : undefined,
+	);
+	const result = (await runGitHubForge(
+		"land",
+		envelope({ approved: true, ref: "42", headRevision: HEAD }),
+		deps,
+	)) as Record<string, unknown>;
+	expect(result).toMatchObject({ operation: "land", mergedRevision: merged });
+	expect(() => parseForgeOperationResult("land", result)).not.toThrow();
+	const put = requests.find((request) => request.method === "PUT");
+	expect(resource(put?.url ?? "")).toBe("/pulls/42/merge");
+	expect(put?.body).toEqual({ sha: HEAD, merge_method: "squash" });
+});
+
+test("land refuses a moved head or an unmerged response", async () => {
+	const { deps, requests } = pullDeps((request) =>
+		request.method === "PUT" ? { merged: false } : undefined,
+	);
+	await expect(
+		runGitHubForge(
+			"land",
+			envelope({ approved: true, ref: "42", headRevision: "b".repeat(40) }),
+			deps,
+		),
+	).rejects.toThrow(/new commits/);
+	expect(requests.some((request) => request.method === "PUT")).toBe(false);
+	await expect(
+		runGitHubForge(
+			"land",
+			envelope({ approved: true, ref: "42", headRevision: HEAD }),
+			deps,
+		),
+	).rejects.toThrow(/did not merge/);
+});
