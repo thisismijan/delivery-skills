@@ -166,8 +166,21 @@ other way.
      key, naming the file, before any worker starts in it. Never copy other
      files into a worktree. The worker creates the deterministic ticket branch
      before its first commit.
-  3. Dispatch one mutating isolated worker per worktree through the runtime's
-     `agent.dispatch` capability. Its command is `/delivery auto <KEY>`, its cwd
+  3. Before the first batch, run
+     `bun "${FACTORY_ROOT}/scripts/sandbox-run.ts" check <repoRoot>`. Exit 3
+     means no sandbox was confirmed: dispatch workers as below. Exit 1 means a
+     confirmed sandbox cannot run (malformed file, engine missing, image
+     missing): stop the fan-out once with its reasons. Never fall back to plain
+     worktrees when a sandbox was confirmed. Exit 0 means start each worker as
+     its own background process with
+     `bun "${FACTORY_ROOT}/scripts/sandbox-run.ts" run <repoRoot> <path> <state-root> <run-id> <KEY>`
+     instead of `agent.dispatch`. It runs the confirmed worker command in a
+     container that mounts only that worktree, its git data, the state root
+     read-only, the run's journal folder, and the pack read-only. It passes
+     only the confirmed variable names, runs the confirmed setup steps inside
+     the container first, and removes the container when the worker ends.
+     Otherwise, dispatch one mutating isolated worker per worktree through the
+     runtime's `agent.dispatch` capability. Its command is `/delivery auto <KEY>`, its cwd
      is that worktree, and its environment includes the shared state root plus
      `DELIVERY_WORKER_JOURNAL=<state-root>/workers/<run-id>/<key>.md`. Give it
      the reserved ledger generation and immutable key row. A worker writes only
@@ -184,7 +197,9 @@ other way.
      `bun "${FACTORY_ROOT}/scripts/worker-watch.ts" <workers-dir> <dispatch.json>`
      whenever the coordinator wakes. A worker whose journal has not changed for
      `workerIdleMinutes` (`WORKER_IDLE_MINUTES`, default 20) is idle: exit 3
-     names it. Cancel that worker if the runtime can, set its key to
+     names it. Cancel that worker if the runtime can; for a sandboxed worker,
+     `bun "${FACTORY_ROOT}/scripts/sandbox-run.ts" stop <repoRoot> <run-id> <KEY>`
+     removes its container and so ends its processes. Set its key to
      `[stopped: worker idle]`, record the minutes in Decisions, close its
      worktree, and ignore anything it writes afterwards. Its siblings keep
      running. Never restart an idle worker in the same turn.

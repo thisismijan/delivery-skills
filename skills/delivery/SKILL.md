@@ -384,6 +384,19 @@ tree, say they need committing; do not commit them.
   `bun "${FACTORY_ROOT}/scripts/worktree-files.ts" confirm "<repoRoot>" <worktree-files.json>`.
   When the operator names none, write nothing; workers then get only tracked
   files.
+  Then ask whether parallel workers should run in containers. Only when the
+  operator says yes, draft `.delivery/sandbox.json` with them: `engine`
+  (`docker` or `podman`), a local `image` that has `sleep`, git, the host's
+  command-line agent, and this pack's mutation guard installed, `network`
+  (`none`, or `open` only when they accept unrestricted egress), `env` (the
+  variable names a worker needs, never their values), `setup` (install
+  commands as argument lists), and `worker` (the host's headless command that
+  runs `/delivery auto {key}`). Show the whole draft, write their exact words
+  under `approval`, then run
+  `bun "${FACTORY_ROOT}/scripts/sandbox-run.ts" confirm "<repoRoot>" <sandbox.json>`
+  and `bun "${FACTORY_ROOT}/scripts/sandbox-run.ts" check "<repoRoot>"`, and
+  show the result. When they decline, write nothing; workers then run in
+  plain worktrees.
 
 ### Entry 0 — Discovery
 

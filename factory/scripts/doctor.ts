@@ -20,6 +20,12 @@ import {
 	type RuntimeManifest,
 	loadRuntimeManifest,
 } from "./runtime-manifest";
+import {
+	SANDBOX_PATH,
+	type SandboxCheck,
+	checkSandbox,
+	realHost,
+} from "./sandbox-run";
 import { loadConstitution } from "./sdlc-constitution";
 import {
 	type WorkItemSelectionStatus,
@@ -246,6 +252,22 @@ export function remoteProviderDoctorChecks(
 	return checks;
 }
 
+export function sandboxDoctorCheck(check: SandboxCheck): DoctorCheck {
+	if (check.state === "ready") {
+		return ready(
+			"Worker sandbox",
+			`${check.engine} with ${check.image}; ${check.reasons.join(" ")}`,
+		);
+	}
+	if (check.state === "not-configured") {
+		return ready("Worker sandbox", check.reasons.join(" "));
+	}
+	return setup(
+		"Worker sandbox",
+		`${check.reasons.join(" ")} Parallel auto stops until this is fixed or ${SANDBOX_PATH} is removed.`,
+	);
+}
+
 export function workItemDoctorCheck(
 	status: WorkItemSelectionStatus,
 ): DoctorCheck {
@@ -356,6 +378,9 @@ export async function runDoctor(options: {
 				),
 			);
 		}
+		checks.push(
+			sandboxDoctorCheck(checkSandbox(options.cwd, { ...realHost, which })),
+		);
 	}
 
 	checks.push(
