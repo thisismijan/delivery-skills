@@ -94,6 +94,7 @@ const GITLAB_FORGE_OPERATIONS: Record<string, McpOperationBinding> = {
 			target_branch: "{{targetBranch}}",
 			description: "{{description}}",
 			draft: true,
+			squash: true,
 		},
 	},
 	"set-draft": {

@@ -83,6 +83,20 @@ test("GitLab session tools plan merge-request reads and refuse merge tools", () 
 	expect(family?.operations.read?.tool.name).toBe("get_merge_request");
 	expect(family?.operations.create?.tool.name).toBe("create_merge_request");
 	expect(JSON.stringify(family?.operations)).not.toMatch(/merge_merge_request/);
+	expect(
+		planMcpOperation({
+			route,
+			kind: "forge",
+			operation: "create",
+			provider: "gitlab",
+			input: {
+				title: "t",
+				sourceBranch: "s",
+				targetBranch: "main",
+				description: "d",
+			},
+		})?.arguments,
+	).toMatchObject({ draft: true, squash: true });
 });
 
 test("mixed inventories do not route tools across servers", () => {

@@ -511,7 +511,9 @@ describe("bounded recovery and replay safety", () => {
 			/unique typescript, python, or java missing import/i,
 		);
 		expect(plain(execute)).toMatch(/google-java-format/i);
-		expect(plain(rootReadme)).toMatch(/python function, class,\s*parameter, or local/i);
+		expect(plain(rootReadme)).toMatch(
+			/python function, class,\s*parameter, or local/i,
+		);
 		const controller = read("agents/task-profile-controller.md");
 		expect(controller).toContain("mechanical-edit");
 		expect(controller).toMatch(
@@ -688,7 +690,9 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(rootReadme)).toMatch(
 			/acknowledgement-only, mention-only, url-only, and emoji-only/i,
 		);
-		expect(plain(referenceDocs)).toMatch(/forge-comments\.ts" apply-suggestion/i);
+		expect(plain(referenceDocs)).toMatch(
+			/forge-comments\.ts" apply-suggestion/i,
+		);
 		expect(plain(referenceDocs)).toMatch(/ticket-feasibility\.ts/i);
 		expect(plain(workflowDocs)).toMatch(
 			/whole-body suggestion fence is applied without the implementer/i,
@@ -696,9 +700,7 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(rootReadme)).toMatch(
 			/\/execute skips the test-writer, red gate, and implementer/i,
 		);
-		expect(plain(workflowDocs)).toMatch(
-			/unique python parameter or local/i,
-		);
+		expect(plain(workflowDocs)).toMatch(/unique python parameter or local/i);
 		expect(plain(rootReadme)).toMatch(
 			/unique typescript, python, or java missing import/i,
 		);
@@ -1078,4 +1080,11 @@ describe("release-readiness lens tier", () => {
 			expect(plain(document)).toMatch(/GO or NO-GO/i);
 		}
 	});
+});
+
+test("a factory change always squashes its commits on merge", () => {
+	expect(execute).toMatch(/always squashes its commits on merge/);
+	expect(conventions).toMatch(
+		/Every factory change squashes its commits on merge/,
+	);
 });
