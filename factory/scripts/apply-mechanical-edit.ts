@@ -17,6 +17,12 @@ import {
 	planJavaRename,
 } from "./apply-java-mechanical-edit";
 import {
+	applyKotlinFormat,
+	planKotlinImports,
+	planKotlinRename,
+	writeKotlinPlan,
+} from "./apply-kotlin-mechanical-edit";
+import {
 	type MechanicalEditPlan,
 	classifyMechanicalEdit,
 } from "./mechanical-edit";
@@ -35,9 +41,16 @@ const PYTHON_EXTENSIONS = new Set([".py", ".pyi"]);
 const JAVA_EXTENSIONS = new Set([".java"]);
 const GO_EXTENSIONS = new Set([".go"]);
 const CSHARP_EXTENSIONS = new Set([".cs"]);
+const KOTLIN_EXTENSIONS = new Set([".kt", ".kts"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
 
-type ApplyLanguage = "typescript" | "python" | "java" | "go" | "csharp";
+type ApplyLanguage =
+	| "typescript"
+	| "python"
+	| "java"
+	| "go"
+	| "csharp"
+	| "kotlin";
 
 function extensionOf(fileName: string): string {
 	const dot = fileName.lastIndexOf(".");
@@ -60,6 +73,9 @@ function languageOf(fileName: string): ApplyLanguage | undefined {
 	}
 	if (CSHARP_EXTENSIONS.has(extension)) {
 		return "csharp";
+	}
+	if (KOTLIN_EXTENSIONS.has(extension)) {
+		return "kotlin";
 	}
 	return undefined;
 }
@@ -366,6 +382,23 @@ async function applyCSharpPlan(
 		reason,
 		apply: "script",
 		filesChanged,
+	};
+}
+
+async function applyKotlinPlan(
+	classified: MechanicalEditPlan,
+	root: string,
+	planned: Awaited<ReturnType<typeof planKotlinRename>>,
+	reason: string,
+): Promise<ApplyMechanicalEditResult> {
+	if (!planned.ok || !planned.files) {
+		return plan(classified, planned.reason ?? "kotlin rewrite was not proven");
+	}
+	return {
+		verdict: "mechanical",
+		reason,
+		apply: "script",
+		filesChanged: await writeKotlinPlan(root, planned),
 	};
 }
 
@@ -1083,6 +1116,14 @@ export async function applyMechanicalEdit(input: {
 				"applied C# import-only rewrite",
 			);
 		}
+		if (language === "kotlin") {
+			return applyKotlinPlan(
+				classified,
+				root,
+				await planKotlinImports({ root, files: payload.files }),
+				"applied Kotlin import-only rewrite",
+			);
+		}
 		if (language !== "typescript") {
 			return plan(classified, "no proven script for this operation");
 		}
@@ -1114,6 +1155,18 @@ export async function applyMechanicalEdit(input: {
 					run: spawnStdin,
 				}),
 				"applied C# format-only rewrite",
+			);
+		}
+		if (language === "kotlin") {
+			return applyKotlinPlan(
+				classified,
+				root,
+				await applyKotlinFormat({
+					root,
+					files: payload.files,
+					run: spawnStdin,
+				}),
+				"applied Kotlin format-only rewrite",
 			);
 		}
 		if (language !== "typescript") {
@@ -1156,6 +1209,19 @@ export async function applyMechanicalEdit(input: {
 				to: payload.to,
 			}),
 			"applied C# identifier rename",
+		);
+	}
+	if (language === "kotlin") {
+		return applyKotlinPlan(
+			classified,
+			root,
+			await planKotlinRename({
+				root,
+				files: payload.files,
+				from: payload.from,
+				to: payload.to,
+			}),
+			"applied Kotlin identifier rename",
 		);
 	}
 	if (language !== "typescript") {
