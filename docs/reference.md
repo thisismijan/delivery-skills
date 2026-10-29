@@ -188,6 +188,24 @@ a column the confirmed map names. It skips, and the stage continues, when
 there is no map, the board changed, or the ticket is already there or
 further along. Closing, reopening, and backwards moves stay with people.
 
+## Worker worktree files
+
+```text
+bun "$FACTORY_ROOT/scripts/worktree-files.ts" propose <repoRoot>
+bun "$FACTORY_ROOT/scripts/worktree-files.ts" confirm <repoRoot> <worktree-files.json>
+bun "$FACTORY_ROOT/scripts/worktree-files.ts" copy <repoRoot> <worktree-path>
+bun "$FACTORY_ROOT/scripts/worktree-close.ts" <worktree-path> [--dry-run]
+```
+
+`/delivery init` proposes the local files git ignores (for example `.env`)
+and saves only the exact paths the operator confirms. Each must be a regular
+file inside the repository that git ignores and does not track, no larger than
+1 MiB, and not a symbolic link. When auto creates a worker's worktree, `copy`
+places those files in it, and stops that key without writing anything if one
+is missing or already present. `worktree-close.ts` removes a worker's
+worktree only when nothing is uncommitted or untracked and its last commit is
+on a remote branch; otherwise it keeps the folder and says why.
+
 ## Provider credentials and overrides
 
 | Provider | Credentials | Identity overrides |
@@ -203,6 +221,7 @@ further along. Closing, reopening, and backwards moves stay with people.
 | `.delivery/work-items.json` | Confirmed work-item provider and its per-repository settings |
 | `.delivery/work-items/` | Local-files items |
 | `.delivery/board-status.json` | Operator-confirmed map from board columns to delivery phases |
+| `.delivery/worktree-files.json` | Operator-confirmed local files copied into each worker worktree |
 | `.delivery/runs/` | Ledgers, run contracts, retros |
 | `.delivery/workers/` | Parallel worker journals |
 | `.delivery/routing/` | Model inventory and scorecards |

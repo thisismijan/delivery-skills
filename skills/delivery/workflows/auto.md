@@ -159,8 +159,13 @@ other way.
   2. Create one detached git worktree per dispatched key from the recorded base.
      Keep worktrees outside one another. Never reuse a dirty or occupied path.
      Use argv-equivalent execution, not a shell-built string:
-     `git worktree add --detach <path> <full-base-sha>`. The worker creates the
-     deterministic ticket branch before its first commit.
+     `git worktree add --detach <path> <full-base-sha>`. Then copy the local
+     files the operator confirmed at init with
+     `bun "${FACTORY_ROOT}/scripts/worktree-files.ts" copy <repoRoot> <path>`.
+     It copies nothing when no list was confirmed. A failure stops only that
+     key, naming the file, before any worker starts in it. Never copy other
+     files into a worktree. The worker creates the deterministic ticket branch
+     before its first commit.
   3. Dispatch one mutating isolated worker per worktree through the runtime's
      `agent.dispatch` capability. Its command is `/delivery auto <KEY>`, its cwd
      is that worktree, and its environment includes the shared state root plus
