@@ -21,6 +21,16 @@ import {
 	readTrackerItem,
 } from "./providers";
 import {
+	MAX_SANDBOX_ENV,
+	MAX_SANDBOX_SETUP,
+	SANDBOX_CHECK_INVOCATION,
+	SANDBOX_CONFIRM_INVOCATION,
+	SANDBOX_ENGINES,
+	SANDBOX_PATH,
+	SANDBOX_RUN_INVOCATION,
+	SANDBOX_STOP_INVOCATION,
+} from "./sandbox-run";
+import {
 	CONSTITUTION_CHECK_INVOCATION,
 	CONSTITUTION_FREEZE_INVOCATION,
 	CONSTITUTION_PREFLIGHT_INVOCATION,
@@ -1253,4 +1263,38 @@ test("auto stops idle workers from their journal heartbeat", () => {
 	expect(referenceDocs).toContain(
 		`\`WORKER_IDLE_MINUTES\` | Minutes without a journal write before auto stops a parallel worker as idle (\`scripts/config.ts\`, default ${DEFAULT_WORKER_IDLE_MINUTES})`,
 	);
+});
+
+test("auto runs workers in the confirmed sandbox and never silently without it", () => {
+	const contract = plain(auto);
+	expect(auto).toContain('scripts/sandbox-run.ts" check <repoRoot>');
+	expect(auto).toContain(
+		'scripts/sandbox-run.ts" run <repoRoot> <path> <state-root> <run-id> <KEY>',
+	);
+	expect(auto).toContain(
+		'scripts/sandbox-run.ts" stop <repoRoot> <run-id> <KEY>',
+	);
+	expect(contract).toMatch(
+		/Never fall back to plain worktrees when a sandbox was confirmed/,
+	);
+	expect(delivery).toContain(
+		'scripts/sandbox-run.ts" confirm "<repoRoot>" <sandbox.json>',
+	);
+	expect(plain(delivery)).toMatch(/never their values/);
+	const reference = referenceDocs.replace(/"\$FACTORY_ROOT\/([^"]+)"/g, "$1");
+	for (const invocation of [
+		SANDBOX_CONFIRM_INVOCATION,
+		SANDBOX_CHECK_INVOCATION,
+		SANDBOX_RUN_INVOCATION,
+		SANDBOX_STOP_INVOCATION,
+	]) {
+		expect(reference).toContain(invocation);
+	}
+	expect(referenceDocs).toContain(SANDBOX_PATH);
+	expect(plain(referenceDocs)).toContain(`at most ${MAX_SANDBOX_ENV}`);
+	expect(plain(referenceDocs)).toContain(`up to ${MAX_SANDBOX_SETUP}`);
+	for (const engine of SANDBOX_ENGINES) {
+		expect(referenceDocs).toContain(`\`${engine}\``);
+		expect(delivery).toContain(`\`${engine}\``);
+	}
 });

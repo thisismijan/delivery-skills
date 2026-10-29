@@ -210,6 +210,36 @@ on a remote branch; otherwise it keeps the folder and says why.
 `worker-watch.ts` reports each dispatched worker as active or idle from its
 journal's last write and exits 3 when any is idle.
 
+## Worker sandbox
+
+```text
+bun "$FACTORY_ROOT/scripts/sandbox-run.ts" confirm <repoRoot> <sandbox.json>
+bun "$FACTORY_ROOT/scripts/sandbox-run.ts" check <repoRoot>
+bun "$FACTORY_ROOT/scripts/sandbox-run.ts" run <repoRoot> <worktree-path> <state-root> <run-id> <KEY> [--dry-run]
+bun "$FACTORY_ROOT/scripts/sandbox-run.ts" stop <repoRoot> <run-id> <KEY>
+```
+
+The sandbox is optional. `/delivery init` saves `.delivery/sandbox.json` only
+when the operator approves it: `engine` (`docker` or `podman`), a local
+`image`, `network` (`none` or `open`), `env` (variable names passed through
+from the coordinator, at most 50), `setup` (up to 20 argument lists run inside
+the container before the worker), `worker` (an argument list that names the
+ticket with `{key}`), and `approval`. `check` exits 0 when the engine is on
+PATH and the image is present, 3 when no sandbox was confirmed, and 1 when a
+confirmed sandbox cannot run; auto stops the fan-out on 1 rather than running
+workers unsandboxed.
+
+`run` starts one container per worker, named `delivery-<run-id>-<key>`. It
+mounts the worktree and its git data read-write, the state root read-only, the
+run's journal folder read-write, and the pack read-only. It drops every Linux
+capability, forbids privilege escalation, runs as the coordinator's user, and
+turns networking off unless the config says `open`. The worker's commits stay
+in its worktree; nothing else is copied back. The container is removed when
+the worker ends, whatever its exit code. `--dry-run` prints the engine
+commands instead. `stop` removes the container, which ends an idle worker's
+processes. Limiting network access to listed hosts is not supported: a worker
+that needs a model or forge API needs `open`.
+
 ## Provider credentials and overrides
 
 | Provider | Credentials | Identity overrides |
@@ -226,6 +256,7 @@ journal's last write and exits 3 when any is idle.
 | `.delivery/work-items/` | Local-files items |
 | `.delivery/board-status.json` | Operator-confirmed map from board columns to delivery phases |
 | `.delivery/worktree-files.json` | Operator-confirmed local files copied into each worker worktree |
+| `.delivery/sandbox.json` | Operator-confirmed container settings for parallel workers |
 | `.delivery/runs/` | Ledgers, run contracts, retros |
 | `.delivery/workers/` | Parallel worker journals |
 | `.delivery/routing/` | Model inventory and scorecards |
