@@ -1190,7 +1190,9 @@ describe("auto lands approved, green changes through the land gate", () => {
 			expect(contract).toMatch(check);
 		}
 		expect(contract).toMatch(/Exit 0 is landed.*3 is wait.*1 is stop/);
-		expect(auto).toMatch(/\| `\[go !N\]` \| Land it/);
+		expect(auto).toMatch(
+			/\| `\[go !N\]` \| Before landing, read the comments on the change again, then land it/,
+		);
 		expect(contract).toMatch(/kind: "archive"/);
 		expect(contract).toMatch(/outside openspec\//);
 		expect(contract).toMatch(/never merge any other way/i);
@@ -1259,7 +1261,7 @@ test("auto stops idle workers from their journal heartbeat", () => {
 	);
 	expect(contract).toContain(`default ${DEFAULT_WORKER_IDLE_MINUTES}`);
 	expect(contract).toMatch(/WORKER_IDLE_MINUTES/);
-	expect(contract).toMatch(/\[stopped: worker idle\]/);
+	expect(contract).toMatch(/\[stopped: <reason>\] with the reason worker idle/);
 	expect(contract).toMatch(/ignore anything it writes afterwards/);
 	expect(contract).toMatch(/Its siblings keep running/);
 	expect(plain(ledger)).toMatch(

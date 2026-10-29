@@ -175,7 +175,7 @@ After approval, it automatically:
 4. Drafts the change contract, selects test seams, builds test-first, runs all
    gates, performs both review passes, publishes review notes, and monitors the
    merge request pipeline at its exact head revision.
-5. After you merge, monitors the default-branch pipeline at the exact merged
+5. After the change lands, monitors the default-branch pipeline at the exact merged
    revision before archiving the change, verifying the deployment, writing the
    engineering retro, and preparing any evidence-backed delivery-skill
    improvement candidate.
