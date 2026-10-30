@@ -2,14 +2,14 @@ import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { loadObservations } from "./record-routing";
 import {
+	SKIPPED_WORKERS,
 	buildSkippedDispatch,
 	loadSkips,
 	parseSkipInput,
 	persistSkipBatch,
-	SKIPPED_WORKERS,
 } from "./record-skip";
-import { loadObservations } from "./record-routing";
 
 const skip = {
 	skipId: "mechanical-test-writer",
@@ -21,7 +21,10 @@ test("persist stores a skip without token or cost fields", async () => {
 	const dir = await mkdtemp(join(tmpdir(), "record-skip-"));
 	try {
 		const paths = await persistSkipBatch(dir, "change-one", {
-			skips: [skip, { ...skip, skipId: "mechanical-implementer", worker: "implementer" }],
+			skips: [
+				skip,
+				{ ...skip, skipId: "mechanical-implementer", worker: "implementer" },
+			],
 		});
 		expect(paths).toHaveLength(2);
 		const loaded = await loadSkips(dir);

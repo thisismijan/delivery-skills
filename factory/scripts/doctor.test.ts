@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AGENT_SUMMARY_PRELOAD_RELATIVE } from "./claude-settings";
 import {
-	agentSummaryDoctorCheck,
 	type DoctorReport,
+	agentSummaryDoctorCheck,
 	doctorReadiness,
 	formatDoctorReport,
 	formatDoctorVerdict,

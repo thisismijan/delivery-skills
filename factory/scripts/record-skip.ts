@@ -123,7 +123,9 @@ export async function loadSkips(root: string): Promise<SkippedDispatch[]> {
 			if (!SAFE_PATH_SEGMENT.test(skipId)) {
 				throw new Error(`unsafe skip file: ${file.name}`);
 			}
-			const raw = JSON.parse(await readFile(join(dir, file.name), "utf8")) as unknown;
+			const raw = JSON.parse(
+				await readFile(join(dir, file.name), "utf8"),
+			) as unknown;
 			const parsed = SkippedDispatch.parse(raw);
 			if (parsed.runId !== run.name || parsed.skipId !== skipId) {
 				throw new Error(`skip identity does not match its path: ${file.name}`);

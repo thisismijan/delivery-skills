@@ -102,7 +102,11 @@ export function fillHousekeepingSections(
 	missing: string[],
 ): string | null {
 	if (missing.length === 0) return null;
-	if (!missing.every((gap) => (HOUSEKEEPING_GAPS as readonly string[]).includes(gap))) {
+	if (
+		!missing.every((gap) =>
+			(HOUSEKEEPING_GAPS as readonly string[]).includes(gap),
+		)
+	) {
 		return null;
 	}
 	let filled = text.replace(/\s*$/, "\n");
@@ -118,9 +122,9 @@ function escapeRegex(s: string): string {
 }
 
 export function acceptanceCriterionLines(text: string): string[] {
-	return [...sectionBody(text, "acceptance criteria").matchAll(/^- \[[ xX]\](.*)$/gm)].map(
-		(match) => (match[1] ?? "").trim(),
-	);
+	return [
+		...sectionBody(text, "acceptance criteria").matchAll(/^- \[[ xX]\](.*)$/gm),
+	].map((match) => (match[1] ?? "").trim());
 }
 
 export function sectionBody(text: string, name: string): string {

@@ -24,7 +24,9 @@ test("a run scorecard separates measured live results from unevaluated shadow ad
 	expect(scorecard.shadow.qualityStatus).toBe("not-evaluated");
 	const text = formatRunRoutingScorecard(scorecard);
 	expect(text).toContain("Shadow quality and savings are not evaluated");
-	expect(text).toContain("Workers avoided: none. Token savings are not estimated.");
+	expect(text).toContain(
+		"Workers avoided: none. Token savings are not estimated.",
+	);
 	expect(text).not.toContain("shadowTier");
 });
 
@@ -50,7 +52,11 @@ test("a run scorecard counts skipped workers without inventing token savings", (
 			recordedAt: "2026-10-28T15:00:01.000Z",
 		},
 	];
-	const scorecard = buildRunRoutingScorecard(observations, "run-execute-mdf-sample", skips);
+	const scorecard = buildRunRoutingScorecard(
+		observations,
+		"run-execute-mdf-sample",
+		skips,
+	);
 	expect(scorecard.workersAvoided.count).toBe(2);
 	expect(scorecard.workersAvoided.byWorker).toEqual({
 		implementer: 1,

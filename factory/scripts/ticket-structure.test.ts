@@ -69,9 +69,10 @@ test("a complete ticket with no open questions skips the assessor as good", asyn
 test("a size warning skips the assessor as too large", async () => {
 	const body = validBody.replace(
 		"Operators need a CSV of the current dashboard.",
-		["Operators need a CSV of the current dashboard.", ...Array(SIZE_WARN_LINES).fill("More context.")].join(
-			"\n",
-		),
+		[
+			"Operators need a CSV of the current dashboard.",
+			...Array(SIZE_WARN_LINES).fill("More context."),
+		].join("\n"),
 	);
 	const result = await inspectTicketStructure(item(body));
 	expect(result.skipAssessor).toBe(true);

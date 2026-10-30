@@ -99,6 +99,7 @@ export function registerFastCatalogueCandidate(
 	next.tiers.fast.candidates.push({
 		id: candidateModel,
 		availability: "evaluation-only",
+		aliases: [],
 	});
 	return next;
 }

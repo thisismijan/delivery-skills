@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { sanitizeHumanText } from "./human-text";
 import { loadObservations } from "./record-routing";
-import { loadSkips, type SkippedDispatch } from "./record-skip";
+import { type SkippedDispatch, loadSkips } from "./record-skip";
 import type { RoutingObservation } from "./routing-observation";
 import { tierRelation } from "./routing-report";
 import { SafePathSegment } from "./task-profile";

@@ -260,7 +260,10 @@ export function tokenizeJavaFormat(source: string): JavaFormatToken[] {
 		if (atLineStart && (char === " " || char === "\t")) {
 			let end = index;
 			let indent = "";
-			while (end < source.length && (source[end] === " " || source[end] === "\t")) {
+			while (
+				end < source.length &&
+				(source[end] === " " || source[end] === "\t")
+			) {
 				indent += source[end] === "\t" ? "    " : " ";
 				end += 1;
 			}
@@ -335,7 +338,9 @@ function javaFormatShape(source: string): string {
 }
 
 function identifierShape(source: string): string {
-	return JSON.stringify(tokenizeJava(source).map((token) => [token.kind, token.text]));
+	return JSON.stringify(
+		tokenizeJava(source).map((token) => [token.kind, token.text]),
+	);
 }
 
 function needsSpace(previous: JavaFormatToken, next: JavaFormatToken): boolean {
@@ -346,7 +351,7 @@ function needsSpace(previous: JavaFormatToken, next: JavaFormatToken): boolean {
 		return false;
 	}
 	if (previous.kind === "comment" || next.kind === "comment") {
-		return previous.kind !== "newline";
+		return true;
 	}
 	if (previous.kind === "op" && NO_SPACE_AFTER.has(previous.text)) {
 		return false;
@@ -363,7 +368,10 @@ function needsSpace(previous: JavaFormatToken, next: JavaFormatToken): boolean {
 	return true;
 }
 
-export function javaFormatIdentityHolds(original: string, next: string): boolean {
+export function javaFormatIdentityHolds(
+	original: string,
+	next: string,
+): boolean {
 	return (
 		javaFormatShape(original) === javaFormatShape(next) &&
 		identifierShape(original) === identifierShape(next)
@@ -570,7 +578,10 @@ function javaImports(
 		}
 		const prefix = source.slice(lineStart(source, token.start), token.start);
 		if (/\S/.test(prefix)) {
-			return { ok: false, reason: "java import-only cannot prove inline imports" };
+			return {
+				ok: false,
+				reason: "java import-only cannot prove inline imports",
+			};
 		}
 		let cursor = index + 1;
 		if (tokens[cursor]?.text === "static") {
@@ -583,7 +594,9 @@ function javaImports(
 			const current = tokens[cursor];
 			if (
 				current &&
-				(current.kind === "id" || current.kind === "kw" || current.kind === "type")
+				(current.kind === "id" ||
+					current.kind === "kw" ||
+					current.kind === "type")
 			) {
 				parts.push(current.text);
 				lastEnd = current.end;
@@ -610,10 +623,16 @@ function javaImports(
 		}
 		const semi = skipSpaces(source, lastEnd);
 		if (source[semi] !== ";") {
-			return { ok: false, reason: "java import-only cannot prove this import form" };
+			return {
+				ok: false,
+				reason: "java import-only cannot prove this import form",
+			};
 		}
 		let end = semi + 1;
-		const rest = source.slice(end, source.indexOf("\n", end) + 1 || source.length);
+		const rest = source.slice(
+			end,
+			source.indexOf("\n", end) + 1 || source.length,
+		);
 		if (rest.includes("\n")) {
 			if (/\S/.test(rest.slice(0, rest.indexOf("\n")))) {
 				return {
@@ -754,7 +773,12 @@ function publicTypeNames(tokens: JavaToken[]): string[] {
 			cursor -= 1;
 		}
 		const name = tokens[index + 1];
-		if (visible && !rejected && name && (name.kind === "id" || name.kind === "type")) {
+		if (
+			visible &&
+			!rejected &&
+			name &&
+			(name.kind === "id" || name.kind === "type")
+		) {
 			names.push(name.text);
 		}
 	}
@@ -780,7 +804,11 @@ function addUniqueJavaImports(
 	const already = new Set(imports.map((item) => item.simple));
 	const additions: string[] = [];
 	for (const name of [...used].sort()) {
-		if (already.has(name) || JAVA_LANG_TYPES.has(name) || TYPE_PRIMITIVES.has(name)) {
+		if (
+			already.has(name) ||
+			JAVA_LANG_TYPES.has(name) ||
+			TYPE_PRIMITIVES.has(name)
+		) {
 			continue;
 		}
 		if (declaredTypeNames(tokens).includes(name)) {
@@ -809,20 +837,27 @@ function addUniqueJavaImports(
 
 function dropJavaImports(source: string, unused: JavaImport[]): string {
 	let next = source;
-	for (const item of [...unused].sort((left, right) => right.start - left.start)) {
+	for (const item of [...unused].sort(
+		(left, right) => right.start - left.start,
+	)) {
 		next = `${next.slice(0, item.start)}${next.slice(item.end)}`;
 	}
 	return next;
 }
 
-function nonImportIdentifiers(tokens: JavaToken[], imports: JavaImport[]): Set<string> {
+function nonImportIdentifiers(
+	tokens: JavaToken[],
+	imports: JavaImport[],
+): Set<string> {
 	const names = new Set<string>();
 	for (const token of tokens) {
 		if (token.kind !== "id") {
 			continue;
 		}
 		if (
-			imports.some((item) => token.start >= item.start && token.start < item.end)
+			imports.some(
+				(item) => token.start >= item.start && token.start < item.end,
+			)
 		) {
 			continue;
 		}
@@ -880,7 +915,10 @@ export async function planJavaImports(input: {
 			return parsed;
 		}
 		if (parsed.imports.some((item) => item.star)) {
-			return { ok: false, reason: "java import-only cannot prove star imports" };
+			return {
+				ok: false,
+				reason: "java import-only cannot prove star imports",
+			};
 		}
 		const used = nonImportIdentifiers(tokens, parsed.imports);
 		const unused = parsed.imports.filter((item) => !used.has(item.simple));
@@ -888,7 +926,10 @@ export async function planJavaImports(input: {
 		const droppedTokens = tokenizeJava(next);
 		const droppedParsed = javaImports(next, droppedTokens);
 		if (!droppedParsed.ok) {
-			return { ok: false, reason: "import rewrite would change code that is not an import" };
+			return {
+				ok: false,
+				reason: "import rewrite would change code that is not an import",
+			};
 		}
 		next = addUniqueJavaImports(
 			next,
@@ -904,7 +945,10 @@ export async function planJavaImports(input: {
 		const nextTokens = tokenizeJava(next);
 		const nextParsed = javaImports(next, nextTokens);
 		if (!nextParsed.ok) {
-			return { ok: false, reason: "import rewrite would change code that is not an import" };
+			return {
+				ok: false,
+				reason: "import rewrite would change code that is not an import",
+			};
 		}
 		const before = nonImportIdentifiers(tokens, parsed.imports);
 		const after = nonImportIdentifiers(nextTokens, nextParsed.imports);
@@ -912,7 +956,10 @@ export async function planJavaImports(input: {
 			before.size !== after.size ||
 			[...before].some((name) => !after.has(name))
 		) {
-			return { ok: false, reason: "import rewrite would change code that is not an import" };
+			return {
+				ok: false,
+				reason: "import rewrite would change code that is not an import",
+			};
 		}
 		rewritten[relative(root, file).split(sep).join("/")] = next;
 	}
@@ -954,7 +1001,10 @@ export async function planJavaRename(input: {
 	let methods = 0;
 	let fields = 0;
 	if (input.from === "serialVersionUID") {
-		return { ok: false, reason: "java field rename cannot prove serialVersionUID" };
+		return {
+			ok: false,
+			reason: "java field rename cannot prove serialVersionUID",
+		};
 	}
 	for (const file of listed) {
 		const text = await Bun.file(file)
@@ -982,8 +1032,10 @@ export async function planJavaRename(input: {
 		return { ok: false, reason: "source identifier is ambiguous" };
 	}
 	if (declarations === 0) {
-		const kinds = [methods > 0 ? "method" : undefined, fields > 0 ? "field" : undefined]
-			.filter((kind): kind is string => kind !== undefined);
+		const kinds = [
+			methods > 0 ? "method" : undefined,
+			fields > 0 ? "field" : undefined,
+		].filter((kind): kind is string => kind !== undefined);
 		if (kinds.length !== 1) {
 			return {
 				ok: false,
@@ -1023,10 +1075,9 @@ export async function planJavaRename(input: {
 		const next = rewrite(text, tokens, input.from, input.to);
 		const relativePath = relative(root, file).split(sep).join("/");
 		const base = relativePath.slice(relativePath.lastIndexOf("/") + 1);
-		const directory =
-			relativePath.includes("/")
-				? relativePath.slice(0, relativePath.lastIndexOf("/") + 1)
-				: "";
+		const directory = relativePath.includes("/")
+			? relativePath.slice(0, relativePath.lastIndexOf("/") + 1)
+			: "";
 		let destination = relativePath;
 		if (declarations === 1 && base === `${input.from}.java`) {
 			destination = `${directory}${input.to}.java`;
@@ -1035,7 +1086,10 @@ export async function planJavaRename(input: {
 				.text()
 				.catch(() => undefined);
 			if (already !== undefined && destinationFile !== file) {
-				return { ok: false, reason: "java type rename target file already exists" };
+				return {
+					ok: false,
+					reason: "java type rename target file already exists",
+				};
 			}
 			if (destination !== relativePath) {
 				remove.push(relativePath);
