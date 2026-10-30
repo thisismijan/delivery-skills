@@ -66,7 +66,7 @@ only authority that may mark the change ready.
 format-only unit without the test-writer or the implementer. That includes a
 unique Python parameter or local, a unique Java field, a Java type whose
 listed file name matches, a unique TypeScript, Python, Java, Go, C#, or Kotlin missing import, and format-only
-through a repo Prettier, Ruff, or google-java-format binary, the Go standard formatter, repo-local `bin/csharpier`, or repo-local `bin/ktfmt` when names and
+through a repo Prettier, Ruff, or google-java-format binary, the Go standard formatter, repo-local `bin/csharpier`, `bin/ktfmt`, or `bin/rustfmt` when names and
 literals stay identical. Extract method, inlining, and a formatter that
 changes names still use the implementer. Green, lint, typecheck, and holdout
 still run.

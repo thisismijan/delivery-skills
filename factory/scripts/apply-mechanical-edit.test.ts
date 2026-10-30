@@ -408,6 +408,44 @@ test("a proven Kotlin rename is dispatched to the Kotlin helper", async () => {
 	);
 });
 
+test("Rust is format-only and uses the repository rustfmt wrapper", async () => {
+	await withProject(
+		{
+			"src/lib.rs": "pub fn run( ){ }\n",
+			"bin/rustfmt": "#!/bin/sh\nsed 's/run( )/run()/; s/{ }/{}/'\n",
+		},
+		async (root) => {
+			await chmod(join(root, "bin/rustfmt"), 0o755);
+			const formatted = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					operation: "format-only",
+					files: ["src/lib.rs"],
+				},
+				root,
+			});
+			expect(formatted).toMatchObject({
+				apply: "script",
+				filesChanged: ["src/lib.rs"],
+			});
+			expect(await readFile(join(root, "src/lib.rs"), "utf8")).toBe(
+				"pub fn run(){}\n",
+			);
+			const rename = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					from: "run",
+					to: "execute",
+					files: ["src/lib.rs"],
+				},
+				root,
+			});
+			expect(rename.apply).toBe("select-model");
+			expect(rename.reason).toContain("no proven script");
+		},
+	);
+});
+
 const pythonUnit = {
 	operation: "rename" as const,
 	from: "slugify_title",
