@@ -16,7 +16,8 @@ from `skills/delivery/SKILL.md`.
    or skill install. Tickets move forward on the confirmed board map as stages finish.
 5. **Auto.** `/delivery auto <key>` creates approved items, fans out
    independent tickets into isolated worktrees (at most `maxParallelWorktrees`
-   at a time, default 4, override with `MAX_PARALLEL_WORKTREES`), drafts,
+   at a time, default 4, 2 at `min` and 8 at `max`, override with
+   `MAX_PARALLEL_WORKTREES`), drafts,
    executes, reviews, and monitors the exact-head pipeline without polling.
 6. **You approve; auto lands.** Approve the change on the forge. Under
    `/delivery auto`, delivery squash-merges it once readiness gave GO and the
@@ -31,6 +32,32 @@ from `skills/delivery/SKILL.md`.
 
 Resume with `/delivery <KEY>` or `/delivery auto <key>`. Do not skip a failed
 gate.
+
+## Levels
+
+Choose how much a run spends with one word after the verb: `min`,
+`standard` (the default), or `max`.
+
+```text
+/delivery auto max docs/prd/billing.md
+/delivery auto min MDF-1234
+/delivery min MDF-5678
+```
+
+| Level | Workers at once | Fix attempts | Review rounds | Review lenses | Implementer |
+|-------|-----------------|--------------|---------------|---------------|-------------|
+| `min` | 2 | 1 | 2 | Size alone never adds lenses | Standard tier; frontier when the change is justified as complex |
+| `standard` | 4 | 2 | 3 | Measured from the diff | Standard tier; frontier when the change is justified as complex |
+| `max` | 8 | 3 | 4 | Every lens on every change | Frontier |
+
+Use `min` for small, low-risk tickets where cost matters more than time, and
+`max` for urgent or intricate work where time matters more than cost. The
+level is frozen with the approved plan; resuming at another level stops until
+you approve a new plan version. `MAX_PARALLEL_WORKTREES`, `MAX_FIX_ATTEMPTS`,
+and `MAX_REVIEW_ROUNDS` still override one setting. No level changes holdout,
+the review chain, the frontier reviewer, every lens on a risky change,
+release readiness, the land gate, or any human decision. The root
+[README](../README.md#levels) has the full guide.
 
 ## Model spend
 
@@ -100,6 +127,7 @@ job, reverting, and merging remain human decisions.
 | Command | Role |
 |---------|------|
 | `/delivery auto [idea \| KEY \| iid]` | Whole lifecycle; stops only for your decisions |
+| `/delivery auto min\|max <...>`, `/delivery min\|max <KEY>` | The same at a cheaper or a faster, deeper [level](#levels) |
 | `/delivery status [KEY]` | Where the run is, and what to type next |
 | `/delivery doctor` | Live readiness |
 | `/delivery init` | Target bootstrap and work-item confirmation |

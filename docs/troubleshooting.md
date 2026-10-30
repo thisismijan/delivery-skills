@@ -106,6 +106,19 @@ change head or merged revision and that credentials permit pipeline evidence.
 GitHub tokens may need access to statuses or check runs. Missing or stale
 evidence fails closed rather than falling back to the branch's latest pipeline.
 
+## Run stops with "this run was approved at the min level"
+
+The level is part of the approved plan. Resuming with a different level word
+stops instead of quietly changing how much the run spends. Resume without a
+level word to keep the approved level. To change it, ask delivery for a new
+plan version at the new level, give the reason, and approve it.
+
+## "Unknown delivery level" or "Name one delivery level, not two"
+
+The level words are `min`, `standard`, and `max`, in lowercase, either first
+or right after the verb. `DELIVERY_LEVEL` in the environment must be one of
+the same three; anything else fails closed before any stage runs.
+
 ## OpenSpec archive fails
 
 Install the OpenSpec CLI on PATH, or `--provider openspec` and rerun setup.

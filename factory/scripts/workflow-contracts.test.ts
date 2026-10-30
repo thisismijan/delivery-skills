@@ -15,7 +15,13 @@ import {
 } from "./config";
 import { FAST_SAFETY_FLOORS } from "./fast-dispatch";
 import { FORGE_OPERATIONS } from "./forge-provider";
-import { DELIVERY_LEVELS, LEVEL_SETTINGS } from "./levels";
+import {
+	DELIVERY_LEVELS,
+	LEVEL_SETTINGS,
+	parseLevel,
+	splitLevel,
+} from "./levels";
+import { classifyEntry } from "./next-action";
 import {
 	invokeProvider,
 	missingProvider,
@@ -39,6 +45,8 @@ import {
 	CONSTITUTION_PREFLIGHT_INVOCATION,
 	CONSTITUTION_REPORT_INVOCATION,
 	CONSTITUTION_VERSION,
+	contractLevel,
+	freezeAgainstLiveConstitution,
 	loadConstitution,
 } from "./sdlc-constitution";
 import { MAX_DERIVED_ACCEPTANCE_CRITERIA } from "./verdicts";
@@ -1378,4 +1386,109 @@ test("the docs state each level's values from the level table and its fixed floo
 	expect(conventions).toContain(
 		`MAX_REVIEW_ROUNDS\` default ${DEFAULT_MAX_REVIEW_ROUNDS}`,
 	);
+});
+
+test("every operator page that tabulates levels copies the level table exactly", () => {
+	const levelSection = (doc: string, heading: string) => {
+		const start = doc.indexOf(`\n${heading}\n`);
+		expect(start).toBeGreaterThan(-1);
+		const depth = heading.split(" ")[0] ?? "##";
+		const end = doc.indexOf(`\n${depth} `, start + 1);
+		return doc.slice(start, end < 0 ? undefined : end);
+	};
+	const rows = (section: string) =>
+		DELIVERY_LEVELS.map((level) => {
+			const row = section
+				.split("\n")
+				.find((line) => line.startsWith(`| \`${level}\` |`));
+			expect(row).toBeDefined();
+			return (row ?? "").split("|").map((cell) => cell.trim());
+		});
+	const canonical = rows(levelSection(delivery, "## Levels"));
+	const troubleshooting = read("../docs/troubleshooting.md");
+	const examples = read("../docs/examples.md");
+	const gettingStarted = read("../docs/getting-started.md");
+	for (const [doc, heading] of [
+		[rootReadme, "## Levels"],
+		[workflowDocs, "## Levels"],
+	] as const) {
+		const copied = rows(levelSection(doc, heading));
+		expect(copied).toEqual(canonical);
+		for (const [index, level] of DELIVERY_LEVELS.entries()) {
+			const settings = LEVEL_SETTINGS[level];
+			expect(copied[index]?.slice(2, 5)).toEqual([
+				String(settings.maxParallelWorktrees),
+				String(settings.maxFixAttempts),
+				String(settings.maxReviewRounds),
+			]);
+		}
+	}
+	const readmeLevels = plain(levelSection(rootReadme, "## Levels"));
+	for (const floor of [
+		/Holdout review, the \/code-review-max and \/mr-review chain, and the frontier model for review/,
+		/changes a dependency, is one-way, or was not fully classified/,
+		/Release-readiness lenses, the readiness GO and its rollback plan, and the land gate/,
+		/Fast models stay evaluation-only/,
+	]) {
+		expect(readmeLevels).toMatch(floor);
+	}
+	for (const name of [
+		"MAX_PARALLEL_WORKTREES",
+		"MAX_FIX_ATTEMPTS",
+		"MAX_REVIEW_ROUNDS",
+	]) {
+		expect(readmeLevels).toContain(name);
+	}
+	const caps = `default ${DEFAULT_MAX_PARALLEL_WORKTREES}, ${LEVEL_SETTINGS.min.maxParallelWorktrees} at min and ${LEVEL_SETTINGS.max.maxParallelWorktrees} at max`;
+	expect(plain(rootReadme)).toContain(caps);
+	expect(plain(workflowDocs)).toContain(caps);
+	for (const command of [
+		"/delivery auto max docs/prd/billing.md",
+		"/delivery auto min MDF-1234",
+		"/delivery min MDF-5678",
+	]) {
+		expect(rootReadme).toContain(command);
+		expect(workflowDocs).toContain(command);
+	}
+	expect(gettingStarted).toContain(
+		"/delivery auto max <idea, PRD path, or key>",
+	);
+	expect(examples).toContain("## Choosing a level");
+	expect(classifyEntry("auto max docs/prd/billing.md")).toMatchObject({
+		kind: "explicit-verb",
+		verb: "auto",
+		level: "max",
+	});
+	expect(classifyEntry("execute max MDF-91")).toMatchObject({
+		kind: "explicit-verb",
+		verb: "execute",
+		level: "max",
+	});
+	const changed = contractLevel(
+		freezeAgainstLiveConstitution({
+			version: 1,
+			runId: "docs-level",
+			planVersion: 1,
+			goal: "g",
+			scope: ["s"],
+			nonGoals: [],
+			tickets: [{ key: "MDF-1", title: "t", acceptance: ["a"], blockedBy: [] }],
+			permittedWrites: ["implementation"],
+			humanOwned: [...loadConstitution().document.humanOwned],
+			approval: { who: "o", words: "yes", at: "2026-10-30T00:00:00.000Z" },
+			level: "min",
+		}),
+		"max",
+	);
+	const quoted = changed.reason?.split(";")[0] ?? "";
+	expect(quoted).toBe("this run was approved at the min level");
+	for (const doc of [rootReadme, troubleshooting]) {
+		expect(plain(doc)).toContain(quoted);
+	}
+	expect(() => splitLevel("max min MDF-1", new Set())).toThrow(
+		"Name one delivery level, not two.",
+	);
+	expect(troubleshooting).toContain('"Name one delivery level, not two"');
+	expect(() => parseLevel("turbo")).toThrow(/^unknown delivery level/);
+	expect(troubleshooting).toContain('"Unknown delivery level"');
 });
