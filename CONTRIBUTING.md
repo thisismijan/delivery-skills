@@ -4,10 +4,13 @@
 cd factory
 bun install --frozen-lockfile
 bun run check
-bun test
-cd ..
-BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks
+bun run test
 ```
+
+`bun run test` runs the factory tests and then the delivery skill's own
+checks under `skills/delivery/checks`. A bare `bun test` runs only the
+factory tests, so use the script. `bun run test:skills` runs the skill checks
+alone.
 
 Use Bun `1.4.2`. Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`,
 `chore:`, `refactor:`). Do not attribute commits or merge requests to an AI

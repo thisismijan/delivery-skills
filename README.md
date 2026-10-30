@@ -645,7 +645,5 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 cd factory
 bun install --frozen-lockfile
 bun run check
-bun test
-cd ..
-BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks
+bun run test
 ```

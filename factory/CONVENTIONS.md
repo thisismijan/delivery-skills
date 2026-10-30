@@ -144,7 +144,7 @@ Unlike test durability, this rubric is **deliberately not a review gate**: `hold
 
 ```bash
 bun install
-bun test          # unit tests for scripts/
+bun run test      # unit tests for scripts/, then the delivery skill checks
 ```
 The commands run inside a skill-capable runtime (`/draft`, `/execute`) against a target repo with the tracker and forge providers connected.
 
