@@ -48,7 +48,7 @@ Factory stages (this clone's `skills/` + `factory/`):
 | `/groom [file\|text]` | Idea / HLD / PRD | Drafts under the grooming output directory; **no** tracker, **no** git |
 | `/draft <WORK-ITEM-KEY>` | Work-item key | Spec linked on branch + tracker comment (`SPEC_LINKED`), or terminal clarify/reject/escalate |
 | `/execute <WORK-ITEM-KEY>` | Work-item key (invocation = approval to build) | Ready MR after holdout approve, or escalate (no MR / no merge) |
-| `/address-comments <WORK-ITEM-KEY>` | Work-item key with existing open MR | Comments actioned + cumulative holdout; never merges |
+| `/address-comments <WORK-ITEM-KEY>` | Work-item key with existing open MR | Comments actioned + cumulative gates; never merges |
 | `/openspec-archive <change>` | Change name | Human-only, post-merge |
 | `/delivery improve <KEY\|all>` | Accepted delivery lessons | Builds and evaluates an isolated candidate; never installs it |
 | `/delivery improve apply <candidate>` | Exact evaluated candidate | Operator approval to snapshot and install that candidate |

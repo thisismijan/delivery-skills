@@ -67,6 +67,35 @@ its premise check was recorded (stop and ask). Recording the same head again
 replaces that round. Each actioned comment is one fix commit, after a
 test-only commit for a bug; formatting and spec updates go in the fix commit.
 
+## Review scope
+
+```text
+bun "$FACTORY_ROOT/scripts/review-scope.ts" <repoRoot> <iid> <base-sha> <head-sha>
+```
+
+`/code-review-max` runs this before each review. It finds the last reviewed
+commit from `.review/mr-<iid>/<sha>/max.md` and returns `full` or `delta`
+with `since` and plain reasons. `delta` means review only
+`git diff <since> <head>`, confirm each earlier finding is fixed, and judge
+the approach of that change alone. Any of these makes it `full`: no earlier
+review, an earlier review outside this branch's history, a missing verdict, a
+merge commit since then, a sensitive surface, dependency, one-way step, or
+weakened test in the change, more than 6 files or 400 lines, a file the
+earlier review did not cover, or the `max` level. Release readiness always
+reads the whole change.
+
+## Approach challenge
+
+```text
+bun "$FACTORY_ROOT/scripts/draft-route.ts" approach <verdict.json> <attempt>
+```
+
+`/draft` dispatches the read-only `approach-challenger` once the spec is
+written, unless feasibility rated the change low complexity. Its verdict is
+`sound`, `gaps` (each becomes a scenario or a stated non-goal), or `rethink`.
+A first `rethink` revises the design and challenges once more; a second
+stops (exit 3) for a person to choose.
+
 ## Levels
 
 ```text

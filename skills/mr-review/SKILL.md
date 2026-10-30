@@ -47,6 +47,14 @@ Stop and say so, without doing any of the work below, if any of these fail:
   and stop.
   Do not substitute your own correctness pass for it.
 
+When `.review/mr-<iid>/<full-head-sha>/review-scope.json` says `delta`, the
+approach was already judged at its `since` commit. Run Phases 1 and 5 as
+usual, skip Phase 2, and in Phases 3 and 4 judge only the change since that
+commit: whether the fixes take the same approach or a better one, and whether
+they make the earlier approach verdict wrong. Read the diff with
+`git diff <since> <full-head-sha>`. Say in the summary that this pass covered
+the changes since that commit.
+
 ## Phase 1 — Intent and prior art (no diff yet)
 
 Run, in this exact order:

@@ -7,6 +7,7 @@ import { SAFE_PATH_SEGMENT, SafePathSegment } from "./task-profile";
 export const SKIPPED_WORKERS = [
 	"ticket-assessor",
 	"feasibility-analyst",
+	"approach-challenger",
 	"groom-explorer",
 	"groom-writer",
 	"test-writer",

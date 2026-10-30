@@ -49,6 +49,33 @@ Stop at the first failure:
 
 State: `Reviewing !<iid> at <full-head-sha> against <full-base-sha>.`
 
+## Scope this round
+
+Before building the brief, run:
+```
+bun "${FACTORY_ROOT}/scripts/review-scope.ts" "<repoRoot>" <ref> <full-base-sha> <full-head-sha>
+```
+Persist its output at `.review/mr-<iid>/<full-head-sha>/review-scope.json`.
+A non-zero exit stops the review.
+
+- **`full`**: review the whole change against the base, as the rest of this
+  skill says.
+- **`delta`**: an earlier review at `since` covered this change, and what
+  changed after it is small, stays inside files that review covered, and
+  touches no sensitive surface, dependency, one-way step, or weakened test.
+  Review only that change. Wherever this skill measures, scans, or hands the
+  lenses a diff against `<full-base-sha>`, use `since` instead, and write
+  `git diff <since> <full-head-sha>` to `.review/mr-<iid>/<full-head-sha>/delta.patch`
+  as the diff the lenses read. Give every lens the earlier review,
+  `.review/mr-<iid>/<since>/max.md`, and add to the brief: confirm whether each
+  earlier finding is fixed at this head, and report one that is not again at
+  its current line. Lenses may still read any code outside the change to prove
+  a claim. Under the head line of the output, add a
+  `**Scope:**` line that says the review covered the changes since `since`,
+  and list each earlier finding as fixed or not under `### Earlier findings`.
+
+The scope never narrows release readiness, which still reads the whole change.
+
 ## Build the review brief
 
 Give every reviewer the same immutable brief:

@@ -1253,11 +1253,13 @@ describe("stage 3 readiness", () => {
     expect(ADDRESS_COMMENTS).toMatch(/approve[\s\S]{0,500}draft/i);
   });
 
-  test("address-comments skips duplicate holdout work only when the head is unchanged", () => {
+  test("address-comments skips duplicate gate work only when the head is unchanged, and leaves review to Stage 3", () => {
     expect(ADDRESS_COMMENTS).toContain("git rev-parse HEAD");
     expect(ADDRESS_COMMENTS).toMatch(/head still equals the step 2 revision/i);
     expect(ADDRESS_COMMENTS).toMatch(/no\s+`re-review-pending\.json` existed on entry/i);
-    expect(ADDRESS_COMMENTS).toMatch(/skip the cumulative gates and\s+holdout re-review/i);
+    expect(ADDRESS_COMMENTS).toMatch(/skip the cumulative gates because\s+their code input is unchanged/i);
+    expect(ADDRESS_COMMENTS).toMatch(/this round runs no review of its own/i);
+    expect(ADDRESS_COMMENTS).not.toMatch(/holdout-reviewer/);
     expect(ADDRESS_COMMENTS).toMatch(/Stage 3 still runs\s+`\/code-review-max` and `\/mr-review`/i);
     expect(ADDRESS_COMMENTS).toMatch(/Otherwise, run one full green gate/i);
   });
