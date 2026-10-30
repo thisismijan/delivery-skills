@@ -24,6 +24,7 @@ import {
 } from "./apply-kotlin-mechanical-edit";
 import { planPhpFormat, writePhpFormat } from "./apply-php-format";
 import { planRustFormat, writeRustFormat } from "./apply-rust-format";
+import { planSwiftFormat, writeSwiftFormat } from "./apply-swift-format";
 import {
 	type MechanicalEditPlan,
 	classifyMechanicalEdit,
@@ -46,6 +47,7 @@ const CSHARP_EXTENSIONS = new Set([".cs"]);
 const KOTLIN_EXTENSIONS = new Set([".kt", ".kts"]);
 const RUST_EXTENSIONS = new Set([".rs"]);
 const PHP_EXTENSIONS = new Set([".php"]);
+const SWIFT_EXTENSIONS = new Set([".swift"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
 
 type ApplyLanguage =
@@ -56,7 +58,8 @@ type ApplyLanguage =
 	| "csharp"
 	| "kotlin"
 	| "rust"
-	| "php";
+	| "php"
+	| "swift";
 
 function extensionOf(fileName: string): string {
 	const dot = fileName.lastIndexOf(".");
@@ -88,6 +91,9 @@ function languageOf(fileName: string): ApplyLanguage | undefined {
 	}
 	if (PHP_EXTENSIONS.has(extension)) {
 		return "php";
+	}
+	if (SWIFT_EXTENSIONS.has(extension)) {
+		return "swift";
 	}
 	return undefined;
 }
@@ -1217,6 +1223,25 @@ export async function applyMechanicalEdit(input: {
 				reason: "applied PHP format-only rewrite",
 				apply: "script",
 				filesChanged: await writePhpFormat(root, php),
+			};
+		}
+		if (language === "swift") {
+			const swift = await planSwiftFormat({
+				root,
+				files: payload.files,
+				run: spawnStdin,
+			});
+			if (!swift.ok || !swift.files) {
+				return plan(
+					classified,
+					swift.reason ?? "swift format rewrite was not proven",
+				);
+			}
+			return {
+				verdict: "mechanical",
+				reason: "applied Swift format-only rewrite",
+				apply: "script",
+				filesChanged: await writeSwiftFormat(root, swift),
 			};
 		}
 		if (language !== "typescript") {

@@ -408,6 +408,41 @@ test("a proven Kotlin rename is dispatched to the Kotlin helper", async () => {
 	);
 });
 
+test("Swift is format-only and uses the repository swift-format wrapper", async () => {
+	await withProject(
+		{
+			"Sources/A.swift": "func run( ){ }\n",
+			"bin/swift-format": "#!/bin/sh\nsed 's/run( )/run()/'\n",
+		},
+		async (root) => {
+			await chmod(join(root, "bin/swift-format"), 0o755);
+			const formatted = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					operation: "format-only",
+					files: ["Sources/A.swift"],
+				},
+				root,
+			});
+			expect(formatted).toMatchObject({
+				apply: "script",
+				filesChanged: ["Sources/A.swift"],
+			});
+			const rename = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					from: "run",
+					to: "execute",
+					files: ["Sources/A.swift"],
+				},
+				root,
+			});
+			expect(rename.apply).toBe("select-model");
+			expect(rename.reason).toContain("no proven script");
+		},
+	);
+});
+
 test("PHP is format-only and uses the repository formatter wrapper", async () => {
 	await withProject(
 		{
