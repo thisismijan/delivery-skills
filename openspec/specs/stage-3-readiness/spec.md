@@ -14,14 +14,6 @@ A merge request SHALL be marked ready only when both a max-pass artifact and an 
 - **THEN** the review decision is ready
 - **AND** the merge request may be undrafted
 
-### Requirement: Address-comments holdout does not mark a new head ready
-After comments are addressed on a new head, a satisfied cumulative holdout SHALL leave the merge request draft. Status SHALL become `[addressed !N]`. Holdout SHALL NOT undraft the merge request and SHALL NOT write a ready review verdict.
-
-#### Scenario: Holdout approve after addressing comments
-- **WHEN** comments are addressed on a new head and the cumulative holdout returns approve
-- **THEN** the merge request remains draft
-- **AND** status becomes `[addressed !N]`
-
 ### Requirement: Incomplete review evidence keeps the merge request draft
 Malformed, stale, missing, or blocking max-pass or approach-pass evidence SHALL keep the merge request draft. A conductor-written review row MUST NOT undraft the current head or stand in for those artifacts.
 
@@ -63,3 +55,13 @@ A ticket whose status is `[addressed !N]` SHALL take review as its next step. Re
 - **WHEN** `/delivery <KEY>` runs and the reconciled status is `[addressed !N]`
 - **THEN** the selected action is review
 - **AND** it is not address comments
+
+### Requirement: A comment round does not mark a new head ready
+After comments are addressed, the merge request SHALL stay draft and status
+SHALL become `[addressed !N]`. Only Stage 3 review SHALL undraft it or write a
+ready review verdict.
+
+#### Scenario: Cumulative gates pass after addressing comments
+- **WHEN** comments are addressed on a new head and the cumulative gates pass
+- **THEN** the merge request remains draft
+- **AND** status becomes `[addressed !N]`
