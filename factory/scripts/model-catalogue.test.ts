@@ -61,7 +61,8 @@ test("fast catalogue ids include every bundled fast candidate", async () => {
 	const ids = fastCatalogueCandidateIds(catalogue);
 	expect(ids.length).toBeGreaterThan(1);
 	expect(ids).toEqual(catalogue.tiers.fast.candidates.map((item) => item.id));
-	expect(requireFastCatalogueCandidate(catalogue, ids[0] ?? "")).toBe(ids[0]);
+	const first = ids[0] ?? "";
+	expect(requireFastCatalogueCandidate(catalogue, first)).toBe(first);
 	expect(() => requireFastCatalogueCandidate(catalogue, "sonnet")).toThrow(
 		"not a fast catalogue model",
 	);

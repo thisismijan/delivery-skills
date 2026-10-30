@@ -45,9 +45,9 @@ test("a spec without scenarios is refused", () => {
 });
 
 test("a scenario without a requirement is refused", () => {
-	expect(() =>
-		collectScenarios("#### Scenario: Orphan\n", "x"),
-	).toThrow("scenario is missing a requirement heading");
+	expect(() => collectScenarios("#### Scenario: Orphan\n", "x")).toThrow(
+		"scenario is missing a requirement heading",
+	);
 });
 
 test("the CLI writes tasks.md from the change specs", async () => {
@@ -76,7 +76,9 @@ test("the CLI writes tasks.md from the change specs", async () => {
 test("missing specs write nothing", async () => {
 	const dir = await mkdtemp(join(tmpdir(), "generate-tasks-missing-"));
 	try {
-		await expect(generateTasksFile(dir)).rejects.toThrow("specs directory is missing");
+		await expect(generateTasksFile(dir)).rejects.toThrow(
+			"specs directory is missing",
+		);
 		expect(await Bun.file(join(dir, "tasks.md")).exists()).toBe(false);
 	} finally {
 		await rm(dir, { recursive: true, force: true });
