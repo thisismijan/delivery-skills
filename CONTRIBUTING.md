@@ -12,6 +12,9 @@ checks under `skills/delivery/checks`. A bare `bun test` runs only the
 factory tests, so use the script. `bun run test:skills` runs the skill checks
 alone.
 
+Every merge request runs the same `bun run check` and `bun run test` in
+`.gitlab-ci.yml`, on the Bun version pinned in `factory/package.json`.
+
 Use Bun `1.4.2`. Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`,
 `chore:`, `refactor:`). Do not attribute commits or merge requests to an AI
 or tool. `scripts/commit-guard.ts` blocks that attribution plus merge, close,
