@@ -28,6 +28,10 @@ Classify each into **exactly one** of:
 
 Be honest and specific. Do not inflate a real defect down to `nitpick`, and do not classify a genuine preference as `bug`. When a comment is a correctness concern you cannot confirm is already handled, prefer `bug` over `false-positive`. Put the evidence in `reasoning` (cite the file/line or spec scenario).
 
+## Assumption labels
+
+Every `bug` names the design assumption it breaks in `assumption`: a short kebab-case label such as `field-calls-found-by-pattern` or `input-is-never-empty`. Name the idea the code relied on, not the symptom. You are given the labels earlier review rounds recorded. When a bug breaks one of those same ideas, reuse its exact label even if the symptom is new; that is how the command notices a fix that keeps patching one approach. Use a new label only for a genuinely different assumption. Other classifications carry no `assumption`.
+
 ## Output — STRICT
 
 Output **only** a single JSON array (no prose, no code fences) that validates as `ClassificationVerdict`. The orchestrating command validates it with `scripts/verdicts.ts` (`parseClassificationVerdict`) and **fails closed** (stop + escalate) if it does not parse.
@@ -37,7 +41,8 @@ Output **only** a single JSON array (no prose, no code fences) that validates as
   {
     "commentId": "the id of the comment as provided",
     "classification": "bug | non-functional | nitpick | false-positive | question | outdated",
-    "reasoning": "1-3 sentences citing specific code/spec/diff evidence"
+    "reasoning": "1-3 sentences citing specific code/spec/diff evidence",
+    "assumption": "kebab-case-label, only on a bug"
   }
 ]
 ```

@@ -250,7 +250,14 @@ re-run the gate. Do not reuse it.
    input only: never pass it, the implementer's plan, or implementation
    reasoning to the holdout reviewer. Actual gate results remain authoritative.
 
-8. **Green gates.** Write `<reviewDir>/green-command.json` with argv, cwd, and all expected test paths. Run the full green gate, lint, and typecheck **in parallel**, persist each result under an append-only name containing the source commit, and wait for all three:
+8. **Green gates.** Before each commit in this stage, the test commit and
+   every source commit, run the repository's formatter in fix mode on the files
+   that commit changes (the one the lint gate checks, for example
+   `biome check --write`, `prettier --write`, `ruff format`, or `gofmt -w`) so
+   formatting is never a commit of its own. When lint fails only on
+   formatting, run the formatter, amend that unpushed source commit, and re-run
+   the gates. A fix that changes behaviour the spec describes updates
+   `<changeDir>` in the same commit. Write `<reviewDir>/green-command.json` with argv, cwd, and all expected test paths. Run the full green gate, lint, and typecheck **in parallel**, persist each result under an append-only name containing the source commit, and wait for all three:
    ```
    set -o pipefail
    bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/green-command.json" green | tee "<reviewDir>/green-gate-<source-commit>.json"
@@ -318,7 +325,7 @@ re-run the gate. Do not reuse it.
       bun "${FACTORY_ROOT}/scripts/forge-provider.ts" note "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/note-input.json"
       ```
       Do not bypass with a provider-native helper or a raw forge API. The command checks the body before any adapter; a refused body is a terminal stop. This posts an individual note that never counts as an unresolved thread blocking the human's merge. **STOP at APPROVED.** Do **not** merge, close, or resolve threads. Do **not** run `/openspec-archive` (it folds the spec into `openspec/specs/` and only makes sense after the human's merge — leave it to a post-merge step).
-    - **`fix`** → dispatch the `implementer` subagent to address the verdict `findings`, re-run the **green gate** (step 8), increment `attempt`, and **go back to step 10** (re-review runs fresh — it does not see the fixer's reasoning). **No MR is created during the fix loop.** If two failed fixes share the same assumption, apply the premise checkpoint from step 8 before any third fix.
+    - **`fix`** → dispatch the `implementer` subagent to address the verdict `findings`, format and update the spec in that fix commit as step 8 says, re-run the **green gate** (step 8), increment `attempt`, and **go back to step 10** (re-review runs fresh — it does not see the fixer's reasoning). **No MR is created during the fix loop.** If two failed fixes share the same assumption, apply the premise checkpoint from step 8 before any third fix.
     - **`escalate`** → push the branch (`git push -u origin <changeName>`) so a human can inspect the work, post the `reason` (and any `findings`) as a selected-provider note, and stop (NEEDS_HUMAN). **Do not open an MR**; the review did not pass and the human decides what happens next.
 
 12. **Invariants.** A change exists **only** for review-approved work. The factory **creates draft changes but NEVER merges, archives, closes, or resolves threads**; humans own merge, close, thread resolution, and the post-merge archive. The reviewer never sees implementer reasoning; the factory moves the ticket only forward through `board-status.ts sync`, at start and after the change exists. Every forge read or mutation uses `scripts/forge-provider.ts` with an exact operation; never invent a helper name.

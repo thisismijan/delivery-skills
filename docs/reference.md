@@ -51,6 +51,22 @@ bun "$FACTORY_ROOT/scripts/review-packet.ts" --ticket <file> --spec <change-dir>
 `maxParallelWorktrees`, `maxReviewRounds`, `overrides`, and
 `routingProfiling`. Unknown `ROUTING_PROFILING` values fail closed.
 
+## Review rounds
+
+```text
+bun "$FACTORY_ROOT/scripts/review-rounds.ts" record <review-rounds.json> <classification.json> <head-sha>
+bun "$FACTORY_ROOT/scripts/review-rounds.ts" premise <review-rounds.json> <assumption> <outcome.md>
+```
+
+`/address-comments` records each round in
+`.review/<changeName>/review-rounds.json`. The comment assessor labels every
+bug with the design assumption it breaks, reusing an earlier round's label
+for the same idea. `record` exits 0 when no label repeats, 3 when one does
+(a premise check comes before any patch), and 1 when a label repeats after
+its premise check was recorded (stop and ask). Recording the same head again
+replaces that round. Each actioned comment is one fix commit, after a
+test-only commit for a bug; formatting and spec updates go in the fix commit.
+
 ## Levels
 
 ```text

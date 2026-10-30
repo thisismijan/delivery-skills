@@ -29,6 +29,10 @@ import {
 	readTrackerItem,
 } from "./providers";
 import {
+	REVIEW_ROUNDS_PREMISE_INVOCATION,
+	REVIEW_ROUNDS_RECORD_INVOCATION,
+} from "./review-rounds";
+import {
 	MAX_SANDBOX_ENV,
 	MAX_SANDBOX_SETUP,
 	SANDBOX_CHECK_INVOCATION,
@@ -1491,4 +1495,32 @@ test("every operator page that tabulates levels copies the level table exactly",
 	expect(troubleshooting).toContain('"Name one delivery level, not two"');
 	expect(() => parseLevel("turbo")).toThrow(/^unknown delivery level/);
 	expect(troubleshooting).toContain('"Unknown delivery level"');
+});
+
+test("review rounds stop patching a repeated assumption and fold formatting and spec edits into the fix", () => {
+	const assessor = read("agents/comment-assessor.md");
+	const flowing = plain(addressComments);
+	expect(addressComments).toContain(
+		'scripts/review-rounds.ts" record "<repoRoot>/.review/<changeName>/review-rounds.json" "<reviewDir>/classification.json" <full-head-sha>',
+	);
+	expect(addressComments).toContain(
+		'scripts/review-rounds.ts" premise "<repoRoot>/.review/<changeName>/review-rounds.json" <assumption> <outcome.md>',
+	);
+	const reference = referenceDocs.replace(/"\$FACTORY_ROOT\/([^"]+)"/g, "$1");
+	for (const invocation of [
+		REVIEW_ROUNDS_RECORD_INVOCATION,
+		REVIEW_ROUNDS_PREMISE_INVOCATION,
+	]) {
+		expect(reference).toContain(invocation);
+	}
+	expect(flowing).toMatch(/Exit 3: the printed repeated labels/);
+	expect(flowing).toMatch(/Exit 1: the approach was already re-examined/);
+	expect(flowing).toMatch(/Never add a formatting-only or spec-only commit/);
+	expect(flowing).toMatch(/Formatting and spec updates go in the fix commit/);
+	expect(plain(execute)).toMatch(/formatting is never a commit of its own/);
+	expect(plain(auto)).toMatch(
+		/review-rounds\.ts ?, in auto and in single steps/,
+	);
+	expect(assessor).toContain('"assumption": "kebab-case-label, only on a bug"');
+	expect(plain(assessor)).toMatch(/reuse its exact label/);
 });
