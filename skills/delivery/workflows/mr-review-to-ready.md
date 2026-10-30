@@ -107,9 +107,11 @@ If (a) and work-item key present:
 /address-comments <WORK-ITEM-KEY>
 ```
 
-Factory: classify → action/dispute/answer/skip → reply once per thread →
-cumulative Opus holdout → leave the MR draft under `[addressed !N]` or
-escalate. Never merges. Never undrafts. A new head still needs the dual
+Factory: classify, then action, dispute, answer, or skip, reply once per
+thread, run the cumulative gates, and leave the MR draft under `[addressed !N]`
+or escalate. It runs no review of its own; the next Stage 3 pass checks the
+fixes, and `review-scope.ts` lets that pass read only what changed since the
+last one when the change is small and stays inside reviewed files. Never merges. Never undrafts. A new head still needs the dual
 Stage 3 pass before it may leave draft.
 
 If the branch moves (new head SHA) and the operator wants another review pass,

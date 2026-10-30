@@ -1,6 +1,6 @@
 ---
 name: address-comments
-description: Resolve an existing MR's review comments with tests-first/holdout rigor — classify every comment, action/dispute/answer/skip per class, reply on every assessed thread, then gate the result on a single cumulative Opus holdout re-review. The factory never merges, closes, or resolves threads.
+description: Resolve an existing MR's review comments with tests-first rigor. Classify every comment, action, dispute, answer, or skip it, reply on every assessed thread, then run the cumulative tests, lint, and typecheck. Stage 3 review then checks the fixes. The factory never merges, closes, or resolves threads.
 ---
 
 Resolve this SKILL.md to its real path, then load the first existing runtime:
@@ -32,8 +32,8 @@ This command consumes the review comments on the **existing** MR for this ticket
 - **Replies come from the operator.** Every reply is posted through `forge-provider.ts reply` with the normal forge credential, so it appears under the forge identity of the operator running this skill. Never post as another person or through a separate bot account.
 - **Replay safe.** A thread that already has an `address-comments` audit reply is complete and must not be classified, changed, or replied to again.
 - Reviewer rank, sunk cost, or a "nitpick" label never permits silently fixing, discarding, or skipping a comment; route it and leave the human-visible reply required below.
-- **Subagents only judge/edit; YOU do all I/O.** The `comment-assessor` and `holdout-reviewer` are read-only by construction (tools: `Read, Grep, Glob` — no `Bash`, no MCP). Their entire contribution is one JSON verdict; treat it as raw input to a parser that **fails closed**. Never accept a subagent's prose ("I replied / classified / resolved the thread") as having happened — its tools cannot do those things. Every forge, git, and work-item provider action is performed by **this command**.
-- **Fail closed:** no MR, ambiguous change match, malformed classification verdict, malformed/non-approve re-review verdict, or exhausted fix attempts → stop + escalate, leaving the MR unblessed and posting no "passed" work-item note.
+- **Subagents only judge/edit; YOU do all I/O.** The `comment-assessor` is read-only by construction (tools: `Read, Grep, Glob` — no `Bash`, no MCP). Their entire contribution is one JSON verdict; treat it as raw input to a parser that **fails closed**. Never accept a subagent's prose ("I replied / classified / resolved the thread") as having happened — its tools cannot do those things. Every forge, git, and work-item provider action is performed by **this command**.
+- **Fail closed:** no MR, ambiguous change match, malformed classification verdict, a failed cumulative gate, or exhausted fix attempts → stop + escalate, leaving the MR unblessed and posting no "passed" work-item note.
 - **The factory NEVER merges or closes a merge request via the forge provider, and NEVER moves the ticket here.** The ticket stays in review. Its only work-item write is the single summary note at the end.
 - **Mutation boundary.** Run `canStartStage` before any write, using the runtime's mutation-guard identifier:
   ```
@@ -140,7 +140,9 @@ This command consumes the review comments on the **existing** MR for this ticket
    bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-outcome.json" "<reviewDir>/classify-usage.json" <controller-model> <standard-model>
    bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
    ```
-   Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. `classify-outcome.json` records whether classification completed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Classification still used the current semantic standard route; the shadow file must not change that. When `routingProfiling` is `off`, skip the timer, profile, usage capture, routing persistence, and scorecard commands. Still persist scripted skips with `record-skip.ts` and refresh the scorecard after those skips. This setting only removes diagnostic work; it never changes classification dispatch or weakens a quality gate.
+   The scorecard reports measured live usage and outcomes, while
+   shadow quality and savings remain explicitly unevaluated until a
+   paired benchmark exists. Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. `classify-outcome.json` records whether classification completed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Classification still used the current semantic standard route; the shadow file must not change that. When `routingProfiling` is `off`, skip the timer, profile, usage capture, routing persistence, and scorecard commands. Still persist scripted skips with `record-skip.ts` and refresh the scorecard after those skips. This setting only removes diagnostic work; it never changes classification dispatch or weakens a quality gate.
 
    **Record the round.** After a valid verdict, run:
    ```
@@ -185,7 +187,7 @@ This command consumes the review comments on the **existing** MR for this ticket
    `routing-scorecard.ts`, even when `routingProfiling` is `off`. The
    scorecard counts avoided workers. It never estimates tokens saved.
    When `apply` is `model`, continue as below. A bug still needs its red test
-   first, and the green gate, lint, typecheck, and holdout still run.
+   first, and the green gate, lint, and typecheck still run.
 
    - **`bug`** (action, tests-first): write a failing test scoped to the comment, prove it red —
      ```
@@ -248,7 +250,7 @@ This command consumes the review comments on the **existing** MR for this ticket
 
    - **`outdated`** (skip): no reply, no code change. (Tracked only in the final counts.)
 
-7. **Persist re-review state when code changed, then reply.** Compare
+7. **Persist pending-gate state when code changed, then reply.** Compare
    `git rev-parse HEAD` with the full head revision recorded in step 2. If they
    differ, or `<reviewDir>/re-review-pending.json` already existed on entry,
    write `<reviewDir>/re-review-pending.json` with the change ref, current head
@@ -272,62 +274,27 @@ This command consumes the review comments on the **existing** MR for this ticket
    - disputed (`nitpick`/`false-positive`): give the reasoned rationale and "disputed — human decides".
    For N assessed (non-skipped) comments, post exactly N replies — none silently ignored. **Never** mark any thread resolved.
 
-8. **Cumulative gates and holdout re-review when code changed (quality gate
-   for this round; Stage 3 dual review is the only authority that may
-   undraft).**    If the head still equals the step 2 revision and no
-   `re-review-pending.json` existed on entry, skip the cumulative gates and
-   holdout re-review because their code input is unchanged. Persist that skip
-   with `record-skip.ts` naming `holdout-reviewer`, then refresh
-   `routing-scorecard.ts`, even when `routingProfiling` is `off`. The
-   scorecard counts avoided workers. It never estimates tokens saved. Post the single
-   provider summary note with the change URL, state that no code changed, and
-   include the answered/disputed/skipped counts in plain language. Leave the
-   change draft, set status to `[addressed !N]`, and stop. Stage 3 still runs
-   `/code-review-max` and `/mr-review` and remains the only authority that may
-   undraft.
+8. **Cumulative gates when code changed.** Stage 3 still runs
+   `/code-review-max` and `/mr-review` on these fixes next, reviewing what
+   changed since their last review, and it is the only authority that may
+   undraft. So this round runs no review of its own. If the head still equals the step 2 revision and no
+   `re-review-pending.json` existed on entry, skip the cumulative gates because
+   their code input is unchanged. Post the single provider summary note with the
+   change URL, state that no code changed, and include the
+   answered/disputed/skipped counts in plain language. Leave the change draft,
+   set status to `[addressed !N]`, and stop.
 
    Otherwise, run one full green gate, lint, and typecheck in parallel over the
-   cumulative branch, persist all results, and stop on any failure. Prepare the
-   reviewer's inputs as files (it is read-only): write the **cumulative** branch
-   diff against the default branch (`git diff <default-branch>...HEAD >
-   <reviewDir>/diff.patch`) and gather every per-comment and cumulative gate
-   artifact. Confirm the reviewer model:
-   ```
-   bun "${FACTORY_ROOT}/scripts/select-model.ts" review   # -> opus
-   # Only when routingProfiling is exactly always: resolve frontier and dispatch task-profile-controller read-only first.
-   bun "${FACTORY_ROOT}/scripts/task-profile.ts" "<reviewDir>/review-profile.json"
-   bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-shadow.json"
-   bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/review-usage-timer.json"
-   bun "${FACTORY_ROOT}/scripts/capture-usage.ts" finish "<reviewDir>/review-usage-timer.json" "<reviewDir>/review-usage.json" --input "<reviewDir>/review-profile.json" --output "<reviewDir>/review-outcome.json"
-   bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/review-profile.json" opus "<reviewDir>/review-outcome.json" "<reviewDir>/review-usage.json" <frontier-model> <frontier-model>
-   bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
-   ```
-   Only in `always` mode, refresh the run scorecard after each persisted task. It reports measured
-   live usage and outcomes, while shadow quality and savings remain explicitly
-   unevaluated until a paired benchmark exists. Pass
-   `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that
-   file. Never write `{ "source": "unavailable" }` by hand. When
-   `routingProfiling` is `off`, skip the timer, profile, usage-capture,
-   routing-persistence, and scorecard commands. Still persist scripted skips
-   with `record-skip.ts` and refresh the scorecard after those skips.
-   Regardless of this setting, resolve `frontier`, then dispatch a **fresh**
-   `holdout-reviewer` subagent
-   with that exact available model over the **cumulative** diff (not
-   per-comment) and **only**: the work item, `<changeDir>` (the spec), the
-   diff file, the test files, and the gate results. Do **not** pass any
-   implementer/assessor reasoning or prior chatter. It returns a
-   `ReviewVerdict` JSON. Route it:
-   ```
-   bun "${FACTORY_ROOT}/scripts/review-route.ts" "<reviewDir>/holdout-verdict.json" <attempt> <maxAttempts>
-   ```
-   **Non-zero exit = malformed verdict → stop + escalate** (fail closed): change not re-marked ready, no work-item "passed" note. Then act on `action`:
+   cumulative branch and persist every result. On a failure, dispatch the
+   `implementer` to fix the **source** (never the tests), format and commit as
+   step 6 says, and re-run all three. Loop up to `maxFixAttempts`, applying the
+   premise checkpoint from step 6 before any third fix, then **stop +
+   escalate**. When all three pass, remove `re-review-pending.json`, leave the
+   change **draft**, set status to `[addressed !N]`, and post **one** provider
+   summary note through `work-item-provider.ts note <repoRoot> "${FACTORY_ROOT}/runtime-manifest.json" <note.json>`
+   (body wrapped via `scripts/audit.ts`) with the change URL, the gate outcome,
+   and the **actioned / disputed / skipped** counts written in plain language.
+   **STOP.** Stage 3 reviews the fixes next. Never merge, close, or resolve
+   threads; a person or the land gate merges.
 
-   - **`approve`** → remove `re-review-pending.json`. Leave the change **draft**. Do not undraft it. Status becomes `[addressed !N]` until Stage 3 dual review passes (never merge, close, or resolve threads). Render the holdout outcome for humans with the summary helper (Rule 2 — never paste raw verdict fields):
-     ```
-     bun "${FACTORY_ROOT}/scripts/review-summary.ts" '<verdict-json>'
-     ```
-     Post **one** provider summary note through `work-item-provider.ts note <repoRoot> "${FACTORY_ROOT}/runtime-manifest.json" <note.json>` (body wrapped via `scripts/audit.ts`) with the change URL, that rendered holdout outcome, and the **actioned / disputed / skipped** counts written in plain language. **STOP.** A human performs the merge.
-   - **`fix`** → dispatch the `implementer` to address the verdict `findings`, re-run the green gate (+ lint/typecheck), increment `attempt`, and **go back to step 8** (the re-review runs fresh). Do **not** re-mark ready during the fix loop. If two failed fixes share the same assumption, apply the premise checkpoint from step 6 before any third fix.
-   - **`escalate`** (including `reject`, `shouldEscalate`, or exhausted attempts) → post the `reason`/`findings` as a provider note and stop (NEEDS_HUMAN). Leave the change **unblessed** (not re-marked ready); post no "passed" note.
-
-9. **Invariants.** Holdout approve leaves the change **draft** under `[addressed !N]`. Stage 3 dual review is the only authority that may undraft. The factory **never** merges, closes, archives, or resolves threads, and **never** moves the ticket; humans own all of that. The reviewer never sees implementer/assessor reasoning. Every assessed thread received exactly one reply across all re-entries; the only work-item write is the single summary note. Every forge read or mutation uses `scripts/forge-provider.ts` with an exact operation; never invent a helper name.
+9. **Invariants.** A passing round leaves the change **draft** under `[addressed !N]`. Stage 3 dual review is the only authority that may undraft. The factory **never** merges, closes, archives, or resolves threads, and **never** moves the ticket; humans own all of that. Every assessed thread received exactly one reply across all re-entries; the only work-item write is the single summary note. Every forge read or mutation uses `scripts/forge-provider.ts` with an exact operation; never invent a helper name.

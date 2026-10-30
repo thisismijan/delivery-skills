@@ -1,7 +1,9 @@
 import {
+	type ApproachChallengeVerdict,
 	type AssessmentVerdict,
 	type FeasibilityVerdict,
 	MAX_DERIVED_ACCEPTANCE_CRITERIA,
+	parseApproachChallengeVerdict,
 	parseAssessmentVerdict,
 	parseFeasibilityVerdict,
 } from "./verdicts";
@@ -77,6 +79,53 @@ export function routeAfterFeasibility(f: FeasibilityVerdict): DraftRouting {
 	};
 }
 
+export const MAX_APPROACH_CHALLENGES = 2;
+
+export interface ApproachRouting {
+	action: "proceed" | "add-scenarios" | "revise" | "escalate";
+	reason: string;
+	gaps: ApproachChallengeVerdict["gaps"];
+}
+
+// One revision is allowed: a second rethink means the approach is still not
+// settled, which is a decision for a person, not another draft.
+export function routeApproachChallenge(
+	verdict: ApproachChallengeVerdict,
+	attempt: number,
+): ApproachRouting {
+	if (
+		!Number.isSafeInteger(attempt) ||
+		attempt < 1 ||
+		attempt > MAX_APPROACH_CHALLENGES
+	) {
+		throw new Error(
+			`the approach challenge attempt must be 1 to ${MAX_APPROACH_CHALLENGES}`,
+		);
+	}
+	if (verdict.verdict === "sound") {
+		return { action: "proceed", reason: verdict.reasoning, gaps: [] };
+	}
+	if (verdict.verdict === "gaps") {
+		return {
+			action: "add-scenarios",
+			reason: verdict.reasoning,
+			gaps: verdict.gaps,
+		};
+	}
+	const rethink = verdict.rethink;
+	const why = rethink
+		? `${rethink.problem} Alternative: ${rethink.alternative}`
+		: verdict.reasoning;
+	if (attempt < MAX_APPROACH_CHALLENGES) {
+		return { action: "revise", reason: why, gaps: verdict.gaps };
+	}
+	return {
+		action: "escalate",
+		reason: `The revised approach still cannot cover its cases. ${why}`,
+		gaps: verdict.gaps,
+	};
+}
+
 if (import.meta.main) {
 	const mode = process.argv[2];
 	const input = process.argv[3] ?? "";
@@ -100,8 +149,17 @@ if (import.meta.main) {
 			console.log(
 				JSON.stringify(routeAfterFeasibility(parseFeasibilityVerdict(json))),
 			);
+		} else if (mode === "approach") {
+			const routing = routeApproachChallenge(
+				parseApproachChallengeVerdict(json),
+				Number(process.argv[4] ?? "1"),
+			);
+			console.log(JSON.stringify(routing));
+			if (routing.action === "escalate") process.exit(3);
 		} else {
-			console.error("usage: draft-route <assessment|feasibility> '<json>'");
+			console.error(
+				"usage: draft-route <assessment|feasibility> '<json>' | draft-route approach <verdict.json> <attempt>",
+			);
 			process.exit(2);
 		}
 	} catch (e) {

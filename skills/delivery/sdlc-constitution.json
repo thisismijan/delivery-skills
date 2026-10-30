@@ -150,7 +150,7 @@
 			"writes": ["spec-branch", "tracker-comment", "board-status", "routing-artifacts"],
 			"outputs": ["openspec-change"],
 			"next": ["execute"],
-			"stops": ["weak-ticket", "infeasible", "too-large"],
+			"stops": ["weak-ticket", "infeasible", "too-large", "unsettled-approach"],
 			"humanApprovals": []
 		},
 		"execute": {
@@ -188,7 +188,7 @@
 			],
 			"outputs": ["addressed-change-request"],
 			"next": ["review"],
-			"stops": ["failed-gate", "holdout-rejected"],
+			"stops": ["failed-gate", "repeated-assumption"],
 			"humanApprovals": []
 		},
 		"ship": {

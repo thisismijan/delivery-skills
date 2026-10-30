@@ -13,6 +13,7 @@ import {
 	DEFAULT_ROUTING_PROFILING,
 	DEFAULT_WORKER_IDLE_MINUTES,
 } from "./config";
+import { MAX_APPROACH_CHALLENGES } from "./draft-route";
 import { FAST_SAFETY_FLOORS } from "./fast-dispatch";
 import { FORGE_OPERATIONS } from "./forge-provider";
 import {
@@ -28,10 +29,12 @@ import {
 	readForgeChange,
 	readTrackerItem,
 } from "./providers";
+import { SKIPPED_WORKERS } from "./record-skip";
 import {
 	REVIEW_ROUNDS_PREMISE_INVOCATION,
 	REVIEW_ROUNDS_RECORD_INVOCATION,
 } from "./review-rounds";
+import { REVIEW_SCOPE_INVOCATION } from "./review-scope";
 import {
 	MAX_SANDBOX_ENV,
 	MAX_SANDBOX_SETUP,
@@ -668,17 +671,19 @@ describe("bounded recovery and replay safety", () => {
 			/apply is script ?, the helper already replaced that line, so do not dispatch the implementer/i,
 		);
 		expect(comments).toMatch(
-			/bug still needs its red test\s+first, and the green gate, lint, typecheck, and holdout still run/i,
+			/bug still needs its red test\s+first, and the green gate, lint, and typecheck still run/i,
 		);
 		expect(comments).toMatch(
 			/body is only a suggestion fence[\s\S]*suggested text is already in that file[\s\S]*outdated/i,
 		);
 		expect(comments).toMatch(
-			/head still equals the step 2 revision.*no re-review-pending\.json existed on entry.*skip the cumulative gates and holdout re-review/i,
+			/head still equals the step 2 revision.*no re-review-pending\.json existed on entry.*skip the cumulative gates because their code input is unchanged/i,
 		);
 		expect(comments).toMatch(
-			/otherwise, run one full green gate.*dispatch a fresh holdout-reviewer/i,
+			/otherwise, run one full green gate, lint, and typecheck in parallel over the cumulative branch/i,
 		);
+		expect(comments).toMatch(/this round runs no review of its own/i);
+		expect(comments).not.toMatch(/dispatch a fresh holdout-reviewer/i);
 		expect(comments).toMatch(
 			/stage 3 still runs \/code-review-max and \/mr-review/i,
 		);
@@ -711,9 +716,7 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(execute)).toMatch(
 			/regardless of this setting, dispatch the holdout-reviewer/i,
 		);
-		expect(plain(addressComments)).toMatch(
-			/regardless of this setting, resolve frontier.*then dispatch a fresh holdout-reviewer/i,
-		);
+		expect(plain(addressComments)).not.toMatch(/holdout-reviewer/i);
 		for (const document of [
 			delivery,
 			rootReadme,
@@ -830,7 +833,6 @@ describe("bounded recovery and replay safety", () => {
 		expect(execute).toContain("implement-outcome.json");
 		expect(execute).toContain("review-outcome.json");
 		expect(addressComments).toContain("classify-outcome.json");
-		expect(addressComments).toContain("review-outcome.json");
 		expect(runtime).toMatch(/explicit outcome/);
 	});
 
@@ -1523,4 +1525,49 @@ test("review rounds stop patching a repeated assumption and fold formatting and 
 	);
 	expect(assessor).toContain('"assumption": "kebab-case-label, only on a bug"');
 	expect(plain(assessor)).toMatch(/reuse its exact label/);
+});
+
+test("a comment round runs gates only, later reviews read only what changed, and draft challenges the approach", () => {
+	const reviewMax = read("../skills/code-review-max/SKILL.md");
+	const secondPass = read("../skills/mr-review/SKILL.md");
+	const challenger = read("agents/approach-challenger.md");
+	const reference = referenceDocs.replace(/"\$FACTORY_ROOT\/([^"]+)"/g, "$1");
+	expect(REVIEW_SCOPE_INVOCATION).toBe(
+		"scripts/review-scope.ts <repoRoot> <iid> <base-sha> <head-sha>",
+	);
+	expect(reviewMax).toContain(
+		'scripts/review-scope.ts" "<repoRoot>" <ref> <full-base-sha> <full-head-sha>',
+	);
+	expect(reference).toContain(REVIEW_SCOPE_INVOCATION);
+	expect(plain(reviewMax)).toMatch(
+		/confirm whether each earlier finding is fixed at this head/,
+	);
+	expect(plain(reviewMax)).toMatch(/never narrows release readiness/);
+	expect(plain(secondPass)).toMatch(/review-scope\.json says delta/);
+	expect(plain(addressComments)).toMatch(
+		/this round runs no review of its own/i,
+	);
+	expect(addressComments).not.toMatch(/holdout-reviewer/);
+	expect(draft).toContain(
+		'scripts/draft-route.ts" approach "<reviewDir>/approach-challenge-<attempt>.json" <attempt>',
+	);
+	expect(reference).toContain(
+		"scripts/draft-route.ts approach <verdict.json> <attempt>",
+	);
+	expect(plain(draft)).toMatch(
+		/complexitySignal is low , skip this step|complexitySignal is low, skip this step/,
+	);
+	expect(plain(draft)).toMatch(/Do not challenge again/);
+	expect(SKIPPED_WORKERS).toContain("approach-challenger");
+	expect(challenger).toMatch(
+		/^---[\s\S]*model: opus[\s\S]*tools: Read, Grep, Glob/,
+	);
+	expect(MAX_APPROACH_CHALLENGES).toBe(2);
+	const constitution = JSON.parse(
+		read("../skills/delivery/sdlc-constitution.json"),
+	) as { stages: Record<string, { stops: string[] }> };
+	expect(constitution.stages["address-comments"]?.stops).not.toContain(
+		"holdout-rejected",
+	);
+	expect(constitution.stages.draft?.stops).toContain("unsettled-approach");
 });

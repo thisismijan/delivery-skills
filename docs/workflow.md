@@ -84,10 +84,20 @@ one standard-tier subagent.
 acknowledgement-only, mention-only, URL-only, and emoji-only notes, and a
 suggestion already in the file, never start the comment assessor. A
 whole-body suggestion fence is applied without the implementer. A round that
-changes the commit still runs cumulative gates and frontier holdout review. A
-reply-only round whose commit is unchanged stays draft and continues to dual
-review instead of repeating holdout on the same code. Dual review remains the
-only authority that may mark the change ready.
+changes the commit runs the cumulative gates but no review of its own: dual
+review checks the fixes next and remains the only authority that may mark the
+change ready. A reply-only round whose commit is unchanged stays draft and goes
+straight to dual review. After the first review, `review-scope.ts` lets a
+round review only what changed since the last review when that change is
+small, stays in files the last review covered, and touches no sensitive
+surface, dependency, one-way step, or weakened test. A merge of the base
+branch, or the `max` level, always means a full review.
+
+`/draft` challenges the planned approach once before it is committed, unless
+feasibility rated the change low complexity. A read-only frontier reviewer
+looks for real inputs the approach would miss. Gaps become scenarios in the
+spec; an approach that cannot be made complete is revised once, and a second
+failure stops for a person to choose.
 
 `/execute` applies a proven rename, unused or unique missing import, or
 format-only unit without the test-writer or the implementer. That includes a

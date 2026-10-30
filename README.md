@@ -444,7 +444,7 @@ flowchart TD
   maxPass -->|"pinned to change head"| mrReview["mr-review"]
   mrReview -->|"ready"| ship
   mrReview -->|"blocked"| address
-  address -->|"cumulative gates and holdout"| review
+  address -->|"cumulative gates"| review
 
   ship -->|"GO"| changePipeline["Exact-head pipeline"]
   ship -->|"NO-GO"| address
@@ -504,10 +504,14 @@ The quickest control is the run's level (see [Levels](#levels)). The rest of
 this section is what every level shares.
 
 Default delivery keeps the expensive model for work that can change the
-outcome: implementation when complexity is recorded as high, first holdout
-review of new code, and holdout review after a comment round that changes the
-commit. Independent tests, security-sensitive feasibility, and dual review
-before readiness still run. A bounded rename, import-only, or format-only
+outcome: implementation when complexity is recorded as high, the challenge of
+a drafted approach before any code is written, and the holdout review of new
+code before the change request opens. Independent tests, security-sensitive
+feasibility, and dual review before readiness still run. After the first
+review, a comment round runs the cumulative gates but no review of its own;
+the next review reads only what changed since the last one unless that change
+is large, touches a new file, a sensitive surface, or a dependency, merges the
+base branch, or the run is at `max` (see `scripts/review-scope.ts`). A bounded rename, import-only, or format-only
 unit is classified by `mechanical-edit.ts` before any extra worker.
 `apply-mechanical-edit.ts` applies it without a model when it can prove the
 rewrite for TypeScript, JavaScript, Python, Java, Go, C#, or Kotlin:
@@ -644,9 +648,9 @@ ambiguous match stops the run instead of guessing.
 - **Comments are handled once.** Every in-scope comment must be classified,
   with no missing, extra, or duplicate ids. Only replies from the factory's own
   account mark a thread handled, and a human follow-up brings it back into scope.
-  A round that changes the commit still runs holdout review. A reply-only round
-  whose commit is unchanged stays draft and continues to dual review instead of
-  repeating holdout on the same code.
+  A round that changes the commit runs the cumulative gates, then dual review
+  checks the fixes. A reply-only round whose commit is unchanged stays draft
+  and goes straight to dual review.
 - **Published notes are jailed.** The review publisher posts only files under
   the target repository's `.review/` directory and refuses symlink escapes and
   secret-like filenames.
@@ -693,8 +697,10 @@ ambiguous match stops the run instead of guessing.
   lenses for a proven small reversible or contained change, and all four lenses
   otherwise.
   Reply-only comment rounds do not send an unchanged commit through duplicate
-  gates and frontier holdout review. Any changed commit still does, and dual
-  review remains mandatory before readiness.
+  gates. Dual review remains mandatory before readiness, and a later round
+  reviews only what changed since the last review when that change is small,
+  stays in files that review covered, and touches no sensitive surface,
+  dependency, one-way step, or weakened test.
 - **Retro teaches the engineering journey.** It writes a chronological
   postmortem covering the problem, attempted models, counterexamples, design
   evolution, final invariants, DSA complexity, and system-design trade-offs. It

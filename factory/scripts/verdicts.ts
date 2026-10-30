@@ -91,6 +91,51 @@ export const FeasibilityVerdict = z.object({
 });
 export type FeasibilityVerdict = z.infer<typeof FeasibilityVerdict>;
 
+const ApproachGap = z
+	.object({ case: z.string().min(1), evidence: z.string().min(1) })
+	.strict();
+
+export const ApproachChallengeVerdict = z
+	.object({
+		verdict: z.enum(["sound", "gaps", "rethink"]),
+		gaps: z.array(ApproachGap),
+		rethink: z
+			.object({
+				problem: z.string().min(1),
+				alternative: z.string().min(1),
+			})
+			.strict()
+			.nullable(),
+		reasoning: z.string().min(1),
+	})
+	.strict()
+	.superRefine((value, ctx) => {
+		const bad = (message: string) =>
+			ctx.addIssue({ code: "custom", path: ["verdict"], message });
+		if (value.verdict === "sound" && (value.gaps.length > 0 || value.rethink)) {
+			bad("a sound approach has no gaps and no rethink");
+		}
+		if (
+			value.verdict === "gaps" &&
+			(value.gaps.length === 0 || value.rethink !== null)
+		) {
+			bad("gaps needs at least one gap and no rethink");
+		}
+		if (
+			value.verdict === "rethink" &&
+			(value.gaps.length === 0 || value.rethink === null)
+		) {
+			bad("rethink needs at least one gap and a rethink");
+		}
+	});
+export type ApproachChallengeVerdict = z.infer<typeof ApproachChallengeVerdict>;
+
+export function parseApproachChallengeVerdict(
+	input: string,
+): ApproachChallengeVerdict {
+	return ApproachChallengeVerdict.parse(parseJson(input));
+}
+
 // A short kebab-case name for the design assumption a bug breaks. Rounds that
 // repeat a label are how review-rounds.ts spots a fix patching the same idea.
 export const AssumptionLabel = z
