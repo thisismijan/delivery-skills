@@ -4,7 +4,8 @@
 	"type": "module",
 	"packageManager": "bun@1.4.2",
 	"scripts": {
-		"test": "bun test",
+		"test": "bun test && bun run test:skills",
+		"test:skills": "cd .. && BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks",
 		"check": "tsc --noEmit && biome check scripts",
 		"doctor": "bun run scripts/doctor.ts",
 		"init": "bun run scripts/delivery-init.ts",
