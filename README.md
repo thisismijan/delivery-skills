@@ -263,8 +263,8 @@ After approval, it automatically:
    worker per ticket, at most `maxParallelWorktrees` at a time (default 4,
    2 at `min` and 8 at `max`, override with `MAX_PARALLEL_WORKTREES`). True
    blockers remain ordered.
-4. Drafts the change contract, selects test seams, builds test-first, runs all
-   gates, performs both review passes, publishes review notes, and monitors the
+4. Takes each ticket through draft, build, review, and readiness, as
+   [How one ticket moves](#how-one-ticket-moves) describes, and monitors the
    merge request pipeline at its exact head revision.
 5. After the change lands, monitors the default-branch pipeline at the exact merged
    revision before archiving the change, verifying the deployment, writing the
@@ -285,6 +285,49 @@ Plan approval authorizes landing a change only through the land gate: a person
 approved it on the forge, its pipeline passed, and readiness gave GO, all at
 the same commit. It never authorizes any other merge, closing work items,
 release-risk acceptance, bypassing a gate, or installing a skill candidate.
+
+### How one ticket moves
+
+1. **Draft.** Writes the OpenSpec change and selects the smallest complete
+   test seams. Then a read-only frontier reviewer tries to break the planned
+   approach: it looks for real inputs in the codebase the approach would miss.
+   Each gap becomes a scenario in the spec, or is stated as out of scope. An
+   approach that cannot be made complete is revised once; if the revision
+   still cannot, the draft stops for you to choose. Tickets that feasibility
+   rates low complexity skip this check.
+2. **Build.** Writes the tests and proves they fail, implements, then runs
+   tests, lint, and typecheck. One independent holdout review checks the
+   result against the spec before the merge request opens as a draft.
+3. **First review.** `/code-review-max` runs up to four lenses over the whole
+   change, then `/mr-review` judges the approach. Findings are posted as
+   comments.
+4. **Address comments.** Each comment is classified. A bug gets a failing
+   test, then a fix, each as its own commit, with any formatting and spec
+   update in the fix commit. The round then runs tests, lint, and typecheck
+   across the whole branch, and no review of its own. If a bug breaks the
+   same assumption an earlier round already broke, the approach is
+   re-examined before any patch. The same assumption breaking again after
+   that stops the run for you.
+5. **Later reviews.** The next review reads only what changed since the last
+   one when that change is small, stays in files the last review covered, and
+   touches nothing sensitive, no dependency, no one-way step, and no weakened
+   test. The reviewers confirm each earlier finding is fixed. Anything else,
+   a merge of `main`, or the `max` level means a full review again. Steps 4
+   and 5 repeat until the review says ready, up to the level's review-round
+   limit.
+6. **Readiness and landing.** Release readiness reads the whole change and
+   gives GO or NO-GO with a rollback plan. Once a person approves the change
+   on the forge and its pipeline is green, auto squash-merges it.
+
+What each review reads:
+
+| Review | When | Reads |
+|--------|------|-------|
+| Approach challenge | Once at draft, unless low complexity | The spec and the codebase |
+| Holdout | Once, before the merge request opens | The whole change, tests, and gate results |
+| `/code-review-max` and `/mr-review` | First round | The whole change |
+| `/code-review-max` and `/mr-review` | Later rounds | What changed since the last review, or the whole change when it needs it |
+| Release readiness | Once, before landing | The whole change |
 
 ### Pipeline monitoring and recovery
 
@@ -428,7 +471,10 @@ flowchart TD
   assess --> feasible["Feasibility"]
   feasible --> seams["Select the smallest complete test seams"]
   seams --> spec["Author change contract, tests-first"]
-  spec --> drafted["Contract linked"]
+  spec --> challenge["Challenge the approach"]
+  challenge -->|"sound, or gaps added as scenarios"| drafted["Contract linked"]
+  challenge -->|"first rethink: revise"| spec
+  challenge -->|"second rethink"| approachStop["Person chooses the approach"]
 
   drafted --> execute
   execute --> resume["Reconcile MR, tests, gates, dirty tree"]
@@ -440,11 +486,15 @@ flowchart TD
   premise -->|"no third fix until then"| holdout
 
   mr --> review
-  review --> maxPass["correctness review pass"]
+  review --> scope["Whole change, or only what changed since the last review"]
+  scope --> maxPass["correctness review pass"]
   maxPass -->|"pinned to change head"| mrReview["mr-review"]
   mrReview -->|"ready"| ship
   mrReview -->|"blocked"| address
-  address -->|"cumulative gates"| review
+  address -->|"cumulative gates, no review"| review
+  address -->|"same assumption again"| reexamine["Re-examine the approach"]
+  reexamine -->|"new approach"| review
+  reexamine -->|"still repeats"| escalate
 
   ship -->|"GO"| changePipeline["Exact-head pipeline"]
   ship -->|"NO-GO"| address
@@ -462,7 +512,7 @@ flowchart TD
 
   classDef human fill:#fff4ce,stroke:#8a6d1d
   classDef stop fill:#f3f3f3,stroke:#666
-  class split,mergeWait,applyWait,escalate human
+  class split,mergeWait,applyWait,escalate,approachStop human
   class start,ledger stop
 ```
 
@@ -582,7 +632,8 @@ A model does not start when a script can already prove the outcome:
   proven small diffs; a small code change still runs rollback in the main
   conversation
 
-Holdout still runs on new or changed code. Composer stays evaluation-only.
+Holdout still runs on all new code before the change request opens. Composer
+stays evaluation-only.
 
 Each of those skips is recorded by `record-skip.ts` even when diagnostic
 profiling is off. The run scorecard prints how many workers were avoided
@@ -643,7 +694,12 @@ ambiguous match stops the run instead of guessing.
   change is faithful to the spec, the tests are meaningful, the code matches the
   spec, and it is ready for main.
 - **Execute opens a draft change request.** It is marked ready only after both
-  review passes. Release readiness refuses a draft change or a missing review
+  review passes. Each fix is reviewed once, by the next review round, and a
+  later round reads only what changed when that change is small and stays in
+  reviewed files with nothing sensitive in it.
+- **A repeated assumption is not patched again.** When a bug breaks the same
+  assumption an earlier round already broke, the approach is re-examined
+  before any fix, and the same assumption breaking after that stops the run. Release readiness refuses a draft change or a missing review
   verdict; an operator cannot stand in for a review.
 - **Comments are handled once.** Every in-scope comment must be classified,
   with no missing, extra, or duplicate ids. Only replies from the factory's own

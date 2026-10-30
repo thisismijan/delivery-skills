@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SDLC_BOARD_PHASES } from "./board-map";
 import {
@@ -1570,4 +1570,30 @@ test("a comment round runs gates only, later reviews read only what changed, and
 		"holdout-rejected",
 	);
 	expect(constitution.stages.draft?.stops).toContain("unsettled-approach");
+});
+
+test("the operator docs walk through the current review loop with the real script names", () => {
+	const examples = read("../docs/examples.md");
+	for (const script of ["review-scope.ts", "review-rounds.ts"]) {
+		expect(existsSync(join(import.meta.dir, script))).toBe(true);
+		expect(workflowDocs).toContain(script);
+	}
+	expect(examples).toContain("review-scope.ts");
+	expect(existsSync(join(ROOT, "agents", "approach-challenger.md"))).toBe(true);
+	expect(rootReadme).toContain("### How one ticket moves");
+	expect(rootReadme).toContain('challenge["Challenge the approach"]');
+	expect(rootReadme).toContain(
+		'address -->|"cumulative gates, no review"| review',
+	);
+	expect(plain(rootReadme)).toMatch(
+		/runs tests, lint, and typecheck across the whole branch, and no review of its own/,
+	);
+	expect(workflowDocs).toContain("## Review loop");
+	expect(plain(workflowDocs)).toMatch(
+		/Address comments \| A test commit and a fix commit per bug/,
+	);
+	expect(examples).toContain("## A review round, start to finish");
+	for (const doc of [rootReadme, workflowDocs]) {
+		expect(plain(doc)).not.toMatch(/cumulative (?:Opus |frontier )?holdout/i);
+	}
 });

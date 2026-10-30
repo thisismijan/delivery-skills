@@ -17,8 +17,9 @@ from `skills/delivery/SKILL.md`.
 5. **Auto.** `/delivery auto <key>` creates approved items, fans out
    independent tickets into isolated worktrees (at most `maxParallelWorktrees`
    at a time, default 4, 2 at `min` and 8 at `max`, override with
-   `MAX_PARALLEL_WORKTREES`), drafts,
-   executes, reviews, and monitors the exact-head pipeline without polling.
+   `MAX_PARALLEL_WORKTREES`), then drafts, builds, and reviews each ticket as
+   [Review loop](#review-loop) describes, and monitors the exact-head
+   pipeline without polling.
 6. **You approve; auto lands.** Approve the change on the forge. Under
    `/delivery auto`, delivery squash-merges it once readiness gave GO and the
    pipeline passed at that same commit. Outside auto, you merge. Delivery never
@@ -32,6 +33,29 @@ from `skills/delivery/SKILL.md`.
 
 Resume with `/delivery <KEY>` or `/delivery auto <key>`. Do not skip a failed
 gate.
+
+## Review loop
+
+| Step | What happens | Review |
+|------|--------------|--------|
+| Draft | Spec and test seams, then a read-only frontier reviewer tries to break the approach. Gaps become scenarios; an approach that cannot be made complete is revised once, then stops for you | Approach challenge, skipped for low complexity |
+| Build | Failing tests, implementation, tests, lint, and typecheck | One holdout before the merge request opens |
+| First review | `/code-review-max` lenses, then `/mr-review` | The whole change |
+| Address comments | A test commit and a fix commit per bug, then tests, lint, and typecheck across the branch | None of its own |
+| Later reviews | `/code-review-max` and `/mr-review` again | Only what changed since the last review, when it is small and stays in reviewed files with nothing sensitive; otherwise the whole change |
+| Readiness | GO or NO-GO with a rollback plan | The whole change |
+
+Address comments and later reviews repeat until the review says ready, up to
+the level's review-round limit. Two rules keep that loop short:
+
+- **A repeated assumption is re-examined, not patched.** The comment assessor
+  labels each bug with the assumption it breaks. When an earlier round already
+  broke the same one, the approach is re-examined before any fix; the same
+  label after that stops the run (`review-rounds.ts`).
+- **A later round reads only what changed** when that is safe
+  (`review-scope.ts`). A merge of the base branch, a new file, a sensitive
+  surface, a dependency, a one-way step, a weakened test, a large change, or
+  the `max` level means a full review.
 
 ## Levels
 

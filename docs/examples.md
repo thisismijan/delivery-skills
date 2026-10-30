@@ -107,6 +107,28 @@ the approved contract and attempt budget. If a runner outage caused the failure,
 delivery escalates with the failed checks and evidence instead of changing code
 or blindly retrying the provider job.
 
+## A review round, start to finish
+
+Say MDF-42's first review posts three comments: two bugs and a question.
+
+1. `/delivery auto MDF-42` runs address comments. For each bug it commits a
+   failing test, then the fix (formatted, with any spec update in the same
+   commit). It answers the question on its thread. Then it runs tests, lint,
+   and typecheck across the branch and leaves the merge request draft. It
+   does not review its own fixes.
+2. The next review asks `review-scope.ts` what to read. The fixes touched two
+   files the first review covered, about 60 lines, nothing sensitive, so it
+   reviews only the change since that review and confirms both earlier bugs
+   are fixed.
+3. Suppose that review finds a third bug, and the comment assessor labels it
+   with the same assumption as one of the first two, say
+   `field-calls-found-by-pattern`. Address comments stops patching. It states
+   the premise, checks it once, and either replaces the approach (code and
+   spec together) or stops and asks you with the options. If the same label
+   appears again after that, the run stops.
+4. If instead the fix had added a new file or changed `package.json`, the
+   next review would read the whole change again.
+
 ## Choosing a level
 
 A quick copy fix on one ticket, where cost matters more than time:
