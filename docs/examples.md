@@ -106,3 +106,38 @@ invalid, delivery may open a new draft recovery change when the repair is inside
 the approved contract and attempt budget. If a runner outage caused the failure,
 delivery escalates with the failed checks and evidence instead of changing code
 or blindly retrying the provider job.
+
+## Choosing a level
+
+A quick copy fix on one ticket, where cost matters more than time:
+
+```text
+/delivery auto min MDF-1234
+```
+
+Two workers, one repair attempt, two review rounds. If a gate fails twice or
+review needs a third round, the run stops and asks you instead of spending
+more. Review still runs every lens the change's risk calls for.
+
+An urgent epic with six independent tickets:
+
+```text
+/delivery auto max docs/prd/checkout-redesign.md
+```
+
+After you approve the plan, all six tickets start at once (up to eight),
+each with a frontier implementer and every review lens. The level is part of
+the approved plan, so resuming later with `/delivery auto MDF-2001` keeps
+`max`. Typing `/delivery auto min MDF-2001` stops and names the level the
+plan was approved at.
+
+Keep `max` but run fewer workers because the machine is small:
+
+```bash
+export MAX_PARALLEL_WORKTREES=3
+```
+
+Then `/delivery auto max ...` runs three workers at once with every other
+`max` setting. `DELIVERY_LEVEL=max bun "$FACTORY_ROOT/scripts/config.ts"`
+shows the effective values and lists `MAX_PARALLEL_WORKTREES` under
+`overrides`.

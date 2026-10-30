@@ -147,16 +147,106 @@ In the target repository:
 ```text
 /delivery <idea, PRD path, or epic key>
 /delivery auto <existing run key>
+/delivery auto max <idea, PRD path, or key>
 /delivery help
 ```
 
 `/delivery` invokes the stage skills through delivery descriptors. Slash names
 are packaging sugar for hosts that load skills that way.
 
+## Levels
+
+A level sets how much one run spends to get a change done, in one word:
+`min`, `standard`, or `max`. It changes parallelism, retries, review rounds,
+review breadth, and the implementer model. It never changes what has to be
+true before a change lands.
+
+| Level | Workers at once | Fix attempts | Review rounds | Review lenses | Implementer |
+|-------|-----------------|--------------|---------------|---------------|-------------|
+| `min` | 2 | 1 | 2 | Size alone never adds lenses | Standard tier; frontier when the change is justified as complex |
+| `standard` | 4 | 2 | 3 | Measured from the diff | Standard tier; frontier when the change is justified as complex |
+| `max` | 8 | 3 | 4 | Every lens on every change | Frontier |
+
+What the columns mean:
+
+- **Workers at once**: how many independent tickets run in parallel
+  worktrees.
+- **Fix attempts**: how many times a failing gate is repaired before the run
+  stops and asks you.
+- **Review rounds**: review, address comments, and review again counts as one
+  round; after this many without a ready verdict, auto stops and asks.
+- **Review lenses**: how many of the four review lenses run. `standard`
+  scales them with the size and risk of the diff. `min` drops only the lenses
+  a large but otherwise low-risk diff would add. `max` runs all four on any
+  change with code, and all four release-readiness lenses too.
+- **Implementer**: the model that writes the code.
+
+### Choosing a level
+
+- **`min`** for small, well-specified, low-risk tickets when cost matters
+  more than time: a backlog of chores, dependency bumps, copy changes. Expect
+  more stops for you, because one failed repair or two review rounds ends the
+  attempt, and a large epic takes longer with two workers.
+- **`standard`** for everyday work. It is the default and matches how
+  delivery ran before levels existed.
+- **`max`** when time matters more than cost: an urgent epic with many
+  independent tickets, or intricate changes where a stronger implementer pays
+  for itself. It runs up to eight workers at once, so the machine needs the
+  memory, CPU, and model rate limits for that.
+
+### How to use a level
+
+Put the level word right after the verb, or first:
+
+```text
+/delivery auto max docs/prd/billing.md    # a new run at max
+/delivery auto min MDF-1234               # auto for one ticket at min
+/delivery min MDF-5678                    # resume the next step at min
+/delivery execute max MDF-91              # one step at max
+```
+
+With no level word, a new run is `standard` and an existing run keeps the
+level it was approved at. The word only counts in those two positions, so an
+idea such as "raise the max upload size" is left alone. Two level words
+stop the command.
+
+The level is frozen with the approved plan, and every worker runs at the
+coordinator's level. Resuming at a different level stops with "this run was
+approved at the min level", and continues at the new level only after you
+approve a new plan version that records why. A single step on a ticket with
+no approved plan uses the level for that step only.
+
+To change one setting without changing the level, set its variable in the
+environment delivery runs in: `MAX_PARALLEL_WORKTREES`, `MAX_FIX_ATTEMPTS`,
+or `MAX_REVIEW_ROUNDS`. The variable wins for that setting, and the ledger
+records it as an override.
+
+To see the values:
+
+```bash
+bun "$FACTORY_ROOT/scripts/levels.ts"                       # every level
+DELIVERY_LEVEL=max bun "$FACTORY_ROOT/scripts/config.ts"    # effective settings
+```
+
+### What no level changes
+
+- Holdout review, the `/code-review-max` and `/mr-review` chain, and the
+  frontier model for review.
+- Every review lens on a change that touches a sensitive surface (data,
+  contracts, config, auth, infrastructure), changes a dependency, is one-way,
+  or was not fully classified. `min` on an auth change gets the same four
+  lenses as `standard`.
+- Release-readiness lenses, the readiness GO and its rollback plan, and the
+  land gate.
+- Fast models stay evaluation-only. `min` saves through parallelism, retries,
+  and review breadth, not by using a cheaper model than `standard` does.
+- Every decision that belongs to a person.
+
 ## Continuous delivery
 
 Use `/delivery <idea-or-PRD>` for new work or `/delivery auto <key>` to resume
-existing work. The skill decides simple, reversible, and discoverable work itself. It only
+existing work. Add `min` or `max` after the verb to choose the run's
+[level](#levels). The skill decides simple, reversible, and discoverable work itself. It only
 stops you for product intent or a hard-to-reverse trade-off. Those stops open
 with the options and trade-offs first. After you pick, it shows its own
 recommendation and why, and you can change your mind. It then presents the
@@ -171,7 +261,8 @@ After approval, it automatically:
 2. Finds every ticket whose real blockers are already merged.
 3. Starts independent tickets concurrently, one isolated git worktree and
    worker per ticket, at most `maxParallelWorktrees` at a time (default 4,
-   override with `MAX_PARALLEL_WORKTREES`). True blockers remain ordered.
+   2 at `min` and 8 at `max`, override with `MAX_PARALLEL_WORKTREES`). True
+   blockers remain ordered.
 4. Drafts the change contract, selects test seams, builds test-first, runs all
    gates, performs both review passes, publishes review notes, and monitors the
    merge request pipeline at its exact head revision.
@@ -408,6 +499,9 @@ are not writing the code.
 A failed gate is never dressed up as an option.
 
 ## Cost controls
+
+The quickest control is the run's level (see [Levels](#levels)). The rest of
+this section is what every level shares.
 
 Default delivery keeps the expensive model for work that can change the
 outcome: implementation when complexity is recorded as high, first holdout

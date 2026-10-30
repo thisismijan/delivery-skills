@@ -94,7 +94,13 @@ and human-owned lists.
 /delivery doctor
 /delivery status
 /delivery <idea or PRD path>
+/delivery auto max <idea, PRD path, or key>
 ```
+
+The optional `min` or `max` after the verb sets the run's level: fewer
+workers and retries for cheaper runs, or more workers, every review lens, and
+a frontier implementer for faster, deeper runs. Leave it out for `standard`.
+See [Levels](../README.md#levels).
 
 Read-only stages run with a smaller capability set. Mutating stages need
 `mutation.guard` with `enforcement: "enforced"` after the host adapter
@@ -102,5 +108,5 @@ verifies its denial hook.
 
 See [workflow](workflow.md) and [examples](examples.md) next. Diagnostic
 shadow profiling defaults off. Review lenses scale with demonstrated risk.
-The knobs are `ROUTING_PROFILING` and `MAX_PARALLEL_WORKTREES`; details are
-in [reference](reference.md).
+The knobs are the run's level, `ROUTING_PROFILING`, and
+`MAX_PARALLEL_WORKTREES`; details are in [reference](reference.md).
