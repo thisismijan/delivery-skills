@@ -195,6 +195,7 @@ const validClassComment = {
 	commentId: "c-001",
 	classification: "bug",
 	reasoning: "The helper returns -1 for empty input instead of 0.",
+	assumption: "input-is-never-empty",
 };
 
 test("classification: parses a valid single-comment array", () => {
@@ -222,8 +223,13 @@ test("classification: accepts all six classification enum values", () => {
 		"outdated",
 	] as const;
 	for (const classification of classes) {
+		const { assumption, ...rest } = validClassComment;
 		const result = parseClassificationVerdict(
-			JSON.stringify([{ ...validClassComment, classification }]),
+			JSON.stringify([
+				classification === "bug"
+					? { ...rest, classification, assumption }
+					: { ...rest, classification },
+			]),
 		);
 		expect(result[0]?.classification).toBe(classification);
 	}
@@ -231,7 +237,12 @@ test("classification: accepts all six classification enum values", () => {
 
 test("classification: parses a multi-comment batch", () => {
 	const batch = [
-		{ commentId: "c-001", classification: "bug", reasoning: "off-by-one" },
+		{
+			commentId: "c-001",
+			classification: "bug",
+			reasoning: "off-by-one",
+			assumption: "end-index-is-inclusive",
+		},
 		{
 			commentId: "c-002",
 			classification: "nitpick",
@@ -309,4 +320,28 @@ test("classification completeness requires an exact id bijection", () => {
 			assertClassificationComplete([...verdict, first], ["c-001", 2]),
 		).toThrow("duplicate");
 	}
+});
+
+test("classification: a bug names the assumption it breaks as a short label", () => {
+	const { assumption: _assumption, ...unlabelled } = validClassComment;
+	expect(() =>
+		parseClassificationVerdict(JSON.stringify([unlabelled])),
+	).toThrow(/names the assumption/);
+	for (const label of [
+		"Input Empty",
+		"input_empty",
+		"-empty",
+		"a".repeat(61),
+	]) {
+		expect(() =>
+			parseClassificationVerdict(
+				JSON.stringify([{ ...validClassComment, assumption: label }]),
+			),
+		).toThrow();
+	}
+	expect(() =>
+		parseClassificationVerdict(
+			JSON.stringify([{ ...validClassComment, classification: "nitpick" }]),
+		),
+	).toThrow(/only a bug/);
 });

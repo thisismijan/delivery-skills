@@ -91,18 +91,43 @@ export const FeasibilityVerdict = z.object({
 });
 export type FeasibilityVerdict = z.infer<typeof FeasibilityVerdict>;
 
-export const ClassificationComment = z.object({
-	commentId: z.string(),
-	classification: z.enum([
-		"bug",
-		"non-functional",
-		"nitpick",
-		"false-positive",
-		"question",
-		"outdated",
-	]),
-	reasoning: z.string(),
-});
+// A short kebab-case name for the design assumption a bug breaks. Rounds that
+// repeat a label are how review-rounds.ts spots a fix patching the same idea.
+export const AssumptionLabel = z
+	.string()
+	.max(60)
+	.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "must be a short kebab-case label");
+
+export const ClassificationComment = z
+	.object({
+		commentId: z.string(),
+		classification: z.enum([
+			"bug",
+			"non-functional",
+			"nitpick",
+			"false-positive",
+			"question",
+			"outdated",
+		]),
+		reasoning: z.string(),
+		assumption: AssumptionLabel.optional(),
+	})
+	.superRefine((comment, ctx) => {
+		if (comment.classification === "bug" && !comment.assumption) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["assumption"],
+				message: "a bug names the assumption it breaks",
+			});
+		}
+		if (comment.classification !== "bug" && comment.assumption) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["assumption"],
+				message: "only a bug names an assumption",
+			});
+		}
+	});
 export type ClassificationComment = z.infer<typeof ClassificationComment>;
 
 export const ClassificationVerdict = z.array(ClassificationComment);

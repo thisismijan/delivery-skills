@@ -103,7 +103,11 @@ Between steps, do not ask whether to continue. Continue.
 **Review rounds.** Review, then address-comments, then review again counts as one
 round. After `maxReviewRounds` rounds (`MAX_REVIEW_ROUNDS`, default 3; the
 run level sets 2 at `min` and 4 at `max`) without `[ready !N]`, stop and ask
-the operator how to proceed. Unanswered comments are answered by one `/address-comments` round
+the operator how to proceed. `/address-comments` also records every round in
+`.review/<changeName>/review-rounds.json` with `review-rounds.ts`, in auto and
+in single steps. A bug that breaks an assumption an earlier round already
+broke gets a premise check before any patch, and the same assumption again
+after that check stops for the operator. Unanswered comments are answered by one `/address-comments` round
 that takes every open comment on the change together, never one round per
 thread, and that round counts as one review round.
 

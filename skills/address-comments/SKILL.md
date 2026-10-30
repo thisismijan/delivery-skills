@@ -25,7 +25,8 @@ This command consumes the review comments on the **existing** MR for this ticket
 
 - **An MR must already exist.** No open MR for the resolved branch → **stop + escalate** (fail closed). Make zero commits and post nothing.
 - **Tests first for bugs.** A `bug` comment gets a failing test proven red via `test-gate.ts` **before** any fix code, then brought to green. Never modify a test to make it pass.
-- **One commit per actioned comment**, referencing the comment; the reply on that thread carries the commit SHA.
+- **One fix commit per actioned comment**, referencing the comment; the reply on that thread carries its SHA. A `bug` also has its test-only commit first, because the red gate is bound to it. Formatting and spec updates go in the fix commit, never in a commit of their own.
+- **No patching the same assumption twice.** Every round is recorded with `review-rounds.ts`. A bug that breaks an assumption an earlier round already broke gets a premise check before any fix (step 5).
 - **Reply on EVERY assessed thread** exactly once (actioned, answered, or disputed) using the `auditComment` prefix. **Never resolve a thread** — humans own resolution.
 - **One batched round.** Every open comment on the change, from people or automated reviewers, is handled in this one round with the same classification, test-first, and green discipline, never one round per thread.
 - **Replies come from the operator.** Every reply is posted through `forge-provider.ts reply` with the normal forge credential, so it appears under the forge identity of the operator running this skill. Never post as another person or through a separate bot account.
@@ -120,7 +121,10 @@ This command consumes the review comments on the **existing** MR for this ticket
    `always`, start a usage timer. Then dispatch **exactly one**
    `comment-assessor` subagent with that exact available model (tools
    `Read, Grep, Glob` only), the in-scope comments (each with its `commentId`
-   and `discussionId`), the diff, and `<changeDir>` (spec + tasks). Keep each
+   and `discussionId`), the diff, `<changeDir>` (spec + tasks), and every
+   assumption label already recorded in
+   `<repoRoot>/.review/<changeName>/review-rounds.json`, so a bug that breaks
+   one of them reuses that exact label. Keep each
    comment's `discussionId` so step 7 can reply on the right thread. Merge the
    assessor verdicts onto the scripted outdated entries before validating.
    ```
@@ -137,6 +141,30 @@ This command consumes the review comments on the **existing** MR for this ticket
    bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
    ```
    Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. `classify-outcome.json` records whether classification completed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Classification still used the current semantic standard route; the shadow file must not change that. When `routingProfiling` is `off`, skip the timer, profile, usage capture, routing persistence, and scorecard commands. Still persist scripted skips with `record-skip.ts` and refresh the scorecard after those skips. This setting only removes diagnostic work; it never changes classification dispatch or weakens a quality gate.
+
+   **Record the round.** After a valid verdict, run:
+   ```
+   bun "${FACTORY_ROOT}/scripts/review-rounds.ts" record "<repoRoot>/.review/<changeName>/review-rounds.json" "<reviewDir>/classification.json" <full-head-sha>
+   ```
+   Recording the same head again replaces that round, so a re-entry is not a
+   new round.
+   - Exit 0: no bug repeats an earlier round's assumption. Continue.
+   - Exit 3: the printed `repeated` labels were already broken in an earlier
+     round, so patching them again is likely to miss the next case too. Before
+     writing any fix for those comments, state the premise behind the current
+     approach and run one discriminating observation that could disprove it,
+     such as listing every way the input can be written and checking whether
+     the approach can cover them all. When it shows the approach cannot be made
+     complete, replace the approach instead of adding another case: the fix
+     changes the code and the spec together. Write what you observed and chose
+     to a file and record it with
+     `bun "${FACTORY_ROOT}/scripts/review-rounds.ts" premise "<repoRoot>/.review/<changeName>/review-rounds.json" <assumption> <outcome.md>`.
+     When no defensible approach comes out of it, stop and escalate with the
+     premise, the observation, and the options, following the conductor's
+     Human decision brief.
+   - Exit 1: the approach was already re-examined for a repeated label, or the
+     input is malformed. **Stop + escalate** with the printed reason, make
+     zero commits, and post nothing.
 
 6. **Route each comment.** For every entry, derive its action group:
    ```
@@ -186,7 +214,15 @@ This command consumes the review comments on the **existing** MR for this ticket
      ```
      bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/green-command-<commentId>.json" green | tee "<reviewDir>/green-gate-<commentId>-<source-commit>.json"
      ```
-     Run the green gate, lint, and typecheck in parallel and persist all three results. Commit referencing the comment; capture the commit SHA.
+     Before the fix commit, run the repository's formatter in fix mode on the
+     files the fix changed (the one the lint gate checks, for example
+     `biome check --write`, `prettier --write`, `ruff format`, or `gofmt -w`),
+     and update `<changeDir>` when the fix changes behaviour the spec
+     describes, so both land in that commit. Commit referencing the comment,
+     capture the commit SHA, then run the green gate, lint, and typecheck in
+     parallel and persist all three results. When lint fails only on
+     formatting, run the formatter, amend that fix commit before it is pushed,
+     and re-run the gates. Never add a formatting-only or spec-only commit.
 
    - **`non-functional`** (action, green-only): apply a mechanical-edit unit
      the same way as a bug action. When `apply` is `script`, the helper already
@@ -195,8 +231,9 @@ This command consumes the review comments on the **existing** MR for this ticket
      worker (no new test required), then require the **green gate** plus lint
      plus typecheck to pass (commands as above). Do not ask the implementer
      whether the work is menial. Do not dispatch a catalogue fast model. A
-     payload flag is not proof that a script ran. Commit referencing the
-     comment; capture the SHA.
+     payload flag is not proof that a script ran. Format and update the spec
+     the same way as a bug fix, then commit referencing the comment and
+     capture the SHA.
 
      For both action cases, on a gate/lint/typecheck failure dispatch the `implementer` to fix the **source** (never the tests) and re-run; loop a bounded number of times up to `maxFixAttempts`, then **stop + escalate** for that comment.
 
