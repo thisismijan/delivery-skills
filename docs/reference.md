@@ -120,13 +120,14 @@ moves `From.java` when a unique type matches the listed file name.
 Import-only also adds a unique TypeScript, Python, Java, Go, C#, or Kotlin
 missing import. Format-only uses
 `node_modules/.bin/prettier`, `.venv/bin/ruff` or `venv/bin/ruff`, or
-`bin/google-java-format`, `bin/csharpier`, `bin/ktfmt`, `bin/rustfmt`, or `bin/php-format` when that binary is
+`bin/google-java-format`, `bin/csharpier`, `bin/ktfmt`, `bin/rustfmt`, `bin/php-format`, or `bin/swift-format` when that binary is
 inside the repository and names and literals stay identical. A missing binary
-keeps a built-in formatter where one exists; C#, Kotlin, Rust, and PHP stay on the worker
+keeps a built-in formatter where one exists; C#, Kotlin, Rust, PHP, and Swift stay on the worker
 without their wrappers. Go uses its standard-library parser and formatter
 helper. Rust is format-only; rename and import-only remain on the worker. PHP is
 format-only too: `bin/php-format <file>` reads stdin and writes stdout, and
-heredoc or nowdoc stays on the worker.
+heredoc or nowdoc stays on the worker. Swift is format-only through
+`bin/swift-format format --assume-filename <file>`.
 Overloads, attributes, `exec`/`eval`, `serialVersionUID`, extract method, and
 a formatter that changes names keep the worker.
 

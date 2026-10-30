@@ -181,7 +181,7 @@ current session may use. At the start of a factory run:
    rename, import-only, and format-only units with `apply-mechanical-edit.ts`,
    including a unique Python parameter or local, a unique Java field, a Java
    type whose listed file name matches, a unique TypeScript, Python, Java, Go, C#, or Kotlin missing import, and
-   a repo Prettier, Ruff, or google-java-format binary, the Go standard formatter, repo-local `bin/csharpier`, `bin/ktfmt`, `bin/rustfmt`, or `bin/php-format` when names and literals
+   a repo Prettier, Ruff, or google-java-format binary, the Go standard formatter, repo-local `bin/csharpier`, `bin/ktfmt`, `bin/rustfmt`, `bin/php-format`, or `bin/swift-format` when names and literals
    stay identical.
    Units the scripts cannot prove are listed in `mechanical-edit-scoring.ts`
    for representative scoring only. `mechanical-edit-test-repos.ts`

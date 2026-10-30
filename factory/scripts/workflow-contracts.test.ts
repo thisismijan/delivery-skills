@@ -546,10 +546,10 @@ describe("bounded recovery and replay safety", () => {
 		);
 		expect(plain(execute)).toMatch(/google-java-format/i);
 		expect(plain(execute)).toMatch(
-			/rust and php format-only.*bin\/rustfmt.*bin\/php-format/i,
+			/rust, php, and swift format-only.*bin\/rustfmt.*bin\/php-format.*bin\/swift-format/i,
 		);
 		expect(plain(addressComments)).toMatch(
-			/rust and php format-only.*bin\/rustfmt.*bin\/php-format/i,
+			/rust, php, and swift format-only.*bin\/rustfmt.*bin\/php-format.*bin\/swift-format/i,
 		);
 		expect(plain(rootReadme)).toMatch(
 			/python function, class,\s*parameter, or local/i,
@@ -748,6 +748,9 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(referenceDocs)).toMatch(/bin\/google-java-format/i);
 		expect(plain(referenceDocs)).toMatch(/bin\/rustfmt/i);
 		expect(plain(referenceDocs)).toMatch(/bin\/php-format <file> reads stdin/i);
+		expect(plain(referenceDocs)).toMatch(
+			/bin\/swift-format format --assume-filename <file>/i,
+		);
 		expect(plain(referenceDocs)).toMatch(
 			/rust is format-only; rename and import-only remain on the worker/i,
 		);
