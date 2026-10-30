@@ -95,11 +95,11 @@ moves `From.java` when a unique type matches the listed file name.
 Import-only also adds a unique TypeScript, Python, Java, Go, C#, or Kotlin
 missing import. Format-only uses
 `node_modules/.bin/prettier`, `.venv/bin/ruff` or `venv/bin/ruff`, or
-`bin/google-java-format`, `bin/csharpier`, or `bin/ktfmt` when that binary is
+`bin/google-java-format`, `bin/csharpier`, `bin/ktfmt`, or `bin/rustfmt` when that binary is
 inside the repository and names and literals stay identical. A missing binary
-keeps a built-in formatter where one exists; C# and Kotlin stay on the worker
+keeps a built-in formatter where one exists; C#, Kotlin, and Rust stay on the worker
 without their wrappers. Go uses its standard-library parser and formatter
-helper.
+helper. Rust is format-only; rename and import-only remain on the worker.
 Overloads, attributes, `exec`/`eval`, `serialVersionUID`, extract method, and
 a formatter that changes names keep the worker.
 

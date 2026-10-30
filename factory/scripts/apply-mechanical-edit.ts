@@ -22,6 +22,7 @@ import {
 	planKotlinRename,
 	writeKotlinPlan,
 } from "./apply-kotlin-mechanical-edit";
+import { planRustFormat, writeRustFormat } from "./apply-rust-format";
 import {
 	type MechanicalEditPlan,
 	classifyMechanicalEdit,
@@ -42,6 +43,7 @@ const JAVA_EXTENSIONS = new Set([".java"]);
 const GO_EXTENSIONS = new Set([".go"]);
 const CSHARP_EXTENSIONS = new Set([".cs"]);
 const KOTLIN_EXTENSIONS = new Set([".kt", ".kts"]);
+const RUST_EXTENSIONS = new Set([".rs"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
 
 type ApplyLanguage =
@@ -50,7 +52,8 @@ type ApplyLanguage =
 	| "java"
 	| "go"
 	| "csharp"
-	| "kotlin";
+	| "kotlin"
+	| "rust";
 
 function extensionOf(fileName: string): string {
 	const dot = fileName.lastIndexOf(".");
@@ -76,6 +79,9 @@ function languageOf(fileName: string): ApplyLanguage | undefined {
 	}
 	if (KOTLIN_EXTENSIONS.has(extension)) {
 		return "kotlin";
+	}
+	if (RUST_EXTENSIONS.has(extension)) {
+		return "rust";
 	}
 	return undefined;
 }
@@ -1168,6 +1174,25 @@ export async function applyMechanicalEdit(input: {
 				}),
 				"applied Kotlin format-only rewrite",
 			);
+		}
+		if (language === "rust") {
+			const rust = await planRustFormat({
+				root,
+				files: payload.files,
+				run: spawnStdin,
+			});
+			if (!rust.ok || !rust.files) {
+				return plan(
+					classified,
+					rust.reason ?? "rust format rewrite was not proven",
+				);
+			}
+			return {
+				verdict: "mechanical",
+				reason: "applied Rust format-only rewrite",
+				apply: "script",
+				filesChanged: await writeRustFormat(root, rust),
+			};
 		}
 		if (language !== "typescript") {
 			return plan(classified, "no proven script for this operation");
