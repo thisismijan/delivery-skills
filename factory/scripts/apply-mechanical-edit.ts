@@ -22,6 +22,7 @@ import {
 	planKotlinRename,
 	writeKotlinPlan,
 } from "./apply-kotlin-mechanical-edit";
+import { planPhpFormat, writePhpFormat } from "./apply-php-format";
 import { planRustFormat, writeRustFormat } from "./apply-rust-format";
 import {
 	type MechanicalEditPlan,
@@ -44,6 +45,7 @@ const GO_EXTENSIONS = new Set([".go"]);
 const CSHARP_EXTENSIONS = new Set([".cs"]);
 const KOTLIN_EXTENSIONS = new Set([".kt", ".kts"]);
 const RUST_EXTENSIONS = new Set([".rs"]);
+const PHP_EXTENSIONS = new Set([".php"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
 
 type ApplyLanguage =
@@ -53,7 +55,8 @@ type ApplyLanguage =
 	| "go"
 	| "csharp"
 	| "kotlin"
-	| "rust";
+	| "rust"
+	| "php";
 
 function extensionOf(fileName: string): string {
 	const dot = fileName.lastIndexOf(".");
@@ -82,6 +85,9 @@ function languageOf(fileName: string): ApplyLanguage | undefined {
 	}
 	if (RUST_EXTENSIONS.has(extension)) {
 		return "rust";
+	}
+	if (PHP_EXTENSIONS.has(extension)) {
+		return "php";
 	}
 	return undefined;
 }
@@ -1192,6 +1198,25 @@ export async function applyMechanicalEdit(input: {
 				reason: "applied Rust format-only rewrite",
 				apply: "script",
 				filesChanged: await writeRustFormat(root, rust),
+			};
+		}
+		if (language === "php") {
+			const php = await planPhpFormat({
+				root,
+				files: payload.files,
+				run: spawnStdin,
+			});
+			if (!php.ok || !php.files) {
+				return plan(
+					classified,
+					php.reason ?? "php format rewrite was not proven",
+				);
+			}
+			return {
+				verdict: "mechanical",
+				reason: "applied PHP format-only rewrite",
+				apply: "script",
+				filesChanged: await writePhpFormat(root, php),
 			};
 		}
 		if (language !== "typescript") {

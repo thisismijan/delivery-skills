@@ -545,8 +545,12 @@ describe("bounded recovery and replay safety", () => {
 			/unique typescript, python, java, go, c#, or kotlin missing import/i,
 		);
 		expect(plain(execute)).toMatch(/google-java-format/i);
-		expect(plain(execute)).toMatch(/rust format-only.*bin\/rustfmt/i);
-		expect(plain(addressComments)).toMatch(/rust format-only.*bin\/rustfmt/i);
+		expect(plain(execute)).toMatch(
+			/rust and php format-only.*bin\/rustfmt.*bin\/php-format/i,
+		);
+		expect(plain(addressComments)).toMatch(
+			/rust and php format-only.*bin\/rustfmt.*bin\/php-format/i,
+		);
 		expect(plain(rootReadme)).toMatch(
 			/python function, class,\s*parameter, or local/i,
 		);
@@ -743,6 +747,7 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(referenceDocs)).toMatch(/node_modules\/\.bin\/prettier/i);
 		expect(plain(referenceDocs)).toMatch(/bin\/google-java-format/i);
 		expect(plain(referenceDocs)).toMatch(/bin\/rustfmt/i);
+		expect(plain(referenceDocs)).toMatch(/bin\/php-format <file> reads stdin/i);
 		expect(plain(referenceDocs)).toMatch(
 			/rust is format-only; rename and import-only remain on the worker/i,
 		);
