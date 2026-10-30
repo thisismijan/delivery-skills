@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, setDefaultTimeout, test } from "bun:test";
 import {
 	chmod,
 	mkdir,
@@ -10,6 +10,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { applyMechanicalEdit } from "./apply-mechanical-edit";
+
+// The Go helper is compiled by `go run` on each call; on a cold two-CPU CI
+// runner that alone takes longer than bun's 5 second default.
+setDefaultTimeout(60_000);
 
 const unit = {
 	operation: "rename" as const,

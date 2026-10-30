@@ -1,0 +1,40 @@
+# Runs on every merge request and on the default branch. A branch push with an
+# open merge request runs only the merge request pipeline, never both.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:
+  - verify
+
+# Keep this tag equal to packageManager in factory/package.json;
+# factory/scripts/ci-pipeline.test.ts fails when they differ.
+default:
+  image: oven/bun:1.4.2
+  interruptible: true
+
+# The mechanical-edit tests run the Python helper and the Go formatter.
+.toolchain:
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y -qq --no-install-recommends git ca-certificates python3 golang-go
+
+check:
+  stage: verify
+  extends: .toolchain
+  script:
+    - cd factory
+    - bun install --frozen-lockfile
+    - bun run check
+
+# Runs as the image's unprivileged bun user: a root process can write where the
+# install tests prove a write is refused.
+test:
+  stage: verify
+  extends: .toolchain
+  script:
+    - chown -R bun:bun "$CI_PROJECT_DIR"
+    - su bun -s /bin/bash -c "git config --global user.name ci && git config --global user.email ci@example.invalid && git config --global init.defaultBranch main && cd '$CI_PROJECT_DIR/factory' && bun install --frozen-lockfile && bun run test"
