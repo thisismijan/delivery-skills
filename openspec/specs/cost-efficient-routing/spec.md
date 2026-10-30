@@ -112,29 +112,6 @@ against the pinned code before it affects the verdict.
 - **THEN** the standard-tier model identity is recorded for that worker
 - **AND** the main conversation verifies the candidate against pinned evidence
 
-### Requirement: Unchanged code is not sent through duplicate holdout review
-
-The address-comments workflow SHALL compare the branch head before and after
-comment processing. When the head is unchanged and no pending re-review marker
-existed on entry, it SHALL skip cumulative gates and frontier holdout re-review,
-leave the merge request draft, and require Stage 3 dual review. A changed head
-or existing pending marker SHALL retain cumulative gates and fresh holdout.
-
-#### Scenario: Replies do not change the head
-- **WHEN** comments are answered or disputed without a commit and no pending
-  re-review exists
-- **THEN** duplicate cumulative gates and holdout re-review are skipped
-- **AND** Stage 3 dual review remains required
-
-#### Scenario: A fix changes the head
-- **WHEN** addressing a comment creates a commit
-- **THEN** cumulative gates and fresh frontier holdout re-review still run
-
-#### Scenario: A pending review resumes
-- **WHEN** a pending re-review marker exists on entry even though the current
-  round creates no commit
-- **THEN** cumulative gates and fresh frontier holdout re-review still run
-
 ### Requirement: An empty in-scope list does not start a comment assessor
 
 When gather-and-scope returns no in-scope comments, `/address-comments` SHALL write an empty classification verdict and SHALL NOT dispatch the comment-assessor. A non-empty in-scope list SHALL still dispatch exactly one assessor.
@@ -688,3 +665,39 @@ files unchanged.
 #### Scenario: Swift rename or import-only
 - **WHEN** a Swift unit requests rename or import-only
 - **THEN** files remain unchanged and `apply` is `select-model`
+
+### Requirement: A comment round runs the cumulative gates and no review of its own
+After a round that changed the head, or when a pending marker existed on
+entry, `/address-comments` SHALL run the cumulative tests, lint, and typecheck
+and SHALL NOT dispatch a holdout reviewer. When the head is unchanged and no
+pending marker existed, it SHALL skip the cumulative gates. Either way it
+SHALL leave the change draft for Stage 3.
+
+#### Scenario: A fix changes the head
+- **WHEN** addressing a comment creates a commit
+- **THEN** the cumulative gates run, no holdout reviewer is dispatched, and the change stays draft
+
+#### Scenario: Replies do not change the head
+- **WHEN** comments are answered or disputed without a commit and no pending marker exists
+- **THEN** the cumulative gates are skipped and Stage 3 review remains required
+
+### Requirement: A later review round reads only what changed when that is safe
+`review-scope.ts` SHALL return `delta` only when an earlier review with a
+verdict exists in the branch's history, no merge commit followed it, the
+change since then touches no sensitive surface, dependency, one-way step, or
+weakened test, stays within 6 files and under 400 lines, touches only files
+the earlier review covered, and the level is not `max`. Otherwise it SHALL
+return `full` with its reasons. In `delta`, the correctness pass SHALL confirm
+each earlier finding is fixed.
+
+#### Scenario: Small fix to a reviewed file
+- **WHEN** the only change since the last review is a small edit to a file it covered
+- **THEN** the scope is `delta` since that review's commit
+
+#### Scenario: Change that needs a full review
+- **WHEN** the change since the last review adds a file, touches a dependency, or the branch merged the base
+- **THEN** the scope is `full` and names why
+
+#### Scenario: No usable earlier review
+- **WHEN** there is no earlier review, or it is outside the branch's history
+- **THEN** the scope is `full`
