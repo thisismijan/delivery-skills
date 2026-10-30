@@ -408,6 +408,40 @@ test("a proven Kotlin rename is dispatched to the Kotlin helper", async () => {
 	);
 });
 
+test("PHP is format-only and uses the repository formatter wrapper", async () => {
+	await withProject(
+		{
+			"src/A.php": "<?php function run( ){ return 'x'; }\n",
+			"bin/php-format": "#!/bin/sh\nsed 's/run( )/run()/'\n",
+		},
+		async (root) => {
+			await chmod(join(root, "bin/php-format"), 0o755);
+			const formatted = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					operation: "format-only",
+					files: ["src/A.php"],
+				},
+				root,
+			});
+			expect(formatted).toMatchObject({
+				apply: "script",
+				filesChanged: ["src/A.php"],
+			});
+			const imports = await applyMechanicalEdit({
+				payload: {
+					...goUnit,
+					operation: "import-only",
+					files: ["src/A.php"],
+				},
+				root,
+			});
+			expect(imports.apply).toBe("select-model");
+			expect(imports.reason).toContain("no proven script");
+		},
+	);
+});
+
 test("Rust is format-only and uses the repository rustfmt wrapper", async () => {
 	await withProject(
 		{

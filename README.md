@@ -429,9 +429,10 @@ rewrite for TypeScript, JavaScript, Python, Java, Go, C#, or Kotlin:
   import, a unique repository C# type import, or a unique package-qualified
   Kotlin type import, when the rest of the file is unchanged
 - format-only: spacing that leaves names and literals identical, using a
-  repo Prettier, Ruff, google-java-format, `bin/csharpier`, `bin/ktfmt`, or `bin/rustfmt` binary when one is present, and Go standard formatting
+  repo Prettier, Ruff, google-java-format, `bin/csharpier`, `bin/ktfmt`, `bin/rustfmt`, or `bin/php-format` binary when one is present, and Go standard formatting
 
-Rust is format-only; its rename and import-only units stay on the worker.
+Rust and PHP are format-only; their rename and import-only units stay on the
+worker.
 
 Anything the helper cannot prove — overloads, incomplete file lists, mixed
 languages, star imports, a Python attribute or `exec`/`eval` of the same
