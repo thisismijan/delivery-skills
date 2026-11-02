@@ -65,13 +65,27 @@ const ACK_BODIES = new Set([
 ]);
 
 function ackOnly(body: string): boolean {
-	const tokens = body
+	const phrases = body
 		.trim()
 		.toLowerCase()
-		.split(/[\s,]+/)
-		.map((token) => token.replace(/[.!]+$/g, ""))
+		.split(/[,\n]+/)
+		.map((phrase) =>
+			phrase
+				.replace(/[.!]+$/g, "")
+				.replace(/\s+/g, " ")
+				.trim(),
+		)
 		.filter(Boolean);
-	return tokens.length > 0 && tokens.every((token) => ACK_BODIES.has(token));
+	return (
+		phrases.length > 0 &&
+		phrases.every(
+			(phrase) =>
+				ACK_BODIES.has(phrase) ||
+				phrase
+					.split(" ")
+					.every((token) => ACK_BODIES.has(token.replace(/[.!]+$/g, ""))),
+		)
+	);
 }
 
 function mentionOnly(body: string): boolean {
@@ -95,6 +109,19 @@ function emojiOnly(body: string): boolean {
 		.replace(/\uFE0F|\u200D|\u20E3/g, "")
 		.replace(/\s+/g, "");
 	return stripped === "";
+}
+
+// A note that asks nothing: empty, an acknowledgement, a mention, a link, or
+// emoji. Address-comments scopes these out, and reviewers are not waiting on
+// a reply to them.
+export function needsNoAnswer(body: string): boolean {
+	return (
+		body.trim() === "" ||
+		ackOnly(body) ||
+		mentionOnly(body) ||
+		urlOnly(body) ||
+		emojiOnly(body)
+	);
 }
 
 function appliedSuggestion(body: string, contents: string): boolean {

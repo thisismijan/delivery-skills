@@ -136,9 +136,14 @@ async function setup(
 							body: "looks good",
 							system: false,
 							resolved: false,
+							createdAt: "2026-10-29T09:10:00.000Z",
 						},
 					],
 				},
+			],
+			events: [
+				{ kind: "ready", actor: "factory", at: "2026-10-29T09:00:00.000Z" },
+				{ kind: "approved", actor: "reviewer", at: "2026-10-29T09:20:00.000Z" },
 			],
 		},
 		land: {

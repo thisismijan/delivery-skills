@@ -282,8 +282,11 @@ It does not ask whether to proceed between those stages. It stops only when:
 - an evaluated skill candidate is ready for exact install or rollback approval.
 
 Plan approval authorizes landing a change only through the land gate: a person
-approved it on the forge, its pipeline passed, and readiness gave GO, all at
-the same commit. It never authorizes any other merge, closing work items,
+approved it on the forge, its pipeline passed, readiness gave GO, and
+reviewers have settled, all at the same commit. Reviewers have settled when no
+comment is waiting for a reply and either every reviewer who commented
+approved after the last reply or the change has been quiet for
+`REVIEW_SETTLE_MINUTES` reviewing minutes (see [reference](docs/reference.md)). It never authorizes any other merge, closing work items,
 release-risk acceptance, bypassing a gate, or installing a skill candidate.
 
 ### How one ticket moves

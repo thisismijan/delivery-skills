@@ -1,0 +1,4886 @@
+{
+	"976": [
+		{
+			"id": "976-0",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "976-0-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:49:00.647Z"
+				}
+			]
+		},
+		{
+			"id": "976-1",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "976-1-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added this merge request to the [merge train](https://forge.example/merge_trains) at position 5",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:49:02.190Z"
+				}
+			]
+		},
+		{
+			"id": "976-2",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "976-2-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T10:59:21.348Z"
+				},
+				{
+					"id": "976-2-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:38:49.286Z"
+				}
+			]
+		},
+		{
+			"id": "976-3",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "976-3-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T10:59:23.182Z"
+				},
+				{
+					"id": "976-3-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:38:51.114Z"
+				}
+			]
+		},
+		{
+			"id": "976-4",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "976-4-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T10:59:25.448Z"
+				},
+				{
+					"id": "976-4-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:38:54.319Z"
+				}
+			]
+		},
+		{
+			"id": "976-5",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "976-5-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:59:38.421Z"
+				}
+			]
+		},
+		{
+			"id": "976-6",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "976-6-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:38:39.899Z"
+				}
+			]
+		},
+		{
+			"id": "976-7",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "976-7-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:35.885Z"
+				}
+			]
+		},
+		{
+			"id": "976-8",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "976-8-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:55.854Z"
+				}
+			]
+		}
+	],
+	"978": [
+		{
+			"id": "978-0",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-0-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-21T22:57:51.586Z"
+				}
+			]
+		},
+		{
+			"id": "978-1",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-1-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-21T23:15:52.886Z"
+				}
+			]
+		},
+		{
+			"id": "978-2",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-2-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-21T23:25:25.149Z"
+				}
+			]
+		},
+		{
+			"id": "978-3",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-3-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:50:57.986Z"
+				}
+			]
+		},
+		{
+			"id": "978-4",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-4-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:19:41.599Z"
+				}
+			]
+		},
+		{
+			"id": "978-5",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-5-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:03:01.615Z"
+				}
+			]
+		},
+		{
+			"id": "978-6",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-6-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:43:20.908Z"
+				}
+			]
+		},
+		{
+			"id": "978-7",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-7-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:49:46.800Z"
+				}
+			]
+		},
+		{
+			"id": "978-8",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-8-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed the",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:50:55.158Z"
+				}
+			]
+		},
+		{
+			"id": "978-9",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-9-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:51:23.044Z"
+				}
+			]
+		},
+		{
+			"id": "978-10",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-10-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T09:57:48.920Z"
+				},
+				{
+					"id": "978-10-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:40:39.832Z"
+				}
+			]
+		},
+		{
+			"id": "978-11",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-11-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T09:57:50.798Z"
+				},
+				{
+					"id": "978-11-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:40:41.042Z"
+				}
+			]
+		},
+		{
+			"id": "978-12",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-12-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T09:57:52.675Z"
+				},
+				{
+					"id": "978-12-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:40:42.186Z"
+				}
+			]
+		},
+		{
+			"id": "978-13",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-13-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T09:57:55.060Z"
+				},
+				{
+					"id": "978-13-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:40:43.311Z"
+				}
+			]
+		},
+		{
+			"id": "978-14",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-14-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **draft**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:51:46.643Z"
+				}
+			]
+		},
+		{
+			"id": "978-15",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-15-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T11:09:14.265Z"
+				}
+			]
+		},
+		{
+			"id": "978-16",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-16-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T11:09:30.561Z"
+				}
+			]
+		},
+		{
+			"id": "978-17",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-17-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed the",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T11:10:07.684Z"
+				}
+			]
+		},
+		{
+			"id": "978-18",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-18-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T11:10:11.663Z"
+				}
+			]
+		},
+		{
+			"id": "978-19",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-19-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added this merge request to the [merge train](https://forge.example/merge_trains) at position 2",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T11:28:46.114Z"
+				}
+			]
+		},
+		{
+			"id": "978-20",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-20-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T11:35:42.231Z"
+				}
+			]
+		},
+		{
+			"id": "978-21",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-21-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:40:16.889Z"
+				}
+			]
+		},
+		{
+			"id": "978-22",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-22-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:35.806Z"
+				}
+			]
+		},
+		{
+			"id": "978-23",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-23-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:55.667Z"
+				}
+			]
+		},
+		{
+			"id": "978-24",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-24-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T11:54:10.474Z"
+				}
+			]
+		},
+		{
+			"id": "978-25",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-25-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-27T14:35:15.774Z"
+				}
+			]
+		},
+		{
+			"id": "978-26",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "978-26-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-28T12:19:44.946Z"
+				}
+			]
+		}
+	],
+	"987": [
+		{
+			"id": "987-0",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-0-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:11:34.440Z"
+				}
+			]
+		},
+		{
+			"id": "987-1",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-1-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:22:47.467Z"
+				},
+				{
+					"id": "987-1-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:40:20.081Z"
+				}
+			]
+		},
+		{
+			"id": "987-2",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-2-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:22:49.563Z"
+				},
+				{
+					"id": "987-2-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:40:21.139Z"
+				}
+			]
+		},
+		{
+			"id": "987-3",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-3-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:22:52.096Z"
+				},
+				{
+					"id": "987-3-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:40:22.331Z"
+				}
+			]
+		},
+		{
+			"id": "987-4",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-4-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:22:55.581Z"
+				},
+				{
+					"id": "987-4-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:40:20.717Z"
+				},
+				{
+					"id": "987-4-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:40:23.526Z"
+				}
+			]
+		},
+		{
+			"id": "987-5",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-5-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 4 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:40:20.962Z"
+				}
+			]
+		},
+		{
+			"id": "987-6",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-6-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:54:45.529Z"
+				}
+			]
+		},
+		{
+			"id": "987-7",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-7-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:55:05.594Z"
+				}
+			]
+		},
+		{
+			"id": "987-8",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-8-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T09:01:36.605Z"
+				},
+				{
+					"id": "987-8-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:55:14.045Z"
+				}
+			]
+		},
+		{
+			"id": "987-9",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-9-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T09:01:38.824Z"
+				},
+				{
+					"id": "987-9-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:55:15.590Z"
+				}
+			]
+		},
+		{
+			"id": "987-10",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-10-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T09:01:41.064Z"
+				},
+				{
+					"id": "987-10-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:55:16.595Z"
+				}
+			]
+		},
+		{
+			"id": "987-11",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-11-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T09:01:43.098Z"
+				},
+				{
+					"id": "987-11-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:55:17.564Z"
+				}
+			]
+		},
+		{
+			"id": "987-12",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-12-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "started a [merge train](https://forge.example/merge_trains)",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:48:27.214Z"
+				}
+			]
+		},
+		{
+			"id": "987-13",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-13-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:55:55.622Z"
+				}
+			]
+		},
+		{
+			"id": "987-14",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-14-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:54:57.840Z"
+				}
+			]
+		},
+		{
+			"id": "987-15",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-15-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:54:57.930Z"
+				}
+			]
+		},
+		{
+			"id": "987-16",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-16-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:54:59.486Z"
+				}
+			]
+		},
+		{
+			"id": "987-17",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-17-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:54:59.664Z"
+				}
+			]
+		},
+		{
+			"id": "987-18",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-18-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:36.391Z"
+				}
+			]
+		},
+		{
+			"id": "987-19",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "987-19-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:55.393Z"
+				}
+			]
+		}
+	],
+	"989": [
+		{
+			"id": "989-0",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-0-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T12:00:50.980Z"
+				}
+			]
+		},
+		{
+			"id": "989-1",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-1-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 7 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T12:47:39.315Z"
+				}
+			]
+		},
+		{
+			"id": "989-2",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-2-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 3 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:11:34.656Z"
+				}
+			]
+		},
+		{
+			"id": "989-3",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-3-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:17:22.214Z"
+				}
+			]
+		},
+		{
+			"id": "989-4",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-4-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:17:34.291Z"
+				}
+			]
+		},
+		{
+			"id": "989-5",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-5-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed the",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:20:46.432Z"
+				}
+			]
+		},
+		{
+			"id": "989-6",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-6-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "started a [merge train](https://forge.example/merge_trains)",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:20:49.463Z"
+				}
+			]
+		},
+		{
+			"id": "989-7",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-7-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:24:16.517Z"
+				},
+				{
+					"id": "989-7-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:24:36.154Z"
+				}
+			]
+		},
+		{
+			"id": "989-8",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-8-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:24:18.429Z"
+				},
+				{
+					"id": "989-8-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:24:37.001Z"
+				}
+			]
+		},
+		{
+			"id": "989-9",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-9-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:24:20.662Z"
+				},
+				{
+					"id": "989-9-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:24:37.766Z"
+				}
+			]
+		},
+		{
+			"id": "989-10",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-10-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T13:24:22.881Z"
+				},
+				{
+					"id": "989-10-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:24:38.544Z"
+				}
+			]
+		},
+		{
+			"id": "989-11",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-11-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:27:13.520Z"
+				}
+			]
+		},
+		{
+			"id": "989-12",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-12-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:24:12.171Z"
+				}
+			]
+		},
+		{
+			"id": "989-13",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-13-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:35.767Z"
+				}
+			]
+		},
+		{
+			"id": "989-14",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "989-14-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:55.321Z"
+				}
+			]
+		}
+	],
+	"995": [
+		{
+			"id": "995-0",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "995-0-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:38:51.219Z"
+				}
+			]
+		},
+		{
+			"id": "995-1",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "995-1-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:56:51.479Z"
+				}
+			]
+		},
+		{
+			"id": "995-2",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "995-2-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "started a [merge train](https://forge.example/merge_trains)",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:02:20.078Z"
+				}
+			]
+		},
+		{
+			"id": "995-3",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "995-3-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:02:31.212Z"
+				},
+				{
+					"id": "995-3-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T17:18:07.977Z"
+				}
+			]
+		},
+		{
+			"id": "995-4",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "995-4-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:02:33.139Z"
+				},
+				{
+					"id": "995-4-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T17:18:09.270Z"
+				}
+			]
+		},
+		{
+			"id": "995-5",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "995-5-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:09:26.832Z"
+				}
+			]
+		},
+		{
+			"id": "995-6",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "995-6-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T17:16:53.543Z"
+				}
+			]
+		},
+		{
+			"id": "995-7",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "995-7-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T17:16:53.589Z"
+				}
+			]
+		},
+		{
+			"id": "995-8",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "995-8-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T17:17:44.169Z"
+				}
+			]
+		},
+		{
+			"id": "995-9",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "995-9-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T09:00:53.529Z"
+				}
+			]
+		}
+	],
+	"1000": [
+		{
+			"id": "1000-0",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-0-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T13:55:14.521Z"
+				}
+			]
+		},
+		{
+			"id": "1000-1",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-1-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 2 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:09:30.380Z"
+				}
+			]
+		},
+		{
+			"id": "1000-2",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-2-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 2 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:16:54.680Z"
+				}
+			]
+		},
+		{
+			"id": "1000-3",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-3-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:20:58.894Z"
+				}
+			]
+		},
+		{
+			"id": "1000-4",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-4-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed the",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:25:49.391Z"
+				}
+			]
+		},
+		{
+			"id": "1000-5",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-5-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "started a [merge train](https://forge.example/merge_trains)",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:25:50.985Z"
+				}
+			]
+		},
+		{
+			"id": "1000-6",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-6-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:29:56.561Z"
+				},
+				{
+					"id": "1000-6-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T17:18:10.745Z"
+				}
+			]
+		},
+		{
+			"id": "1000-7",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-7-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:30:01.841Z"
+				},
+				{
+					"id": "1000-7-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T17:18:12.197Z"
+				}
+			]
+		},
+		{
+			"id": "1000-8",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-8-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:30:03.699Z"
+				},
+				{
+					"id": "1000-8-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T17:18:13.499Z"
+				}
+			]
+		},
+		{
+			"id": "1000-9",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-9-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:30:06.433Z"
+				},
+				{
+					"id": "1000-9-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T17:18:14.759Z"
+				}
+			]
+		},
+		{
+			"id": "1000-10",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-10-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:30:08.229Z"
+				},
+				{
+					"id": "1000-10-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T17:18:16.084Z"
+				}
+			]
+		},
+		{
+			"id": "1000-11",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-11-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T14:30:10.698Z"
+				},
+				{
+					"id": "1000-11-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T17:18:17.296Z"
+				}
+			]
+		},
+		{
+			"id": "1000-12",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-12-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:33:19.843Z"
+				}
+			]
+		},
+		{
+			"id": "1000-13",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-13-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T17:16:53.553Z"
+				}
+			]
+		},
+		{
+			"id": "1000-14",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-14-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T17:17:44.206Z"
+				}
+			]
+		},
+		{
+			"id": "1000-15",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-15-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T09:00:53.655Z"
+				}
+			]
+		},
+		{
+			"id": "1000-16",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-16-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:36.582Z"
+				}
+			]
+		},
+		{
+			"id": "1000-17",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1000-17-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:55.431Z"
+				}
+			]
+		}
+	],
+	"1012": [
+		{
+			"id": "1012-0",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1012-0-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:49:14.880Z"
+				}
+			]
+		},
+		{
+			"id": "1012-1",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1012-1-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "started a [merge train](https://forge.example/merge_trains)",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:50:34.746Z"
+				}
+			]
+		},
+		{
+			"id": "1012-2",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1012-2-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-23T10:54:17.945Z"
+				},
+				{
+					"id": "1012-2-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-26T17:36:18.266Z"
+				}
+			]
+		},
+		{
+			"id": "1012-3",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1012-3-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-23T10:54:20.566Z"
+				},
+				{
+					"id": "1012-3-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-26T17:36:19.825Z"
+				}
+			]
+		},
+		{
+			"id": "1012-4",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1012-4-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:56:43.156Z"
+				}
+			]
+		},
+		{
+			"id": "1012-5",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1012-5-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T17:34:42.191Z"
+				}
+			]
+		},
+		{
+			"id": "1012-6",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1012-6-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T17:35:11.062Z"
+				}
+			]
+		}
+	],
+	"1001": [
+		{
+			"id": "1001-0",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-0-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:24:36.665Z"
+				}
+			]
+		},
+		{
+			"id": "1001-1",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-1-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 2 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T14:32:36.098Z"
+				}
+			]
+		},
+		{
+			"id": "1001-2",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-2-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T15:31:02.447Z"
+				}
+			]
+		},
+		{
+			"id": "1001-3",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-3-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T15:35:08.362Z"
+				}
+			]
+		},
+		{
+			"id": "1001-4",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-4-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T15:50:01.553Z"
+				}
+			]
+		},
+		{
+			"id": "1001-5",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-5-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T15:56:47.135Z"
+				},
+				{
+					"id": "1001-5-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:34.454Z"
+				},
+				{
+					"id": "1001-5-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:34.505Z"
+				}
+			]
+		},
+		{
+			"id": "1001-6",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-6-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T15:56:49.003Z"
+				},
+				{
+					"id": "1001-6-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:35.270Z"
+				}
+			]
+		},
+		{
+			"id": "1001-7",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-7-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T15:56:51.245Z"
+				},
+				{
+					"id": "1001-7-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:34.812Z"
+				},
+				{
+					"id": "1001-7-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:36.245Z"
+				}
+			]
+		},
+		{
+			"id": "1001-8",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-8-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T15:56:53.552Z"
+				},
+				{
+					"id": "1001-8-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:34.966Z"
+				},
+				{
+					"id": "1001-8-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:37.061Z"
+				}
+			]
+		},
+		{
+			"id": "1001-9",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-9-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T15:56:55.324Z"
+				},
+				{
+					"id": "1001-9-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:35.084Z"
+				},
+				{
+					"id": "1001-9-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:37.788Z"
+				}
+			]
+		},
+		{
+			"id": "1001-10",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-10-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T15:56:57.109Z"
+				},
+				{
+					"id": "1001-10-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:38.432Z"
+				}
+			]
+		},
+		{
+			"id": "1001-11",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-11-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:34.133Z"
+				}
+			]
+		},
+		{
+			"id": "1001-12",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-12-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 5 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:35.297Z"
+				}
+			]
+		},
+		{
+			"id": "1001-13",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-13-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **draft**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T16:55:55.089Z"
+				}
+			]
+		},
+		{
+			"id": "1001-14",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-14-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "approved this merge request",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T16:59:27.853Z"
+				}
+			]
+		},
+		{
+			"id": "1001-15",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-15-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T17:09:40.991Z"
+				}
+			]
+		},
+		{
+			"id": "1001-16",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-16-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "reset approvals from @reviewer-bot by pushing to the branch",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T17:09:51.668Z"
+				}
+			]
+		},
+		{
+			"id": "1001-17",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-17-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T17:17:46.605Z"
+				}
+			]
+		},
+		{
+			"id": "1001-18",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-18-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "approved this merge request",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T17:38:17.429Z"
+				}
+			]
+		},
+		{
+			"id": "1001-19",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-19-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 63 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T17:38:51.321Z"
+				}
+			]
+		},
+		{
+			"id": "1001-20",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-20-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "reset approvals from @reviewer-bot by pushing to the branch",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T17:39:12.618Z"
+				}
+			]
+		},
+		{
+			"id": "1001-21",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-21-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "approved this merge request",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T18:36:47.958Z"
+				}
+			]
+		},
+		{
+			"id": "1001-22",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-22-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 75 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T09:48:49.891Z"
+				}
+			]
+		},
+		{
+			"id": "1001-23",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-23-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "reset approvals from @reviewer-bot by pushing to the branch",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T09:49:06.485Z"
+				}
+			]
+		},
+		{
+			"id": "1001-24",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-24-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "started a [merge train](https://forge.example/merge_trains)",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:04:22.739Z"
+				}
+			]
+		},
+		{
+			"id": "1001-25",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-25-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:11:12.830Z"
+				}
+			]
+		},
+		{
+			"id": "1001-26",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-26-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:35.863Z"
+				}
+			]
+		},
+		{
+			"id": "1001-27",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1001-27-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:55.357Z"
+				}
+			]
+		}
+	],
+	"1032": [
+		{
+			"id": "1032-0",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-0-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 3 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T14:46:11.586Z"
+				}
+			]
+		},
+		{
+			"id": "1032-1",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-1-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T14:46:54.902Z"
+				}
+			]
+		},
+		{
+			"id": "1032-2",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-2-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed title",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T14:46:54.996Z"
+				}
+			]
+		},
+		{
+			"id": "1032-3",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-3-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed the",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T14:46:55.024Z"
+				}
+			]
+		},
+		{
+			"id": "1032-4",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-4-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **draft**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T14:47:03.357Z"
+				}
+			]
+		},
+		{
+			"id": "1032-5",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-5-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T14:47:30.922Z"
+				}
+			]
+		},
+		{
+			"id": "1032-6",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-6-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T14:58:21.750Z"
+				}
+			]
+		},
+		{
+			"id": "1032-7",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-7-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:06:32.711Z"
+				}
+			]
+		},
+		{
+			"id": "1032-8",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-8-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "started a [merge train](https://forge.example/merge_trains)",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:08:58.732Z"
+				}
+			]
+		},
+		{
+			"id": "1032-9",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-9-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-26T15:13:57.871Z"
+				},
+				{
+					"id": "1032-9-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-26T15:29:42.559Z"
+				}
+			]
+		},
+		{
+			"id": "1032-10",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-10-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-26T15:14:00.104Z"
+				},
+				{
+					"id": "1032-10-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:29:18.398Z"
+				},
+				{
+					"id": "1032-10-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-26T15:29:44.089Z"
+				}
+			]
+		},
+		{
+			"id": "1032-11",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-11-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-26T15:14:05.621Z"
+				},
+				{
+					"id": "1032-11-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:29:18.591Z"
+				},
+				{
+					"id": "1032-11-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-26T15:29:45.431Z"
+				}
+			]
+		},
+		{
+			"id": "1032-12",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-12-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "removed this merge request from the merge train",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:15:01.693Z"
+				}
+			]
+		},
+		{
+			"id": "1032-13",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-13-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 3 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:29:18.886Z"
+				}
+			]
+		},
+		{
+			"id": "1032-14",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-14-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed title",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:30:18.584Z"
+				}
+			]
+		},
+		{
+			"id": "1032-15",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-15-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed the",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:30:18.621Z"
+				}
+			]
+		},
+		{
+			"id": "1032-16",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-16-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "approved this merge request",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:31:26.694Z"
+				}
+			]
+		},
+		{
+			"id": "1032-17",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-17-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "enabled automatic add to merge train when checks pass",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:32:11.954Z"
+				}
+			]
+		},
+		{
+			"id": "1032-18",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-18-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "started a [merge train](https://forge.example/merge_trains)",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:35:55.880Z"
+				}
+			]
+		},
+		{
+			"id": "1032-19",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-19-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "removed this merge request from the merge train",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:37:08.124Z"
+				}
+			]
+		},
+		{
+			"id": "1032-20",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-20-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:37:08.403Z"
+				}
+			]
+		},
+		{
+			"id": "1032-21",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-21-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "reset approvals from @reviewer-bot by pushing to the branch",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:38:27.261Z"
+				}
+			]
+		},
+		{
+			"id": "1032-22",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-22-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:42:51.893Z"
+				}
+			]
+		},
+		{
+			"id": "1032-23",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-23-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:43:15.255Z"
+				}
+			]
+		},
+		{
+			"id": "1032-24",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-24-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "approved this merge request",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:45:13.232Z"
+				}
+			]
+		},
+		{
+			"id": "1032-25",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-25-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed the",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:51:12.740Z"
+				}
+			]
+		},
+		{
+			"id": "1032-26",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-26-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "started a [merge train](https://forge.example/merge_trains)",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T15:59:42.486Z"
+				}
+			]
+		},
+		{
+			"id": "1032-27",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-27-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T16:06:35.055Z"
+				}
+			]
+		},
+		{
+			"id": "1032-28",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-28-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-26T18:26:09.725Z"
+				}
+			]
+		},
+		{
+			"id": "1032-29",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-29-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-29T22:40:00.355Z"
+				}
+			]
+		},
+		{
+			"id": "1032-30",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "1032-30-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-29T22:40:04.847Z"
+				}
+			]
+		}
+	],
+	"980": [
+		{
+			"id": "980-0",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-0-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-21T23:15:19.394Z"
+				},
+				{
+					"id": "980-0-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-21T23:27:07.531Z"
+				},
+				{
+					"id": "980-0-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T07:37:15.507Z"
+				}
+			]
+		},
+		{
+			"id": "980-1",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-1-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-21T23:22:56.472Z"
+				},
+				{
+					"id": "980-1-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-21T23:27:08.412Z"
+				}
+			]
+		},
+		{
+			"id": "980-2",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-2-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-21T23:22:58.226Z"
+				},
+				{
+					"id": "980-2-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-21T23:26:53.191Z"
+				},
+				{
+					"id": "980-2-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-21T23:27:05.941Z"
+				}
+			]
+		},
+		{
+			"id": "980-3",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-3-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-21T23:23:00.086Z"
+				},
+				{
+					"id": "980-3-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-21T23:27:06.582Z"
+				},
+				{
+					"id": "980-3-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T07:37:14.798Z"
+				}
+			]
+		},
+		{
+			"id": "980-4",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-4-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-21T23:26:52.432Z"
+				}
+			]
+		},
+		{
+			"id": "980-5",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-5-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-21T23:26:53.586Z"
+				}
+			]
+		},
+		{
+			"id": "980-6",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-6-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-21T23:35:26.081Z"
+				},
+				{
+					"id": "980-6-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T07:37:16.072Z"
+				}
+			]
+		},
+		{
+			"id": "980-7",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-7-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-21T23:35:40.930Z"
+				}
+			]
+		},
+		{
+			"id": "980-8",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-8-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **draft**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:24:41.879Z"
+				}
+			]
+		},
+		{
+			"id": "980-9",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-9-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:37:09.450Z"
+				}
+			]
+		},
+		{
+			"id": "980-10",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-10-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:37:09.520Z"
+				}
+			]
+		},
+		{
+			"id": "980-11",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-11-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:37:09.583Z"
+				}
+			]
+		},
+		{
+			"id": "980-12",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-12-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 3 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:37:10.208Z"
+				}
+			]
+		},
+		{
+			"id": "980-13",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-13-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T07:43:09.989Z"
+				},
+				{
+					"id": "980-13-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:25.838Z"
+				}
+			]
+		},
+		{
+			"id": "980-14",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-14-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:43:24.997Z"
+				}
+			]
+		},
+		{
+			"id": "980-15",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-15-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:36:11.941Z"
+				},
+				{
+					"id": "980-15-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:22.945Z"
+				},
+				{
+					"id": "980-15-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:23.373Z"
+				}
+			]
+		},
+		{
+			"id": "980-16",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-16-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:36:13.531Z"
+				},
+				{
+					"id": "980-16-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:23.539Z"
+				},
+				{
+					"id": "980-16-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:23.713Z"
+				}
+			]
+		},
+		{
+			"id": "980-17",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-17-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:36:15.460Z"
+				},
+				{
+					"id": "980-17-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:24.398Z"
+				}
+			]
+		},
+		{
+			"id": "980-18",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-18-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **draft**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:48:51.568Z"
+				}
+			]
+		},
+		{
+			"id": "980-19",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-19-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:22.551Z"
+				}
+			]
+		},
+		{
+			"id": "980-20",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-20-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:22.645Z"
+				}
+			]
+		},
+		{
+			"id": "980-21",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-21-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:22.653Z"
+				}
+			]
+		},
+		{
+			"id": "980-22",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-22-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:22.731Z"
+				}
+			]
+		},
+		{
+			"id": "980-23",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-23-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:22.886Z"
+				}
+			]
+		},
+		{
+			"id": "980-24",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-24-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 5 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:59:23.801Z"
+				}
+			]
+		},
+		{
+			"id": "980-25",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-25-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:01:11.039Z"
+				}
+			]
+		},
+		{
+			"id": "980-26",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-26-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:01:11.971Z"
+				}
+			]
+		},
+		{
+			"id": "980-27",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-27-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "approved this merge request",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:03:09.392Z"
+				}
+			]
+		},
+		{
+			"id": "980-28",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-28-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:28:56.471Z"
+				}
+			]
+		},
+		{
+			"id": "980-29",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-29-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:28:56.932Z"
+				}
+			]
+		},
+		{
+			"id": "980-30",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-30-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:28:57.164Z"
+				}
+			]
+		},
+		{
+			"id": "980-31",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-31-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 3 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:28:57.398Z"
+				}
+			]
+		},
+		{
+			"id": "980-32",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-32-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "reset approvals from @reviewer-bot by pushing to the branch",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:29:11.892Z"
+				}
+			]
+		},
+		{
+			"id": "980-33",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-33-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:33:14.796Z"
+				}
+			]
+		},
+		{
+			"id": "980-34",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-34-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "approved this merge request",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:46:31.265Z"
+				}
+			]
+		},
+		{
+			"id": "980-35",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-35-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added this merge request to the [merge train](https://forge.example/merge_trains) at position 2",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:48:43.963Z"
+				}
+			]
+		},
+		{
+			"id": "980-36",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-36-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:56:42.087Z"
+				}
+			]
+		},
+		{
+			"id": "980-37",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-37-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:36.122Z"
+				}
+			]
+		},
+		{
+			"id": "980-38",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "980-38-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:55.275Z"
+				}
+			]
+		}
+	],
+	"985": [
+		{
+			"id": "985-0",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-0-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T00:32:24.076Z"
+				}
+			]
+		},
+		{
+			"id": "985-1",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-1-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T00:40:05.835Z"
+				}
+			]
+		},
+		{
+			"id": "985-2",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-2-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T00:40:07.755Z"
+				},
+				{
+					"id": "985-2-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:41:38.796Z"
+				},
+				{
+					"id": "985-2-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T07:42:03.617Z"
+				}
+			]
+		},
+		{
+			"id": "985-3",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-3-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T00:40:09.915Z"
+				},
+				{
+					"id": "985-3-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T07:42:04.238Z"
+				}
+			]
+		},
+		{
+			"id": "985-4",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-4-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T00:41:00.785Z"
+				}
+			]
+		},
+		{
+			"id": "985-5",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-5-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **draft**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:36:50.399Z"
+				}
+			]
+		},
+		{
+			"id": "985-6",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-6-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:41:38.185Z"
+				}
+			]
+		},
+		{
+			"id": "985-7",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-7-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:41:38.225Z"
+				}
+			]
+		},
+		{
+			"id": "985-8",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-8-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:41:39.008Z"
+				}
+			]
+		},
+		{
+			"id": "985-9",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-9-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 3 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:41:39.077Z"
+				}
+			]
+		},
+		{
+			"id": "985-10",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-10-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 1 commit",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T07:46:52.725Z"
+				}
+			]
+		},
+		{
+			"id": "985-11",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-11-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T07:56:12.245Z"
+				}
+			]
+		},
+		{
+			"id": "985-12",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-12-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T07:56:14.238Z"
+				},
+				{
+					"id": "985-12-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:03:33.027Z"
+				}
+			]
+		},
+		{
+			"id": "985-13",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-13-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T07:56:17.341Z"
+				},
+				{
+					"id": "985-13-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:03:33.772Z"
+				}
+			]
+		},
+		{
+			"id": "985-14",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-14-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:03:18.163Z"
+				}
+			]
+		},
+		{
+			"id": "985-15",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-15-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:03:18.167Z"
+				}
+			]
+		},
+		{
+			"id": "985-16",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-16-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:03:18.187Z"
+				}
+			]
+		},
+		{
+			"id": "985-17",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-17-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 3 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:03:19.025Z"
+				}
+			]
+		},
+		{
+			"id": "985-18",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-18-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:11:25.131Z"
+				}
+			]
+		},
+		{
+			"id": "985-19",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-19-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:11:27.995Z"
+				},
+				{
+					"id": "985-19-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:27.178Z"
+				},
+				{
+					"id": "985-19-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:55.454Z"
+				}
+			]
+		},
+		{
+			"id": "985-20",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-20-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:11:30.667Z"
+				},
+				{
+					"id": "985-20-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:27.362Z"
+				},
+				{
+					"id": "985-20-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:56.732Z"
+				}
+			]
+		},
+		{
+			"id": "985-21",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-21-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T08:11:43.409Z"
+				}
+			]
+		},
+		{
+			"id": "985-22",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-22-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:30:28.922Z"
+				},
+				{
+					"id": "985-22-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:27.554Z"
+				},
+				{
+					"id": "985-22-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:53.352Z"
+				}
+			]
+		},
+		{
+			"id": "985-23",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-23-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:30:30.617Z"
+				},
+				{
+					"id": "985-23-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:27.737Z"
+				},
+				{
+					"id": "985-23-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:52.483Z"
+				}
+			]
+		},
+		{
+			"id": "985-24",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-24-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:30:32.356Z"
+				},
+				{
+					"id": "985-24-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "changed this",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:27.921Z"
+				},
+				{
+					"id": "985-24-2",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:51.515Z"
+				}
+			]
+		},
+		{
+			"id": "985-25",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-25-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "Review comment.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T08:30:34.365Z"
+				},
+				{
+					"id": "985-25-1",
+					"author": {
+						"username": "operator"
+					},
+					"body": "**delivery** \u00b7 address-comments\n\nReplied.",
+					"system": false,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:54.383Z"
+				}
+			]
+		},
+		{
+			"id": "985-26",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-26-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **draft**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T09:39:39.513Z"
+				}
+			]
+		},
+		{
+			"id": "985-27",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-27-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:25.711Z"
+				}
+			]
+		},
+		{
+			"id": "985-28",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-28-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:25.828Z"
+				}
+			]
+		},
+		{
+			"id": "985-29",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-29-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:25.881Z"
+				}
+			]
+		},
+		{
+			"id": "985-30",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-30-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:25.903Z"
+				}
+			]
+		},
+		{
+			"id": "985-31",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-31-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:25.910Z"
+				}
+			]
+		},
+		{
+			"id": "985-32",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-32-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:25.911Z"
+				}
+			]
+		},
+		{
+			"id": "985-33",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-33-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:25.949Z"
+				}
+			]
+		},
+		{
+			"id": "985-34",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-34-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:26.021Z"
+				}
+			]
+		},
+		{
+			"id": "985-35",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-35-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:26.032Z"
+				}
+			]
+		},
+		{
+			"id": "985-36",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-36-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 9 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:00:28.222Z"
+				}
+			]
+		},
+		{
+			"id": "985-37",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-37-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "approved this merge request",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:03:51.863Z"
+				}
+			]
+		},
+		{
+			"id": "985-38",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-38-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:10:35.272Z"
+				}
+			]
+		},
+		{
+			"id": "985-39",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-39-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:10:35.498Z"
+				}
+			]
+		},
+		{
+			"id": "985-40",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-40-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 2 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:10:37.121Z"
+				}
+			]
+		},
+		{
+			"id": "985-41",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-41-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "reset approvals from @reviewer-bot by pushing to the branch",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:10:49.237Z"
+				}
+			]
+		},
+		{
+			"id": "985-42",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-42-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "approved this merge request",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:11:40.860Z"
+				}
+			]
+		},
+		{
+			"id": "985-43",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-43-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:23:15.192Z"
+				}
+			]
+		},
+		{
+			"id": "985-44",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-44-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:23:15.216Z"
+				}
+			]
+		},
+		{
+			"id": "985-45",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-45-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added 2 commits",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:23:16.188Z"
+				}
+			]
+		},
+		{
+			"id": "985-46",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-46-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "reset approvals from @reviewer-bot by pushing to the branch",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:23:30.541Z"
+				}
+			]
+		},
+		{
+			"id": "985-47",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-47-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "marked this merge request as **ready**",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:37:35.467Z"
+				}
+			]
+		},
+		{
+			"id": "985-48",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-48-0",
+					"author": {
+						"username": "reviewer-bot"
+					},
+					"body": "approved this merge request",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T10:54:46.935Z"
+				}
+			]
+		},
+		{
+			"id": "985-49",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-49-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "added this merge request to the [merge train](https://forge.example/merge_trains) at position 2",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T11:00:26.084Z"
+				}
+			]
+		},
+		{
+			"id": "985-50",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-50-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-22T11:11:51.422Z"
+				}
+			]
+		},
+		{
+			"id": "985-51",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-51-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:35.814Z"
+				}
+			]
+		},
+		{
+			"id": "985-52",
+			"resolved": false,
+			"notes": [
+				{
+					"id": "985-52-0",
+					"author": {
+						"username": "operator"
+					},
+					"body": "mentioned in",
+					"system": true,
+					"resolved": false,
+					"created_at": "2026-10-23T10:26:55.549Z"
+				}
+			]
+		}
+	]
+}

@@ -1,6 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { z } from "zod";
+import { loadConfig } from "./config";
 import { decideLand } from "./land-gate";
 import { loadMcpInventory } from "./mcp-inventory";
 import { mapMcpForgeResult } from "./mcp-normalize";
@@ -13,6 +14,7 @@ import {
 } from "./mcp-route";
 import { checkNotePublication } from "./note-publication";
 import { providerFailureMessage } from "./provider-error";
+import { decideSettle, parseQuietHours } from "./reviewer-settle";
 import {
 	type RuntimeManifest,
 	loadRuntimeManifest,
@@ -247,8 +249,29 @@ export const ForgeDiscussionNote = z
 		anchor: ForgeAnchor.optional(),
 		system: z.boolean(),
 		resolved: z.boolean(),
+		createdAt: z.string().datetime({ offset: true }).optional(),
 	})
 	.strict();
+
+// Changes to a change's review state, read from its own history so the time it
+// left draft cannot come from anywhere a later re-draft or push would not reset.
+export const REVIEW_EVENT_KINDS = [
+	"ready",
+	"draft",
+	"approved",
+	"unapproved",
+	"pushed",
+	"queued",
+] as const;
+
+export const ForgeReviewEvent = z
+	.object({
+		kind: z.enum(REVIEW_EVENT_KINDS),
+		actor: z.string().trim().min(1),
+		at: z.string().datetime({ offset: true }),
+	})
+	.strict();
+export type ForgeReviewEvent = z.infer<typeof ForgeReviewEvent>;
 
 export const ForgeDiscussion = z
 	.object({
@@ -262,6 +285,7 @@ export const ForgeDiscussions = z
 	.object({
 		...EvidenceIdentity,
 		discussions: z.array(ForgeDiscussion),
+		events: z.array(ForgeReviewEvent).optional(),
 	})
 	.strict();
 export type ForgeDiscussions = z.infer<typeof ForgeDiscussions>;
@@ -814,6 +838,15 @@ async function runLand(options: {
 		};
 	}
 
+	const config = loadConfig();
+	const settle = decideSettle({
+		discussions,
+		approvals,
+		operators: [change.author, ...config.factoryAuthors],
+		now: new Date(),
+		windowMinutes: config.reviewSettleMinutes,
+		quietHours: parseQuietHours(config.reviewQuietHours, config.reviewTimeZone),
+	});
 	const gate = decideLand({
 		request: input,
 		change,
@@ -823,6 +856,7 @@ async function runLand(options: {
 		ledger,
 		contract,
 		contractHash,
+		settle,
 	});
 	if (gate.decision !== "land") {
 		return landOutcome(provider, input.ref, gate.decision, gate.reasons);

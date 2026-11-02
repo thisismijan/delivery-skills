@@ -1,7 +1,7 @@
 {
-  "name": "gitlab",
-  "version": 1,
-  "kind": "forge",
-  "tools": ["gitlab-forge", "gitlab-work-item"],
-  "capabilities": ["forge.change", "review.publish", "tracker.item"]
+	"name": "gitlab",
+	"version": 1,
+	"kind": "forge",
+	"tools": ["gitlab-forge", "gitlab-work-item"],
+	"capabilities": ["forge.change", "review.publish", "tracker.item"]
 }

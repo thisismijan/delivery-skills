@@ -1,3 +1,4 @@
+import type { SettleDecision } from "./reviewer-settle";
 import type { ContractCheckResult } from "./sdlc-constitution";
 
 export type LandKind = "change" | "archive";
@@ -49,6 +50,7 @@ export interface LandGateInput {
 	ledger: string;
 	contract: ContractCheckResult;
 	contractHash?: string;
+	settle: SettleDecision;
 }
 
 export interface LandGateResult {
@@ -238,6 +240,11 @@ export function decideLand(input: LandGateInput): LandGateResult {
 				`${fresh.length} comment${fresh.length === 1 ? "" : "s"} arrived after the readiness check; read and answer ${fresh.length === 1 ? "it" : "them"} first.`,
 			);
 		}
+	}
+
+	if (input.settle.decision === "wait") wait.push(...input.settle.reasons);
+	else if (input.settle.decision !== "settled") {
+		stop.push(...input.settle.reasons);
 	}
 
 	if (stop.length > 0) return { decision: "stop", reasons: stop };

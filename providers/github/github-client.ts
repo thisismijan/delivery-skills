@@ -152,10 +152,7 @@ export function typeMarker(type: string): string {
 	return `<!-- delivery-work-item-type: ${type} -->`;
 }
 
-export function parseMarker(
-	body: string,
-	prefix: string,
-): string | undefined {
+export function parseMarker(body: string, prefix: string): string | undefined {
 	const match = body.match(
 		new RegExp(`${escapeRegExp(prefix)}\\s*([^\\s][^>]*)\\s*-->`),
 	);
@@ -169,20 +166,24 @@ function escapeRegExp(value: string): string {
 
 export function stripMarkers(body: string): string {
 	return body
-		.replace(/<!-- delivery-(?:source-audit-id|note-audit-id|work-item-type):.*?-->/g, "")
+		.replace(
+			/<!-- delivery-(?:source-audit-id|note-audit-id|work-item-type):.*?-->/g,
+			"",
+		)
 		.replace(/\n{3,}/g, "\n\n")
 		.trim();
 }
 
 export async function resolveGitHubToken(deps: GitHubDeps): Promise<string> {
-	const envToken =
-		deps.env.GITHUB_TOKEN?.trim() || deps.env.GH_TOKEN?.trim();
+	const envToken = deps.env.GITHUB_TOKEN?.trim() || deps.env.GH_TOKEN?.trim();
 	if (envToken) return envToken;
 	const tokenFile =
 		deps.env.GH_TOKEN_FILE?.trim() ||
 		(deps.env.HOME ? join(deps.env.HOME, "token") : "");
 	if (!tokenFile || !deps.fileExists(tokenFile)) {
-		fail("Set GITHUB_TOKEN, GH_TOKEN, GH_TOKEN_FILE, or ~/token for GitHub access.");
+		fail(
+			"Set GITHUB_TOKEN, GH_TOKEN, GH_TOKEN_FILE, or ~/token for GitHub access.",
+		);
 	}
 	const raw = await deps.readFile(tokenFile).catch(() => {
 		fail("Could not read the GitHub token file.");
@@ -425,7 +426,10 @@ export function defaultGitHubDeps(
 			const text = await response.text();
 			if (!response.ok) {
 				if (response.status === 401 || response.status === 403) {
-					throw new GitHubHttpError("GitHub authentication failed.", response.status);
+					throw new GitHubHttpError(
+						"GitHub authentication failed.",
+						response.status,
+					);
 				}
 				if (response.status === 404) {
 					throw new GitHubHttpError(

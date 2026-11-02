@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 import {
-	PROTOCOL_VERSION,
-	PROVIDER_ID,
 	type GitHubDeps,
 	type GitHubTarget,
+	PROTOCOL_VERSION,
+	PROVIDER_ID,
 	asBoolean,
 	asNumber,
 	asString,
@@ -259,8 +259,12 @@ function normalizeFiles(files: unknown[]): Record<string, unknown>[] {
 				? { previousPath: previous }
 				: {}),
 			status,
-			additions: asNumber(entry.additions) ?? countDiffLines(asString(entry.patch) ?? "", "+"),
-			deletions: asNumber(entry.deletions) ?? countDiffLines(asString(entry.patch) ?? "", "-"),
+			additions:
+				asNumber(entry.additions) ??
+				countDiffLines(asString(entry.patch) ?? "", "+"),
+			deletions:
+				asNumber(entry.deletions) ??
+				countDiffLines(asString(entry.patch) ?? "", "-"),
 		};
 	});
 }
@@ -292,7 +296,10 @@ function assertCompleteDiff(
 		const deletions = asNumber(entry.deletions) ?? 0;
 		const changes = asNumber(entry.changes) ?? additions + deletions;
 		const patch = asString(entry.patch);
-		if ((additions > 0 || deletions > 0 || changes > 0) && patch === undefined) {
+		if (
+			(additions > 0 || deletions > 0 || changes > 0) &&
+			patch === undefined
+		) {
 			fail(
 				"GitHub reports this diff is truncated. Review it in the UI or split the change; do not review a partial diff.",
 			);
@@ -339,7 +346,8 @@ async function loadPipeline(
 	if (isRecord(combined) && (asNumber(combined.total_count) ?? 0) > 0) {
 		const status = asString(combined.state)?.trim();
 		const revision = asString(combined.sha)?.trim() || head;
-		if (!status) fail("GitHub pipeline evidence is missing status or revision.");
+		if (!status)
+			fail("GitHub pipeline evidence is missing status or revision.");
 		const url = firstStatusUrl(combined);
 		return {
 			available: true,
@@ -446,8 +454,9 @@ function normalizeCommits(raw: unknown[]): Record<string, unknown>[] {
 		const message = asString(commit?.message)?.trim() ?? "";
 		const title = message.split("\n")[0]?.trim() || "(untitled commit)";
 		const author =
-			asString(isRecord(commit?.author) ? commit.author.name : undefined)?.trim() ||
-			authorName(entry.author ?? commit?.author);
+			asString(
+				isRecord(commit?.author) ? commit.author.name : undefined,
+			)?.trim() || authorName(entry.author ?? commit?.author);
 		return { sha, title, author };
 	});
 }
@@ -514,12 +523,75 @@ function normalizeDiscussions(
 	return discussions;
 }
 
+function timestamp(raw: unknown): string | undefined {
+	const value = asString(raw)?.trim();
+	return value && !Number.isNaN(Date.parse(value)) ? value : undefined;
+}
+
+function loginOf(raw: unknown): string | undefined {
+	return isRecord(raw) ? asString(raw.login)?.trim() || undefined : undefined;
+}
+
+// Undefined when an event the settle check needs has no actor or time, so a
+// partial timeline never reads as a complete one.
+export function reviewEventsFromTimeline(
+	timeline: unknown[],
+): Record<string, unknown>[] | undefined {
+	const events: Record<string, unknown>[] = [];
+	for (const entry of timeline) {
+		if (!isRecord(entry)) return undefined;
+		const name = asString(entry.event);
+		let kind: string | undefined;
+		let actor: string | undefined;
+		let at: string | undefined;
+		if (name === "ready_for_review" || name === "convert_to_draft") {
+			kind = name === "ready_for_review" ? "ready" : "draft";
+			actor = loginOf(entry.actor);
+			at = timestamp(entry.created_at);
+		} else if (
+			name === "reviewed" &&
+			asString(entry.state)?.toLowerCase() === "approved"
+		) {
+			kind = "approved";
+			actor = loginOf(entry.user);
+			at = timestamp(entry.submitted_at);
+		} else if (name === "head_ref_force_pushed") {
+			kind = "pushed";
+			actor = loginOf(entry.actor);
+			at = timestamp(entry.created_at);
+		} else if (name === "committed") {
+			kind = "pushed";
+			actor = isRecord(entry.author)
+				? asString(entry.author.name)?.trim()
+				: undefined;
+			at = isRecord(entry.committer)
+				? timestamp(entry.committer.date)
+				: undefined;
+		} else if (
+			name === "added_to_merge_queue" ||
+			name === "auto_merge_enabled"
+		) {
+			kind = "queued";
+			actor = loginOf(entry.actor);
+			at = timestamp(entry.created_at);
+		} else {
+			continue;
+		}
+		if (!actor || !at) return undefined;
+		events.push({ kind, actor, at });
+	}
+	return events.sort((left, right) =>
+		String(left.at).localeCompare(String(right.at)),
+	);
+}
+
 function normalizeNote(
 	note: Record<string, unknown>,
 	anchor?: GitHubAnchor,
 ): Record<string, unknown> {
 	const id = numericId(note.id);
 	if (!id) fail("GitHub discussion note is missing an id.");
+	const createdAt = timestamp(note.created_at);
 	return {
 		id,
 		author: authorName(note.user),
@@ -527,6 +599,7 @@ function normalizeNote(
 		system: false,
 		resolved: false,
 		...(anchor ? { anchor } : {}),
+		...(createdAt ? { createdAt } : {}),
 	};
 }
 
@@ -668,8 +741,21 @@ async function handleDiscussions(
 		token,
 		repoUrl(target, `/pulls/${number}/comments`),
 	);
+	let events: Record<string, unknown>[] | undefined;
+	try {
+		events = reviewEventsFromTimeline(
+			await githubPaged(
+				deps,
+				token,
+				repoUrl(target, `/issues/${number}/timeline`),
+			),
+		);
+	} catch {
+		events = undefined;
+	}
 	return evidenceEnvelope(loaded.change, {
 		discussions: normalizeDiscussions(issueComments, reviewComments),
+		...(events ? { events } : {}),
 	});
 }
 
@@ -699,7 +785,11 @@ export function approvalEvidence(reviews: unknown[]): Record<string, unknown> {
 		const login = asString(review.user.login)?.trim();
 		const state = asString(review.state)?.trim();
 		if (!login || !state) continue;
-		if (state !== "APPROVED" && state !== "CHANGES_REQUESTED" && state !== "DISMISSED") {
+		if (
+			state !== "APPROVED" &&
+			state !== "CHANGES_REQUESTED" &&
+			state !== "DISMISSED"
+		) {
 			continue;
 		}
 		latest.set(login, state);
@@ -773,13 +863,19 @@ async function handleCreate(
 	const { input, target, token } = await withGitHubContext(envelope, deps);
 	requireApproved(input);
 	if (input.draft !== true) fail("GitHub change creation must be draft.");
-	const created = await githubCall(deps, token, "POST", repoUrl(target, "/pulls"), {
-		title: requireText(input, "title"),
-		head: requireText(input, "sourceBranch"),
-		base: requireText(input, "targetBranch"),
-		body: asString(input.description) ?? "",
-		draft: true,
-	});
+	const created = await githubCall(
+		deps,
+		token,
+		"POST",
+		repoUrl(target, "/pulls"),
+		{
+			title: requireText(input, "title"),
+			head: requireText(input, "sourceBranch"),
+			base: requireText(input, "targetBranch"),
+			body: asString(input.description) ?? "",
+			draft: true,
+		},
+	);
 	const change = normalizeChange(created);
 	return receipt({
 		operation: "create",

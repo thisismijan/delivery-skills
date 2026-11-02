@@ -30,6 +30,14 @@ the source branch, after the forge provider's land gate holds. `approvals`
 counts the merge request's approval rules as met only when GitLab reports it
 approved with no approvals left.
 
+Every author, on the change, its comments, and its approvals, is the GitLab
+username, so a commenter can be matched to their approval. `discussions` also
+returns each comment's time and, from the merge request's own system notes,
+when it was marked ready or draft, approved or unapproved (including approvals
+reset by a push), pushed, and queued. If any system note has no time, those
+events are left out and the settle check asks the operator instead of
+guessing.
+
 Board columns are the label lists of the project's issue board, in board
 order. With more than one board, record the one to use with
 `--setting board=<board-id>`. A move adds the target list label and removes

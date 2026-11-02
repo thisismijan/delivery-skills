@@ -77,6 +77,7 @@ function input(overrides: Partial<LandGateInput> = {}): LandGateInput {
 		ledger: ledger(),
 		contract: { ok: true },
 		contractHash: HASH,
+		settle: { decision: "settled", reasons: [] },
 		...overrides,
 	};
 }
@@ -369,5 +370,43 @@ describe("ledger readers", () => {
 				),
 			),
 		).toBe(false);
+	});
+});
+
+describe("reviewers must settle before a change lands", () => {
+	test("a settle wait holds the land back", () => {
+		expect(
+			decideLand(
+				input({
+					settle: {
+						decision: "wait",
+						until: "2026-10-22T11:19:00.000Z",
+						reasons: ["Waiting for reviewers until 2026-10-22 11:19 UTC."],
+					},
+				}),
+			),
+		).toEqual({
+			decision: "wait",
+			reasons: ["Waiting for reviewers until 2026-10-22 11:19 UTC."],
+		});
+	});
+
+	test("an unanswered comment or an undecidable settle stops it", () => {
+		for (const settle of [
+			{
+				decision: "unanswered" as const,
+				commentIds: ["n9"],
+				reasons: ["1 reviewer comment has no reply yet."],
+			},
+			{
+				decision: "ask" as const,
+				reasons: ["The forge did not report approvals."],
+			},
+		]) {
+			expect(decideLand(input({ settle }))).toEqual({
+				decision: "stop",
+				reasons: settle.reasons,
+			});
+		}
 	});
 });
