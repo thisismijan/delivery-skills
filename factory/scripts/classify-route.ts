@@ -4,6 +4,7 @@
 
 export type Classification =
 	| "bug"
+	| "test-gap"
 	| "non-functional"
 	| "nitpick"
 	| "false-positive"
@@ -14,6 +15,7 @@ export type ActionGroup = "action" | "dispute" | "answer" | "skip";
 
 const ROUTES: Record<Classification, ActionGroup> = {
 	bug: "action",
+	"test-gap": "action",
 	"non-functional": "action",
 	nitpick: "dispute",
 	"false-positive": "dispute",

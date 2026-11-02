@@ -75,6 +75,22 @@ recorded the operator's approval (`who`, `words`, `at`) for that exact next
 round. Recording the same head again replaces that round. Each actioned comment is one fix commit, after a
 test-only commit for a bug; formatting and spec updates go in the fix commit.
 
+## Comments that ask only for a test
+
+```text
+bun "$FACTORY_ROOT/scripts/mutation-proof.ts" <repoRoot> <gate-command.json> <mutation.patch>
+```
+
+A comment that asks only for a test of behaviour that is already correct is
+classified `test-gap`. It cannot go red, so it has no red gate and no operator
+stop. `/address-comments` adds the test, runs the green gate, and proves the
+test bites. `mutation-proof.ts` applies a minimal patch that breaks the
+behaviour (never a test) to the clean worktree, requires the new test to fail
+the way a red gate does, and restores the source byte for byte. It exits 0
+when the test bites and 1 when it does not, and refuses a dirty worktree, an
+empty patch, or a patch that touches a test. A comment that reports a real
+defect is a `bug` and keeps the red gate.
+
 ## Review scope
 
 ```text

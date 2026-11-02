@@ -173,7 +173,7 @@ This command consumes the review comments on the **existing** MR for this ticket
    ```
    bun "${FACTORY_ROOT}/scripts/classify-route.ts" <classification>
    ```
-   (`bug`/`non-functional` → `action`, `nitpick`/`false-positive` → `dispute`, `question` → `answer`, `outdated` → `skip`). An unknown value makes this throw → stop + escalate. Then process each comment, **one commit per actioned comment**:
+   (`bug`/`test-gap`/`non-functional` → `action`, `nitpick`/`false-positive` → `dispute`, `question` → `answer`, `outdated` → `skip`). An unknown value makes this throw → stop + escalate. Then process each comment, **one commit per actioned comment**:
 
    For an action comment whose body is only a suggestion fence on a new-side
    line, write that comment to `<reviewDir>/comment-<commentId>.json`
@@ -227,6 +227,25 @@ This command consumes the review comments on the **existing** MR for this ticket
      formatting, run the formatter, amend that fix commit before it is pushed,
      and re-run the gates. Never add a formatting-only or spec-only commit.
 
+   - **`test-gap`** (action, green with a mutation proof): the comment asks
+     only for a test of behaviour the assessor confirmed is already correct,
+     so the test cannot go red and there is no red gate and no operator stop.
+     Write the test scoped to the comment, format it, and commit it
+     referencing the comment. Run the green gate, lint, and typecheck. Then
+     prove the test bites: write a minimal patch to the source, never a test,
+     that breaks exactly the behaviour the test covers (the change the
+     comment names, such as deleting a condition, when it names one), and run
+     ```
+     bun "${FACTORY_ROOT}/scripts/mutation-proof.ts" "<repoRoot>" "<reviewDir>/green-command-<commentId>.json" "<reviewDir>/mutation-<commentId>.patch" | tee "<reviewDir>/mutation-proof-<commentId>.json"
+     ```
+     It applies the patch to the clean worktree, requires the new test to
+     fail the way a red gate does, and restores the source byte for byte.
+     Exit 1 means the test does not catch the break: strengthen the test and
+     try again within `maxFixAttempts`, then stop and escalate. A restore
+     failure is a terminal stop. If writing the test shows the behaviour is
+     not correct after all, the comment is a `bug`: follow the `bug` path
+     instead. Never use this class to skip the red gate on a defect.
+
    - **`non-functional`** (action, green-only): apply a mechanical-edit unit
      the same way as a bug action. When `apply` is `script`, the helper already
      wrote the files. Persist that skip with `record-skip.ts` naming
@@ -270,7 +289,7 @@ This command consumes the review comments on the **existing** MR for this ticket
    bun "${FACTORY_ROOT}/scripts/forge-provider.ts" reply "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reply-input.json>"
    ```
    One call per thread; do not batch. If one fails, report the failure and stop rather than continuing down the list. The command checks the body before any adapter. Do not post a general note in place of a thread reply.
-   - actioned (`bug`/`non-functional`, and `question` that required a change): state what changed and include the **commit SHA**.
+   - actioned (`bug`/`test-gap`/`non-functional`, and `question` that required a change): state what changed and include the **commit SHA**. For a `test-gap`, also say the test was shown to fail when the behaviour is broken.
    - answered (`question` with no change): give the answer.
    - disputed (`nitpick`/`false-positive`): give the reasoned rationale and "disputed — human decides".
    For N assessed (non-skipped) comments, post exactly N replies — none silently ignored. **Never** mark any thread resolved.

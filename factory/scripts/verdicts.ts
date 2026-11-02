@@ -148,6 +148,7 @@ export const ClassificationComment = z
 		commentId: z.string(),
 		classification: z.enum([
 			"bug",
+			"test-gap",
 			"non-functional",
 			"nitpick",
 			"false-positive",
