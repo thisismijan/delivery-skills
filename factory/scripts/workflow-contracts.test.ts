@@ -16,7 +16,7 @@ import {
 } from "./config";
 import { MAX_APPROACH_CHALLENGES } from "./draft-route";
 import { FAST_SAFETY_FLOORS } from "./fast-dispatch";
-import { FORGE_OPERATIONS } from "./forge-provider";
+import { FORGE_OPERATIONS, RetryForgePipelineInput } from "./forge-provider";
 import {
 	DELIVERY_LEVELS,
 	LEVEL_SETTINGS,
@@ -97,6 +97,9 @@ const mrReviewToReady = read(
 );
 const releaseReadiness = read(
 	"../skills/delivery/workflows/release-readiness.md",
+);
+const pipelineMonitoring = read(
+	"../skills/delivery/workflows/pipeline-monitoring.md",
 );
 const notes = read("../skills/delivery/workflows/NOTES.md");
 const orchestrator = read(
@@ -1672,4 +1675,28 @@ test("test-gap comments get a mutation proof instead of a red gate, and bugs kee
 	expect(plain(assessor)).toMatch(
 		/If you cannot confirm the behaviour is right, or the comment also reports wrong behaviour, it is a bug/,
 	);
+});
+
+test("pipeline monitoring retries CI only through the gated retry operation", () => {
+	expect(pipelineMonitoring).toContain(`${FORGE_PROVIDER} retry "<repoRoot>"`);
+	const fields = Object.keys(RetryForgePipelineInput._def.schema.shape).filter(
+		(field) => field !== "dryRun",
+	);
+	expect(fields.sort()).toEqual(
+		["approved", "headRevision", "ref", "runContractPath", "ticketKey"].sort(),
+	);
+	for (const field of fields) {
+		expect(pipelineMonitoring).toContain(`"${field}": `);
+	}
+	const contract = plain(pipelineMonitoring);
+	expect(contract).not.toMatch(/no portable retry operation/);
+	expect(contract).toMatch(
+		/A test failure, an unknown failure, or an infrastructure failure that repeats after its retry goes to the operator/,
+	);
+	expect(contract).toMatch(/never as permission to retry another way/);
+	expect(plain(auto)).toMatch(
+		/ask once whether an infrastructure CI failure may be retried once/,
+	);
+	expect(auto).toContain('`ciRetry: { "infrastructure": 1 }`');
+	expect(plain(auto)).toMatch(/A test failure is never retried/);
 });

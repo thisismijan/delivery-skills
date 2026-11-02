@@ -14,6 +14,7 @@ import {
 } from "./mcp-route";
 import { checkNotePublication } from "./note-publication";
 import { providerFailureMessage } from "./provider-error";
+import { decideRetry } from "./retry-gate";
 import { decideSettle, parseQuietHours } from "./reviewer-settle";
 import {
 	type RuntimeManifest,
@@ -22,6 +23,7 @@ import {
 	missingCapability,
 } from "./runtime-manifest";
 import {
+	type FrozenRunContract,
 	checkRunContract,
 	loadConstitution,
 	parseFrozenRunContract,
@@ -61,6 +63,8 @@ export const FORGE_OPERATIONS = [
 	"note",
 	"reply",
 	"land",
+	"failures",
+	"retry",
 ] as const;
 export type ForgeOperation = (typeof FORGE_OPERATIONS)[number];
 
@@ -78,7 +82,11 @@ const MUTATION_OPERATIONS = new Set<ForgeOperation>([
 	"note",
 	"reply",
 	"land",
+	"retry",
 ]);
+// Gated mutations: the provider decides from fresh evidence before the
+// adapter is asked to act, so session tools never run them.
+const GATED_OPERATIONS = new Set<ForgeOperation>(["land", "retry"]);
 const PUBLICATION_OPERATIONS = new Set<ForgeOperation>(["note", "reply"]);
 
 export const ForgeAnchor = z
@@ -315,6 +323,48 @@ export const ForgeApprovals = z
 	.strict();
 export type ForgeApprovals = z.infer<typeof ForgeApprovals>;
 
+export const PIPELINE_KINDS = [
+	"merge-train",
+	"merge-request",
+	"branch",
+] as const;
+
+export const ForgeFailedJob = z
+	.object({
+		id: z.string().trim().min(1),
+		name: z.string().trim().min(1),
+		stage: z.string().trim().min(1).optional(),
+		failureReason: z.string().trim().min(1).optional(),
+		// How many times a job of this name has run in the pipeline, this run included.
+		attempt: z.number().int().positive(),
+		logTail: z.string().optional(),
+	})
+	.strict();
+export type ForgeFailedJob = z.infer<typeof ForgeFailedJob>;
+
+export const ForgeFailures = z
+	.object({
+		...EvidenceIdentity,
+		pipeline: z.discriminatedUnion("available", [
+			z.object({ available: z.literal(false) }).strict(),
+			z
+				.object({
+					available: z.literal(true),
+					id: z.string().trim().min(1),
+					status: z.string().trim().min(1),
+					kind: z.enum(PIPELINE_KINDS),
+					// For a merge train, how many train pipelines in a row have failed
+					// for this head. Otherwise 1.
+					attempt: z.number().int().positive(),
+					url: z.string().trim().min(1).optional(),
+					failedJobs: z.array(ForgeFailedJob),
+				})
+				.strict(),
+		]),
+	})
+	.strict();
+export type ForgeFailures = z.infer<typeof ForgeFailures>;
+
 const MutationBase = {
 	approved: z.literal(true).optional(),
 	dryRun: z.boolean().optional(),
@@ -420,20 +470,65 @@ export const ForgeLandResult = z
 	.strict();
 export type ForgeLandResult = z.infer<typeof ForgeLandResult>;
 
+export const RetryForgePipelineInput = approvedMutation({
+	ref: ChangeRef,
+	headRevision: Revision,
+	ticketKey: z.string().regex(/^[A-Z][A-Z0-9]+-\d+$/),
+	runContractPath: z.string().trim().min(1),
+});
+export type RetryForgePipelineInput = z.input<typeof RetryForgePipelineInput>;
+
+export const ForgeRetryResult = z
+	.object({
+		version: z.literal(1),
+		provider: ProviderId,
+		ref: ChangeRef,
+		operation: z.literal("retry"),
+		decision: z.enum(["retried", "stop"]),
+		reasons: z.array(z.string().min(1)),
+		retriedJobs: z.array(z.string().min(1)).optional(),
+		mergeTrain: z.boolean().optional(),
+		url: z.string().trim().min(1).optional(),
+	})
+	.strict();
+export type ForgeRetryResult = z.infer<typeof ForgeRetryResult>;
+
+const MUTATION_RECEIPT_OPERATIONS = [
+	"create",
+	"set-draft",
+	"note",
+	"reply",
+	"land",
+	"retry",
+] as const;
+
 export const ForgeReceipt = z
 	.object({
 		version: z.literal(1),
 		provider: ProviderId,
 		ref: ChangeRef,
-		operation: z.enum(["create", "set-draft", "note", "reply", "land"]),
+		operation: z.enum(MUTATION_RECEIPT_OPERATIONS),
 		url: z.string().trim().min(1).optional(),
 		noteId: z.string().trim().min(1).optional(),
 		discussionId: z.string().trim().min(1).optional(),
 		draft: z.boolean().optional(),
 		mergedRevision: Revision.optional(),
+		retriedJobIds: z.array(z.string().trim().min(1)).nonempty().optional(),
+		mergeTrain: z.literal(true).optional(),
 	})
 	.strict()
 	.superRefine((receipt, ctx) => {
+		if (receipt.operation === "retry") {
+			if (!receipt.retriedJobIds === !receipt.mergeTrain) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["retriedJobIds"],
+					message:
+						"retry receipt needs either the retried job ids or mergeTrain, not both",
+				});
+			}
+			return;
+		}
 		const required: Array<keyof typeof receipt> =
 			receipt.operation === "create"
 				? ["url"]
@@ -460,7 +555,7 @@ export const ForgeDryRun = z
 	.object({
 		version: z.literal(1),
 		provider: ProviderId,
-		operation: z.enum(["create", "set-draft", "note", "reply", "land"]),
+		operation: z.enum(MUTATION_RECEIPT_OPERATIONS),
 		dryRun: z.literal(true),
 		input: z.unknown(),
 	})
@@ -477,8 +572,10 @@ export type ForgeOperationResult =
 	| ForgeDiscussions
 	| ForgeAnchors
 	| ForgeApprovals
+	| ForgeFailures
 	| ForgeReceipt
 	| ForgeLandResult
+	| ForgeRetryResult
 	| ForgeDryRun;
 
 export function isForgeOperation(value: string): value is ForgeOperation {
@@ -526,6 +623,7 @@ function operationSchema(operation: ForgeOperation): z.ZodType {
 		case "discussions":
 		case "anchors":
 		case "approvals":
+		case "failures":
 			return ReadForgeEvidenceInput;
 		case "create":
 			return CreateForgeChangeInput;
@@ -537,6 +635,8 @@ function operationSchema(operation: ForgeOperation): z.ZodType {
 			return ReplyForgeDiscussionInput;
 		case "land":
 			return LandForgeChangeInput;
+		case "retry":
+			return RetryForgePipelineInput;
 	}
 }
 
@@ -560,11 +660,14 @@ function resultSchema(operation: ForgeOperation): z.ZodType {
 			return ForgeAnchors;
 		case "approvals":
 			return ForgeApprovals;
+		case "failures":
+			return ForgeFailures;
 		case "create":
 		case "set-draft":
 		case "note":
 		case "reply":
 		case "land":
+		case "retry":
 			return ForgeReceipt;
 	}
 }
@@ -759,6 +862,132 @@ function repositoryPath(path: string, repositoryRoot: string): string {
 	return isAbsolute(path) ? path : join(repositoryRoot, path);
 }
 
+function readRunContract(options: {
+	path: string;
+	repositoryRoot: string;
+	stage: string;
+	ticketKey: string;
+}): {
+	contract: { ok: boolean; reason?: string };
+	frozen?: FrozenRunContract;
+} {
+	try {
+		const frozen = parseFrozenRunContract(
+			JSON.parse(
+				readFileSync(
+					repositoryPath(options.path, options.repositoryRoot),
+					"utf8",
+				),
+			),
+		);
+		return {
+			frozen,
+			contract: checkRunContract({
+				frozen,
+				constitution: loadConstitution(),
+				stage: options.stage,
+				ticketKey: options.ticketKey,
+			}),
+		};
+	} catch (error) {
+		return {
+			contract: {
+				ok: false,
+				reason: error instanceof Error ? error.message : String(error),
+			},
+		};
+	}
+}
+
+function retryOutcome(
+	provider: string,
+	ref: string,
+	decision: "retried" | "stop",
+	reasons: string[],
+	extra: { retriedJobs?: string[]; mergeTrain?: boolean; url?: string } = {},
+): ForgeRetryResult {
+	return ForgeRetryResult.parse({
+		version: 1,
+		provider,
+		ref,
+		operation: "retry",
+		decision,
+		reasons,
+		...extra,
+	});
+}
+
+// Retries a failed pipeline at most once, and only when every failed job is
+// known infrastructure and the frozen run contract allows it. The attempt
+// count comes from the forge, so a retry that fails again always stops.
+async function runRetry(options: {
+	provider: string;
+	executable: string;
+	repositoryRoot: string;
+	input: z.output<typeof RetryForgePipelineInput>;
+}): Promise<ForgeRetryResult | ForgeDryRun> {
+	const { input, provider, executable, repositoryRoot } = options;
+	const { contract, frozen } = readRunContract({
+		path: input.runContractPath,
+		repositoryRoot,
+		stage: "auto",
+		ticketKey: input.ticketKey,
+	});
+	const failures = (await invokeForgeAdapter({
+		provider,
+		executable,
+		operation: "failures",
+		repositoryRoot,
+		input: { ref: input.ref, headRevision: input.headRevision },
+	})) as ForgeFailures;
+	const gate = decideRetry({
+		headRevision: input.headRevision,
+		failures,
+		contract,
+		allowedRetries: frozen?.ciRetry?.infrastructure ?? 0,
+	});
+	if (gate.decision === "stop") {
+		return retryOutcome(provider, input.ref, "stop", gate.reasons);
+	}
+	const request = {
+		ref: input.ref,
+		headRevision: input.headRevision,
+		...("mergeTrain" in gate ? { mergeTrain: true } : { jobIds: gate.jobIds }),
+	};
+	if (input.dryRun === true) {
+		return ForgeDryRun.parse({
+			version: 1,
+			provider,
+			operation: "retry",
+			dryRun: true,
+			input: request,
+		});
+	}
+	const receipt = (await invokeForgeAdapter({
+		provider,
+		executable,
+		operation: "retry",
+		repositoryRoot,
+		input: { ...request, approved: true },
+	})) as ForgeReceipt;
+	const asked = "mergeTrain" in gate ? [] : [...gate.jobIds].sort();
+	const done = [...(receipt.retriedJobIds ?? [])].sort();
+	if (
+		"mergeTrain" in gate
+			? receipt.mergeTrain !== true
+			: done.join("\n") !== asked.join("\n")
+	) {
+		throw new Error(
+			"The forge provider's retry receipt does not match what was asked for.",
+		);
+	}
+	return retryOutcome(provider, input.ref, "retried", [], {
+		retriedJobs: gate.jobNames,
+		...("mergeTrain" in gate ? { mergeTrain: true } : {}),
+		...(receipt.url ? { url: receipt.url } : {}),
+	});
+}
+
 function landOutcome(
 	provider: string,
 	ref: string,
@@ -802,11 +1031,6 @@ async function runLand(options: {
 			: undefined;
 
 	let ledger = "";
-	let contract: { ok: boolean; reason?: string } = {
-		ok: false,
-		reason: "the run contract could not be read",
-	};
-	let contractHash: string | undefined;
 	try {
 		ledger = readFileSync(
 			repositoryPath(input.ledgerPath, repositoryRoot),
@@ -815,28 +1039,13 @@ async function runLand(options: {
 	} catch {
 		ledger = "";
 	}
-	try {
-		const frozen = parseFrozenRunContract(
-			JSON.parse(
-				readFileSync(
-					repositoryPath(input.runContractPath, repositoryRoot),
-					"utf8",
-				),
-			),
-		);
-		contractHash = frozen.contractHash;
-		contract = checkRunContract({
-			frozen,
-			constitution: loadConstitution(),
-			stage: "land",
-			ticketKey: input.ticketKey,
-		});
-	} catch (error) {
-		contract = {
-			ok: false,
-			reason: error instanceof Error ? error.message : String(error),
-		};
-	}
+	const { contract, frozen } = readRunContract({
+		path: input.runContractPath,
+		repositoryRoot,
+		stage: "land",
+		ticketKey: input.ticketKey,
+	});
+	const contractHash = frozen?.contractHash;
 
 	const config = loadConfig();
 	const settle = decideSettle({
@@ -908,21 +1117,23 @@ export async function planForgeOperation(options: {
 	}
 	const input = parseForgeOperationInput(options.operation, options.input);
 	const advertised = lookupCapability(options.runtime, "forge.change");
-	if (options.operation === "land") {
+	if (GATED_OPERATIONS.has(options.operation)) {
 		if (
 			!advertised?.available ||
 			!advertised.provider ||
 			!advertised.invocation
 		) {
 			throw new Error(
-				"Landing a change needs the executable forge adapter; session tools never merge. Leave the merge to a person.",
+				options.operation === "land"
+					? "Landing a change needs the executable forge adapter; session tools never merge. Leave the merge to a person."
+					: "Retrying CI needs the executable forge adapter; session tools never retry. Leave the retry to a person.",
 			);
 		}
 		executablePath(advertised.invocation);
 		return {
 			transport: "adapter",
 			provider: advertised.provider,
-			operation: "land",
+			operation: options.operation,
 		};
 	}
 	const inventory = await loadMcpInventory(options.repositoryRoot);
@@ -996,6 +1207,9 @@ export function normalizeForgeSessionResult(options: {
 	if (options.operation === "land") {
 		throw new Error("Session tools never land a change.");
 	}
+	if (options.operation === "retry") {
+		throw new Error("Session tools never retry CI.");
+	}
 	try {
 		return parseForgeOperationResult(options.operation, options.raw);
 	} catch {
@@ -1056,6 +1270,14 @@ export async function runForgeOperation(options: {
 			executable,
 			repositoryRoot: options.repositoryRoot,
 			input: input as z.output<typeof LandForgeChangeInput>,
+		});
+	}
+	if (options.operation === "retry") {
+		return runRetry({
+			provider: forge.provider,
+			executable,
+			repositoryRoot: options.repositoryRoot,
+			input: input as z.output<typeof RetryForgePipelineInput>,
 		});
 	}
 
@@ -1126,7 +1348,7 @@ if (import.meta.main) {
 		} else {
 			if (!operation || !repositoryRoot || !manifestPath || !inputPath) {
 				console.error(
-					"usage: forge-provider.ts <find|read|pipeline|files|diff|commits|discussions|anchors|approvals|create|set-draft|note|reply|land> <repository-root> <runtime-manifest> <input.json>",
+					`usage: forge-provider.ts <${FORGE_OPERATIONS.join("|")}> <repository-root> <runtime-manifest> <input.json>`,
 				);
 				process.exit(2);
 			}
@@ -1141,6 +1363,9 @@ if (import.meta.main) {
 				process.exit(
 					result.decision === "landed" ? 0 : result.decision === "wait" ? 3 : 1,
 				);
+			}
+			if ("decision" in result && result.operation === "retry") {
+				process.exit(result.decision === "retried" ? 0 : 1);
 			}
 		}
 	} catch (error) {

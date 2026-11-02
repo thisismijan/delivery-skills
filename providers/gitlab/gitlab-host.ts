@@ -17,6 +17,7 @@ export interface GitLabRequest {
 	headers: Record<string, string>;
 	body?: unknown;
 	allowedStatuses?: number[];
+	responseType?: "text";
 }
 
 export interface GitLabHostDeps {
@@ -199,6 +200,33 @@ export async function gitlabGet(
 	return gitlabCall(deps, token, "GET", url);
 }
 
+export async function gitlabText(
+	deps: GitLabHostDeps,
+	token: string,
+	url: string,
+): Promise<string> {
+	if (url.includes(token))
+		fail("Refusing to send a GitLab URL that embeds a credential.", token);
+	let body: unknown;
+	try {
+		body = await deps.gitlabRequest({
+			method: "GET",
+			url,
+			headers: { "PRIVATE-TOKEN": token, Accept: "text/plain" },
+			responseType: "text",
+		});
+	} catch (error) {
+		fail(
+			error instanceof Error ? error.message : "GitLab request failed.",
+			token,
+		);
+	}
+	if (body === null) return "";
+	if (typeof body !== "string")
+		fail("GitLab returned a malformed text response.");
+	return redact(body, token);
+}
+
 export async function gitlabPaged(
 	deps: GitLabHostDeps,
 	token: string,
@@ -266,6 +294,7 @@ export function defaultGitLabHostDeps(
 				}
 				fail(`GitLab request failed (HTTP ${response.status}).`);
 			}
+			if (request.responseType === "text") return text;
 			if (!text.trim()) return null;
 			try {
 				return JSON.parse(text) as unknown;

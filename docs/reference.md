@@ -218,9 +218,9 @@ bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
 ```
 
 Operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
-`anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, `land`. Also `plan` and `normalize`
-for session-tool transport. `land` is adapter-only: `plan` refuses it when no
-executable adapter is advertised, and `normalize` never accepts it.
+`anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, `land`, `failures`, `retry`. Also
+`plan` and `normalize` for session-tool transport. `land` and `retry` are adapter-only: `plan`
+refuses them when no executable adapter is advertised, and `normalize` never accepts them.
 
 `approvals` takes `{ "ref": "<change>" }` and returns who approved the change
 and whether every approval rule is met, at the head it read. `land` takes
@@ -228,6 +228,22 @@ and whether every approval rule is met, at the head it read. `land` takes
 `ledgerPath`, `runContractPath`, `readNoteIds` (the comment ids readiness saw),
 and `approved: true`. It returns `decision` `landed`, `wait`, or `stop` with
 plain reasons, and exits 0, 3, or 1 to match.
+
+`failures` takes `{ "ref": "<change>", "headRevision": "<sha>" }` and returns
+the newest pipeline at that head: its id, status, kind (`merge-train`,
+`merge-request`, or `branch`), and each failed job with its forge failure
+reason, how many times it has run, and the end of its log. A train pipeline's
+`attempt` counts the train pipelines in a row that failed for the head. When
+the newest pipeline is not at the head, `pipeline` is `{ "available": false }`.
+
+`retry` takes `ref`, `headRevision`, `ticketKey`, `runContractPath`, and
+`approved: true`. It reads `failures` itself and retries only when the run
+contract's `ciRetry.infrastructure` is 1, the pipeline failed, every failed job
+is known infrastructure and none is a deploy job, and no job (or train) has
+already been retried. Train jobs cannot be retried, so a failed train is
+re-added to the merge train instead. It returns `decision` `retried` or `stop`
+with plain reasons, and exits 0 or 1 to match. An adapter that does not offer
+`failures` or `retry` makes the run stop for the operator.
 
 `pipeline` takes `{ "revision": "<sha>" }` and returns evidence bound to that
 exact revision. Delivery uses normalized pipeline evidence from `read` for the

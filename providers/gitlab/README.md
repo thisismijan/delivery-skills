@@ -21,7 +21,7 @@ Cursor and Claude wrappers already pass `--provider gitlab`. Extra
 
 `gitlab-forge` takes `find`, `read`, `pipeline`, `files`, `diff`, `commits`,
 `discussions`, `anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`,
-or `land`.
+`land`, `failures`, or `retry`.
 `gitlab-work-item` takes `list`, `read`, `create`, `link`, `note`,
 `statuses`, or `transition`. Both read stdin JSON and write versioned JSON.
 They do not merge, close, reopen, approve, delete, or resolve discussions,
@@ -29,6 +29,13 @@ except that `land` squash-merges with the head commit as its guard and removes
 the source branch, after the forge provider's land gate holds. `approvals`
 counts the merge request's approval rules as met only when GitLab reports it
 approved with no approvals left.
+
+`failures` reads the newest merge request pipeline at the head, including
+retried jobs, so a job retried once shows attempt 2. It adds the end of each
+failed job's log, with terminal colours removed, and leaves
+the log out when GitLab will not return it. `retry` retries the given jobs, or
+re-adds the merge request to the merge train with the head commit as its
+guard, because GitLab does not retry jobs in a merge train pipeline.
 
 Every author, on the change, its comments, and its approvals, is the GitLab
 username, so a commenter can be matched to their approval. `discussions` also

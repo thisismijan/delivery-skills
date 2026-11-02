@@ -50,6 +50,12 @@ The single-step verbs use the same table to tell the operator what to type next.
    `supersedesHash`, `reason`, and `affectedInvariant`. `permittedWrites`
    includes `change-land` so auto may land approved, green changes; a contract
    frozen without it leaves every merge to the operator.
+
+   When the plan is approved, ask once whether an infrastructure CI failure may
+   be retried once. Record the answer as `ciRetry: { "infrastructure": 1 }` or
+   `{ "infrastructure": 0 }`. A contract without `ciRetry` allows no retry, so
+   every CI failure goes to the operator. A test failure is never retried,
+   whatever the answer.
 3. **Continuous authorization.** Only after the frozen contract exists, record
    `continuous-delivery: yes`, scoped to this run. The authorizing words are the
    `/delivery auto` invocation or the operator's explicit approval of the

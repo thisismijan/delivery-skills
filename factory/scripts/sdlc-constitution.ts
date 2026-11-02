@@ -171,6 +171,11 @@ const RunContractFields = {
 	reason: z.string().min(1).optional(),
 	affectedInvariant: z.string().min(1).optional(),
 	level: DeliveryLevel.optional(),
+	// How many times an infrastructure CI failure may be retried. Absent means none.
+	ciRetry: z
+		.object({ infrastructure: z.union([z.literal(0), z.literal(1)]) })
+		.strict()
+		.optional(),
 };
 
 function refineRunContract(

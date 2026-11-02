@@ -127,13 +127,16 @@ bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
 ```
 
 Operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
-`anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, `land`. Review evidence is fetched
+`anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, `land`, `failures`, `retry`.
+Review evidence is fetched
 one view at a time in the order the review skill names. Notes are dry-run,
 shown, then posted one at a time after human confirmation (or standing
 continuous-delivery authorization). Close and thread resolution stay
 human-owned. Merge does too, except that `/delivery auto` lands a change a
 person approved on the forge once its pipeline is green, through the gated
-`land` operation. Provider-native helpers are not generic workflow commands.
+`land` operation. The gated `retry` operation reruns a failed pipeline once, only
+when every failed job is known infrastructure and the run contract allows it.
+Provider-native helpers are not generic workflow commands.
 
 If the current session exposes matching integration tools, `/delivery doctor`
 records them and later stages prefer those tools over CLI adapters. The result
