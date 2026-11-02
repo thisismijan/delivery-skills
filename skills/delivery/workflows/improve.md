@@ -115,6 +115,11 @@ Compute the baseline hash. Run the live contract suite:
 BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test <skill>/checks/delivery-specs.test.ts
 ```
 
+It runs in place from the installed skill as well as from a checkout. In an
+install, the groups that need checkout-only files (`README.md`, `factory/`,
+`adapters/`) are skipped with that reason; every other test runs against the
+installed `_factory/`.
+
 If it is not green, stop. Self-improvement never builds on an unproved baseline.
 
 ### 3. Build in isolation

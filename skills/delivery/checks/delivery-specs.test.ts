@@ -7,6 +7,22 @@ setDefaultTimeout(60_000);
 
 const ROOT = process.env.DELIVERY_SKILL_ROOT ?? join(import.meta.dir, "..");
 const SKILLS_ROOT = process.env.DELIVERY_SKILLS_ROOT ?? join(import.meta.dir, "..", "..");
+const PACK_ROOT = join(SKILLS_ROOT, "..");
+// A checkout has factory/ beside skills/; an install has _factory/ inside the
+// skills directory. Pack docs and adapters exist only in a checkout.
+const FACTORY_DIR = [join(PACK_ROOT, "factory"), join(SKILLS_ROOT, "_factory")].find((dir) =>
+  existsSync(join(dir, "scripts")),
+);
+if (!FACTORY_DIR) {
+  throw new Error("The factory scripts were not found: expected factory/ beside skills/ or _factory/ inside it.");
+}
+const FACTORY_SCRIPTS = join(FACTORY_DIR, "scripts");
+const IN_CHECKOUT = ["README.md", "factory", "adapters"].every((name) => existsSync(join(PACK_ROOT, name)));
+const CHECKOUT_ONLY_REASON = "needs a delivery-skills checkout: README.md, factory/ and adapters/ are not installed";
+function checkoutOnly(name: string, body: () => void): void {
+  if (IN_CHECKOUT) describe(name, body);
+  else test.skip(`${name} (${CHECKOUT_ONLY_REASON})`, () => {});
+}
 function defaultMaxParallelWorktrees(): number {
 	const candidates = [
 		join(SKILLS_ROOT, "..", "factory", "scripts", "config.ts"),
@@ -405,7 +421,7 @@ Invalid ledger tag: \`[stopped:contradicted]\`.
 `;
 
 if (!HISTORICAL_INDEPENDENCE) {
-  describe("live contracts independent of historical wording", () => {
+  checkoutOnly("live contracts independent of historical wording", () => {
     test("the suite passes when historical files contradict live rules", async () => {
       const dest = mkdtempSync(join(tmpdir(), "delivery-authority-"));
       try {
@@ -451,7 +467,7 @@ if (!HISTORICAL_INDEPENDENCE) {
 
 describe("durable ledger writer", () => {
   const STORE = readFileSync(
-    join(SKILLS_ROOT, "..", "factory", "scripts", "ledger-store.ts"),
+    join(FACTORY_SCRIPTS, "ledger-store.ts"),
     "utf8",
   );
 
@@ -981,7 +997,7 @@ describe("portable dynamic orchestration", () => {
   });
 });
 
-describe("portable factory pack", () => {
+checkoutOnly("portable factory pack", () => {
   const packRoot = join(ROOT, "..", "..");
   const readme = readFileSync(join(packRoot, "README.md"), "utf8");
 
@@ -1198,7 +1214,7 @@ describe("ledger resume", () => {
 
   function invocation(name: string): string {
     const STORE = readFileSync(
-      join(SKILLS_ROOT, "..", "factory", "scripts", "next-action.ts"),
+      join(FACTORY_SCRIPTS, "next-action.ts"),
       "utf8",
     );
     const match = STORE.match(
@@ -1234,7 +1250,7 @@ describe("ledger resume", () => {
 });
 
 describe("stage 3 readiness", () => {
-  const factoryScripts = join(SKILLS_ROOT, "..", "factory", "scripts");
+  const factoryScripts = FACTORY_SCRIPTS;
 
   test("the ledger and auto table send addressed tickets to review", () => {
     expect(vocabulary.has(normaliseTag("[addressed !N]"))).toBe(true);
