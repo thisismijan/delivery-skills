@@ -128,7 +128,8 @@ After a normalized `read`, include its exact full head revision as
 of being labelled with a placeholder.
 
 Operations are `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
-`anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, and `land`. Inputs are JSON files.
+`anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, `land`, `failures`, and `retry`.
+Inputs are JSON files.
 `note` and `reply` name a body file under the target repository's `.review/`
 directory; the command checks that path before any adapter. Mutations require
 `"approved": true`. A dry-run uses `"dryRun": true` and must not set
@@ -136,7 +137,11 @@ directory; the command checks that path before any adapter. Mutations require
 approve, or thread resolution; humans own those actions. The one exception is
 `land`: inside a continuous auto run it squash-merges a change only after its
 own gate holds (see `skills/delivery/workflows/auto.md`). It runs only through
-the executable adapter, never through session tools.
+the executable adapter, never through session tools. `retry` is gated the same
+way: it reruns a failed pipeline once, only when every failed job is known
+infrastructure and the run contract allows it (see
+`skills/delivery/workflows/pipeline-monitoring.md`). `failures` reads the failed
+jobs it decides from.
 
 `forge.change` and `review.publish` must advertise the same provider. A
 missing, mismatched, or failed capability is a terminal stop with a

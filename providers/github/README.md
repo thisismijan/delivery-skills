@@ -28,7 +28,8 @@ Enterprise. Credentials come from `GITHUB_TOKEN`, `GH_TOKEN`,
 
 `github-forge` operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`,
 `discussions`, `anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`,
-`land`. Listings
+`land`. It does not offer `failures` or `retry` yet, so a run that would
+retry a CI failure stops for the operator. Listings
 paginate. Truncated diffs are refused. Draft pull requests are created. GitHub has no per-pull-request squash
 flag, so set squash merging as the repository default. The
 adapter does not merge, close, approve, delete, or resolve discussions, except

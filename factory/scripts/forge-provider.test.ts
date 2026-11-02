@@ -154,6 +154,8 @@ test("normalized operations exclude merge, close, and thread resolution", () => 
 		"note",
 		"reply",
 		"land",
+		"failures",
+		"retry",
 	]);
 	for (const operation of ["merge", "close", "delete", "approve", "resolve"]) {
 		expect(FORGE_OPERATIONS).not.toContain(operation);

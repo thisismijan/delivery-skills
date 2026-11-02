@@ -65,7 +65,7 @@ export function routePipeline(input: PipelineRouteInput): PipelineRoute {
 			action: "escalate",
 			reason:
 				input.attribution === "transient"
-					? "The failure appears transient, but retrying CI is not a portable forge operation."
+					? "The failure appears transient, but the retry operation did not retry it."
 					: input.attribution === "unrelated"
 						? "The failure is unrelated to this change."
 						: "The failure cannot be attributed safely.",

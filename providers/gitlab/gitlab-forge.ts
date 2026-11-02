@@ -11,6 +11,7 @@ import {
 	gitlabCall,
 	gitlabGet,
 	gitlabPaged,
+	gitlabText,
 	isRecord,
 	parseGitOrigin,
 	resolveGitLabTarget,
@@ -46,6 +47,8 @@ export const GITLAB_FORGE_OPERATIONS = [
 	"note",
 	"reply",
 	"land",
+	"failures",
+	"retry",
 ] as const;
 export type GitLabForgeOperation = (typeof GITLAB_FORGE_OPERATIONS)[number];
 
@@ -468,6 +471,8 @@ function receipt(options: {
 	url?: string;
 	draft?: boolean;
 	mergedRevision?: string;
+	retriedJobIds?: string[];
+	mergeTrain?: true;
 }): Record<string, unknown> {
 	return {
 		version: PROTOCOL_VERSION,
@@ -481,6 +486,8 @@ function receipt(options: {
 		...(options.mergedRevision
 			? { mergedRevision: options.mergedRevision }
 			: {}),
+		...(options.retriedJobIds ? { retriedJobIds: options.retriedJobIds } : {}),
+		...(options.mergeTrain ? { mergeTrain: true } : {}),
 	};
 }
 
@@ -860,6 +867,236 @@ async function handleLand(
 	});
 }
 
+const LOG_TAIL_CHARACTERS = 4000;
+// Enough to tell one retry from two; the gate never allows more than one.
+const MAX_TRAIN_ATTEMPTS_COUNTED = 3;
+
+export function pipelineKind(
+	ref: string,
+): "merge-train" | "merge-request" | "branch" {
+	if (/^refs\/merge-requests\/\d+\/train$/.test(ref)) return "merge-train";
+	if (/^refs\/merge-requests\/\d+\/(head|merge)$/.test(ref)) {
+		return "merge-request";
+	}
+	return "branch";
+}
+
+const ANSI_ESCAPE = new RegExp(
+	`${String.fromCharCode(27)}\\[[0-9;?]*[A-Za-z]`,
+	"g",
+);
+
+export function logTail(trace: string): string {
+	const plain = trace
+		.replace(ANSI_ESCAPE, "")
+		.replace(/section_(?:start|end):\d+:[^\r\n]*?\r/g, "")
+		.replace(/\r\n?/g, "\n");
+	return plain.length > LOG_TAIL_CHARACTERS
+		? plain.slice(plain.length - LOG_TAIL_CHARACTERS)
+		: plain;
+}
+
+function idOf(raw: Record<string, unknown>): string | undefined {
+	const id = raw.id;
+	if (typeof id === "number" && Number.isInteger(id)) return String(id);
+	if (typeof id === "string" && /^\d+$/.test(id)) return id;
+	return undefined;
+}
+
+async function pipelineIsAtHead(
+	deps: GitLabForgeDeps,
+	token: string,
+	target: GitLabTarget,
+	pipeline: Record<string, unknown>,
+	head: string,
+): Promise<boolean> {
+	const sha = asString(pipeline.sha);
+	if (!sha) return false;
+	if (sha === head) return true;
+	if (pipelineKind(asString(pipeline.ref) ?? "") === "branch") return false;
+	const commit = await gitlabGet(
+		deps,
+		token,
+		apiUrl(target, `/repository/commits/${encodeURIComponent(sha)}`),
+	);
+	const parents =
+		isRecord(commit) && Array.isArray(commit.parent_ids)
+			? commit.parent_ids
+			: [];
+	return parents[1] === head;
+}
+
+// Every run of each job, retried ones included, so a job retried once shows
+// attempt 2. Only the latest run of each name counts as the job's result.
+export function failedJobsOf(jobs: unknown[]): Array<{
+	id: string;
+	name: string;
+	stage?: string;
+	failureReason?: string;
+	attempt: number;
+}> {
+	const byName = new Map<string, Record<string, unknown>[]>();
+	for (const job of jobs) {
+		if (!isRecord(job)) fail("GitLab job listing is malformed.");
+		const name = asString(job.name)?.trim();
+		if (!name || !idOf(job))
+			fail("GitLab job evidence is missing a name or id.");
+		byName.set(name, [...(byName.get(name) ?? []), job]);
+	}
+	const failed = [];
+	for (const [name, runs] of byName) {
+		const latest = runs.reduce((a, b) =>
+			Number(idOf(b)) > Number(idOf(a)) ? b : a,
+		);
+		if (asString(latest.status) !== "failed" || latest.allow_failure === true) {
+			continue;
+		}
+		const stage = asString(latest.stage)?.trim();
+		const failureReason = asString(latest.failure_reason)?.trim();
+		failed.push({
+			id: idOf(latest) as string,
+			name,
+			...(stage ? { stage } : {}),
+			...(failureReason ? { failureReason } : {}),
+			attempt: runs.length,
+		});
+	}
+	return failed;
+}
+
+async function handleFailures(
+	envelope: unknown,
+	deps: GitLabForgeDeps,
+): Promise<unknown> {
+	const { input, target, token } = await withContext(envelope, deps);
+	const ref = requireText(input, "ref");
+	const iid = gitlabIidFromRef(ref);
+	const change = await loadMergeRequest(deps, token, target, iid, ref);
+	const head = headRevisionOf(change);
+	const requested = asString(input.headRevision)?.trim();
+	if (requested && requested !== head) {
+		fail("The change has new commits; its pipeline failures were not read.");
+	}
+	const pipelines = (
+		await gitlabPaged(deps, token, target, `/merge_requests/${iid}/pipelines`)
+	)
+		.filter(isRecord)
+		.sort((a, b) => Number(idOf(b) ?? 0) - Number(idOf(a) ?? 0));
+	const newest = pipelines[0];
+	if (!newest || !(await pipelineIsAtHead(deps, token, target, newest, head))) {
+		return evidenceEnvelope(change, { pipeline: { available: false } });
+	}
+	const id = idOf(newest);
+	const status = asString(newest.status)?.trim();
+	if (!id || !status) fail("GitLab pipeline evidence is missing id or status.");
+	const kind = pipelineKind(asString(newest.ref) ?? "");
+
+	let attempt = 1;
+	if (kind === "merge-train") {
+		attempt = 0;
+		for (const pipeline of pipelines.slice(0, MAX_TRAIN_ATTEMPTS_COUNTED)) {
+			if (
+				pipelineKind(asString(pipeline.ref) ?? "") !== "merge-train" ||
+				asString(pipeline.status) !== "failed" ||
+				!(await pipelineIsAtHead(deps, token, target, pipeline, head))
+			) {
+				break;
+			}
+			attempt += 1;
+		}
+		attempt = Math.max(attempt, 1);
+	}
+
+	const jobs = await gitlabPaged(
+		deps,
+		token,
+		target,
+		`/pipelines/${id}/jobs?include_retried=true`,
+	);
+	const failedJobs = [];
+	for (const job of failedJobsOf(jobs)) {
+		let tail: string | undefined;
+		try {
+			tail = logTail(
+				await gitlabText(deps, token, apiUrl(target, `/jobs/${job.id}/trace`)),
+			);
+		} catch {
+			tail = undefined;
+		}
+		failedJobs.push({ ...job, ...(tail ? { logTail: tail } : {}) });
+	}
+	const url = asString(newest.web_url)?.trim();
+	return evidenceEnvelope(change, {
+		pipeline: {
+			available: true,
+			id,
+			status,
+			kind,
+			attempt,
+			...(url ? { url } : {}),
+			failedJobs,
+		},
+	});
+}
+
+async function handleRetry(
+	envelope: unknown,
+	deps: GitLabForgeDeps,
+): Promise<unknown> {
+	const { input, target, token } = await withContext(envelope, deps);
+	requireApproved(input);
+	const ref = requireText(input, "ref");
+	const headRevision = requireText(input, "headRevision");
+	const mergeTrain = input.mergeTrain === true;
+	const jobIds = Array.isArray(input.jobIds) ? input.jobIds : undefined;
+	if (mergeTrain === (jobIds !== undefined)) {
+		fail(
+			"A retry names either the jobs to retry or the merge train, not both.",
+		);
+	}
+	if (
+		jobIds &&
+		(jobIds.length === 0 ||
+			!jobIds.every((id) => typeof id === "string" && /^\d+$/.test(id)))
+	) {
+		fail("A retry needs numeric GitLab job ids.");
+	}
+	const iid = gitlabIidFromRef(ref);
+	const current = await loadMergeRequest(deps, token, target, iid, ref);
+	if (headRevisionOf(current) !== headRevision) {
+		fail("The change has new commits; nothing was retried.");
+	}
+	if (mergeTrain) {
+		await gitlabCall(
+			deps,
+			token,
+			"POST",
+			apiUrl(target, `/merge_trains/merge_requests/${iid}`),
+			{ sha: headRevision },
+		);
+		return receipt({
+			operation: "retry",
+			ref,
+			url: asString(current.url),
+			mergeTrain: true,
+		});
+	}
+	const retried: string[] = [];
+	let url: string | undefined;
+	for (const id of jobIds as string[]) {
+		const job = await gitlabCall(
+			deps,
+			token,
+			"POST",
+			apiUrl(target, `/jobs/${id}/retry`),
+		);
+		if (!isRecord(job) || !idOf(job)) fail("GitLab did not retry the job.");
+		url ??= asString(job.web_url);
+		retried.push(id);
+	}
+	return receipt({ operation: "retry", ref, url, retriedJobIds: retried });
+}
+
 async function handleCreate(
 	envelope: unknown,
 	deps: GitLabForgeDeps,
@@ -1060,6 +1297,10 @@ export async function runGitLabForge(
 			return handleApprovals(envelope, deps);
 		case "land":
 			return handleLand(envelope, deps);
+		case "failures":
+			return handleFailures(envelope, deps);
+		case "retry":
+			return handleRetry(envelope, deps);
 		case "create":
 			return handleCreate(envelope, deps);
 		case "set-draft":
@@ -1089,7 +1330,7 @@ export async function handleGitLabForgeCli(options: {
 	const operation = options.argv[0];
 	if (!operation) {
 		options.stderr(
-			"usage: gitlab-forge <find|read|pipeline|files|diff|commits|discussions|anchors|approvals|create|set-draft|note|reply|land>\n",
+			`usage: gitlab-forge <${GITLAB_FORGE_OPERATIONS.join("|")}>\n`,
 		);
 		return 2;
 	}

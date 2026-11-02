@@ -61,6 +61,32 @@ contract.
 - Default branch: record the successful merged revision, archive when needed,
   then wait for deployment and run post-merge verification.
 
+### Retry an infrastructure failure once
+
+For a failed open-change pipeline, write
+`{ "ref": "<ref>", "headRevision": "<head>", "ticketKey": "<KEY>", "runContractPath": "<run-contract.json>", "approved": true }`
+and run:
+
+```text
+bun "${FACTORY_ROOT}/scripts/forge-provider.ts" retry "<repoRoot>" \
+  "${FACTORY_ROOT}/runtime-manifest.json" <retry-input.json>
+```
+
+It reads the failed jobs at that head and decides from them. It retries only
+when the run contract's `ciRetry.infrastructure` is 1, every failed job is
+known infrastructure (a forge-reported runner, API, or image-pull failure, or
+a log showing a registry, certificate, network, or disk failure), none is a
+deploy job, and none has been retried already. Train jobs cannot be retried, so
+a failed train pipeline is re-added to the merge train instead.
+
+- Exit 0, `retried`: record a Decision naming the retried jobs, then wait for
+  the new run as above.
+- Exit 1, `stop`: record its reasons and continue with failure diagnosis. A
+  test failure, an unknown failure, or an infrastructure failure that repeats
+  after its retry goes to the operator.
+- An adapter without `failures` or `retry` fails the command. Treat that as a
+  stop for the operator, never as permission to retry another way.
+
 ### Failure diagnosis
 
 Read the failed job names and sanitized logs when the host exposes them. Re-run
@@ -98,7 +124,7 @@ Escalate with the exact revision, failed checks, sanitized evidence, local
 reproduction result, attribution, and recommended owner when:
 
 - the failure is transient, unrelated, or unknown;
-- retrying provider CI is required (there is no portable retry operation);
+- a retry is needed but the `retry` operation stopped;
 - the repair exceeds approved scope;
 - the fix-forward budget is exhausted; or
 - evidence is missing or contradictory.
@@ -122,12 +148,13 @@ plan. It never performs a human-owned action.
 | Attribution unknown | The pipeline failure cannot be attributed safely | Human inspects the named checks and logs |
 | Scope expansion | The repair exceeds the frozen run contract | Approve a superseding plan or abandon it |
 | Budget exhausted | The bounded fix-forward budget is exhausted | Human chooses containment, rollback, or a new plan |
-| CI retry required | Retrying provider CI is not a portable operation | Human retries in the forge, then resumes delivery |
+| CI retry required | The retry operation stopped: no retry policy, not infrastructure, or already retried once | Human retries in the forge, then resumes delivery |
 
 ## Never
 
 - Merge, close, approve, revert, force-push, or push to the default branch.
-- Retry a failed provider job without an explicit portable capability.
+- Retry a failed provider job other than through the gated `retry` operation,
+  more than once, or for a test failure or a deploy job.
 - Reuse green or review evidence invalidated by a repair.
 - Treat a successful open-change pipeline as proof that the merged revision
   passed on the default branch.

@@ -37,10 +37,16 @@ must not invoke a shell or put secrets on argv. A tracker envelope carries
 credentials.
 
 Forge operations: `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
-`anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, `land`. Tracker operations:
-`list`, `read`, `create`, `link`, `note`. Merge, close, status, and delete
+`anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, `land`, `failures`, `retry`.
+Tracker operations: `list`, `read`, `create`, `link`, `note`. Merge, close, status, and delete
 stay human-owned. An adapter implements `land` as a squash merge guarded by the
 exact head commit; the forge provider runs the land gate before calling it.
+`failures` returns the failed jobs of the newest pipeline at the head, each
+with its forge failure reason, how many times it has run, and the end of its
+log. `retry` takes either `jobIds` or `mergeTrain: true`, checks the head
+first, and reruns exactly what it was given; the forge provider decides
+whether to retry before calling it. An adapter may leave both out, and a run
+that needs them then stops for the operator.
 
 Session-tool aliases live in `factory/scripts/mcp-catalogues.ts`. Add tool
 names there when a host integration uses a new identifier for the same
