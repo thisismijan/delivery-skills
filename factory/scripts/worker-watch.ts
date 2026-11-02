@@ -15,6 +15,7 @@ export const WorkerDispatch = z
 					.object({
 						key: z.string().regex(/^[A-Z][A-Z0-9]+-\d+$/),
 						dispatchedAt: z.string().datetime(),
+						finishedAt: z.string().datetime().optional(),
 					})
 					.strict(),
 			)
@@ -32,6 +33,14 @@ export const WorkerDispatch = z
 		}
 	});
 export type WorkerDispatch = z.infer<typeof WorkerDispatch>;
+
+// A worker the coordinator has reconciled or stopped carries finishedAt; only
+// the rest are still running and count against the cap.
+export function liveWorkers(
+	dispatch: WorkerDispatch,
+): WorkerDispatch["workers"] {
+	return dispatch.workers.filter((worker) => !worker.finishedAt);
+}
 
 export interface WorkerWatchEntry {
 	key: string;
@@ -62,7 +71,7 @@ export function watchWorkers(options: {
 			"the idle limit must be a positive whole number of minutes",
 		);
 	}
-	const workers = dispatch.workers.map((worker): WorkerWatchEntry => {
+	const workers = liveWorkers(dispatch).map((worker): WorkerWatchEntry => {
 		const journal = join(options.workersDir, `${worker.key}.md`);
 		const dispatched = Date.parse(worker.dispatchedAt);
 		const present = existsSync(journal);

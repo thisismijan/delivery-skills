@@ -164,8 +164,9 @@ This command consumes the review comments on the **existing** MR for this ticket
      When no defensible approach comes out of it, stop and escalate with the
      premise, the observation, and the options, following the conductor's
      Human decision brief.
-   - Exit 1: the approach was already re-examined for a repeated label, or the
-     input is malformed. **Stop + escalate** with the printed reason, make
+   - Exit 1: the approach was already re-examined for a repeated label, the
+     round is past the run's review-round limit without a recorded approval
+     for it, or the input is malformed. **Stop + escalate** with the printed reason, make
      zero commits, and post nothing.
 
 6. **Route each comment.** For every entry, derive its action group:
