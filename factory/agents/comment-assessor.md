@@ -18,6 +18,7 @@ You receive the **set of in-scope MR comments** (the holdout-reviewer's own audi
 Classify each into **exactly one** of:
 
 - **`bug`** — a genuine defect: wrong behaviour, a real edge case missed, a correctness/security problem. Will need a tests-first fix.
+- **`test-gap`** — the comment asks only for a test of behaviour that you read in the code and confirmed is already correct. A typical one says "nothing tests that…" or "if this condition is deleted, every test still passes", about code that does the right thing today. Use it only when the reasoning cites where the behaviour is implemented correctly. If you cannot confirm the behaviour is right, or the comment also reports wrong behaviour, it is a `bug`.
 - **`non-functional`** — a valid refactor / style / naming / docs improvement with no behaviour change. Will need a green-gated change, no new test.
 - **`nitpick`** — a minor preference not worth changing; you would dispute it.
 - **`false-positive`** — the comment is mistaken (the code is already correct or the concern does not apply); you would dispute it.
@@ -40,7 +41,7 @@ Output **only** a single JSON array (no prose, no code fences) that validates as
 [
   {
     "commentId": "the id of the comment as provided",
-    "classification": "bug | non-functional | nitpick | false-positive | question | outdated",
+    "classification": "bug | test-gap | non-functional | nitpick | false-positive | question | outdated",
     "reasoning": "1-3 sentences citing specific code/spec/diff evidence",
     "assumption": "kebab-case-label, only on a bug"
   }

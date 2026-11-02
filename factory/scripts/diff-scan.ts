@@ -227,7 +227,7 @@ const LINE_RULES: LineRule[] = [
 const ONE_WAY =
 	/\bDROP\s+(TABLE|COLUMN|SCHEMA|DATABASE|INDEX)\b|\bTRUNCATE\s+(TABLE\s+)?\w|\bDELETE\s+FROM\b|\bop\.drop_(table|column)\b|\bdropTable\b|\bdropColumn\b/i;
 
-const TEST_PATH =
+export const TEST_PATH =
 	/(^|\/)(tests?|__tests__|spec|src\/test|src\/it)\/|\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)test_[^/]*\.py$|_test\.py$|(^|\/)conftest\.py$|(Test|Tests|IT|TestCase)\.(java|kt)$/;
 
 const SKIP_PATTERNS: [RegExp, string][] = [

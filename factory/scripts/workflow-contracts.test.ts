@@ -23,6 +23,7 @@ import {
 	parseLevel,
 	splitLevel,
 } from "./levels";
+import { MUTATION_PROOF_INVOCATION } from "./mutation-proof";
 import { classifyEntry } from "./next-action";
 import {
 	invokeProvider,
@@ -1647,5 +1648,28 @@ test("the worker and review-round caps are enforced by scripts the docs name", (
 	);
 	expect(plain(addressComments)).toMatch(
 		/past the run's review-round limit without a recorded approval/,
+	);
+});
+
+test("test-gap comments get a mutation proof instead of a red gate, and bugs keep the red gate", () => {
+	const assessor = read("agents/comment-assessor.md");
+	expect(MUTATION_PROOF_INVOCATION).toBe(
+		"scripts/mutation-proof.ts <repoRoot> <gate-command.json> <mutation.patch>",
+	);
+	expect(addressComments).toContain(
+		'scripts/mutation-proof.ts" "<repoRoot>" "<reviewDir>/green-command-<commentId>.json" "<reviewDir>/mutation-<commentId>.patch"',
+	);
+	expect(referenceDocs.replace(/"\$FACTORY_ROOT\/([^"]+)"/g, "$1")).toContain(
+		MUTATION_PROOF_INVOCATION,
+	);
+	expect(addressComments).toContain(
+		"`bug`/`test-gap`/`non-functional` → `action`",
+	);
+	expect(plain(addressComments)).toMatch(
+		/Never use this class to skip the red gate on a defect/,
+	);
+	expect(assessor).toContain("bug | test-gap | non-functional");
+	expect(plain(assessor)).toMatch(
+		/If you cannot confirm the behaviour is right, or the comment also reports wrong behaviour, it is a bug/,
 	);
 });
