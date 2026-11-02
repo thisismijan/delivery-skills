@@ -138,8 +138,17 @@ change, its approvals, and its comments, and merges only when all of these
 hold at that one head: open and not a draft; approved by at least one person
 with every approval rule met; the latest pipeline passed; no conflicts; no
 comment readiness did not see; a readiness GO at that head in the ledger;
-`continuous-delivery: yes` in the ledger; and a run contract that permits
-`change-land` for the ticket. It squash-merges with the head as a guard and
+`continuous-delivery: yes` in the ledger; a run contract that permits
+`change-land` for the ticket; and reviewers have settled. Reviewers have
+settled when no reviewer comment is waiting for a reply, and either every
+reviewer who commented approved the current head after the last reply, or
+`reviewSettleMinutes` (`REVIEW_SETTLE_MINUTES`, default 30) reviewing
+minutes have passed since the latest of leaving draft, the last push, and
+the last comment. Minutes inside `REVIEW_QUIET_HOURS` do not count, so a
+change that leaves draft overnight waits for the reviewers' morning pass.
+Not settled yet is a `wait` with the time it settles; a reviewer comment with
+no reply, or a forge that cannot report the change's history, approvals, or
+comment times, is a `stop` with a plain reason for the operator. It squash-merges with the head as a guard and
 removes the source branch where the forge supports it. Exit 0 is `landed` with
 the merged revision, 3 is `wait`, and 1 is `stop`; each prints plain reasons.
 Record the decision and reasons in the ledger. `land` runs only through the

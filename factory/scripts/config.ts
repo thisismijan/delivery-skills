@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DeliveryLevel, LEVEL_SETTINGS, parseLevel } from "./levels";
+import { parseQuietHours } from "./quiet-hours";
 
 // The standard level's values. levels.test.ts holds LEVEL_SETTINGS.standard
 // equal to these, and the skill checks read them from this file's source.
@@ -8,6 +9,8 @@ export const DEFAULT_MAX_PARALLEL_WORKTREES = 4;
 export const DEFAULT_MAX_REVIEW_ROUNDS = 3;
 export const DEFAULT_ROUTING_PROFILING = "off" as const;
 export const DEFAULT_WORKER_IDLE_MINUTES = 20;
+export const DEFAULT_REVIEW_SETTLE_MINUTES = 30;
+export const DEFAULT_REVIEW_TIMEZONE = "UTC";
 
 // Environment variables that replace a level's value when set.
 export const LEVEL_OVERRIDES = {
@@ -38,6 +41,10 @@ const ConfigSchema = z.object({
 		.int()
 		.positive()
 		.default(DEFAULT_WORKER_IDLE_MINUTES),
+	reviewSettleMinutes: DecimalCount,
+	reviewQuietHours: z.string().optional(),
+	reviewTimeZone: z.string().min(1),
+	factoryAuthors: z.array(z.string().min(1)),
 	modelDefault: z.enum(["sonnet", "opus"]).default("sonnet"),
 	routingProfiling: z
 		.enum(["off", "always"])
@@ -72,7 +79,7 @@ export function loadConfig(
 	const overrides = Object.keys(LEVEL_OVERRIDES).filter(
 		(name) => env[name] !== undefined,
 	);
-	return ConfigSchema.parse({
+	const config = ConfigSchema.parse({
 		level,
 		commandDraft: env.COMMAND_DRAFT,
 		commandExecute: env.COMMAND_EXECUTE,
@@ -84,11 +91,26 @@ export function loadConfig(
 		implementerTier: preset.implementerTier,
 		overrides,
 		workerIdleMinutes: env.WORKER_IDLE_MINUTES,
+		reviewSettleMinutes:
+			env.REVIEW_SETTLE_MINUTES ?? DEFAULT_REVIEW_SETTLE_MINUTES,
+		reviewQuietHours: env.REVIEW_QUIET_HOURS?.trim() || undefined,
+		reviewTimeZone: env.REVIEW_TIMEZONE?.trim() || DEFAULT_REVIEW_TIMEZONE,
+		factoryAuthors: (env.DELIVERY_FACTORY_AUTHORS ?? "factory,delivery-bot")
+			.split(",")
+			.map((author) => author.trim())
+			.filter(Boolean),
 		modelDefault: env.MODEL_DEFAULT,
 		routingProfiling: env.ROUTING_PROFILING,
 		codeHost: env.CODE_HOST,
 		specTool: env.SPEC_TOOL,
 	});
+	try {
+		new Intl.DateTimeFormat("en-GB", { timeZone: config.reviewTimeZone });
+	} catch {
+		throw new Error(`unknown REVIEW_TIMEZONE "${config.reviewTimeZone}"`);
+	}
+	parseQuietHours(config.reviewQuietHours, config.reviewTimeZone);
+	return config;
 }
 
 if (import.meta.main) {

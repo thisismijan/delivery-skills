@@ -307,7 +307,7 @@ cannot override the gate.
 | Merges | Nothing here. Recommend `/delivery verify <iid>` after deploy |
 | Accepts a risk | Record the approval, recompute the verdict, reissue the brief |
 | Wants a fix | Recommend `/address-comments <KEY>` or a new factory round, then `/delivery ship <iid>` again |
-| Queues the change | Read the comments on the change again first (precondition 6). A new unanswered one turns GO into NO-GO |
+| Queues the change | Read the comments on the change again first (precondition 6). A new unanswered one turns GO into NO-GO. Then check that reviewers have settled with `bun "${FACTORY_ROOT}/scripts/reviewer-settle.ts" <change.json> <discussions.json> <approvals.json>` on the same head: exit 0 queues, 3 waits until the printed time, 1 goes to the operator. Under auto, the land gate runs the same check |
 | Asks to post the brief on the MR | Post it as one MR comment |
 
 ## Ledger writes

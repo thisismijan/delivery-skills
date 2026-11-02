@@ -10,6 +10,7 @@ import {
 import {
 	DEFAULT_MAX_PARALLEL_WORKTREES,
 	DEFAULT_MAX_REVIEW_ROUNDS,
+	DEFAULT_REVIEW_SETTLE_MINUTES,
 	DEFAULT_ROUTING_PROFILING,
 	DEFAULT_WORKER_IDLE_MINUTES,
 } from "./config";
@@ -35,6 +36,7 @@ import {
 	REVIEW_ROUNDS_RECORD_INVOCATION,
 } from "./review-rounds";
 import { REVIEW_SCOPE_INVOCATION } from "./review-scope";
+import { REVIEWER_SETTLE_INVOCATION } from "./reviewer-settle";
 import {
 	MAX_SANDBOX_ENV,
 	MAX_SANDBOX_SETUP,
@@ -1596,4 +1598,32 @@ test("the operator docs walk through the current review loop with the real scrip
 	for (const doc of [rootReadme, workflowDocs]) {
 		expect(plain(doc)).not.toMatch(/cumulative (?:Opus |frontier )?holdout/i);
 	}
+});
+
+test("the docs describe the reviewer settle check with its real knobs and command", () => {
+	const readiness = read("../skills/delivery/workflows/release-readiness.md");
+	const gitlab = read("../providers/gitlab/README.md");
+	expect(REVIEWER_SETTLE_INVOCATION).toBe(
+		"scripts/reviewer-settle.ts <change.json> <discussions.json> <approvals.json>",
+	);
+	expect(readiness).toContain(
+		'scripts/reviewer-settle.ts" <change.json> <discussions.json> <approvals.json>',
+	);
+	for (const name of [
+		"REVIEW_SETTLE_MINUTES",
+		"REVIEW_QUIET_HOURS",
+		"REVIEW_TIMEZONE",
+		"DELIVERY_FACTORY_AUTHORS",
+	]) {
+		expect(referenceDocs).toContain(`| \`${name}\` |`);
+	}
+	expect(referenceDocs).toContain(`default ${DEFAULT_REVIEW_SETTLE_MINUTES})`);
+	expect(plain(auto).replace(/\s+([,;.)])/g, "$1")).toContain(
+		`REVIEW_SETTLE_MINUTES, default ${DEFAULT_REVIEW_SETTLE_MINUTES}`,
+	);
+	expect(plain(auto)).toMatch(/reviewers have settled/);
+	expect(plain(rootReadme)).toMatch(
+		/readiness gave GO, and reviewers have settled/,
+	);
+	expect(plain(gitlab)).toMatch(/is the GitLab username/);
 });

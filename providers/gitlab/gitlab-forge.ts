@@ -166,13 +166,77 @@ function requireText(input: Record<string, unknown>, field: string): string {
 	return value;
 }
 
+// The username, not the display name: approvals report usernames, so authors
+// must too, or a commenter can never be matched to their approval.
 function authorName(raw: unknown): string {
 	if (typeof raw === "string" && raw.trim()) return raw.trim();
 	if (isRecord(raw)) {
-		const name = asString(raw.name)?.trim() || asString(raw.username)?.trim();
+		const name = asString(raw.username)?.trim() || asString(raw.name)?.trim();
 		if (name) return name;
 	}
 	fail("GitLab change is missing an author.");
+}
+
+function timestamp(raw: unknown): string | undefined {
+	const value = asString(raw)?.trim();
+	return value && !Number.isNaN(Date.parse(value)) ? value : undefined;
+}
+
+const SYSTEM_EVENTS: Array<{
+	kind: "ready" | "draft" | "approved" | "unapproved" | "pushed" | "queued";
+	pattern: RegExp;
+}> = [
+	{
+		kind: "ready",
+		pattern:
+			/^marked this merge request as \*\*ready\*\*|^unmarked as a \*\*Work In Progress\*\*/i,
+	},
+	{
+		kind: "draft",
+		pattern:
+			/^marked this merge request as \*\*draft\*\*|^marked as a \*\*Work In Progress\*\*/i,
+	},
+	{ kind: "approved", pattern: /^approved this merge request/i },
+	{ kind: "unapproved", pattern: /^unapproved this merge request/i },
+	{ kind: "pushed", pattern: /^added \d+ commits?\b|^(force-)?pushed\b/i },
+	{
+		kind: "queued",
+		pattern:
+			/^added this merge request to the \[?merge train|^started a \[?merge train|^enabled an automatic merge|^set to auto-merge|^enabled automatic add to merge train/i,
+	},
+];
+
+// Undefined when any system note has no time: a partial history must not
+// look like a complete one to the settle check.
+export function reviewEventsFromSystemNotes(
+	raw: unknown[],
+): Record<string, unknown>[] | undefined {
+	const events: Record<string, unknown>[] = [];
+	for (const entry of raw) {
+		if (!isRecord(entry) || !Array.isArray(entry.notes)) continue;
+		for (const note of entry.notes) {
+			if (!isRecord(note) || asBoolean(note.system) !== true) continue;
+			const body = (asString(note.body) ?? "").trim();
+			const at = timestamp(note.created_at);
+			if (!at) return undefined;
+			const reset = body.match(
+				/^reset approvals from ((?:@[\w.-]+(?:,\s*|\s+and\s+)?)+)/i,
+			);
+			if (reset?.[1]) {
+				for (const name of reset[1].match(/@[\w.-]+/g) ?? []) {
+					events.push({ kind: "unapproved", actor: name.slice(1), at });
+				}
+				continue;
+			}
+			const match = SYSTEM_EVENTS.find((event) => event.pattern.test(body));
+			if (match) {
+				events.push({ kind: match.kind, actor: authorName(note.author), at });
+			}
+		}
+	}
+	return events.sort((left, right) =>
+		String(left.at).localeCompare(String(right.at)),
+	);
 }
 
 function requiredString(raw: Record<string, unknown>, field: string): string {
@@ -484,7 +548,9 @@ function discussionAnchor(
 	};
 }
 
-function normalizeDiscussions(raw: unknown[]): Record<string, unknown>[] {
+export function normalizeDiscussions(
+	raw: unknown[],
+): Record<string, unknown>[] {
 	return raw.map((entry) => {
 		if (!isRecord(entry)) fail("GitLab discussion is malformed.");
 		const id =
@@ -504,6 +570,7 @@ function normalizeDiscussions(raw: unknown[]): Record<string, unknown>[] {
 						: undefined;
 				if (!noteIdValue) fail("GitLab discussion note is missing an id.");
 				const anchor = discussionAnchor(note);
+				const createdAt = timestamp(note.created_at);
 				return {
 					id: noteIdValue,
 					author: authorName(note.author),
@@ -511,6 +578,7 @@ function normalizeDiscussions(raw: unknown[]): Record<string, unknown>[] {
 					system: asBoolean(note.system) === true,
 					resolved: asBoolean(note.resolved) === true,
 					...(anchor ? { anchor } : {}),
+					...(createdAt ? { createdAt } : {}),
 				};
 			}),
 		};
@@ -693,8 +761,10 @@ async function handleDiscussions(
 		target,
 		`/merge_requests/${iid}/discussions`,
 	);
+	const events = reviewEventsFromSystemNotes(discussions);
 	return evidenceEnvelope(change, {
 		discussions: normalizeDiscussions(discussions),
+		...(events ? { events } : {}),
 	});
 }
 

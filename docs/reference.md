@@ -27,6 +27,10 @@ Environment:
 | `MAX_PARALLEL_WORKTREES` | Concurrent isolated auto worktrees (`scripts/config.ts`, default 4) |
 | `MAX_REVIEW_ROUNDS` | Review rounds auto runs without a ready verdict before it stops (`scripts/config.ts`, default 3) |
 | `WORKER_IDLE_MINUTES` | Minutes without a journal write before auto stops a parallel worker as idle (`scripts/config.ts`, default 20) |
+| `REVIEW_SETTLE_MINUTES` | Reviewing minutes a change waits after it leaves draft, is pushed, or is commented on before it may be queued, unless every commenting reviewer already approved (`scripts/config.ts`, default 30) |
+| `REVIEW_QUIET_HOURS` | Daily range such as `19:00-08:45` whose minutes do not count toward the settle window, so overnight changes wait for the morning review pass. Unset by default |
+| `REVIEW_TIMEZONE` | Time zone for `REVIEW_QUIET_HOURS` (`scripts/config.ts`, default `UTC`). An unknown zone fails closed |
+| `DELIVERY_FACTORY_AUTHORS` | Comma-separated forge usernames whose replies count as the operator's: the factory's own account and the operator's (default `factory,delivery-bot`). The change author always counts |
 | `ROUTING_PROFILING` | Diagnostic shadow-routing evidence. Defaults to `off`. Set `always` to collect evaluation evidence. Does not change live model selection, holdout review of new or changed code, or quality gates |
 
 ## Cost-control scripts

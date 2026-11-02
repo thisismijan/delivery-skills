@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 import {
+	type GitHubDeps,
+	type GitHubTarget,
 	PROTOCOL_VERSION,
 	PROVIDER_ID,
 	SOURCE_AUDIT_PREFIX,
 	TYPE_MARKER_PREFIX,
-	type GitHubDeps,
-	type GitHubTarget,
 	asString,
 	defaultGitHubDeps,
 	fail,
@@ -65,12 +65,17 @@ function requireApproved(input: Record<string, unknown>): void {
 	}
 }
 
-function workItemType(raw: Record<string, unknown>, body: string): WorkItemType {
+function workItemType(
+	raw: Record<string, unknown>,
+	body: string,
+): WorkItemType {
 	const marked = parseMarker(body, TYPE_MARKER_PREFIX);
 	if (marked && (WORK_ITEM_TYPES as readonly string[]).includes(marked)) {
 		return marked as WorkItemType;
 	}
-	const named = isRecord(raw.type) ? asString(raw.type.name)?.trim() : undefined;
+	const named = isRecord(raw.type)
+		? asString(raw.type.name)?.trim()
+		: undefined;
 	if (named) {
 		const lower = named.toLowerCase();
 		if (lower === "bug") return "bug";
@@ -80,11 +85,18 @@ function workItemType(raw: Record<string, unknown>, body: string): WorkItemType 
 	if (Array.isArray(raw.labels)) {
 		const names = raw.labels
 			.map((label) =>
-				isRecord(label) ? asString(label.name)?.trim().toLowerCase() : undefined,
+				isRecord(label)
+					? asString(label.name)?.trim().toLowerCase()
+					: undefined,
 			)
 			.filter((value): value is string => Boolean(value));
 		if (names.includes("bug")) return "bug";
-		if (names.some((name) => name === "story" || name === "feature" || name === "enhancement")) {
+		if (
+			names.some(
+				(name) =>
+					name === "story" || name === "feature" || name === "enhancement",
+			)
+		) {
 			return "story";
 		}
 		if (names.includes("task")) return "task";
@@ -129,7 +141,9 @@ async function loadBlockedBy(
 	}
 }
 
-function parseNotes(comments: unknown[]): Array<{ auditId: string; body: string }> {
+function parseNotes(
+	comments: unknown[],
+): Array<{ auditId: string; body: string }> {
 	const notes: Array<{ auditId: string; body: string }> = [];
 	for (const entry of comments) {
 		if (!isRecord(entry)) continue;
@@ -222,7 +236,11 @@ async function handleRead(
 	const { input, target, token } = await withGitHubContext(envelope, deps);
 	const ref = requireText(input, "ref");
 	const number = githubNumberFromRef(ref);
-	const raw = await githubGet(deps, token, repoUrl(target, `/issues/${number}`));
+	const raw = await githubGet(
+		deps,
+		token,
+		repoUrl(target, `/issues/${number}`),
+	);
 	return normalizeIssue(deps, token, target, raw);
 }
 
@@ -249,8 +267,7 @@ function sameCreateContent(
 	const body = stripMarkers(rawBody);
 	const title = asString(existing.title)?.trim();
 	const type = workItemType(existing, rawBody);
-	const requestedType =
-		asString(input.type)?.trim() || "story";
+	const requestedType = asString(input.type)?.trim() || "story";
 	return (
 		title === asString(input.title)?.trim() &&
 		body === asString(input.body)?.trim() &&
@@ -284,10 +301,16 @@ async function handleCreate(
 	if (requestedRef) {
 		fail("GitHub assigns issue numbers; omit ref when creating an issue.");
 	}
-	const created = await githubCall(deps, token, "POST", repoUrl(target, "/issues"), {
-		title,
-		body: `${body}\n\n${sourceAuditMarker(auditId)}\n${typeMarker(type)}`,
-	});
+	const created = await githubCall(
+		deps,
+		token,
+		"POST",
+		repoUrl(target, "/issues"),
+		{
+			title,
+			body: `${body}\n\n${sourceAuditMarker(auditId)}\n${typeMarker(type)}`,
+		},
+	);
 	const blockedBy = Array.isArray(input.blockedBy)
 		? input.blockedBy.map((value) => String(value))
 		: [];
@@ -343,7 +366,11 @@ async function handleLink(
 		fail("GitHub issue adapter does not delete dependency links.");
 	}
 	await addBlockedBy(deps, token, target, number, requested);
-	const raw = await githubGet(deps, token, repoUrl(target, `/issues/${number}`));
+	const raw = await githubGet(
+		deps,
+		token,
+		repoUrl(target, `/issues/${number}`),
+	);
 	return normalizeIssue(deps, token, target, raw);
 }
 
@@ -363,7 +390,13 @@ async function handleNote(
 	);
 	const marker = noteAuditMarker(auditId);
 	const existing = comments.find((entry) => {
-		return isRecord(entry) && parseMarker(asString(entry.body) ?? "", "<!-- delivery-note-audit-id:") === auditId;
+		return (
+			isRecord(entry) &&
+			parseMarker(
+				asString(entry.body) ?? "",
+				"<!-- delivery-note-audit-id:",
+			) === auditId
+		);
 	});
 	const payload = `${marker}\n${body}`;
 	if (existing && isRecord(existing)) {
@@ -384,7 +417,11 @@ async function handleNote(
 			{ body: payload },
 		);
 	}
-	const raw = await githubGet(deps, token, repoUrl(target, `/issues/${number}`));
+	const raw = await githubGet(
+		deps,
+		token,
+		repoUrl(target, `/issues/${number}`),
+	);
 	const refreshed = await githubPaged(
 		deps,
 		token,
