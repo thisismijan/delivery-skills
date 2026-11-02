@@ -106,6 +106,16 @@ change head or merged revision and that credentials permit pipeline evidence.
 GitHub tokens may need access to statuses or check runs. Missing or stale
 evidence fails closed rather than falling back to the branch's latest pipeline.
 
+## Run stops with "frozen under an older SDLC constitution"
+
+The pack was upgraded under a run, and the new constitution changed the list
+of actions people own. The run's frozen contract no longer matches. Nothing is
+lost: the message names the changed action and the contract's hash. Approve
+the plan again as the next plan version, with `supersedesHash` set to that
+hash, a reason, and the affected invariant. Freeze it, then run
+`sdlc-constitution.ts supersede <old-contract.json> <new-contract.json>`. When
+that passes, the new contract replaces the old one and the run carries on.
+
 ## Run stops with "this run was approved at the min level"
 
 The level is part of the approved plan. Resuming with a different level word

@@ -240,6 +240,42 @@ export const FrozenRunContract = z
 	.superRefine(refineRunContract);
 export type FrozenRunContract = z.infer<typeof FrozenRunContract>;
 
+// The shape every earlier constitution froze. A human-owned action that a
+// later constitution dropped still parses here, so an old run can be named
+// plainly and superseded instead of failing schema validation.
+const PriorRunContract = z
+	.object({
+		...RunContractFields,
+		humanOwned: z.array(z.string().min(1)).nonempty(),
+		constitutionHash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+		contractHash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+	})
+	.strict();
+type PriorRunContract = z.infer<typeof PriorRunContract>;
+
+export function supersedeAdvice(contractHash: string): string {
+	return `Approve the plan again as a new plan version that supersedes ${contractHash}, freeze it, then run ${CONSTITUTION_SUPERSEDE_INVOCATION} with this contract as the current one.`;
+}
+
+export class OutdatedRunContractError extends Error {
+	constructor(
+		readonly retiredActions: string[],
+		readonly contractHash: string,
+	) {
+		super(
+			`This run contract was frozen under an older SDLC constitution: it names ${retiredActions.join(", ")} as human-owned, which this version no longer has. ${supersedeAdvice(contractHash)}`,
+		);
+		this.name = "OutdatedRunContractError";
+	}
+}
+
+function parsePriorRunContract(input: unknown): PriorRunContract | undefined {
+	const parsed = PriorRunContract.safeParse(input);
+	if (!parsed.success) return undefined;
+	const { contractHash, ...body } = parsed.data;
+	return sha256Canonical(body) === contractHash ? parsed.data : undefined;
+}
+
 export interface ConstitutionBundle {
 	dir: string;
 	document: ConstitutionDocument;
@@ -319,6 +355,15 @@ export function parseRunContractDraft(input: unknown): RunContractDraft {
 }
 
 export function parseFrozenRunContract(input: unknown): FrozenRunContract {
+	const strict = FrozenRunContract.safeParse(input);
+	if (!strict.success) {
+		const prior = parsePriorRunContract(input);
+		const known = new Set<string>(HumanOwnedAction.options);
+		const retired = prior?.humanOwned.filter((action) => !known.has(action));
+		if (prior && retired && retired.length > 0) {
+			throw new OutdatedRunContractError(retired, prior.contractHash);
+		}
+	}
 	const parsed = FrozenRunContract.parse(input);
 	const { contractHash, ...body } = parsed;
 	const expected = sha256Canonical(body);
@@ -449,8 +494,7 @@ export function checkRunContract(input: {
 	if (input.frozen.constitutionHash !== input.constitution.hash) {
 		return {
 			ok: false,
-			reason:
-				"the frozen run contract was hashed against a different constitution; re-approve the plan",
+			reason: `The run contract was frozen under a different SDLC constitution. ${supersedeAdvice(input.frozen.contractHash)}`,
 		};
 	}
 	const expected = sha256Canonical(omitHash(input.frozen));
@@ -540,15 +584,17 @@ function omitHash(
 	return body;
 }
 
-function checkProposal(
-	frozen: FrozenRunContract,
-	proposal: FrozenRunContract,
+export function checkProposal(
+	frozen: unknown,
+	proposal: unknown,
 	liveHash: string,
 ): ContractCheckResult {
-	let current: FrozenRunContract;
+	let current: PriorRunContract;
 	let proposed: FrozenRunContract;
 	try {
-		current = parseFrozenRunContract(frozen);
+		const prior = parsePriorRunContract(frozen);
+		if (!prior) parseFrozenRunContract(frozen);
+		current = prior as PriorRunContract;
 		proposed = parseFrozenRunContract(proposal);
 	} catch (error) {
 		return {
@@ -710,13 +756,20 @@ async function main(argv: string[]): Promise<number> {
 			return 2;
 		}
 		const live = loadConstitution();
-		const frozen = parseFrozenRunContract(await readJsonFile(path, path));
-		const result = checkRunContract({
-			frozen,
-			constitution: live,
-			stage,
-			ticketKey: ticket,
-		});
+		let result: ContractCheckResult;
+		try {
+			result = checkRunContract({
+				frozen: parseFrozenRunContract(await readJsonFile(path, path)),
+				constitution: live,
+				stage,
+				ticketKey: ticket,
+			});
+		} catch (error) {
+			result = {
+				ok: false,
+				reason: error instanceof Error ? error.message : String(error),
+			};
+		}
 		console.log(JSON.stringify(result));
 		return result.ok ? 0 : 1;
 	}
@@ -726,8 +779,18 @@ async function main(argv: string[]): Promise<number> {
 			console.error(`usage: ${CONSTITUTION_LEVEL_INVOCATION}`);
 			return 2;
 		}
-		const frozen = parseFrozenRunContract(await readJsonFile(path, path));
-		const result = contractLevel(frozen, argv[2]);
+		let result: ContractLevelResult | { ok: false; reason: string };
+		try {
+			result = contractLevel(
+				parseFrozenRunContract(await readJsonFile(path, path)),
+				argv[2],
+			);
+		} catch (error) {
+			result = {
+				ok: false,
+				reason: error instanceof Error ? error.message : String(error),
+			};
+		}
 		console.log(JSON.stringify(result));
 		return result.ok ? 0 : 1;
 	}
@@ -739,13 +802,11 @@ async function main(argv: string[]): Promise<number> {
 			return 2;
 		}
 		const live = loadConstitution();
-		const current = parseFrozenRunContract(
+		const result = checkProposal(
 			await readJsonFile(currentPath, currentPath),
-		);
-		const proposal = parseFrozenRunContract(
 			await readJsonFile(proposalPath, proposalPath),
+			live.hash,
 		);
-		const result = checkProposal(current, proposal, live.hash);
 		console.log(JSON.stringify(result));
 		return result.ok ? 0 : 1;
 	}
