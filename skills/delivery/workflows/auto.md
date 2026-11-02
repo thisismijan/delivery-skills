@@ -107,7 +107,10 @@ the operator how to proceed. `/address-comments` also records every round in
 `.review/<changeName>/review-rounds.json` with `review-rounds.ts`, in auto and
 in single steps. A bug that breaks an assumption an earlier round already
 broke gets a premise check before any patch, and the same assumption again
-after that check stops for the operator. Unanswered comments are answered by one `/address-comments` round
+after that check stops for the operator. `review-rounds.ts record` also
+refuses a round past `maxReviewRounds` until the operator approves that exact
+round: record their words in the ledger's Approvals and with
+`bun "${FACTORY_ROOT}/scripts/review-rounds.ts" allow <review-rounds.json> <round> <approval.json>`. Unanswered comments are answered by one `/address-comments` round
 that takes every open comment on the change together, never one round per
 thread, and that round counts as one review round.
 
@@ -171,7 +174,10 @@ other way.
   1. Resolve one absolute shared `DELIVERY_STATE_ROOT` from the primary
      worktree. The coordinator remains the only writer of the run ledger.
      Choose the current batch with
-     `bun "${FACTORY_ROOT}/scripts/config.ts" ready-wave '<keys-json>'`.
+     `bun "${FACTORY_ROOT}/scripts/config.ts" ready-wave '<keys-json>' <state-root>/workers/<run-id>/dispatch.json`.
+     It counts the workers that `dispatch.json` still shows running against
+     `maxParallelWorktrees`, dispatches only the room left, and refuses a key
+     that already has a worker running.
      Reserve only that batch in one compare-and-swap write before dispatch.
   2. Create one detached git worktree per dispatched key from the recorded base.
      Keep worktrees outside one another. Never reuse a dirty or occupied path.
@@ -211,8 +217,10 @@ other way.
      lands), tracker transitions,
      sibling worktrees, and work outside its key.
   5. Start every worker in the current batch before awaiting any one of them.
-     Write `<state-root>/workers/<run-id>/dispatch.json` with each key and its
-     ISO `dispatchedAt`. While the batch runs, check it with
+     Add each key and its ISO `dispatchedAt` to
+     `<state-root>/workers/<run-id>/dispatch.json`, keeping the entries
+     already there. Set a worker's `finishedAt` when the coordinator
+     reconciles its result or stops it; until then it counts against the cap. While the batch runs, check it with
      `bun "${FACTORY_ROOT}/scripts/worker-watch.ts" <workers-dir> <dispatch.json>`
      whenever the coordinator wakes. A worker whose journal has not changed for
      `workerIdleMinutes` (`WORKER_IDLE_MINUTES`, default 20) is idle: exit 3

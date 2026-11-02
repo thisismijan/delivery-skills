@@ -37,6 +37,7 @@ Environment:
 
 ```text
 bun "$FACTORY_ROOT/scripts/config.ts"
+bun "$FACTORY_ROOT/scripts/config.ts" ready-wave <keys-json> [<dispatch.json>]
 bun "$FACTORY_ROOT/scripts/review-fanout.ts" <input.json>
 bun "$FACTORY_ROOT/scripts/review-fanout.ts" readiness <input.json>
 bun "$FACTORY_ROOT/scripts/diff-scan.ts" <base> <head>
@@ -60,6 +61,7 @@ bun "$FACTORY_ROOT/scripts/review-packet.ts" --ticket <file> --spec <change-dir>
 ```text
 bun "$FACTORY_ROOT/scripts/review-rounds.ts" record <review-rounds.json> <classification.json> <head-sha>
 bun "$FACTORY_ROOT/scripts/review-rounds.ts" premise <review-rounds.json> <assumption> <outcome.md>
+bun "$FACTORY_ROOT/scripts/review-rounds.ts" allow <review-rounds.json> <round> <approval.json>
 ```
 
 `/address-comments` records each round in
@@ -67,8 +69,10 @@ bun "$FACTORY_ROOT/scripts/review-rounds.ts" premise <review-rounds.json> <assum
 bug with the design assumption it breaks, reusing an earlier round's label
 for the same idea. `record` exits 0 when no label repeats, 3 when one does
 (a premise check comes before any patch), and 1 when a label repeats after
-its premise check was recorded (stop and ask). Recording the same head again
-replaces that round. Each actioned comment is one fix commit, after a
+its premise check was recorded (stop and ask). It also exits 1, writing
+nothing, for a round past the level's `maxReviewRounds` unless `allow`
+recorded the operator's approval (`who`, `words`, `at`) for that exact next
+round. Recording the same head again replaces that round. Each actioned comment is one fix commit, after a
 test-only commit for a bug; formatting and spec updates go in the fix commit.
 
 ## Review scope

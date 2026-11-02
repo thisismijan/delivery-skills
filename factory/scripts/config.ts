@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import { z } from "zod";
 import { DeliveryLevel, LEVEL_SETTINGS, parseLevel } from "./levels";
 import { parseQuietHours } from "./quiet-hours";
@@ -58,6 +59,7 @@ export type Config = z.infer<typeof ConfigSchema>;
 export function selectReadyWave<T>(
 	keys: readonly T[],
 	maxParallelWorktrees: number,
+	live: readonly T[] = [],
 ): { dispatch: T[]; queued: T[] } {
 	if (!Number.isSafeInteger(maxParallelWorktrees) || maxParallelWorktrees < 1) {
 		throw new Error("maxParallelWorktrees must be a positive safe integer");
@@ -65,9 +67,17 @@ export function selectReadyWave<T>(
 	if (new Set(keys).size !== keys.length) {
 		throw new Error("ready-wave keys must be unique");
 	}
+	const running = new Set(live);
+	const again = keys.filter((key) => running.has(key));
+	if (again.length > 0) {
+		throw new Error(
+			`${again.join(", ")} already ${again.length === 1 ? "has a worker" : "have workers"} running`,
+		);
+	}
+	const room = Math.max(0, maxParallelWorktrees - running.size);
 	return {
-		dispatch: keys.slice(0, maxParallelWorktrees),
-		queued: keys.slice(maxParallelWorktrees),
+		dispatch: keys.slice(0, room),
+		queued: keys.slice(room),
 	};
 }
 
@@ -124,11 +134,24 @@ if (import.meta.main) {
 				.array(z.string().trim().min(1))
 				.parse(JSON.parse(process.argv[3]));
 			const config = loadConfig();
+			const dispatchPath = process.argv[4];
+			const watch = await import("./worker-watch");
+			const live =
+				dispatchPath && existsSync(dispatchPath)
+					? watch
+							.liveWorkers(
+								watch.WorkerDispatch.parse(
+									JSON.parse(readFileSync(dispatchPath, "utf8")),
+								),
+							)
+							.map((worker) => worker.key)
+					: [];
 			console.log(
 				JSON.stringify(
 					{
-						...selectReadyWave(keys, config.maxParallelWorktrees),
+						...selectReadyWave(keys, config.maxParallelWorktrees, live),
 						maxParallelWorktrees: config.maxParallelWorktrees,
+						...(dispatchPath ? { live } : {}),
 					},
 					null,
 					2,
@@ -137,7 +160,9 @@ if (import.meta.main) {
 		} else if (command === undefined) {
 			console.log(JSON.stringify(loadConfig(), null, 2));
 		} else {
-			console.error("usage: config.ts [ready-wave <keys-json>]");
+			console.error(
+				"usage: config.ts [ready-wave <keys-json> [<dispatch.json>]]",
+			);
 			process.exit(2);
 		}
 	} catch (e) {

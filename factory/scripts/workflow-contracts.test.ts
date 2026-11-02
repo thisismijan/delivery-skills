@@ -32,6 +32,7 @@ import {
 } from "./providers";
 import { SKIPPED_WORKERS } from "./record-skip";
 import {
+	REVIEW_ROUNDS_ALLOW_INVOCATION,
 	REVIEW_ROUNDS_PREMISE_INVOCATION,
 	REVIEW_ROUNDS_RECORD_INVOCATION,
 } from "./review-rounds";
@@ -1626,4 +1627,25 @@ test("the docs describe the reviewer settle check with its real knobs and comman
 		/readiness gave GO, and reviewers have settled/,
 	);
 	expect(plain(gitlab)).toMatch(/is the GitLab username/);
+});
+
+test("the worker and review-round caps are enforced by scripts the docs name", () => {
+	expect(REVIEW_ROUNDS_ALLOW_INVOCATION).toBe(
+		"scripts/review-rounds.ts allow <review-rounds.json> <round> <approval.json>",
+	);
+	expect(auto).toContain(
+		'scripts/review-rounds.ts" allow <review-rounds.json> <round> <approval.json>',
+	);
+	expect(referenceDocs.replace(/"\$FACTORY_ROOT\/([^"]+)"/g, "$1")).toContain(
+		REVIEW_ROUNDS_ALLOW_INVOCATION,
+	);
+	expect(auto).toContain(
+		`scripts/config.ts" ready-wave '<keys-json>' <state-root>/workers/<run-id>/dispatch.json`,
+	);
+	expect(plain(auto)).toMatch(
+		/Set a worker's finishedAt when the coordinator reconciles its result or stops it/,
+	);
+	expect(plain(addressComments)).toMatch(
+		/past the run's review-round limit without a recorded approval/,
+	);
 });

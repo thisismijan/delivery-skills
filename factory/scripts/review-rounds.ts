@@ -1,10 +1,14 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { z } from "zod";
+import { loadConfig } from "./config";
 import { AssumptionLabel, parseClassificationVerdict } from "./verdicts";
 
 // biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
 export const REVIEW_ROUNDS_RECORD_INVOCATION =
 	"scripts/review-rounds.ts record <review-rounds.json> <classification.json> <head-sha>";
+// biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
+export const REVIEW_ROUNDS_ALLOW_INVOCATION =
+	"scripts/review-rounds.ts allow <review-rounds.json> <round> <approval.json>";
 // biome-ignore format: the workflow contract reads each invocation as one double-quoted literal
 export const REVIEW_ROUNDS_PREMISE_INVOCATION =
 	"scripts/review-rounds.ts premise <review-rounds.json> <assumption> <outcome.md>";
@@ -31,11 +35,21 @@ const PremiseCheck = z
 	})
 	.strict();
 
+const Allowance = z
+	.object({
+		round: z.number().int().positive(),
+		who: z.string().trim().min(1),
+		words: z.string().trim().min(1),
+		at: z.string().datetime(),
+	})
+	.strict();
+
 export const ReviewRounds = z
 	.object({
 		version: z.literal(1),
 		rounds: z.array(Round),
 		premiseChecks: z.array(PremiseCheck),
+		allowances: z.array(Allowance).default([]),
 	})
 	.strict()
 	.superRefine((value, ctx) => {
@@ -57,7 +71,7 @@ export type RoundDecision =
 	| { decision: "stop"; round: number; repeated: string[]; reason: string };
 
 export function emptyRounds(): ReviewRounds {
-	return { version: 1, rounds: [], premiseChecks: [] };
+	return { version: 1, rounds: [], premiseChecks: [], allowances: [] };
 }
 
 export function loadRounds(path: string): ReviewRounds {
@@ -149,6 +163,36 @@ export function recordPremiseCheck(
 	});
 }
 
+// The level's review-round limit holds even when a brief is misread: a round
+// past it needs the operator's recorded approval for that exact round.
+export function roundLimitReason(
+	rounds: ReviewRounds,
+	limit: number,
+): string | undefined {
+	const round = rounds.rounds.length;
+	if (round <= limit) return undefined;
+	if (rounds.allowances.some((allowance) => allowance.round === round)) {
+		return undefined;
+	}
+	return `This would be review round ${round}, past the limit of ${limit} for this run's level. Ask the operator whether to go on, and record their approval for round ${round} with ${REVIEW_ROUNDS_ALLOW_INVOCATION}.`;
+}
+
+export function allowRound(
+	rounds: ReviewRounds,
+	round: number,
+	approval: unknown,
+): ReviewRounds {
+	const next = rounds.rounds.length + 1;
+	if (round !== next) {
+		throw new Error(`only the next round, ${next}, can be allowed`);
+	}
+	const parsed = Allowance.omit({ round: true }).parse(approval);
+	return ReviewRounds.parse({
+		...rounds,
+		allowances: [...rounds.allowances, { round, ...parsed }],
+	});
+}
+
 function save(path: string, rounds: ReviewRounds): void {
 	writeFileSync(path, `${JSON.stringify(rounds, null, "\t")}\n`);
 }
@@ -162,6 +206,17 @@ if (import.meta.main) {
 				JSON.parse(readFileSync(args[0], "utf8")),
 				args[1],
 			);
+			const overLimit = roundLimitReason(next, loadConfig().maxReviewRounds);
+			if (overLimit) {
+				console.log(
+					JSON.stringify(
+						{ decision: "stop", round: next.rounds.length, reason: overLimit },
+						null,
+						2,
+					),
+				);
+				process.exit(1);
+			}
 			save(path, next);
 			const decision = decideRound(next);
 			console.log(JSON.stringify(decision, null, 2));
@@ -172,6 +227,14 @@ if (import.meta.main) {
 						? 3
 						: 1,
 			);
+		} else if (command === "allow" && path && args[0] && args[1]) {
+			const next = allowRound(
+				loadRounds(path),
+				Number(args[0]),
+				JSON.parse(readFileSync(args[1], "utf8")),
+			);
+			save(path, next);
+			console.log(JSON.stringify({ allowed: Number(args[0]) }));
 		} else if (command === "premise" && path && args[0] && args[1]) {
 			const next = recordPremiseCheck(
 				loadRounds(path),
@@ -184,7 +247,7 @@ if (import.meta.main) {
 			);
 		} else {
 			console.error(
-				`usage: ${REVIEW_ROUNDS_RECORD_INVOCATION} | ${REVIEW_ROUNDS_PREMISE_INVOCATION}`,
+				`usage: ${REVIEW_ROUNDS_RECORD_INVOCATION} | ${REVIEW_ROUNDS_PREMISE_INVOCATION} | ${REVIEW_ROUNDS_ALLOW_INVOCATION}`,
 			);
 			process.exit(2);
 		}
