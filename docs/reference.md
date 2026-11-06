@@ -27,6 +27,7 @@ Environment:
 | `MAX_PARALLEL_WORKTREES` | Concurrent isolated auto worktrees (`scripts/config.ts`, default 4) |
 | `MAX_REVIEW_ROUNDS` | Review rounds auto runs without a ready verdict before it stops (`scripts/config.ts`, default 3) |
 | `WORKER_IDLE_MINUTES` | Minutes without a journal write before auto stops a parallel worker as idle (`scripts/config.ts`, default 20) |
+| `MAX_AWAITING_REVIEW` | Open changes, plus workers still building one, that may wait on the operator before auto starts more work (`scripts/config.ts`, default 5) |
 | `REVIEW_SETTLE_MINUTES` | Reviewing minutes a change waits after it leaves draft, is pushed, or is commented on before it may be queued, unless every commenting reviewer already approved (`scripts/config.ts`, default 30) |
 | `REVIEW_QUIET_HOURS` | Daily range such as `19:00-08:45` whose minutes do not count toward the settle window, so overnight changes wait for the morning review pass. Unset by default |
 | `REVIEW_TIMEZONE` | Time zone for `REVIEW_QUIET_HOURS` (`scripts/config.ts`, default `UTC`). An unknown zone fails closed |
@@ -37,7 +38,7 @@ Environment:
 
 ```text
 bun "$FACTORY_ROOT/scripts/config.ts"
-bun "$FACTORY_ROOT/scripts/config.ts" ready-wave <keys-json> [<dispatch.json>]
+bun "$FACTORY_ROOT/scripts/config.ts" ready-wave <keys-json> [<dispatch.json> [<ledger.md>]]
 bun "$FACTORY_ROOT/scripts/review-fanout.ts" <input.json>
 bun "$FACTORY_ROOT/scripts/review-fanout.ts" readiness <input.json>
 bun "$FACTORY_ROOT/scripts/diff-scan.ts" <base> <head>

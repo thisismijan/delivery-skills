@@ -14,6 +14,7 @@ import {
 	UNPROVEN_SECTION,
 } from "./change-description";
 import {
+	DEFAULT_MAX_AWAITING_REVIEW,
 	DEFAULT_MAX_PARALLEL_WORKTREES,
 	DEFAULT_MAX_REVIEW_ROUNDS,
 	DEFAULT_REVIEW_SETTLE_MINUTES,
@@ -1650,7 +1651,14 @@ test("the worker and review-round caps are enforced by scripts the docs name", (
 		REVIEW_ROUNDS_ALLOW_INVOCATION,
 	);
 	expect(auto).toContain(
-		`scripts/config.ts" ready-wave '<keys-json>' <state-root>/workers/<run-id>/dispatch.json`,
+		`scripts/config.ts" ready-wave '<keys-json>' <state-root>/workers/<run-id>/dispatch.json <ledger.md>`,
+	);
+	expect(auto.replace(/\s+/g, " ")).toContain(
+		`When those reach \`maxAwaitingReview\` (\`MAX_AWAITING_REVIEW\`, default ${DEFAULT_MAX_AWAITING_REVIEW}) it starts no more work`,
+	);
+	expect(plain(auto)).toMatch(/Never raise the limit yourself/);
+	expect(referenceDocs).toContain(
+		`(\`scripts/config.ts\`, default ${DEFAULT_MAX_AWAITING_REVIEW}) |`,
 	);
 	expect(plain(auto)).toMatch(
 		/Set a worker's finishedAt when the coordinator reconciles its result or stops it/,
