@@ -163,8 +163,11 @@ gate of their own.
 
 Run the lenses the classification turned on as parallel read-only subagents. Give
 each one the diff, the OpenSpec change, and its brief below, not the author's
-reasoning. Each returns findings as: severity (Critical, High, Important,
-Suggestion), location, what happens, evidence.
+reasoning. Also give each the MR description's "Decisions made for you" and
+"What the checks do not prove" sections, and ask it to treat every listed
+decision as a choice to challenge, not a settled fact. Each returns findings as:
+severity (Critical, High, Important, Suggestion), location, what happens,
+evidence.
 
 - **Rollback** (always on). What does reverting the MR leave behind? Migrations
   without a tested down path, data already written in the new shape, messages
@@ -272,6 +275,12 @@ verdict unless the change itself stays the same.
 ### Risks accepted
 - <risk> — accepted by <who> on <date> at head <short head>
 
+### Decisions to know about
+- <a choice made without the spec: what was chosen and why>
+
+### What the checks do not prove
+- <what the passing tests and pipeline leave open: what they fake, what no test runs, what was tested only against the data it came from>
+
 ### Merge danger
 <One-way | Two-way> door: <why>. Blast radius: <what else this can affect>.
 
@@ -290,7 +299,15 @@ verdict unless the change itself stays the same.
 - <step>
 ```
 
-Leave out any section that has nothing in it.
+Leave out any section that has nothing in it, except the two below.
+
+Always include "Decisions to know about" and "What the checks do not prove".
+Take them from the MR description's sections of the same names, then add what
+later rounds decided (fixes from review and answered comments) and what this
+stage's own checks leave open, such as a pipeline that runs no deploy job. Write
+"None." under decisions only when no round decided anything. The second section
+is never empty: a GO is a judgement about what was checked, so the person
+merging needs to see what was not.
 
 ## Checkpoint
 

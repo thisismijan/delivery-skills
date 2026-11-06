@@ -66,6 +66,7 @@ Report a compact handoff with exactly these headings:
 - **Scenarios covered:** one line per scenario.
 - **Reused:** existing seam, fixture, or helper used, or `none`.
 - **Skipped:** transient scenarios with one-line reasons, or `none`.
+- **Decisions:** expected values the spec did not state that you had to choose, one line each with why, or `none`.
 - **Not checked:** commands or runtime behaviour you could not verify with your tools.
 - **Residual risks:** concrete coverage risk, or `none`.
 
