@@ -131,3 +131,18 @@ Every release-readiness lens subagent SHALL use the exact model identifier retur
 #### Scenario: Workflow wording is pinned
 - **WHEN** the release readiness workflow is read
 - **THEN** it names `resolve standard`, says that exact identifier is passed to every lens subagent, says the main conversation still decides GO or NO-GO, and does not dispatch a fast model for those lenses
+
+### Requirement: The readiness brief shows decisions and what the checks leave open
+The release-readiness brief SHALL always include "Decisions to know about" and
+"What the checks do not prove", taken from the change description and extended
+with what later rounds decided and what the stage's own checks leave open. The
+second section SHALL NOT be empty. Review lenses SHALL receive the listed
+decisions as choices to challenge.
+
+#### Scenario: A GO brief
+- **WHEN** readiness issues a GO
+- **THEN** the brief still names what the passing checks do not prove
+
+#### Scenario: A decision made while answering comments
+- **WHEN** a fix for a review comment chose a behaviour the spec did not state
+- **THEN** the brief lists it under decisions to know about
