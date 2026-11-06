@@ -180,10 +180,19 @@ other way.
   1. Resolve one absolute shared `DELIVERY_STATE_ROOT` from the primary
      worktree. The coordinator remains the only writer of the run ledger.
      Choose the current batch with
-     `bun "${FACTORY_ROOT}/scripts/config.ts" ready-wave '<keys-json>' <state-root>/workers/<run-id>/dispatch.json`.
+     `bun "${FACTORY_ROOT}/scripts/config.ts" ready-wave '<keys-json>' <state-root>/workers/<run-id>/dispatch.json <ledger.md>`.
      It counts the workers that `dispatch.json` still shows running against
      `maxParallelWorktrees`, dispatches only the room left, and refuses a key
-     that already has a worker running.
+     that already has a worker running. It also reads the ledger's open
+     changes, the keys with an MR that is not yet merged, stopped and waiting
+     ones included, and counts each live worker as one more. When those reach
+     `maxAwaitingReview` (`MAX_AWAITING_REVIEW`, default 5) it starts no more
+     work and reports `heldForReview`. Producing changes faster than a person
+     can review them only lengthens the queue. Record a Decision
+     `held <keys>: <n> changes wait for your review (limit <m>)`, keep working
+     the open changes, and when only held keys remain, end the turn as waiting
+     on a person with `/delivery auto <KEY>` as the resume command. Never
+     raise the limit yourself.
      Reserve only that batch in one compare-and-swap write before dispatch.
   2. Create one detached git worktree per dispatched key from the recorded base.
      Keep worktrees outside one another. Never reuse a dirty or occupied path.

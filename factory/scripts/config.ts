@@ -12,6 +12,9 @@ export const DEFAULT_ROUTING_PROFILING = "off" as const;
 export const DEFAULT_WORKER_IDLE_MINUTES = 20;
 export const DEFAULT_REVIEW_SETTLE_MINUTES = 30;
 export const DEFAULT_REVIEW_TIMEZONE = "UTC";
+// Open changes, plus workers still building one, that may wait on the
+// operator before auto starts more work.
+export const DEFAULT_MAX_AWAITING_REVIEW = 5;
 
 // Environment variables that replace a level's value when set.
 export const LEVEL_OVERRIDES = {
@@ -43,6 +46,7 @@ const ConfigSchema = z.object({
 		.positive()
 		.default(DEFAULT_WORKER_IDLE_MINUTES),
 	reviewSettleMinutes: DecimalCount,
+	maxAwaitingReview: DecimalCount,
 	reviewQuietHours: z.string().optional(),
 	reviewTimeZone: z.string().min(1),
 	factoryAuthors: z.array(z.string().min(1)),
@@ -56,11 +60,17 @@ const ConfigSchema = z.object({
 
 export type Config = z.infer<typeof ConfigSchema>;
 
+export interface ReviewQueue {
+	awaiting: number;
+	maxAwaitingReview: number;
+}
+
 export function selectReadyWave<T>(
 	keys: readonly T[],
 	maxParallelWorktrees: number,
 	live: readonly T[] = [],
-): { dispatch: T[]; queued: T[] } {
+	review?: ReviewQueue,
+): { dispatch: T[]; queued: T[]; heldForReview?: true } {
 	if (!Number.isSafeInteger(maxParallelWorktrees) || maxParallelWorktrees < 1) {
 		throw new Error("maxParallelWorktrees must be a positive safe integer");
 	}
@@ -74,10 +84,17 @@ export function selectReadyWave<T>(
 			`${again.join(", ")} already ${again.length === 1 ? "has a worker" : "have workers"} running`,
 		);
 	}
-	const room = Math.max(0, maxParallelWorktrees - running.size);
+	const workerRoom = Math.max(0, maxParallelWorktrees - running.size);
+	// Each live worker will open a change too, so it counts against the queue.
+	const reviewRoom = review
+		? Math.max(0, review.maxAwaitingReview - review.awaiting - running.size)
+		: workerRoom;
+	const room = Math.min(workerRoom, reviewRoom);
+	const held = reviewRoom < workerRoom && room < keys.length;
 	return {
 		dispatch: keys.slice(0, room),
 		queued: keys.slice(room),
+		...(held ? { heldForReview: true as const } : {}),
 	};
 }
 
@@ -103,6 +120,7 @@ export function loadConfig(
 		workerIdleMinutes: env.WORKER_IDLE_MINUTES,
 		reviewSettleMinutes:
 			env.REVIEW_SETTLE_MINUTES ?? DEFAULT_REVIEW_SETTLE_MINUTES,
+		maxAwaitingReview: env.MAX_AWAITING_REVIEW ?? DEFAULT_MAX_AWAITING_REVIEW,
 		reviewQuietHours: env.REVIEW_QUIET_HOURS?.trim() || undefined,
 		reviewTimeZone: env.REVIEW_TIMEZONE?.trim() || DEFAULT_REVIEW_TIMEZONE,
 		factoryAuthors: (env.DELIVERY_FACTORY_AUTHORS ?? "factory,delivery-bot")
@@ -135,7 +153,12 @@ if (import.meta.main) {
 				.parse(JSON.parse(process.argv[3]));
 			const config = loadConfig();
 			const dispatchPath = process.argv[4];
+			const ledgerPath = process.argv[5];
 			const watch = await import("./worker-watch");
+			const queue = await import("./review-queue");
+			const awaiting = ledgerPath
+				? queue.awaitingReview(readFileSync(ledgerPath, "utf8"))
+				: undefined;
 			const live =
 				dispatchPath && existsSync(dispatchPath)
 					? watch
@@ -149,9 +172,25 @@ if (import.meta.main) {
 			console.log(
 				JSON.stringify(
 					{
-						...selectReadyWave(keys, config.maxParallelWorktrees, live),
+						...selectReadyWave(
+							keys,
+							config.maxParallelWorktrees,
+							live,
+							awaiting
+								? {
+										awaiting: awaiting.length,
+										maxAwaitingReview: config.maxAwaitingReview,
+									}
+								: undefined,
+						),
 						maxParallelWorktrees: config.maxParallelWorktrees,
 						...(dispatchPath ? { live } : {}),
+						...(awaiting
+							? {
+									awaitingReview: awaiting,
+									maxAwaitingReview: config.maxAwaitingReview,
+								}
+							: {}),
 					},
 					null,
 					2,
@@ -161,7 +200,7 @@ if (import.meta.main) {
 			console.log(JSON.stringify(loadConfig(), null, 2));
 		} else {
 			console.error(
-				"usage: config.ts [ready-wave <keys-json> [<dispatch.json>]]",
+				"usage: config.ts [ready-wave <keys-json> [<dispatch.json> [<ledger.md>]]]",
 			);
 			process.exit(2);
 		}

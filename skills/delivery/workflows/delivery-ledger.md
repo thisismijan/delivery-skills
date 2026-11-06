@@ -78,7 +78,9 @@ empty.
 ## Write rules
 
 - **Keys** is current state. Update a row in place when its stage or status
-  changes. Its history lives in the other sections.
+  changes. Its history lives in the other sections. The MR column holds
+  `!<iid>` once a change exists, and is empty before. The ready-wave command
+  counts open changes from it and refuses a value it cannot read.
 - **Verdicts, Decisions, Approvals, Stops, Lessons** are append-only. Never edit
   or delete an entry. Correct one by appending a new entry that says what it
   supersedes.
