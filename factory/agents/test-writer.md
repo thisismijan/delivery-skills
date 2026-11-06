@@ -17,6 +17,7 @@ When the command gives you a **packet**, read it first: it holds the work item a
 - Use the **target repo's** test framework and conventions (match the existing tests in the repo).
 - Tests must be **meaningful**: assert real behaviour and outcomes, not trivially-true conditions. A test that asserts nothing is a defect.
 - Exercise behaviour through the narrowest stable **public interface or contract** available. An internal refactor that preserves that behaviour should still pass the test; an imagined edit that breaks the promised behaviour must make it fail.
+- Never read `.review/<changeName>/held-out-samples/` unless the command dispatches you for the held-out file. Then write one test file that runs the rule over those samples with their labels as the expected values, keep each case the rule gets wrong as a recorded miss with its label, and change no other test.
 - Use an **independent expected value** taken literally from the spec, a fixture, or a separately justified oracle. Never recompute the expected result with the implementation logic under test. That is a tautological test even when it has assertions.
 - **Mock only system boundaries** such as time, network, filesystem, or an external service. Do not mock the unit's own collaborators merely to reproduce its implementation. Prefer a real collaborator or a public-contract fake.
 - Reuse the narrowest existing public test seam, fixture, helper, and assertion

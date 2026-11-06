@@ -392,7 +392,7 @@ that needs a model or forge API needs `open`.
 | `.delivery/workers/` | Parallel worker journals |
 | `.delivery/routing/` | Model inventory and scorecards |
 | `.delivery/candidates/`, `.delivery/versions/` | Skill improvement |
-| `.review/` | Gates, diffs, verdicts, draft notes |
+| `.review/` | Gates, diffs, verdicts, draft notes, and held-out samples |
 
 ## Doctor
 
