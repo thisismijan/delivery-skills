@@ -1747,3 +1747,31 @@ test("changes say what was decided for the reader and what the checks leave open
 		/treat every listed decision as a choice to challenge, not a settled fact/,
 	);
 });
+
+test("a rule written from samples is measured on samples it was not written from", () => {
+	const heldOut = ".review/<changeName>/held-out-samples/";
+	for (const doc of [
+		draft,
+		execute,
+		implementer,
+		implementerOpus,
+		testWriter,
+	]) {
+		expect(doc).toContain(heldOut);
+	}
+	expect(plain(draft)).toMatch(
+		/the samples the rule is written from cannot be its only test/,
+	);
+	expect(plain(draft)).toMatch(
+		/Label each one from its source, never by running code/,
+	);
+	expect(plain(execute)).toMatch(/Never send a miss to the implementer/);
+	expect(execute).toContain("held-out-gate-<source-commit>.json");
+	for (const prompt of [implementer, implementerOpus]) {
+		expect(prompt).toContain(`Never read \`${heldOut}\``);
+	}
+	expect(holdoutReviewer.replace(/\s+/g, " ")).toContain(
+		"whose only tests use the samples it was written from is **not** meaningfully tested",
+	);
+	expect(referenceDocs).toContain("held-out samples");
+});

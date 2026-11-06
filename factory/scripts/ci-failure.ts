@@ -27,7 +27,8 @@ export const INFRASTRUCTURE_REASONS = new Set([
 // patterns, so a test that fails while logging a network error is a test.
 export const TEST_FAILURE_PATTERNS: RegExp[] = [
 	/^\(fail\) /m,
-	/\b[1-9]\d* (?:fail|failed|failures?)\b/i,
+	// A runner's count, not an id: "smoke-1780 failed" is a job name.
+	/(?:^|[\s(,=])[1-9]\d* (?:fail|failed|failures?)\b/im,
 	/Tests run: \d+, Failures: [1-9]/,
 	/^--- FAIL: /m,
 	/AssertionError|expect\(received\)/,
@@ -57,12 +58,12 @@ export const INFRASTRUCTURE_PATTERNS: Array<{ pattern: RegExp; what: string }> =
 		},
 		{
 			pattern:
-				/\b50[234] (?:Bad Gateway|Service Unavailable|Gateway Time-?out)\b/i,
+				/\b50[234] (?:Bad Gateway|Service Unavailable|Gateway Time-?out)\b|\b(?:answered|returned|responded with|status|HTTP)(?: error| code)?:? 50[234]\b/i,
 			what: "upstream service unavailable",
 		},
 		{
 			pattern:
-				/connection reset by peer|TLS handshake timeout|i\/o timeout|Could not resolve host|Temporary failure in name resolution|network is unreachable/i,
+				/connection reset by peer|TLS handshake timeout|i\/o timeout|Could not resolve host|Temporary failure in name resolution|network is unreachable|curl: \((?:35|56)\)|SSL_ERROR_SYSCALL|Proxy CONNECT aborted|ECONNRESET|ETIMEDOUT|socket hang up/i,
 			what: "network failure",
 		},
 		{ pattern: /no space left on device/i, what: "runner out of disk" },

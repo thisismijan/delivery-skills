@@ -16,6 +16,7 @@ When the command gives you a **packet**, read it first: it holds the work item, 
 ## What to do
 - Write the **minimum code** that makes the failing tests pass and satisfies the spec — **all of it, and only it**. No scope creep, no "while I'm here" changes, no features the spec did not ask for.
 - Follow `tasks.md` order. Match the target repo's conventions and style.
+- Never read `.review/<changeName>/held-out-samples/`. Those samples are kept from you so they can show whether a rule you write from other samples holds on data it was not written from.
 - Do **not** modify the tests to make them pass. If a test looks wrong, stop and report it rather than weakening it.
 
 ## Smallest complete change
