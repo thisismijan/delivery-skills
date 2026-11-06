@@ -91,6 +91,19 @@ when the test bites and 1 when it does not, and refuses a dirty worktree, an
 empty patch, or a patch that touches a test. A comment that reports a real
 defect is a `bug` and keeps the red gate.
 
+## Change description check
+
+```text
+bun "$FACTORY_ROOT/scripts/change-description.ts" check <create-input.json>
+```
+
+`/execute` runs this before it opens a change. The description must have one
+"Decisions made for you" section and one "What the checks do not prove"
+section, each with content. Decisions may say `None.` when the spec made every
+choice. The second section may not, because every check leaves something
+unproven. It exits 0 when both hold and 1 with the problems otherwise. The
+release-readiness brief always carries the same two sections.
+
 ## Review scope
 
 ```text

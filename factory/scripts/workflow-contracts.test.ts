@@ -8,6 +8,12 @@ import {
 	BOARD_SYNC_INVOCATION,
 } from "./board-status";
 import {
+	CHANGE_DESCRIPTION_INVOCATION,
+	CHANGE_DESCRIPTION_SECTIONS,
+	DECISIONS_SECTION,
+	UNPROVEN_SECTION,
+} from "./change-description";
+import {
 	DEFAULT_MAX_PARALLEL_WORKTREES,
 	DEFAULT_MAX_REVIEW_ROUNDS,
 	DEFAULT_REVIEW_SETTLE_MINUTES,
@@ -1699,4 +1705,37 @@ test("pipeline monitoring retries CI only through the gated retry operation", ()
 	);
 	expect(auto).toContain('`ciRetry: { "infrastructure": 1 }`');
 	expect(plain(auto)).toMatch(/A test failure is never retried/);
+});
+
+test("changes say what was decided for the reader and what the checks leave open", () => {
+	for (const prompt of [implementer, implementerOpus, testWriter]) {
+		expect(prompt).toContain("**Decisions:**");
+	}
+	for (const title of CHANGE_DESCRIPTION_SECTIONS) {
+		expect(execute).toContain(`\`### ${title}\``);
+		expect(referenceDocs).toContain(`"${title}"`);
+	}
+	expect(execute).toContain(
+		CHANGE_DESCRIPTION_INVOCATION.replace(
+			"scripts/change-description.ts check <create-input.json>",
+			'scripts/change-description.ts" check "<reviewDir>/create-input.json"',
+		),
+	);
+	expect(referenceDocs.replace(/"\$FACTORY_ROOT\/([^"]+)"/g, "$1")).toContain(
+		CHANGE_DESCRIPTION_INVOCATION,
+	);
+	expect(plain(execute)).toMatch(
+		/Never create the change without a passing check/,
+	);
+	const readiness = plain(releaseReadiness);
+	expect(releaseReadiness).toContain("### Decisions to know about");
+	expect(releaseReadiness).toContain("### What the checks do not prove");
+	expect(readiness).toMatch(
+		/Always include "Decisions to know about" and "What the checks do not prove"/,
+	);
+	expect(readiness).toContain(`"${DECISIONS_SECTION}"`);
+	expect(readiness).toContain(`"${UNPROVEN_SECTION}"`);
+	expect(readiness).toMatch(
+		/treat every listed decision as a choice to challenge, not a settled fact/,
+	);
 });
