@@ -1,0 +1,253 @@
+# Workflow
+
+`/delivery` is the only command to remember. It routes into stage skills,
+records state under the target repository's `.delivery/runs/`, and stops for
+operator-owned decisions. The live cheat-sheet is `/delivery help`, from
+`skills/delivery/reference/help.md`.
+
+## Path
+
+1. **Install and doctor.** [Getting started](getting-started.md).
+2. **Init.** Confirm one work-item provider. Local files need no service.
+3. **Shape.** `/delivery <idea>` or `/delivery discover` / `groom` until the
+   atomic ticket plan is honest.
+4. **Approve the plan.** That is the single routine authorization for the run.
+   It does not authorize an ungated merge, closing tickets, risk acceptance,
+   or skill install. Tickets move forward on the confirmed board map as stages finish.
+5. **Auto.** `/delivery auto <key>` creates approved items, fans out
+   independent tickets into isolated worktrees (at most `maxParallelWorktrees`
+   at a time, default 4, 2 at `min` and 8 at `max`, override with
+   `MAX_PARALLEL_WORKTREES`), then drafts, builds, and reviews each ticket as
+   [Review loop](#review-loop) describes, and monitors the exact-head
+   pipeline without polling.
+6. **You approve; auto lands.** Approve the change on the forge. Under
+   `/delivery auto`, delivery squash-merges it once readiness gave GO and the
+   pipeline passed at that same commit. Outside auto, you merge. Delivery never
+   closes or resolves threads.
+7. **After merge.** Delivery monitors the exact merged revision on the default
+   branch. An attributable in-scope failure fixes forward through a new
+   reviewed change within a bounded budget; ambiguous, unrelated, transient,
+   out-of-scope, or exhausted failures escalate. After success it runs
+   `/delivery archive`, `verify`, `retro`, and optionally `improve` with a
+   separate install/rollback approval.
+
+Resume with `/delivery <KEY>` or `/delivery auto <key>`. Do not skip a failed
+gate.
+
+## Review loop
+
+| Step | What happens | Review |
+|------|--------------|--------|
+| Draft | Spec and test seams, then a read-only frontier reviewer tries to break the approach. Gaps become scenarios; an approach that cannot be made complete is revised once, then stops for you | Approach challenge, skipped for low complexity |
+| Build | Characterization tests for planned files no test references, failing tests, implementation, tests, lint, and typecheck, then plan drift and red-zone checks | One holdout before the merge request opens |
+| First review | `/code-review-max` lenses, then `/mr-review` | The whole change |
+| Address comments | A test commit and a fix commit per bug, then tests, lint, and typecheck across the branch | None of its own |
+| Later reviews | `/code-review-max` and `/mr-review` again | Only what changed since the last review, when it is small and stays in reviewed files with nothing sensitive; otherwise the whole change |
+| Readiness | GO or NO-GO with a rollback plan | The whole change |
+
+Address comments and later reviews repeat until the review says ready, up to
+the level's review-round limit. Two rules keep that loop short:
+
+- **A repeated assumption is re-examined, not patched.** The comment assessor
+  labels each bug with the assumption it breaks. When an earlier round already
+  broke the same one, the approach is re-examined before any fix; the same
+  label after that stops the run (`review-rounds.ts`).
+- **A later round reads only what changed** when that is safe
+  (`review-scope.ts`). A merge of the base branch, a new file, a sensitive
+  surface, a dependency, a one-way step, a weakened test, a large change, or
+  the `max` level means a full review.
+- **A rejection is not re-investigated.** A candidate the review disproved by
+  reading the code is listed under `### Previously disproved` in later reviews
+  of the same merge request, and is not judged again while the code it cited is
+  unchanged and the claim is the same (`review-memory.ts`). The memory is kept
+  under the worktree-local `.review/` and does not track fixed findings.
+
+## Build safeguards
+
+- **Characterization first** (`characterize.ts`). Existing files the plan names
+  that no test references get tests pinning their current behaviour, which
+  must pass on the current code and are committed before the change's tests.
+  New files and already-referenced files cost nothing.
+- **Plan drift** (`plan-drift.ts`). Files changed outside the plan, and a
+  low-complexity change that grew past the contained-diff limits, are reported
+  to the holdout reviewer and in the change description. Drift alone does not
+  stop the run.
+- **Risk zones** (`risk-zones.ts`). With an owner-drawn `.delivery/zones` map,
+  a red zone in the plan or in the build's diff stops for a person's approval,
+  and every review lens runs on it. A yellow zone in the plan gets a
+  characterization pass even when a test names the file.
+- **Conflicts** (`branch-update.ts`). A conflicted change is squashed, rebased,
+  and pushed with lease by script. Real conflicts go to one
+  `conflict-resolver` agent, which stops for a person rather than drop either
+  side's work.
+
+A candidate the review cannot settle, because its harm depends on one fact the
+repository cannot show, is kept as a needs-validation item rather than dropped.
+It names the fact and a check the owner can run, and it never blocks the review
+by itself. Release readiness stays NO-GO until a person acknowledges the item on
+the merge request (`needs-validation.ts`).
+
+## Levels
+
+Choose how much a run spends with one word after the verb: `min`,
+`standard` (the default), or `max`.
+
+```text
+/delivery auto max docs/prd/billing.md
+/delivery auto min ABC-1234
+/delivery min ABC-5678
+```
+
+| Level | Workers at once | Fix attempts | Review rounds | Review lenses | Implementer |
+|-------|-----------------|--------------|---------------|---------------|-------------|
+| `min` | 2 | 1 | 2 | Size alone never adds lenses | Standard tier; frontier when the change is justified as complex |
+| `standard` | 4 | 2 | 3 | Measured from the diff | Standard tier; frontier when the change is justified as complex |
+| `max` | 8 | 3 | 4 | Every lens on every change | Frontier |
+
+Use `min` for small, low-risk tickets where cost matters more than time, and
+`max` for urgent or intricate work where time matters more than cost. The
+level is frozen with the approved plan; resuming at another level stops until
+you approve a new plan version. `MAX_PARALLEL_WORKTREES`, `MAX_FIX_ATTEMPTS`,
+and `MAX_REVIEW_ROUNDS` still override one setting. No level changes holdout,
+the review chain, the frontier reviewer, every lens on a risky change,
+release readiness, the land gate, or any human decision. The root
+[README](../README.md#levels) has the full guide.
+
+## Model spend
+
+Live dispatch still uses the required capability, then the catalogue, then an
+exact advertised model. Diagnostic shadow profiling defaults off. Set
+`ROUTING_PROFILING=always` only when collecting evaluation evidence; a cheaper
+shadow recommendation is recorded, never dispatched. Scripted skipped workers
+are still recorded, and the run scorecard counts them without estimating
+tokens saved.
+
+`/code-review-max` starts independently adjudicated lenses on the standard
+tier. Release-readiness lens subagents use that same resolved standard model;
+`review-fanout.ts readiness` skips those subagents on an empty or proven small
+reversible measured diff. The main conversation still decides GO or NO-GO.
+`review-fanout.ts` chooses no lenses when the measured diff has no reviewable code, two essential lenses for a proven small
+reversible change (at most 2 files, fewer than 50 changed lines, two-way, no
+Data/Contract/Config/Auth/Infra) or a contained one (at most 6 files, fewer
+than 400 lines, two-way, none of those surfaces and no dependency change), and
+all four lenses otherwise. Invalid input fails closed. Only a candidate at
+Medium or above is verified by the main conversation; all-Low candidates go to
+one standard-tier subagent.
+
+A coverage check follows the lenses. Each lens lists the files it examined, and
+`review-fanout.ts` finds any changed file no lens listed. Each one gets one
+focused pass on the standard model, a failed pass is named in the review and
+adjudication continues, and a later delta review carries forward files still
+unexamined. The lists are the lenses' own reports, so the check shows a file
+was reported as examined, not that it was read.
+
+`/address-comments` still classifies every in-scope comment. Resolved, empty,
+acknowledgement-only, mention-only, URL-only, and emoji-only notes, and a
+suggestion already in the file, never start the comment assessor. A
+whole-body suggestion fence is applied without the implementer. A round that
+changes the commit runs the cumulative gates but no review of its own: dual
+review checks the fixes next and remains the only authority that may mark the
+change ready. A reply-only round whose commit is unchanged stays draft and goes
+straight to dual review. After the first review, `review-scope.ts` lets a
+round review only what changed since the last review when that change is
+small, stays in files the last review covered, and touches no sensitive
+surface, dependency, one-way step, or weakened test. A merge of the base
+branch, or the `max` level, always means a full review. A later review of the
+same merge request does not re-investigate a rejection while the code it cited
+is unchanged and the claim is the same: the review lists what it dropped under
+`### Previously disproved`. That memory is for one merge request only. It lives
+under the worktree-local `.review/`, so a fresh clone or another runtime starts
+without it, and it does not track fixed findings.
+
+`/draft` challenges the planned approach once before it is committed, unless
+feasibility rated the change low complexity. A read-only frontier reviewer
+looks for real inputs the approach would miss. Gaps become scenarios in the
+spec; an approach that cannot be made complete is revised once, and a second
+failure stops for a person to choose.
+
+`/execute` applies a proven rename, unused or unique missing import, or
+format-only unit without the test-writer or the implementer. That includes a
+unique Python parameter or local, a unique Java field, a Java type whose
+listed file name matches, a unique TypeScript, Python, Java, Go, C#, or Kotlin missing import, and format-only
+through a repo Prettier, Ruff, or google-java-format binary, the Go standard formatter, repo-local `bin/csharpier`, `bin/ktfmt`, `bin/rustfmt`, `bin/php-format`, or `bin/swift-format` when names and
+literals stay identical. Extract method, inlining, and a formatter that
+changes names still use the implementer. Green, lint, typecheck, and holdout
+still run.
+
+`/delivery improve` judges a skill change on three runs per arm, alternating
+which arm goes first, and extends to five only when the result is within 0.05
+of the 90 percent bar (`paired-evaluation.ts`). One run per arm is refused.
+
+`/groom` and `/draft` skip their assessors and analysts when a script already
+has the verdict: a ticket that verifies, a size warning, recorded blockers,
+or named authentication, authorization, secrets, credentials, OAuth, OIDC,
+JWT, or a data, schema, or database migration. After the specs exist,
+`generate-tasks.ts` writes `tasks.md` from the scenarios. OpenSpec authoring and
+holdout still run when the ticket proceeds.
+
+## Pipeline checkpoints
+
+| Checkpoint | Evidence | On success | Repairable failure |
+|------------|----------|------------|--------------------|
+| Open change | Current pipeline for the exact change head | Continue release readiness, then land once approved (auto) or wait for a human merge | Repair the same branch, rerun invalidated gates, and monitor the new head |
+| After merge | Default-branch pipeline for the exact merged revision | Archive, verify deployment, and continue to retro | Open a new draft recovery change and run the normal review and readiness path |
+
+Missing or running evidence is a wait, not a pass. Delivery uses a host event
+subscription when available; otherwise it ends with `/delivery auto <KEY>` so
+you can resume later. It does not keep a process alive to poll.
+
+A failure fixes forward only when evidence attributes it to the delivered
+change, the repair stays inside the frozen run contract, and the attempt budget
+has not been exhausted. Transient, unrelated, ambiguous, out-of-scope, and
+exhausted failures stop with an evidence-backed escalation. Retrying a provider
+job, reverting, and merging remain human decisions.
+
+## Verbs
+
+| Command | Role |
+|---------|------|
+| `/delivery auto [idea \| KEY \| iid]` | Whole lifecycle; stops only for your decisions |
+| `/delivery auto min\|max <...>`, `/delivery min\|max <KEY>` | The same at a cheaper or a faster, deeper [level](#levels) |
+| `/delivery status [KEY]` | Where the run is, and what to type next |
+| `/delivery doctor` | Live readiness |
+| `/delivery init` | Target bootstrap and work-item confirmation |
+| `/delivery discover` / `triage` / `groom` | Shape work |
+| `/delivery draft` / `execute` | Spec then build (execute is the build approval) |
+| `/delivery review` / `address` / `ship` | Review and go/no-go |
+| `/delivery archive` / `verify` / `retro` | After you merge |
+| `/delivery improve …` | Skill candidates; apply/rollback stay human-owned |
+| `/delivery help` | Cheat-sheet |
+
+## Host difference
+
+- **Claude Code:** mutating stages run after the adapter verifies its
+  PreToolUse hook and you reload the session.
+- **Cursor:** mutating stages run after the adapter verifies `hooks.json` and
+  you reload Cursor. The optional plugin install
+  (`adapters/cursor/install-plugin.sh`) also declares the judging agents
+  read-only and keeps stage skills from starting unless asked. Until doctor shows Mutation guard as ready, only
+  read-only discovery, diagnosis, and review briefing run. Do not merge,
+  close, force-push, hard-reset, or mutate tracker state from the agent.
+- **Session tools:** if the host exposes GitHub, GitLab, or Atlassian MCP
+  tools, `/delivery doctor` records them and later stages prefer those tools
+  for mapped operations. Merge, close, approve, and work-item status stay
+  unused even when the host offers them.
+
+## Stops that always need a human
+
+- Product decisions, then one final plan approval
+- Merge, or named release-risk acceptance for an exact head
+- Building a change that reaches an owner-marked red zone
+- Acknowledging a needs-validation item on a merge request, by its id in the operator's own words
+- Failed-gate override
+- Live skill install or rollback
+- Tracker status transitions (open, close, done)
+
+When two options are viable, delivery presents a decision brief: context,
+pros/cons, DSA and system-design notes, and a recommendation. Ask for a missing
+fact directly; do not invent a false choice.
+
+Pipeline waits use host event subscriptions when available and otherwise end
+the turn with one resume command. Delivery never sleeps or repeatedly polls.
+It never treats an MR pipeline as proof that the merged default-branch revision
+passed.

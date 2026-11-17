@@ -1,0 +1,614 @@
+import { expect, test } from "bun:test";
+import {
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	symlink,
+	writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+	applySuggestion,
+	parseForgeDiscussions,
+	planSuggestion,
+	scopeComments,
+} from "./forge-comments";
+import {
+	AUDIT_PREFIX,
+	type MrComment,
+	excludeHandledThreads,
+} from "./glab-comments";
+import { parseClassificationVerdict } from "./verdicts";
+
+function discussions() {
+	return {
+		version: 1,
+		provider: "sample-forge",
+		ref: "change-1",
+		headRevision: "abc123",
+		discussions: [
+			{
+				id: "thread-1",
+				resolved: false,
+				notes: [
+					{
+						id: "note-1",
+						author: "reviewer",
+						body: "Please add a test.",
+						system: false,
+						resolved: false,
+					},
+					{
+						id: "event-1",
+						author: "forge",
+						body: "changed a label",
+						system: true,
+						resolved: false,
+					},
+				],
+			},
+			{
+				id: "thread-2",
+				resolved: false,
+				notes: [
+					{
+						id: "note-2",
+						author: "reviewer",
+						body: "Explain this branch.",
+						system: false,
+						resolved: false,
+					},
+					{
+						id: "reply-2",
+						author: "factory",
+						body: `${AUDIT_PREFIX} already handled`,
+						system: false,
+						resolved: false,
+					},
+				],
+			},
+		],
+	};
+}
+
+test("normalized discussions flatten non-system notes and exclude handled threads", () => {
+	const parsed = parseForgeDiscussions(discussions());
+	expect(parsed.map((comment) => comment.id)).toEqual([
+		"note-1",
+		"note-2",
+		"reply-2",
+	]);
+	expect(excludeHandledThreads(parsed).map((comment) => comment.id)).toEqual([
+		"note-1",
+	]);
+});
+
+test("flattening keeps optional anchors", () => {
+	const parsed = parseForgeDiscussions({
+		...discussions(),
+		discussions: [
+			{
+				id: "thread-3",
+				resolved: false,
+				notes: [
+					{
+						id: "note-3",
+						author: "reviewer",
+						body: "This line is gone.",
+						system: false,
+						resolved: false,
+						anchor: { path: "src/gone.ts", line: 4, side: "new" },
+					},
+				],
+			},
+		],
+	});
+	expect(parsed[0]?.anchor).toEqual({
+		path: "src/gone.ts",
+		line: 4,
+		side: "new",
+	});
+});
+
+test("a missing head file or past-EOF new-side line is outdated", () => {
+	const comments = [
+		{
+			id: "kept",
+			discussionId: "t1",
+			author: "reviewer",
+			body: "general note",
+		},
+		{
+			id: "missing",
+			discussionId: "t2",
+			author: "reviewer",
+			body: "file gone",
+			anchor: { path: "src/gone.ts", line: 1, side: "new" as const },
+		},
+		{
+			id: "past-eof",
+			discussionId: "t3",
+			author: "reviewer",
+			body: "line gone",
+			anchor: { path: "src/keep.ts", line: 9, side: "new" as const },
+		},
+		{
+			id: "present",
+			discussionId: "t4",
+			author: "reviewer",
+			body: "still here",
+			anchor: { path: "src/keep.ts", line: 1, side: "new" as const },
+		},
+		{
+			id: "unknown-path",
+			discussionId: "t5",
+			author: "reviewer",
+			body: "did not look up",
+			anchor: { path: "src/unchecked.ts", line: 1, side: "new" as const },
+		},
+		{
+			id: "old-side",
+			discussionId: "t6",
+			author: "reviewer",
+			body: "on the old side",
+			anchor: { path: "src/gone.ts", line: 1, side: "old" as const },
+		},
+	];
+	const scoped = scopeComments(comments, {
+		"src/gone.ts": null,
+		"src/keep.ts": "still here\n",
+	});
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual([
+		"kept",
+		"present",
+		"unknown-path",
+		"old-side",
+	]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "missing",
+			classification: "outdated",
+			reasoning: "anchor path src/gone.ts is missing at the pinned head",
+		},
+		{
+			commentId: "past-eof",
+			classification: "outdated",
+			reasoning: "anchor line 9 is past the end of src/keep.ts (1 lines)",
+		},
+	]);
+});
+
+test("resolved discussions and resolved notes are dropped before scope", () => {
+	const parsed = parseForgeDiscussions({
+		version: 1,
+		provider: "sample-forge",
+		ref: "change-1",
+		headRevision: "abc123",
+		discussions: [
+			{
+				id: "open-thread",
+				resolved: false,
+				notes: [
+					{
+						id: "open-note",
+						author: "reviewer",
+						body: "Please add a test.",
+						system: false,
+						resolved: false,
+					},
+					{
+						id: "resolved-note",
+						author: "reviewer",
+						body: "Already done.",
+						system: false,
+						resolved: true,
+					},
+				],
+			},
+			{
+				id: "resolved-thread",
+				resolved: true,
+				notes: [
+					{
+						id: "old-note",
+						author: "reviewer",
+						body: "Please rename this.",
+						system: false,
+						resolved: false,
+					},
+				],
+			},
+		],
+	});
+	expect(parsed.map((comment) => comment.id)).toEqual(["open-note"]);
+});
+
+test("an empty or whitespace-only body is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "empty",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "   \n",
+			},
+			{
+				id: "kept",
+				discussionId: "t2",
+				author: "reviewer",
+				body: "Please add a test.",
+			},
+		],
+		{},
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual(["kept"]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "empty",
+			classification: "outdated",
+			reasoning: "comment body is empty",
+		},
+	]);
+});
+
+test("an acknowledgement-only body is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "ack",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "LGTM!",
+			},
+			{
+				id: "thanks",
+				discussionId: "t2",
+				author: "reviewer",
+				body: "thanks",
+			},
+			{
+				id: "done",
+				discussionId: "t3",
+				author: "reviewer",
+				body: "Done.",
+			},
+			{
+				id: "pair",
+				discussionId: "t5",
+				author: "reviewer",
+				body: "LGTM, thanks!",
+			},
+			{
+				id: "kept",
+				discussionId: "t4",
+				author: "reviewer",
+				body: "LGTM, but please add a test.",
+			},
+		],
+		{},
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual(["kept"]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "ack",
+			classification: "outdated",
+			reasoning: "comment is only an acknowledgement",
+		},
+		{
+			commentId: "thanks",
+			classification: "outdated",
+			reasoning: "comment is only an acknowledgement",
+		},
+		{
+			commentId: "done",
+			classification: "outdated",
+			reasoning: "comment is only an acknowledgement",
+		},
+		{
+			commentId: "pair",
+			classification: "outdated",
+			reasoning: "comment is only an acknowledgement",
+		},
+	]);
+});
+
+test("a mention-only body is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "ping",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "@owner",
+			},
+			{
+				id: "kept",
+				discussionId: "t2",
+				author: "reviewer",
+				body: "@owner please add a test.",
+			},
+		],
+		{},
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual(["kept"]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "ping",
+			classification: "outdated",
+			reasoning: "comment is only a mention",
+		},
+	]);
+});
+
+test("a URL-only body is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "link",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "https://example.test/comment",
+			},
+			{
+				id: "md",
+				discussionId: "t2",
+				author: "reviewer",
+				body: "[docs](https://example.test/comment)",
+			},
+			{
+				id: "kept",
+				discussionId: "t3",
+				author: "reviewer",
+				body: "See https://example.test/comment",
+			},
+		],
+		{},
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual(["kept"]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "link",
+			classification: "outdated",
+			reasoning: "comment is only a URL",
+		},
+		{
+			commentId: "md",
+			classification: "outdated",
+			reasoning: "comment is only a URL",
+		},
+	]);
+});
+
+test("an emoji-only body is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "thumb",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "👍",
+			},
+			{
+				id: "shortcode",
+				discussionId: "t2",
+				author: "reviewer",
+				body: ":+1:",
+			},
+			{
+				id: "kept",
+				discussionId: "t3",
+				author: "reviewer",
+				body: "👍 please add a test.",
+			},
+		],
+		{},
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual(["kept"]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "thumb",
+			classification: "outdated",
+			reasoning: "comment is only emoji",
+		},
+		{
+			commentId: "shortcode",
+			classification: "outdated",
+			reasoning: "comment is only emoji",
+		},
+	]);
+});
+
+test("an applied suggestion-only comment is outdated", () => {
+	const scoped = scopeComments(
+		[
+			{
+				id: "applied",
+				discussionId: "t1",
+				author: "reviewer",
+				body: "```suggestion\nexport const n = 2;\n```",
+				anchor: { path: "src/keep.ts", line: 1, side: "new" },
+			},
+			{
+				id: "unapplied",
+				discussionId: "t2",
+				author: "reviewer",
+				body: "```suggestion\nexport const n = 3;\n```",
+				anchor: { path: "src/keep.ts", line: 1, side: "new" },
+			},
+			{
+				id: "prose",
+				discussionId: "t3",
+				author: "reviewer",
+				body: "Please also rename this.\n```suggestion\nexport const n = 2;\n```",
+				anchor: { path: "src/keep.ts", line: 1, side: "new" },
+			},
+		],
+		{ "src/keep.ts": "export const n = 2;\n" },
+	);
+	expect(scoped.inScope.map((comment) => comment.id)).toEqual([
+		"unapplied",
+		"prose",
+	]);
+	expect(parseClassificationVerdict(JSON.stringify(scoped.outdated))).toEqual([
+		{
+			commentId: "applied",
+			classification: "outdated",
+			reasoning: "suggestion is already present in src/keep.ts",
+		},
+	]);
+});
+
+test("an empty comment list stays empty", () => {
+	expect(scopeComments([], { "src/a.ts": "x\n" })).toEqual({
+		inScope: [],
+		outdated: [],
+	});
+});
+
+test("malformed normalized discussions fail closed", () => {
+	expect(() =>
+		parseForgeDiscussions({ ...discussions(), headRevision: undefined }),
+	).toThrow();
+	expect(() =>
+		parseForgeDiscussions({
+			...discussions(),
+			discussions: [{ id: "thread-1", notes: [] }],
+		}),
+	).toThrow();
+});
+
+function suggestionComment(body: string, line = 2): MrComment {
+	return {
+		id: "s1",
+		discussionId: "t1",
+		author: "reviewer",
+		body,
+		anchor: { path: "src/a.ts", line, side: "new" },
+	};
+}
+
+test("a suggestion without a range replaces the anchored line", () => {
+	expect(
+		planSuggestion(
+			suggestionComment("```suggestion\nconst b = 3;\n```"),
+			"const a = 1;\nconst b = 2;\nconst c = 3;\n",
+		),
+	).toEqual({
+		apply: "script",
+		path: "src/a.ts",
+		contents: "const a = 1;\nconst b = 3;\nconst c = 3;\n",
+	});
+	expect(
+		planSuggestion(
+			suggestionComment("```suggestion:-0+0\nconst b = 3;\n```"),
+			"const a = 1;\r\nconst b = 2;\r\n",
+		),
+	).toEqual({
+		apply: "script",
+		path: "src/a.ts",
+		contents: "const a = 1;\r\nconst b = 3;\r\n",
+	});
+	expect(
+		planSuggestion(
+			suggestionComment("```suggestion\nconst b = 3;\nconst c = 4;\n```"),
+			"const a = 1;\nconst b = 2;\nconst d = 5;\n",
+		),
+	).toEqual({
+		apply: "script",
+		path: "src/a.ts",
+		contents: "const a = 1;\nconst b = 3;\nconst c = 4;\nconst d = 5;\n",
+	});
+	expect(
+		planSuggestion(
+			suggestionComment("```suggestion:-0+1\nconst b = 3;\n```"),
+			"const a = 1;\nconst b = 2;\nconst c = 3;\n",
+		),
+	).toEqual({
+		apply: "script",
+		path: "src/a.ts",
+		contents: "const a = 1;\nconst b = 3;\n",
+	});
+	expect(
+		planSuggestion(
+			suggestionComment(
+				"```suggestion:-1+0\nconst a = 0;\nconst b = 3;\n```",
+				2,
+			),
+			"const a = 1;\nconst b = 2;\nconst c = 3;\n",
+		),
+	).toEqual({
+		apply: "script",
+		path: "src/a.ts",
+		contents: "const a = 0;\nconst b = 3;\nconst c = 3;\n",
+	});
+});
+
+test("anything but one suggestion fence on a live in-range span needs a model", () => {
+	const file = "const a = 1;\nconst b = 2;\n";
+	const cases: [MrComment, string | null][] = [
+		[suggestionComment("Please fix.\n```suggestion\nx\n```"), file],
+		[suggestionComment("```suggestion:-2+0\nx\n```"), file],
+		[
+			suggestionComment("```suggestion:-0+1\nconst b = 2;\nconst c = 3;\n```"),
+			"const a = 1;\nconst b = 2;\nconst c = 3;\n",
+		],
+		[suggestionComment("```suggestion\n\n```"), file],
+		[suggestionComment("```suggestion\nx\n```", 3), file],
+		[suggestionComment("```suggestion\nconst b = 2;\n```"), file],
+		[suggestionComment("```suggestion\nx\n```"), null],
+		[
+			{
+				...suggestionComment("```suggestion\nx\n```"),
+				anchor: { path: "src/a.ts", line: 2, side: "old" },
+			},
+			file,
+		],
+		[
+			{ ...suggestionComment("```suggestion\nx\n```"), anchor: undefined },
+			file,
+		],
+	];
+	for (const [comment, contents] of cases) {
+		expect(planSuggestion(comment, contents).apply).toBe("model");
+	}
+});
+
+test("apply-suggestion writes inside the repository and refuses escapes", async () => {
+	const root = await mkdtemp(join(tmpdir(), "suggestion-"));
+	const outside = await mkdtemp(join(tmpdir(), "suggestion-outside-"));
+	try {
+		await mkdir(join(root, "src"));
+		await writeFile(join(root, "src/a.ts"), "const a = 1;\nconst b = 2;\n");
+		await writeFile(join(outside, "x.ts"), "const a = 1;\nconst b = 2;\n");
+		await symlink(join(outside, "x.ts"), join(root, "src/link.ts"));
+
+		expect(
+			await applySuggestion(
+				suggestionComment("```suggestion\nconst b = 3;\n```"),
+				root,
+			),
+		).toEqual({ apply: "script", path: "src/a.ts" });
+		expect(await readFile(join(root, "src/a.ts"), "utf8")).toBe(
+			"const a = 1;\nconst b = 3;\n",
+		);
+
+		for (const path of ["../x.ts", join(outside, "x.ts"), "src/link.ts"]) {
+			const result = await applySuggestion(
+				{
+					...suggestionComment("```suggestion\nconst b = 9;\n```"),
+					anchor: { path, line: 2, side: "new" },
+				},
+				root,
+			);
+			expect(result.apply).toBe("model");
+		}
+		expect(await readFile(join(outside, "x.ts"), "utf8")).toBe(
+			"const a = 1;\nconst b = 2;\n",
+		);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+		await rm(outside, { recursive: true, force: true });
+	}
+});

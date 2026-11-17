@@ -1,0 +1,438 @@
+# Auto
+
+`/delivery auto` runs the whole lifecycle from wherever a run is. Approval of
+the groomed ticket or slice plan is standing authorization to draft, build,
+review, publish review notes, archive, verify, write the retro, and prepare
+evidence-backed improvement candidates for that run. It also authorizes bounded
+fix-forward work when a pipeline failure is attributable and the repair stays
+inside the frozen scope and permitted writes, and landing a change once a
+person has approved it on the forge and its pipeline is green (see **Land**).
+It is not authorization to merge any other way, accept a release risk, retry
+provider CI, install an improvement candidate, override a failed gate, or
+expand scope.
+
+The full-epic `/delivery <idea-or-file>` path enters this same continuous mode
+as soon as the operator approves the groomed plan. The operator does not need
+to invoke `auto` again. Explicit single-step verbs still run one stage only.
+
+The single-step verbs use the same table to tell the operator what to type next.
+
+## Inputs
+
+| Argument | Starts with |
+|----------|-------------|
+| none | The run already in this conversation. If there is none, ask once for an idea, a key, or an MR iid |
+| an idea, a file, or a link | A new run. Discovery if the idea names no destination (ask once), otherwise groom |
+| an epic key | Every key in the epic's ledger |
+| a ticket key | That key. If it has no ledger and its work-item type is Bug, intake (ask once) |
+| an MR iid | Review for that MR |
+
+## Start
+
+1. Run the conductor's Phase 1: find or create the ledger and reconcile it.
+   Verify `SDLC-CONSTITUTION.md` with `scripts/sdlc-constitution.ts preflight`.
+2. **Frozen run contract.** Once the groomed plan is approved, freeze it with
+   `scripts/sdlc-constitution.ts freeze <draft.json>` into
+   `.delivery/runs/<id>.run-contract.json`. Record the path and hash in the
+   ledger. Before each later stage, run
+   `scripts/sdlc-constitution.ts check <run-contract.json> <stage> [ticket-key]`.
+   Non-zero exit is a terminal stop. Do not invent tickets, goals, or writes
+   the contract does not name. For an existing approved run without this file,
+   reconstruct the draft from durable ticket, dependency, acceptance,
+   approval, and ledger artifacts, then freeze it before progressing. Stop if
+   those artifacts do not prove the exact scope.
+
+   The freeze input is version 1 and contains `runId`, `planVersion`, `goal`,
+   `scope`, `nonGoals`, `tickets` (`key`, `title`, one to three `acceptance`
+   criteria, `blockedBy`), `permittedWrites`, every `humanOwned` boundary, and
+   `approval` (`who`, exact `words`, ISO `at`), plus `level` when the
+   invocation named `min` or `max` (see `SKILL.md` **Levels**). A later plan also records
+   `supersedesHash`, `reason`, and `affectedInvariant`. `permittedWrites`
+   includes `change-land` so auto may land approved, green changes; a contract
+   frozen without it leaves every merge to the operator.
+
+   When the plan is approved, ask once whether an infrastructure CI failure may
+   be retried once. Record the answer as `ciRetry: { "infrastructure": 1 }` or
+   `{ "infrastructure": 0 }`. A contract without `ciRetry` allows no retry, so
+   every CI failure goes to the operator. A test failure is never retried,
+   whatever the answer.
+3. **Continuous authorization.** Only after the frozen contract exists, record
+   `continuous-delivery: yes`, scoped to this run. The authorizing words are the
+   `/delivery auto` invocation or the operator's explicit approval of the
+   groomed plan in the full-epic path. This standing authorization covers the
+   non-human stages named above. Do not ask a second build, test-seam,
+   review-publication, archive, retro, or improvement-preparation question.
+4. Append a Decision: `auto started at <stage> for <keys>`. Then append
+   `level <level>: <effective values>` from
+   `DELIVERY_LEVEL=<level> bun "${FACTORY_ROOT}/scripts/config.ts"`.
+
+## The loop
+
+Repeat until every key is done, stopped, or waiting on a person:
+
+1. Reconcile the ledger with the real state.
+2. Pick the key to work on (Choosing a key, below).
+3. Check the capabilities that stage needs with `checkCapabilities`. Re-check
+   at each stage boundary so a later capability is checked when that stage
+   begins. Check the frozen run contract for that stage before mutating.
+4. Look up its next step in the table and run it.
+5. Write the ledger, then go back to 1.
+
+Between steps, do not ask whether to continue. Continue.
+
+### Next step by status
+
+| Status | Next step | Asks the operator |
+|--------|-----------|-------------------|
+| no ledger yet | Discovery if the idea names no destination, otherwise groom | Discovery's yes, or groom's own gates |
+| `[discovering]` | Resume discovery | The one-pager yes |
+| `[discovered]` | Groom from the approved one-pager and its source artifacts | Groom's own gates |
+| `[triage: needs-info]` | Nothing until the reporter answers | Nothing; it is waiting on the reporter |
+| `[triage: ready]` | Draft | Nothing |
+| `[triage: wont-fix]` | Nothing | Nothing; the key is done |
+| `[triage: duplicate <KEY>]` | Nothing | Nothing; the key is done |
+| `[groomed]` | Draft, once every blocker is `[merged !N]` or later | Nothing |
+| `[drafted]` | Execute | Nothing |
+| `[executing]` | Recover: review once a matching merge request exists; wait while a live owner still builds; resume execute directly after an interruption because continuous authorization is already recorded | Nothing |
+| `[reviewed-blocked !N]` | Address comments, then review the new head | Nothing |
+| `[addressed !N]` | Review the new head | Nothing |
+| `[ready !N]` | Release readiness, which reads the comments on the change before any GO | Nothing |
+| `[no-go !N]` | Classify the readiness blockers: address code/comment blockers (every unanswered comment on the change is a comment blocker, fixed in one batched round) then run ship again; wait on the pipeline; update a conflicted branch as **Land** says; ask only for operator-owned risk acceptance, or for the operator to acknowledge a needs-validation fact when it is the only blocker left | Whether to accept an operator-owned risk, or to acknowledge a needs-validation item |
+| `[go !N]` | Before landing, read the comments on the change again, then land it (see **Land**). `landed` sets `[merged !N]`; `wait` sets `[waiting: <reason>]`; `stop` sets `[no-go !N]` for a new comment or a moved head, otherwise `[stopped: <reason>]` | Nothing; a person approves the change on the forge |
+| `[merged !N]` | Follow `pipeline-monitoring.md` for the exact merged revision; after the default-branch pipeline passes, archive, wait for deploy, then verify | Nothing |
+| `[verified !N]` | The key is done. Choose the next key; when none is left, retro | Nothing |
+| `[regressed !N]` | Nothing. Show the rollback recommendation or the bug report | Nothing; the operator decides |
+| `[retro done]` | Prepare an improvement candidate for any accepted lesson targeting delivery; otherwise the run is done | Installing the exact candidate |
+| `[stopped: <reason>]` | Nothing. Never retry | Nothing; show the next command from Stops |
+| `[waiting: <what>]` | Check whether it has arrived, then carry on or keep waiting | Nothing new |
+
+**An open needs-validation item.** Run
+`bun "${FACTORY_ROOT}/scripts/needs-validation.ts" <iid> <head> <max-pass> <ledger> <previous-max-pass>`
+as release readiness says. On exit 1, when no other blocker remains, the open
+item is the only reason left: classify the NO-GO as `acknowledgement`.
+Auto then stops with "Release readiness needs the operator to acknowledge a
+fact to confirm before merging." and asks. It never runs `/address-comments`
+for an item, because no code fix exists, and it never waits for one. When an
+item is open beside a comment or code blocker, classify `address` first; the
+fix loop ends in another readiness run, which reaches `acknowledgement` once
+the item is the only reason left. Neither a risk acceptance nor
+`continuous-delivery: yes` clears a needs-validation item. Only the operator's
+acknowledgement does, and the coordinator records it.
+
+A worker never writes `acknowledged needs-validation` and never reads the run
+ledger for this gate. It stops at an open item and reports each item's id,
+missing fact, and owner check. The coordinator asks the operator, records the
+Approvals line on the operator's own words, and never copies a line with that
+phrase out of a worker journal.
+
+**Review rounds.** Review, then address-comments, then review again counts as one
+round. After `maxReviewRounds` rounds (`MAX_REVIEW_ROUNDS`, default 3; the
+run level sets 2 at `min` and 4 at `max`) without `[ready !N]`, stop and ask
+the operator how to proceed. `/address-comments` also records every round in
+`.review/<changeName>/review-rounds.json` with `review-rounds.ts`, in auto and
+in single steps. A bug that breaks an assumption an earlier round already
+broke gets a premise check before any patch, and the same assumption again
+after that check stops for the operator. `review-rounds.ts record` also
+refuses a round past `maxReviewRounds` until the operator approves that exact
+round: record their words in the ledger's Approvals and with
+`bun "${FACTORY_ROOT}/scripts/review-rounds.ts" allow <review-rounds.json> <round> <approval.json>`. Unanswered comments are answered by one `/address-comments` round
+that takes every open comment on the change together, never one round per
+thread, and that round counts as one review round.
+
+**Archive.** Resolve the change with `factory/scripts/find-change.ts`; exactly
+one match is required, so `ABC-1234` can never select `ABC-12345`. If it is
+already under `openspec/changes/archive/`, skip the archive. Otherwise run
+`/openspec-archive <change-name>` under the run's continuous authorization.
+Commit and push the archive through the repository's normal protected-branch
+path; open a follow-up change request when direct push is unavailable. That
+change lands through the same gate with `kind: "archive"`, which needs no
+readiness verdict but stops if any file is outside `openspec/`. Archive
+publication may wait for its approval, but it does not block deployed
+verification, retro, or improvement preparation for the already-merged product
+change.
+
+**Land.** At `[go !N]`, read the comments on the change again. Then write the
+land input and run, under the run's continuous authorization:
+
+```
+bun "$FACTORY_ROOT/scripts/forge-provider.ts" land <repoRoot> \
+  "$FACTORY_ROOT/runtime-manifest.json" <land-input.json>
+```
+
+The input names `ref`, the `headRevision` the GO was given at, `kind`
+(`change`), `ticketKey`, `ledgerPath`, `runContractPath`, `readNoteIds` (every
+comment id readiness read), and `approved: true`. The command re-reads the
+change, its approvals, and its comments, and merges only when all of these
+hold at that one head: open and not a draft; approved by at least one person
+with every approval rule met; the latest pipeline passed; no conflicts; no
+comment readiness did not see; a readiness GO at that head in the ledger;
+`continuous-delivery: yes` in the ledger; a run contract that permits
+`change-land` for the ticket; and reviewers have settled. Reviewers have
+settled when no reviewer comment is waiting for a reply, and either every
+reviewer who commented approved the current head after the last reply, or
+`reviewSettleMinutes` (`REVIEW_SETTLE_MINUTES`, default 30) reviewing
+minutes have passed since the latest of leaving draft, the last push, and
+the last comment. Minutes inside `REVIEW_QUIET_HOURS` do not count, so a
+change that leaves draft overnight waits for the reviewers' morning pass.
+Not settled yet is a `wait` with the time it settles; a reviewer comment with
+no reply, or a forge that cannot report the change's history, approvals, or
+comment times, is a `stop` with a plain reason for the operator. It squash-merges with the head as a guard and
+removes the source branch where the forge supports it. Exit 0 is `landed` with
+the merged revision, 3 is `wait`, and 1 is `stop`; each prints plain reasons.
+Record the decision and reasons in the ledger. `land` runs only through the
+executable adapter; with session tools only, the merge stays the operator's.
+Never set the change to merge when its pipeline succeeds, and never merge any
+other way.
+
+When the only stop reason is "The change has conflicts." (from land or from
+readiness), bring the branch up to date in the change's worktree, checked out
+at the head the stop was read at:
+
+```
+bun "${FACTORY_ROOT}/scripts/branch-update.ts" update <worktree> <branch> <target> <expected-head>
+```
+
+It squashes the change's commits into one, keeping the oldest commit's
+message, rebases that onto the target, and force-pushes with the expected head
+as the lease. Exit 0 needs no agent. Exit 3 leaves the rebase stopped on real
+conflicts: dispatch one agent to resolve the listed files, the
+`conflict-resolver` subagent with the conflicted files and the change's
+OpenSpec change. When its handoff lists anything under **Could not keep**, or
+a conflict marker remains, abort the rebase and stop for a person. Otherwise
+continue the rebase, then run
+`bun "${FACTORY_ROOT}/scripts/branch-update.ts" push <worktree> <branch> <expected-head>`.
+Exit 4 means the remote branch moved since it was read: stop with that reason
+and never push over it. Exit 1 stops with its reason. After a push, set the
+key to `[addressed !N]`, rerun the green gate on the new head and review again; the review scope makes it a
+delta review. Readiness and land then run on the new head; the old GO never
+carries over. Never update the target branch.
+
+### Choosing a key
+
+- One key in scope: that key.
+- An epic: the keys whose blockers are all merged and that are not done, stopped,
+  or handed off.
+- More than one key can start now: automatically fan out the ready wave in
+  batches of at most `maxParallelWorktrees` concurrent worktrees. Read that
+  limit from `bun "${FACTORY_ROOT}/scripts/config.ts"` (`MAX_PARALLEL_WORKTREES`,
+  default 4; the run level sets 2 at `min` and 8 at `max`). Remaining ready keys stay ready-now until the current batch
+  settles, then the coordinator dispatches the next batch.
+  Serial execution is allowed only for a real blocking edge recorded in the
+  approved plan.
+  1. Resolve one absolute shared `DELIVERY_STATE_ROOT` from the primary
+     worktree. The coordinator remains the only writer of the run ledger.
+     Choose the current batch with
+     `bun "${FACTORY_ROOT}/scripts/config.ts" ready-wave '<keys-json>' <state-root>/workers/<run-id>/dispatch.json <ledger.md>`.
+     It counts the workers that `dispatch.json` still shows running against
+     `maxParallelWorktrees`, dispatches only the room left, and refuses a key
+     that already has a worker running. It also reads the ledger's open
+     changes, the keys with an MR that is not yet merged, stopped and waiting
+     ones included, and counts each live worker as one more. When those reach
+     `maxAwaitingReview` (`MAX_AWAITING_REVIEW`, default 5) it starts no more
+     work and reports `heldForReview`. Producing changes faster than a person
+     can review them only lengthens the queue. Record a Decision
+     `held <keys>: <n> changes wait for your review (limit <m>)`, keep working
+     the open changes, and when only held keys remain, end the turn as waiting
+     on a person with `/delivery auto <KEY>` as the resume command. Never
+     raise the limit yourself.
+     Reserve only that batch in one compare-and-swap write before dispatch.
+  2. Create one detached git worktree per dispatched key from the recorded base.
+     Keep worktrees outside one another. Never reuse a dirty or occupied path.
+     Use argv-equivalent execution, not a shell-built string:
+     `git worktree add --detach <path> <full-base-sha>`. Then copy the local
+     files the operator confirmed at init with
+     `bun "${FACTORY_ROOT}/scripts/worktree-files.ts" copy <repoRoot> <path>`.
+     It copies nothing when no list was confirmed. A failure stops only that
+     key, naming the file, before any worker starts in it. Never copy other
+     files into a worktree. The worker creates the deterministic ticket branch
+     before its first commit.
+  3. Before the first batch, run
+     `bun "${FACTORY_ROOT}/scripts/sandbox-run.ts" check <repoRoot>`. Exit 3
+     means no sandbox was confirmed: dispatch workers as below. Exit 1 means a
+     confirmed sandbox cannot run (malformed file, engine missing, image
+     missing): stop the fan-out once with its reasons. Never fall back to plain
+     worktrees when a sandbox was confirmed. Exit 0 means start each worker as
+     its own background process with
+     `bun "${FACTORY_ROOT}/scripts/sandbox-run.ts" run <repoRoot> <path> <state-root> <run-id> <KEY>`
+     instead of `agent.dispatch`. It runs the confirmed worker command in a
+     container that mounts only that worktree, its git data, the state root
+     read-only, the run's journal folder, and the pack read-only. It passes
+     only the confirmed variable names, runs the confirmed setup steps inside
+     the container first, and removes the container when the worker ends.
+     The shared git config, hooks, and info, and the worktree's own git links,
+     are read-only inside it, so a worker can commit but cannot plant a program
+     for the host to run. Run git on a worker's worktree from the coordinator
+     only through the pack's scripts, or as
+     `git -c core.fsmonitor=false -c core.hooksPath=/dev/null <command>`.
+     Otherwise, dispatch one mutating isolated worker per worktree through the
+     runtime's `agent.dispatch` capability. Its command is `/delivery auto <KEY>`, its cwd
+     is that worktree, and its environment includes the shared state root plus
+     `DELIVERY_WORKER_JOURNAL=<state-root>/workers/<run-id>/<key>.md` and
+     `DELIVERY_LEVEL=<the run's level>`, so the worker runs at its
+     coordinator's level. Give it
+     the reserved ledger generation and immutable key row. A worker writes only
+     its own journal through `ledger-store.ts`; it never mutates the run ledger.
+     It writes its journal at every step boundary and immediately before and
+     after any command that may run for minutes, so the journal is its
+     heartbeat.
+  4. Give each worker the fan-out brief and forbid merge (the coordinator
+     lands), tracker transitions,
+     sibling worktrees, and work outside its key.
+  5. Start every worker in the current batch before awaiting any one of them.
+     Add each key and its ISO `dispatchedAt` to
+     `<state-root>/workers/<run-id>/dispatch.json`, keeping the entries
+     already there. Set a worker's `finishedAt` when the coordinator
+     reconciles its result or stops it; until then it counts against the cap. While the batch runs, check it with
+     `bun "${FACTORY_ROOT}/scripts/worker-watch.ts" <workers-dir> <dispatch.json>`
+     whenever the coordinator wakes. A worker whose journal has not changed for
+     `workerIdleMinutes` (`WORKER_IDLE_MINUTES`, default 20) is idle: exit 3
+     names it. Cancel that worker if the runtime can; for a sandboxed worker,
+     `bun "${FACTORY_ROOT}/scripts/sandbox-run.ts" stop <repoRoot> <run-id> <KEY>`
+     removes its container and so ends its processes. Before choosing its
+     status, find the key's open change with the forge `find` operation for its
+     branch, then run
+     `bun "${FACTORY_ROOT}/scripts/idle-reconcile.ts" <KEY> <journal.md> <find-result.json> [green-gate.json...]`
+     with every green-gate artifact in the worker's review folder. Exit 0
+     means its open change is the worker's own: set the key to `[executing]` with that change's
+     iid, so the next run resumes at review, and record
+     `worker <KEY> idle; kept change <ref> at <head>` in Decisions. Exit 3 means
+     nothing is proven: set its key to
+     `[stopped: <reason>]` with the reason worker idle, and record the minutes in Decisions.
+     Exit 1 stops that key with the helper's reason. Then close its
+     worktree, and ignore anything it writes afterwards. Its siblings keep
+     running. Never restart an idle worker in the same turn.
+     Exit 4 names a finished worker: its journal row ends in a terminal status
+     (`[go !N]`, `[stopped: <reason>]`, or a later one) but its process has not
+     exited. Exit 3 takes precedence, and the JSON lists both. For a finished
+     worker, reconcile its result from its journal, git, and forge as for any
+     settled worker, then end it: cancel it if the runtime can, or for a
+     sandboxed worker
+     `bun "${FACTORY_ROOT}/scripts/sandbox-run.ts" stop <repoRoot> <run-id> <KEY>` ends its container.
+     Set its `finishedAt` and close its worktree. Never treat a finished worker as idle or redo its work.
+     Reconcile each result from its journal, git, and forge, not from prose.
+     After the batch settles, apply validated key updates to the run ledger in
+     one coordinator compare-and-swap write, then dispatch the next batch of
+     remaining ready keys. A malformed, missing, or conflicting result stops
+     that key without cancelling successful siblings.
+  6. Append `dispatched <KEY> to <worktree>` for each key. After a worker
+     stops, close its worktree with
+     `bun "${FACTORY_ROOT}/scripts/worktree-close.ts" <worktree-path>`. It removes
+     the folder only when nothing is uncommitted or untracked and the last
+     commit is on a remote branch. Otherwise it keeps the folder and prints why;
+     append `kept worktree <path> for <KEY>: <reasons>` to Decisions. Never
+     remove a worktree any other way, and never force it.
+- If the runtime cannot dispatch isolated mutating workers, stop once with the
+  missing capability and the fan-out commands. Do not silently run an
+  independent ready wave sequentially.
+- Two sessions can write one ledger at the same time. Every write uses the
+  ledger's generation compare-and-swap. A stale generation is a terminal
+  conflict; re-read and reconcile instead of overwriting.
+
+## When to ask
+
+Ask only when one of these comes up, and only when the factory cannot decide
+it as a simple, reversible, or discoverable choice:
+
+1. Product intent during discovery or grooming that the codebase cannot
+   answer, followed by approval of the final ticket or slice plan.
+2. Accepting a risk on a NO-GO, or acknowledging a needs-validation fact to
+   confirm before merging.
+3. Approving the change on the forge. Auto lands it once it is approved and
+   green; any other merge is the operator's.
+4. Installing an evaluated delivery improvement candidate. Retro acceptance is
+   not installation approval.
+5. Building a change whose plan reaches an owner-drawn red zone. Before
+   execute starts for a key, run
+   `bun "${FACTORY_ROOT}/scripts/risk-zones.ts" check <repoRoot> <changeDir> <ledger>`.
+   On exit 3, ask, and record the answer in the person's own words as an
+   Approvals line naming `red-zone <changeName>`. Never dispatch the key
+   until then. Plan approval does not cover it.
+6. Anything a stage stops on because required evidence is missing or
+   contradictory.
+
+The factory decides facts, single viable paths, and local cheap reversible
+defaults itself. Never ask for a fact you can look up, and never ask whether
+to go on to the next step.
+
+When an escalated choice has two or more viable product, recovery,
+risk-response, or improvement options, follow `SKILL.md`'s **Human decision
+brief**: options and trade-offs with no recommendation, then the withheld
+recommendation after they answer, with a chance to change. Name the option
+they should pick; do not word the question so that "yes" accepts a hidden
+pick. Contradictory or unattributable recovery evidence remains a stop, not an
+option. Record the settled choice in the ledger. Agent-owned decisions go in
+the same log without asking.
+
+## Waiting
+
+- **For a pipeline, a build, or a deploy.** Observe it once. For a forge
+  change, use the normalized `pipeline` from `forge-provider.ts read` for its
+  ref, not a branch pipeline. Require `current: true`. If it is still running,
+  follow `pipeline-monitoring.md`: reuse or create a matching host event
+  subscription when available, set `[waiting: <what>]`, and end the turn. After
+  merge, query the exact `revisions.merged` value with the normalized
+  `pipeline` operation; the open-change pipeline does not prove the
+  default-branch pipeline passed. Do not sleep or poll in the same turn.
+- **For a person** (an approval, a merge, a reporter, an answer): do not poll. Set
+  `[waiting: <what>]`, ask, and end the turn. Their reply resumes the loop.
+- **Never retry a failed stage.** A failure is a terminal stop, exactly as when
+  the stage runs on its own. Waiting with a time limit for something still
+  running is not a retry.
+
+## Context
+
+One conversation cannot hold a whole epic. When a key finishes and the
+conversation is long, end the turn and suggest a fresh chat with
+`/delivery auto <EPIC>`. The ledger holds everything the next session needs.
+
+## Ending a turn
+
+Every turn auto ends says three things:
+
+- What was done, by key.
+- What the run is waiting on, if anything.
+- The single command that resumes it.
+
+When every key is done or stopped, run retro without another checkpoint. Under
+continuous authorization, evidence-backed delivery-skill proposals are
+accepted for investigation and other proposals are recorded as backlog; none
+is applied. Follow `improve.md` immediately for every qualifying accepted
+delivery lesson, prepare and evaluate the candidate, show its installation
+checkpoint, and end the turn. `/delivery auto` never answers that checkpoint.
+When no such proposal exists, or after the candidate is
+rejected or installed in a later chat, give the epic's closing brief: keys, MRs,
+merges, stops, and accepted retro proposals.
+
+## Ledger writes
+
+- Approvals: `continuous-delivery: yes`, every merge confirmation, and every
+  exact improvement installation or rollback command.
+- Decisions: `auto started`, every `dispatched <KEY> to <worktree>`, every
+  land decision with its reasons, automatic archive, retro proposal disposition, and every candidate prepared.
+- Keys: `[waiting: <what>]` while waiting, replaced by the next status.
+- Everything each stage spec writes, as if its verb had been run.
+
+## Terminal stops
+
+| Stop | Message | Next command |
+|------|---------|--------------|
+| Review rounds | <maxReviewRounds> review rounds without a ready verdict on !<iid> | `/delivery review <iid>` after deciding |
+| Every key blocked | Every remaining key waits on a blocker that is not merged | `/delivery status <EPIC>` |
+| A stage stopped | Whatever that stage's stop says | Its next command |
+| Interrupted single-step execute | Execute stopped before a merge request existed and continuous authorization is absent | `/delivery execute <KEY>` |
+
+## Never
+
+- Merge any way except `forge-provider.ts land`, or set an MR to merge when its
+  pipeline succeeds.
+- Create work items outside the approved verified groom drafts, or transition,
+  label, or close work items.
+- Run independent ready tickets sequentially when isolated dispatch is
+  available.
+- Treat continuous authorization as permission to merge without the land gate,
+  accept risk, bypass a gate, or install a candidate.
+- Retry a failed stage.
+- Skip a correctness, security, test, review, or readiness gate because auto is
+  running.
+- Install or rollback a delivery-skill version; `auto` may prepare a candidate
+  but never supplies improvement approval.

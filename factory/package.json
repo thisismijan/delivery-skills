@@ -1,0 +1,22 @@
+{
+  "name": "delivery-skills-factory",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.2",
+  "scripts": {
+    "test": "bun test && bun run test:skills",
+    "test:skills": "cd .. && BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test skills/delivery/checks",
+    "check": "tsc -p . && biome check ./scripts",
+    "doctor": "bun scripts/doctor.ts",
+    "init": "bun scripts/delivery-init.ts",
+    "preflight": "bun scripts/preflight.ts"
+  },
+  "dependencies": {
+    "typescript": "5.9.3",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@types/bun": "1.3.14"
+  }
+}

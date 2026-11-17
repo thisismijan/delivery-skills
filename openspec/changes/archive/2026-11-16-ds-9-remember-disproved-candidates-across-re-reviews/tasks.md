@@ -1,0 +1,55 @@
+## 1. Tests
+
+- [x] 1.1 Prove A disproved candidate is stored with its reason and cited code.
+- [x] 1.2 Prove Cited code is read from the pinned head, not the working tree.
+- [x] 1.3 Prove A second rejection at the same place is added, not substituted.
+- [x] 1.4 Prove A record that cannot be trusted leaves the memory untouched.
+- [x] 1.5 Prove Every refused item is named at once.
+- [x] 1.6 Prove A cited line outside the range read is refused.
+- [x] 1.7 Prove A range that is too large, an empty reason, or an unknown head is refused.
+- [x] 1.8 Prove A rejection stores the guard it rests on.
+- [x] 1.9 Prove A prior rejection is reported on unchanged code.
+- [x] 1.10 Prove Code that moved down the file is still unchanged.
+- [x] 1.11 Prove A whitespace-only edit inside the cited code is still unchanged.
+- [x] 1.12 Prove A differently worded candidate at the same place still reports the prior rejection.
+- [x] 1.13 Prove The same report is made in a delta review.
+- [x] 1.14 Prove The same code in two places does not attach a reason to a different place.
+- [x] 1.15 Prove A rejection whose guard was removed is no longer reported.
+- [x] 1.16 Prove A guard that moved within its file is still present.
+- [x] 1.17 Prove Rejections that do not fit the packet are left out and never cut.
+- [x] 1.18 Prove A changed line in the cited code makes the candidate fresh.
+- [x] 1.19 Prove A removed line, a deleted file, or a renamed file makes the candidate fresh.
+- [x] 1.20 Prove A candidate with no cited line passes through as fresh.
+- [x] 1.21 Prove A path that is not safe is fresh and is not read.
+- [x] 1.22 Prove A rejection on another merge request is not reported.
+- [x] 1.23 Prove A candidate that was never rejected is fresh and the review is unchanged.
+- [x] 1.24 Prove No memory file means every candidate is fresh.
+- [x] 1.25 Prove A corrupt or unknown memory is refused and left alone.
+- [x] 1.26 Prove A bad merge request id or head is refused.
+- [x] 1.27 Prove The skill gives every candidate an id and keeps every candidate.
+- [x] 1.28 Prove The skill orders the comparison before any investigation.
+- [x] 1.29 Prove A candidate dropped as previously disproved is named and not recorded again.
+- [x] 1.30 Prove A dropped candidate that the filter did not mark is refused.
+- [x] 1.31 Prove The skill names what is recorded and what is not.
+- [x] 1.32 Prove A reversed rejection is removed and only that one.
+- [x] 1.33 Prove Reversing a rejection that is already gone changes nothing.
+- [x] 1.34 Prove A finding that is a different claim reverses nothing.
+- [x] 1.35 Prove The skill defines the standard-mode return.
+- [x] 1.36 Prove Record accepts the outcome a subagent returns.
+- [x] 1.37 Prove An outcome with an unknown key is refused.
+- [x] 1.38 Prove The skill says how to recover from a refused outcome.
+- [x] 1.39 Prove A refused outcome corrected once is recorded in full.
+- [x] 1.40 Prove Removing the still-refused items leaves a recordable outcome.
+- [x] 1.41 Prove The dropped list is one bullet per candidate with the earlier reason.
+- [x] 1.42 Prove The sanitiser rule is the one the sanitiser has.
+- [x] 1.43 Prove Nothing dropped leaves out the section.
+- [x] 1.44 Prove A review whose every candidate was dropped still shows the section.
+- [x] 1.45 Prove The second-pass review treats the section as context.
+- [x] 1.46 Prove The skill hides the dropped list from the delta lenses.
+- [x] 1.47 Prove An earlier output with a dropped list yields no phantom findings.
+- [x] 1.48 Prove The skill runs filter before adjudication and record after it.
+- [x] 1.49 Prove The docs name the limits and carry the invocations.
+
+## 2. Implementation
+
+- [x] 2.1 Implement the specified behaviour so every scenario above holds.

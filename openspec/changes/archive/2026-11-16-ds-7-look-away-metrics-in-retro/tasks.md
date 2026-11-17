@@ -1,0 +1,56 @@
+## 1. Tests
+
+- [x] 1.1 Prove The same inputs give the same report.
+- [x] 1.2 Prove The script leaves the state root and the settings untouched.
+- [x] 1.3 Prove A missing ledger or an invalid configuration is a plain failure.
+- [x] 1.4 Prove A run that never fanned out has no journals and is not a failure.
+- [x] 1.5 Prove A usage mistake exits 2.
+- [x] 1.6 Prove Overlapping workers give the largest overlap.
+- [x] 1.7 Prove Back-to-back workers do not overlap.
+- [x] 1.8 Prove A worker with no finish time makes the peak at least.
+- [x] 1.9 Prove A single unfinished worker is at least one.
+- [x] 1.10 Prove Several waves in one record file are one run.
+- [x] 1.11 Prove Missing dispatch records make the peak unknown and nothing else.
+- [x] 1.12 Prove Unusable dispatch records make the peak unknown.
+- [x] 1.13 Prove A key dispatched again makes the peak unknown.
+- [x] 1.14 Prove Stops are counted by stage across timed and date-only lines.
+- [x] 1.15 Prove Real ledger line shapes are read.
+- [x] 1.16 Prove A line that cannot be read is surfaced, not dropped.
+- [x] 1.17 Prove Only the Stops section counts.
+- [x] 1.18 Prove Stops that live only in a worker journal are counted.
+- [x] 1.19 Prove A journal that cannot be read makes the counts incomplete.
+- [x] 1.20 Prove An idle worker stop is named and is not an operator stop.
+- [x] 1.21 Prove A ledger with no stops reports none.
+- [x] 1.22 Prove The longest gap between consecutive timed interrupts is reported.
+- [x] 1.23 Prove Stops in a worker journal split a gap the ledger alone would show.
+- [x] 1.24 Prove A stretch is reported as including waiting.
+- [x] 1.25 Prove Stops and approvals are ordered by time across sections.
+- [x] 1.26 Prove Fewer than two timed interrupts is unknown.
+- [x] 1.27 Prove A date-only ledger is never estimated.
+- [x] 1.28 Prove A date-only line that could split a gap hides that gap.
+- [x] 1.29 Prove A date-only line outside every gap hides nothing.
+- [x] 1.30 Prove Every gap hidden means unknown.
+- [x] 1.31 Prove The display rounds down and the exact length is kept.
+- [x] 1.32 Prove The writer's own time check decides what is timed.
+- [x] 1.33 Prove Raise when the peak reached the limit and the stretch is four hours.
+- [x] 1.34 Prove Hold when the peak is below the limit.
+- [x] 1.35 Prove Hold when the stretch is under four hours or unknown.
+- [x] 1.36 Prove An unknown peak is a hold.
+- [x] 1.37 Prove An at least peak never raises.
+- [x] 1.38 Prove A peak above the run limit counts as reached when it is exact.
+- [x] 1.39 Prove The limit the run used is read from the ledger, not from the shell.
+- [x] 1.40 Prove An override recorded for the run is the limit it used.
+- [x] 1.41 Prove A limit that changed since the run holds.
+- [x] 1.42 Prove No recorded limit is unknown and holds.
+- [x] 1.43 Prove Several recorded limits use the highest.
+- [x] 1.44 Prove An idle worker stop holds the suggestion.
+- [x] 1.45 Prove No setting changes whichever way the suggestion points.
+- [x] 1.46 Prove Retro names the script's command from its source.
+- [x] 1.47 Prove Retro presents each number in plain words.
+- [x] 1.48 Prove The report is whole-run even for a single ticket.
+- [x] 1.49 Prove A failing script does not stop the retro or produce a guess.
+- [x] 1.50 Prove Retro never applies the suggestion.
+
+## 2. Implementation
+
+- [x] 2.1 Implement the specified behaviour so every scenario above holds.

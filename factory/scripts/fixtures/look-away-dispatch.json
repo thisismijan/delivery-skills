@@ -1,0 +1,25 @@
+{
+	"workers": [
+		{
+			"key": "DS-1",
+			"dispatchedAt": "2026-11-10T10:00:00Z",
+			"finishedAt": "2026-11-10T12:00:00Z"
+		},
+		{
+			"key": "DS-2",
+			"dispatchedAt": "2026-11-10T11:00:00Z",
+			"finishedAt": "2026-11-10T13:00:00Z"
+		},
+		{
+			"key": "DS-3",
+			"dispatchedAt": "2026-11-10T11:30:00Z",
+			"finishedAt": "2026-11-10T11:45:00Z"
+		},
+		{
+			"key": "DS-4",
+			"dispatchedAt": "2026-11-10T13:00:00Z",
+			"finishedAt": "2026-11-10T14:00:00Z"
+		},
+		{ "key": "DS-5", "dispatchedAt": "2026-11-10T15:00:00Z" }
+	]
+}

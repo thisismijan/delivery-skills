@@ -1,0 +1,98 @@
+## 1. Tests
+
+- [x] 1.1 Prove A risk that depends on a deployment fact is kept.
+- [x] 1.2 Prove A candidate whose fact the repository shows is judged by that fact.
+- [x] 1.3 Prove A candidate with no shown bad behaviour is still dropped.
+- [x] 1.4 Prove A needs-validation item is incomplete without its fact or its check.
+- [x] 1.5 Prove The code review skill states the outcome.
+- [x] 1.6 Prove Only needs-validation items remain.
+- [x] 1.7 Prove A real blocker still blocks.
+- [x] 1.8 Prove The output template and the parser agree on the heading.
+- [x] 1.9 Prove The summary lists the item and posts no inline note.
+- [x] 1.10 Prove The second pass wording is pinned.
+- [x] 1.11 Prove The same risk keeps its id after a push.
+- [x] 1.12 Prove Formatting differences do not change the id.
+- [x] 1.13 Prove Two entries for one risk are one item.
+- [x] 1.14 Prove A delta review carries the item forward.
+- [x] 1.15 Prove A full scope review carries the item forward.
+- [x] 1.16 Prove A review with no candidates still lists earlier items.
+- [x] 1.17 Prove The review scope output names the earlier review.
+- [x] 1.18 Prove A closed item is a parsed entry.
+- [x] 1.19 Prove An owner check written as a fenced snippet is a problem.
+- [x] 1.20 Prove A heading inside a fence outside the section does not start one.
+- [x] 1.21 Prove A code block in the section is a problem and hides nothing.
+- [x] 1.22 Prove An unnumbered labelled line is a finding.
+- [x] 1.23 Prove A severity label in the middle of a line is a finding.
+- [x] 1.24 Prove Unreadable text in the section is a problem.
+- [x] 1.25 Prove A well formed line acknowledges one item.
+- [x] 1.26 Prove A line with the wrong scope is ignored.
+- [x] 1.27 Prove A line without who or words is ignored.
+- [x] 1.28 Prove The acknowledgement survives a push.
+- [x] 1.29 Prove A needs-validation item is never acknowledged by a standing approval.
+- [x] 1.30 Prove The ledger format page states the line.
+- [x] 1.31 Prove The ledger writer accepts the line without change.
+- [x] 1.32 Prove A printed item is sanitised.
+- [x] 1.33 Prove An unacknowledged item makes the decision NO-GO.
+- [x] 1.34 Prove Every item acknowledged makes the decision GO.
+- [x] 1.35 Prove One item still open keeps it NO-GO.
+- [x] 1.36 Prove An acknowledgement for another merge request or another item does not apply.
+- [x] 1.37 Prove An acknowledgement without a who or words is ignored.
+- [x] 1.38 Prove A risk acceptance does not clear an item and an acknowledgement does not clear a finding.
+- [x] 1.39 Prove Readiness without needs-validation input is unchanged.
+- [x] 1.40 Prove Open items exit 1.
+- [x] 1.41 Prove All items acknowledged exit 0.
+- [x] 1.42 Prove A review with no section exits 0.
+- [x] 1.43 Prove An incomplete item or an unreadable input exits 2.
+- [x] 1.44 Prove A missing ledger leaves every item open.
+- [x] 1.45 Prove A file that is not this review of this head exits 2.
+- [x] 1.46 Prove A missing argument is a usage error.
+- [x] 1.47 Prove A review that drops an earlier item exits 2.
+- [x] 1.48 Prove A carried or closed earlier item is accepted.
+- [x] 1.49 Prove A worker reads no ledger.
+- [x] 1.50 Prove The workflow names the gate.
+- [x] 1.51 Prove The workflow keeps the item out of comments and risk acceptance.
+- [x] 1.52 Prove The brief lists an open item in plain language.
+- [x] 1.53 Prove An open item stops auto with a plain reason.
+- [x] 1.54 Prove Existing no-go routes are unchanged.
+- [x] 1.55 Prove The schema accepts the new value and rejects an unknown one.
+- [x] 1.56 Prove An item beside a code blocker is fixed first.
+- [x] 1.57 Prove The auto workflow names the route.
+- [x] 1.58 Prove A worker stops with the items and never acknowledges.
+- [x] 1.59 Prove The coordinator records the acknowledgement.
+- [x] 1.60 Prove A line in a journal does not clear the gate.
+- [x] 1.61 Prove The worker rules are pinned in the skill pages.
+- [x] 1.62 Prove Only needs-validation items leave the decision ready.
+- [x] 1.63 Prove A severity label inside the section blocks.
+- [x] 1.64 Prove A finding tag inside the section blocks the approach pass.
+- [x] 1.65 Prove A finding written inside the section still blocks.
+- [x] 1.66 Prove An unnumbered labelled line inside the section blocks.
+- [x] 1.67 Prove A labelled paragraph inside the second-pass section blocks.
+- [x] 1.68 Prove A fenced owner check keeps the merge request draft.
+- [x] 1.69 Prove An unclosed fence in the section hides no blocker.
+- [x] 1.70 Prove Unreadable text in the section keeps the merge request draft.
+- [x] 1.71 Prove Severity text outside the section still blocks.
+- [x] 1.72 Prove A real BLOCK verdict is not changed by the section.
+- [x] 1.73 Prove An incomplete item keeps the merge request draft.
+- [x] 1.74 Prove A review without the section is read as before.
+- [x] 1.75 Prove A code block inside the section hides no finding.
+- [x] 1.76 Prove A labelled code block opener inside the section keeps the merge request draft.
+
+- [x] 1.77 Prove A heading written with a colon or another level keeps the merge request draft.
+- [x] 1.78 Prove A sub-heading or comment inside the section ends it.
+- [x] 1.79 Prove A never-closed code block before the section keeps the merge request draft.
+- [x] 1.80 Prove An ordinary earlier finding with a closed code block stays ready.
+- [x] 1.81 Prove A rebased earlier review is still named as previous.
+- [x] 1.82 Prove A misspelled heading leaves its item unread and a problem.
+- [x] 1.83 Prove A code block that is never closed hides the section.
+- [x] 1.84 Prove A low severity label on an item head keeps the merge request draft.
+- [x] 1.85 Prove An ordinary earlier finding with a missing-fact line is a problem.
+- [x] 1.86 Prove A closed entry after an ordinary finding with a closed code block still reads.
+- [x] 1.87 Prove An earlier review whose commit the clone no longer holds is still named.
+- [x] 1.88 Prove An amended head names the newest earlier review.
+- [x] 1.89 Prove An owner-check line under a closed entry is a problem.
+- [x] 1.90 Prove An indented heading does not start a section.
+- [x] 1.91 Prove An owner-check line under a closed earlier entry keeps the merge request draft.
+
+## 2. Implementation
+
+- [x] 2.1 Implement the specified behaviour so every scenario above holds.

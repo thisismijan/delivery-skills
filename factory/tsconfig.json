@@ -1,0 +1,14 @@
+{
+	"include": ["scripts"],
+	"compilerOptions": {
+		"noEmit": true,
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"verbatimModuleSyntax": true,
+		"skipLibCheck": true,
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"target": "ESNext",
+		"types": ["bun"]
+	}
+}
