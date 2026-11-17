@@ -247,9 +247,36 @@ it, and adds no checkpoint, in single-step or continuous mode.
 When the script fails, report the figures as not measured, with the script's
 message. Estimate nothing, and carry on with the rest of the retro.
 
-### 11. Present
+### 11. Review token cost
 
-Show the look-away figures from step 10 first, then list proposals most severe first: production regressions first, then by how
+Run `bun "${FACTORY_ROOT}/scripts/cost-review.ts" <repoRoot> <ledger.md>` with
+the ledger found in Preconditions. It reads, for every key in the ledger:
+
+- measured token counts and cost, when the run recorded them;
+- the cost drivers every run leaves behind: review rounds, review lens runs,
+  focused passes, green gate attempts, the largest subagent packet, and
+  workers a script made unnecessary.
+
+Present it in plain words, with no field names:
+
+- **Where the tokens went.** When measured figures exist, give the totals and
+  the kinds of work that used the most, largest first, with each one's share.
+  When none exist, say the run was not measured and that the drivers below are
+  proxies, not token counts. Never estimate a token figure.
+- **What drove the cost.** The tickets with the most review rounds, repairs,
+  or the largest packets, and the work scripts avoided.
+- **Savings to consider.** Each finding the script prints, with its evidence.
+
+A saving becomes a proposal like any other: it needs a class, the evidence,
+the fix level, and a proof from steps 7 and 8. It may make a step cheaper; it
+may never remove or weaken a gate, a review, a holdout, or a quality check, and
+a cheaper model needs a paired benchmark first. When the script fails, report
+the cost as not reviewed, with its message, and carry on.
+
+### 12. Present
+
+Show the look-away figures from step 10 and the token cost from step 11 first,
+then list proposals most severe first: production regressions first, then by how
 many corrections each would have prevented. For each, give the class, its
 occurrences, the fix level, the proof, the target, and the cost.
 
@@ -284,6 +311,7 @@ and not installation.
 - Decisions: link the engineering postmortem and its evidence scope.
 - Lessons: one line per class, including candidates, with its decision.
 - Lessons: one line per dismissed-finding pattern with its confidence.
+- Lessons: one line per token-cost finding presented, with its decision.
 - Keys: status `[retro done]` for every key in scope that had finished.
 
 ## Terminal stops
@@ -301,3 +329,4 @@ and not installation.
 - Create work items. Write the text; the operator creates them.
 - Attribute a mistake to a person. Classes describe the environment.
 - Propose a check you cannot show would have failed on a real past case.
+- Trade a gate, a review, a holdout, or a quality check for a token saving.

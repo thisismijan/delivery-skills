@@ -59,11 +59,22 @@ bun "$FACTORY_ROOT/scripts/record-skip.ts" persist <routing-root> <run-id> <skip
 bun "$FACTORY_ROOT/scripts/routing-scorecard.ts" <routing-root> <run-id>
 bun "$FACTORY_ROOT/scripts/review-packet.ts" --ticket <file> --spec <change-dir> [--diff <file>] [--evidence <file>]... [--context <file>]... --out <file>
 bun "$FACTORY_ROOT/scripts/look-away-metrics.ts" <state-root> <run-id>
+bun "$FACTORY_ROOT/scripts/cost-review.ts" <repoRoot> <ledger.md>
 ```
 
 `config.ts` prints the validated knobs, including `level`,
 `maxParallelWorktrees`, `maxReviewRounds`, `overrides`, and
 `routingProfiling`. Unknown `ROUTING_PROFILING` values fail closed.
+
+`cost-review.ts` is the retro's token-cost step. For every key in the ledger
+it reports measured tokens and cost when the run recorded them (only with
+`ROUTING_PROFILING=always` or host usage files), ranked by kind of work, and
+always the cost drivers: review rounds, review lens runs, focused passes,
+green gate attempts, the largest subagent packet, and workers scripts avoided.
+It flags three or more review rounds, three or more green gate runs, a packet
+of 60,000 characters or more, one kind of work holding half the measured
+tokens, cheaper shadow recommendations, and an unmeasured run. It never
+estimates a token figure and changes nothing.
 
 ## Review rounds
 

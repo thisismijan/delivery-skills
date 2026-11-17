@@ -828,7 +828,10 @@ ambiguous match stops the run instead of guessing.
 - **Retro teaches the engineering journey.** It writes a chronological
   postmortem covering the problem, attempted models, counterexamples, design
   evolution, final invariants, DSA complexity, and system-design trade-offs. It
-  does not invent algorithmic depth when the change had none.
+  does not invent algorithmic depth when the change had none. It also shows
+  where the tokens went, measured when the run recorded usage and otherwise by
+  cost drivers such as review rounds, repairs, and packet size, and lists
+  savings to consider. A saving never removes or weakens a gate or a review.
 
 ## Artifacts
 
