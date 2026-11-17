@@ -122,6 +122,12 @@ shadow recommendation is recorded, never dispatched. Scripted skipped workers
 are still recorded, and the run scorecard counts them without estimating
 tokens saved.
 
+The retro's token cost review reads cost drivers every run already writes
+(review rounds, repairs, packet sizes), so it costs nothing extra. Profiling
+adds a frontier call per task, so leave it off by default: when you want real
+token figures, turn it on for one representative run and read that run's
+retro. Keep logging cheaper than the savings it finds.
+
 `/code-review-max` starts independently adjudicated lenses on the standard
 tier. Release-readiness lens subagents use that same resolved standard model;
 `review-fanout.ts readiness` skips those subagents on an empty or proven small
