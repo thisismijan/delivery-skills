@@ -21,6 +21,13 @@ if ! mkdir -p "$store" 2>/dev/null; then
   echo "Agent store skipped (not writable here): $store"
   exit 0
 fi
-bash "$root/install.sh" --skills-dir "$store" --adapter cursor --provider gitlab "$@"
+# A store may refuse folder renames and symbolic links, so install locally,
+# copy the result in place, then point the mutation hook at the store copy.
+local_dir="$(mktemp -d)"
+trap 'rm -rf -- "$local_dir"' EXIT
+CURSOR_HOOKS_FILE="$local_dir/hooks.json" \
+  bash "$root/install.sh" --skills-dir "$local_dir/skills" --adapter cursor --provider gitlab "$@"
+bun "$root/factory/scripts/store-sync.ts" "$local_dir/skills" "$store"
+DELIVERY_FACTORY_ROOT="$store/_factory" bash "$here/setup.sh"
 echo "Agent store -> $store"
 echo "Factory -> $store/_factory"

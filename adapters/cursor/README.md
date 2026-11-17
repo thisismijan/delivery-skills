@@ -31,7 +31,10 @@ bun "$FACTORY_ROOT/scripts/doctor.ts"
 bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items local-files
 ```
 
-That is a managed copy of `skills/*` plus `_factory/`. Do not edit files under
+The store wrapper installs into a temporary folder first and then copies the
+result into the store in place, because a store's file system may refuse
+folder renames and symbolic links. It writes only changed files and removes
+only files the pack itself retired. That is a managed copy of `skills/*` plus `_factory/`. Do not edit files under
 the destination; edit the clone and reinstall. Store installs place the portable
 runtime at `skills/_factory/` so it is synced with the skills. Live run state is
 worktree-local under the target repository's `.delivery/` directory.
