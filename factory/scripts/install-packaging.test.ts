@@ -700,3 +700,22 @@ test("installer help lists adapters and repeatable providers", async () => {
 	expect(stdout).toMatch(/providers:.*gitlab/);
 	expect(stdout).toMatch(/providers:.*jira/);
 });
+
+test("the installed runtime carries its libraries without node_modules/.bin links", async () => {
+	await withInstallRoot(async (root) => {
+		const dest = join(root, "skills");
+		const { exitCode, stderr } = await runInstaller(["--skills-dir", dest], {
+			DELIVERY_BIN_DIR: join(root, "bin"),
+			DELIVERY_INSTALL_SKIP_BUN: "",
+		});
+		expect([exitCode, stderr]).toEqual([0, expect.any(String)]);
+		expect(
+			await pathExists(
+				join(dest, "_factory", "node_modules", "zod", "package.json"),
+			),
+		).toBe(true);
+		expect(
+			await pathExists(join(dest, "_factory", "node_modules", ".bin")),
+		).toBe(false);
+	});
+});

@@ -205,7 +205,23 @@ copy_factory() {
       .review|.|..) continue ;;
     esac
     rm -rf -- "$dest/$name"
-    cp -R "$item" "$dest/$name"
+    if [[ "$name" == node_modules ]]; then
+      copy_runtime_modules "$item" "$dest/$name"
+    else
+      cp -R "$item" "$dest/$name"
+    fi
+  done
+}
+
+# The installed runtime imports libraries only. node_modules/.bin holds
+# symbolic links to development tools, and some skill stores refuse links.
+copy_runtime_modules() {
+  local src="$1" dest="$2" child
+  mkdir -p "$dest"
+  for child in "$src"/* "$src"/.[!.]*; do
+    [[ -e "$child" || -L "$child" ]] || continue
+    [[ "$(basename "$child")" == .bin ]] && continue
+    cp -R "$child" "$dest/"
   done
 }
 
