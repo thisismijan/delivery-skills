@@ -66,6 +66,7 @@ const CODE_REVIEW_MAX = readFileSync(join(SKILLS_ROOT, "code-review-max", "SKILL
 const MR_REVIEW = readFileSync(join(SKILLS_ROOT, "mr-review", "SKILL.md"), "utf8");
 const ADDRESS_COMMENTS = readFileSync(join(SKILLS_ROOT, "address-comments", "SKILL.md"), "utf8");
 const EXECUTE = readFileSync(join(SKILLS_ROOT, "execute", "SKILL.md"), "utf8");
+const EXECUTE_RE_ENTRY = readFileSync(join(SKILLS_ROOT, "execute", "reference", "re-entry.md"), "utf8");
 const FORGE_PROVIDER = 'bun "${FACTORY_ROOT}/scripts/forge-provider.ts"';
 const PROVIDER_NATIVE = /\b(?:gl-mr|gl-note|glab)\b/;
 const SPECS = Object.fromEntries(
@@ -1561,6 +1562,7 @@ describe("normalized forge commands", () => {
   const genericDocs: [string, string][] = [
     ["delivery", SKILL],
     ["execute", EXECUTE],
+    ["execute re-entry", EXECUTE_RE_ENTRY],
     ["address-comments", ADDRESS_COMMENTS],
     ["code-review-max", CODE_REVIEW_MAX],
     ["mr-review", MR_REVIEW],
@@ -1574,7 +1576,8 @@ describe("normalized forge commands", () => {
   });
 
   test("execute and address-comments use exact forge-provider operations", () => {
-    expect(EXECUTE).toContain(`${FORGE_PROVIDER} find`);
+    expect(EXECUTE_RE_ENTRY).toContain(`${FORGE_PROVIDER} find`);
+    expect(EXECUTE).toContain("`reference/re-entry.md`");
     expect(EXECUTE).toContain(`${FORGE_PROVIDER} create`);
     expect(EXECUTE).toContain(`${FORGE_PROVIDER} note`);
     expect(ADDRESS_COMMENTS).toContain(`${FORGE_PROVIDER} find`);
