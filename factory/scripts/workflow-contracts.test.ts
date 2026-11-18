@@ -118,6 +118,7 @@ const executeFlow = [
 ].join("\n");
 const addressComments = read("../skills/address-comments/SKILL.md");
 const groom = read("../skills/groom/SKILL.md");
+const groomPrdAndSplits = read("../skills/groom/reference/prd-and-splits.md");
 const delivery = read("../skills/delivery/SKILL.md");
 const setup = read("../skills/delivery/workflows/setup.md");
 const decisionBrief = read("../skills/delivery/reference/decision-brief.md");
@@ -591,6 +592,44 @@ describe("small-context ticket scope", () => {
 		expect(contract).toMatch(/one to three acceptance criteria/i);
 		expect(contract).toMatch(/vertically complete/i);
 		expect(contract).toMatch(/frontend-only.*backend-only.*test-only/i);
+	});
+
+	test("groom loads the PRD and slice breakdown only for a PRD-worthy or split-worthy ask", () => {
+		const pointer = "read `reference/prd-and-splits.md` when";
+		const step = (id: string) =>
+			groom.split(/^### Step /m).find((chunk) => chunk.startsWith(`${id} `)) ??
+			"";
+		expect(step("6").toLowerCase()).toContain(pointer);
+		expect(plain(step("6"))).toMatch(/PRD-worthy initiative/);
+		expect(plain(step("6"))).toMatch(/no PRD was written and give the reason/);
+		expect(step("7").toLowerCase()).toContain(pointer);
+		expect(plain(step("7"))).toMatch(/PRD-worthy or split-worthy/);
+
+		const reference = plain(groomPrdAndSplits);
+		expect(groomPrdAndSplits.startsWith("# ")).toBe(true);
+		expect(reference).toMatch(
+			/Problem, Solution, User stories, Success criteria, Constraints \/ NFRs, Out of scope/,
+		);
+		expect(reference).toMatch(
+			/MUST NOT contain an Implementation decisions or Test seams section/,
+		);
+		expect(reference).toMatch(/write no file before slice approval/i);
+		expect(reference).toMatch(/exactly one user story/i);
+		for (const label of [
+			"Title",
+			"Blocked by",
+			"Story covered",
+			"Observable outcome",
+			"Acceptance criteria",
+			"Out of scope",
+		]) {
+			expect(groomPrdAndSplits).toContain(`- **${label}**:`);
+		}
+		expect(reference).toMatch(
+			/two or more viable breakdowns.*Human decision brief/i,
+		);
+		expect(reference).toMatch(/expand-contract exception/i);
+		expect(reference).toMatch(/rollback boundary/i);
 	});
 
 	test("writer cannot turn a broad ticket into a technical-layer microticket", () => {

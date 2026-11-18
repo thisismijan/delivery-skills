@@ -14,15 +14,15 @@ It outranks this skill. Verify with
 
 You are running **/groom**, the grooming stage.
 
-This command turns whatever the operator provides (a file path, inline text, or conversation context) into a set of small, individually deployable ticket drafts. It grounds itself read-only in the codebase, classifies the input shape, grills the idea one question at a time so the operator chooses from options and trade-offs before seeing a recommendation, conditionally synthesizes a PRD and proposes a numbered vertical-slice breakdown (or, for a single small ask, proposes the one ticket directly), and only on approval writes the ticket drafts.
+It turns the operator's input (a file path, inline text, or conversation context) into small, individually deployable ticket drafts: ground read-only in the codebase, classify the input shape, grill one question at a time, propose the one ticket or a vertical-slice breakdown, and write drafts only on approval.
 
 ## Hard rules for this stage
 
-- **No MCP, git, or work-item provider tools.** This command and both its subagents (`groom-explorer`, `groom-writer`) carry no MCP, git, or provider tools. `Bash` is present on this command ONLY to run the local deterministic Bun scripts (`groom-paths.ts`, `verify-ticket.ts`, `human-text.ts`, `groom-decisions.ts`, `explorer-context.ts head`, which only reads the current commit) and to make the idempotent `.gitignore` edit. Never invoke `git`, a forge CLI, or any remote work-item call from it. A run produces zero commits and zero remote work-item activity. All writes land only under the grooming output directory (plus the single `.gitignore` line).
+- **No MCP, git, or work-item provider tools.** Neither this command nor its subagents (`groom-explorer`, `groom-writer`) carry them. `Bash` is here ONLY to run the local deterministic Bun scripts (`groom-paths.ts`, `verify-ticket.ts`, `human-text.ts`, `groom-decisions.ts`, `explorer-context.ts head`, which only reads the current commit) and to make the idempotent `.gitignore` edit. Never invoke `git`, a forge CLI, or any remote work-item call. A run makes zero commits and zero remote work-item activity. All writes, including the PRD and ticket drafts, land only under the grooming output directory, plus the single `.gitignore` line from Step 9.
 - **Escalate only operator-owned decisions.** The factory decides facts, single viable paths, and local cheap reversible defaults itself, records them, and continues. It asks only when product intent or a hard-to-reverse trade-off cannot be discovered. Each such question is one turn and uses the delivery conductor's **Human decision brief**: options and trade-offs first, then the withheld recommendation after they answer. Never batch two or more questions into a single turn.
 - **Atomic and complete.** Every ticket is one useful vertical outcome that can be understood, tested, implemented, and reviewed in one fresh small-context session. Prefer another ticket over another independent outcome.
-- **Write nothing before approval.** No ticket draft or PRD file is written until the operator explicitly approves the ticket or the slice breakdown. The conductor freezes that approved plan as the run contract. This skill does not invent extra tickets after that yes. After each settled grilling choice, append that choice to `decisions.md` in the grooming output directory (a run log, not a draft). `explorer-report.md` is a run log too (step 3).
-- **A bad draft fails closed.** When `verify-ticket.ts` rejects a draft, it is repaired and emitted again; it never becomes the final artifact.
+- **Write nothing before approval.** No ticket draft or PRD file is written until the operator explicitly approves the ticket or the slice breakdown. The conductor freezes that approved plan as the run contract; this skill invents no extra tickets after that yes. `decisions.md` and `explorer-report.md` are run logs, not drafts (steps 3 and 5).
+- **A bad draft fails closed.** When `verify-ticket.ts` rejects a draft (zero acceptance criteria, more than three, or any criterion that is not Given/When/Then), it is repaired and emitted again; it never becomes the final artifact.
 - **Text for people goes through `sanitizeHumanText`.** No output carries an em dash or an en dash (see `scripts/human-text.ts`).
 
 ## Steps, in order
@@ -55,7 +55,7 @@ Examine the skill arguments:
 
 Get the directory from the path helper, `bun "${FACTORY_ROOT}/scripts/groom-paths.ts" "<title>"`, passing as the title the input's first meaningful title line, or a short description of the topic.
 
-Use the printed `dir` value (e.g. the directory printed by `groom-paths.ts`) as the output directory for this run. The same title always yields the same directory, so a re-run lands in the same place.
+Use the printed `dir` value as this run's output directory. The same title always yields the same directory, so a re-run lands in the same place.
 
 ### Step 2a - Skip exploration when the input is already a valid ticket
 
@@ -64,20 +64,18 @@ Write the resolved input to `<output-dir>/source.md`. Run:
 bun "${FACTORY_ROOT}/scripts/verify-ticket.ts" "<output-dir>/source.md"
 ```
 When the exit is zero, the input is already a structurally valid ticket.
-Do not dispatch the `groom-explorer`. With no explorer report, no section is
-appended to `explorer-report.md` and no pick is challenged in this session. Write
-`<output-dir>/skipped-workers.json` naming `groom-explorer` and persist
-even when `routingProfiling` is `off`:
+Do not dispatch the `groom-explorer`, so no section is appended to
+`explorer-report.md` and no pick is challenged in this session. Do not run the
+grilling loop or synthesize a PRD. Write `<output-dir>/skipped-workers.json`
+naming `groom-explorer` and persist it even when `routingProfiling` is `off`:
 ```
 bun "${FACTORY_ROOT}/scripts/record-skip.ts" persist "<repo>/.delivery/routing" "groom-<slug>" "<output-dir>/skipped-workers.json"
 bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "groom-<slug>"
 ```
 The scorecard counts avoided workers. It never estimates tokens saved.
-Do not run the grilling loop or
-synthesize a PRD. Record `Agent decided:` in `decisions.md` that the
-input passed structural verification. Classify it as a single ticket and
-continue at Step 7 with that content. Operator approval is still
-required before any draft is written.
+Record `Agent decided:` in `decisions.md` that the input passed structural
+verification. Classify it as a single ticket and continue at Step 7 with that
+content. Operator approval is still required before any draft is written.
 
 When the exit is non-zero, run:
 ```
@@ -85,12 +83,10 @@ bun "${FACTORY_ROOT}/scripts/verify-ticket.ts" --fill-housekeeping \
   "<output-dir>/source.md"
 ```
 When that exit is zero, the helper appended missing Out of scope and
-Blocked by sections as `None.` and the file now passes. Treat it as a
-valid ticket: skip the explorer, grilling, and PRD, persist that skip
-with `record-skip.ts` naming `groom-explorer`, refresh
-`routing-scorecard.ts`, record `Agent decided:` in `decisions.md` that the
-input passed structural verification after filling the housekeeping
-sections, and continue at Step 7. Operator approval is still required.
+Blocked by sections as `None.` and the file now passes. Treat it as a valid
+ticket and take the zero-exit path above, except that you record
+`Agent decided:` in `decisions.md` that the input passed structural
+verification after filling the housekeeping sections.
 When that exit is still non-zero, keep `source.md` as the raw input and
 continue at Step 3. A raw idea is expected to fail this check.
 
@@ -98,9 +94,9 @@ continue at Step 3. A raw idea is expected to fail this check.
 
 Send the input and the target codebase to the `groom-explorer` subagent, which maps the modules, seams, and domain terms that matter. Grilling waits until its report is back.
 
-Then append that report word for word to `<output-dir>/explorer-report.md`, under a heading `## Session <ordinal>` followed by the line `Repository head: <sha>`, before the first question. Get the sha with `bun "${FACTORY_ROOT}/scripts/explorer-context.ts" head "<repoRoot>"`; `/draft` uses it to tell what changed since the report. The ordinal is one more than the number of `## Session` headings already in the file, or one when the file does not exist. Never overwrite or rewrite an earlier section, so a quote from an earlier session stays checkable. Require `bun "${FACTORY_ROOT}/scripts/groom-paths.ts" verify "<repoRoot>" "<output-dir>/explorer-report.md"` to accept the path before the write. The explorer stays read-only, so groom writes the file. It is a run log like `decisions.md`, not a draft, so it may exist before the operator approves a plan. A later session appends its settled choices to `decisions.md` under a new `## ` heading.
+Then append that report word for word to `<output-dir>/explorer-report.md`, under a heading `## Session <ordinal>` followed by the line `Repository head: <sha>`, before the first question. Get the sha with `bun "${FACTORY_ROOT}/scripts/explorer-context.ts" head "<repoRoot>"`; `/draft` uses it to tell what changed since the report. The ordinal is one more than the number of `## Session` headings already in the file, or one when the file does not exist. Never overwrite or rewrite an earlier section, so a quote from an earlier session stays checkable. Require `bun "${FACTORY_ROOT}/scripts/groom-paths.ts" verify "<repoRoot>" "<output-dir>/explorer-report.md"` to accept the path before the write. The explorer stays read-only, so groom writes this run log, which may exist before the operator approves a plan. A later session appends its settled choices to `decisions.md` under a new `## ` heading.
 
-Every grilling question and every slice proposal **MUST** cite a concrete module name, file path, or domain term from the explorer's report. Generic questions are not allowed: tie each one to what the codebase really holds.
+Every grilling question and every slice proposal **MUST** cite a concrete module name, file path, or domain term from the explorer's report. Generic questions are not allowed.
 
 ### Step 4 - Classify the input's shape before any grilling question
 
@@ -110,13 +106,12 @@ Before the operator hears any question, place the input in exactly one of these 
 - **A PRD-worthy initiative:** wide enough that it needs a PRD and a breakdown into several vertical-slice tickets.
 - **A split-worthy ask:** more work than one ticket holds, yet not enough to need a full PRD.
 
-Base the classification on the input itself and the explorer's report (Step 3). If evidence supports only one classification, the factory settles it, states it in one sentence, records it as agent-owned, and continues. Do not wait for confirmation of an obvious single ticket or an obvious split. If two or more classifications remain genuinely viable, follow the delivery conductor's **Human decision brief** (choose phase first, recommendation after they answer). The settled classification determines whether Steps 6 and 7 run at all (see below). It is not a formality.
+Base the classification on the input itself and the explorer's report (Step 3). If evidence supports only one classification, the factory settles it, states it in one sentence, records it as agent-owned, and continues. Do not wait for confirmation of an obvious single ticket or an obvious split. If two or more classifications remain genuinely viable, follow the delivery conductor's **Human decision brief** (choose phase first, recommendation after they answer). The settled classification decides whether a PRD (Step 6) and a slice breakdown (Step 7) happen at all. It is not a formality, and they are never a default path.
 
 ### Step 5 - Grilling loop (one question at a time)
 
-Fill gaps from the input and the codebase first. Ask the operator only for intent the factory cannot discover. Rules:
+Fill gaps from the input and the codebase first. Ask the operator only for intent the factory cannot discover, one question per turn (Hard rules). Rules:
 
-- **One question per turn, no more.** Two or more questions are never batched together.
 - **Do not ask a simple decision.** If the codebase, the input, a constitution default, or a cheap reversible two-way door answers it, decide, record `Agent decided:` in `decisions.md`, and continue.
 - **A real escalation withholds the recommendation.** When a remaining question is operator-owned and offers two or more viable product or slicing choices, follow the delivery conductor's **Human decision brief**: options, codebase context, and pros and cons first; after they choose, reveal the withheld recommendation and offer a change. Name each option; do not word the question so that "yes" accepts a hidden pick.
 - **Teach the trade-off, not the answer.** Ground **Why it matters** in a concrete module, file, or domain term from the explorer's report.
@@ -142,31 +137,14 @@ Fill gaps from the input and the codebase first. Ask the operator only for inten
 
 ### Step 6 - Synthesize a PRD only when the shape calls for one
 
-This step runs only when Step 4's settled classification is a PRD-worthy initiative.
-
-- **PRD-worthy:** synthesize the PRD **in memory**. It MUST contain these sections: Problem, Solution, User stories, Success criteria, Constraints / NFRs, Out of scope. It MUST NOT contain an `Implementation decisions` or `Test seams` section, and no prose describing how the change will be built or tested. Offer it in chat for review before proposing slices. Incorporate feedback, but write no file before slice approval.
-- **A single ticket, a split-worthy ask that needs no PRD, or anything else trivial:** say plainly that no PRD was written and give the reason (one ticket, or a split that needs no PRD).
+This step runs only when Step 4's settled classification is a PRD-worthy initiative. Read `reference/prd-and-splits.md` when it is, and synthesize the PRD in memory as that file says. For a single ticket, a split-worthy ask that needs no PRD, or anything else trivial, say plainly that no PRD was written and give the reason (one ticket, or a split that needs no PRD).
 
 ### Step 7 - Propose the tickets, gated on approval
 
 What you present here depends on Step 4's settled classification:
 
 - **Single ticket:** show the operator that one ticket for approval: context, story, what to build, Given/When/Then acceptance criteria, out of scope, and blocked by. With one deliverable there is no numbered slice breakdown at all.
-- **PRD-worthy or split-worthy:** show a numbered list of the proposed vertical slices, each tied to **exactly one user story**, since a ticket never carries more than one. Every entry MUST give:
-  - **Title**: short and descriptive
-  - **Blocked by**: the numbers of the slices it depends on, or "Nothing"
-  - **Story covered**: the one user story, from the PRD or the grilling, that this slice delivers
-  - **Observable outcome**: the one behaviour this ticket leaves working
-  - **Acceptance criteria**: one to three Given/When/Then statements
-  - **Out of scope**: the nearest outcomes deliberately deferred
-
-  Then ask the operator to check:
-  - the granularity, where each slice deploys on its own and covers one user story;
-  - the dependencies between slices;
-  - whether any slice is missing.
-
-If feedback requires choosing among two or more viable breakdowns, compare them
-through the delivery conductor's **Human decision brief** before asking.
+- **PRD-worthy or split-worthy:** read `reference/prd-and-splits.md` when the classification is either of these, and propose the numbered vertical-slice breakdown it describes, each slice tied to exactly one user story.
 
 Revise on the operator's feedback until they explicitly approve the ticket or the breakdown. **This step writes no draft file.**
 
@@ -187,12 +165,6 @@ recommend the smaller split. Do not create
 frontend-only, backend-only, test-only, or "foundation" microtickets unless
 that layer is itself a usable public contract.
 
-Prefer independently deployable vertical slices. A wide refactor may use an
-explicit **expand-contract exception** only when compatibility requires a
-temporary two-phase change; name the expand slice, contract slice, compatibility
-window, and rollback boundary instead of hiding both phases in one oversized
-ticket.
-
 ### Step 8 - Write the drafts once approved
 
 Once the operator explicitly approves the ticket (single-ticket path) or the slice breakdown (PRD-worthy or split-worthy path):
@@ -207,14 +179,12 @@ A non-zero exit stops the run. Read the problems, correct this session's entries
    without requesting a rewrite, do not dispatch the `groom-writer`.
    Persist that skip with `record-skip.ts` naming `groom-writer`, then
    refresh `routing-scorecard.ts`, even when `routingProfiling` is `off`.
-   The scorecard counts avoided workers. It never estimates tokens saved.
    Re-run `verify-ticket.ts` on `<output-dir>/source.md`. Non-zero exit
    is a stop; never write it as the final artifact. Zero exit: require
    `bun "${FACTORY_ROOT}/scripts/groom-paths.ts" verify "<repoRoot>"
    "<output-dir>/ticket.md"`, then atomically copy `source.md` to that
-   verified path. Continue at step 3 below (PRD is skipped on this
-   path). When the operator requested a rewrite, or Step 2a failed,
-   continue at item 1.
+   verified path and continue at item 3 (no PRD on this path). When the
+   operator requested a rewrite, or Step 2a failed, continue at item 1.
 
 1. Dispatch `groom-writer` with a temporary staging directory inside the approved output directory:
    - the output directory from Step 2;
@@ -237,9 +207,7 @@ Look in `.gitignore` for the grooming output parent that `groom-paths.ts` printe
 
 ### Step 10 - Close with a summary
 
-Everything this step shows a person goes through `sanitizeHumanText` (imported from `scripts/human-text.ts`), which removes em and en dashes.
-
-The closing summary lists:
+The closing summary goes through `sanitizeHumanText` and lists:
 
 1. **Output directory:** the directory printed by `groom-paths.ts`.
 2. **Files written:** each draft filename, plus `prd.md` when one was written.
@@ -252,11 +220,8 @@ The closing summary lists:
 
 ### Step 11 - Invariants this command holds
 
-- This command and its subagents (`groom-explorer`, `groom-writer`) hold **no** MCP, git, or work-item provider tools.
-- A run of `/groom` makes **no commits** and **no remote work-item activity**.
-- All generated artifacts (PRD and ticket drafts) land only under the grooming output directory — never elsewhere in the repo. The sole exception is the single idempotent `.gitignore` line added in Step 9.
-- A draft never becomes a final artifact while it has zero acceptance criteria, more than three, or any criterion that is not Given/When/Then.
-- Every approved ticket passes the small-context budget: one useful vertical outcome, one primary contract, one cohesive code area plus tests, and one to three criteria.
+Every hard rule above holds for the whole run. In addition:
+
+- Every approved ticket passes the small-context budget in Step 7.
 - The input shape is classified with the operator before the first grilling question (Step 4), and PRD synthesis and the vertical-slice breakdown (Steps 6 and 7) are conditional on that settled classification, not a default path.
-- Grilling presents options and trade-offs before any recommendation, then reveals the withheld recommendation after they choose.
 - Neither the PRD nor any ticket draft holds an `Implementation decisions` or `Test seams` section, or any prose on how the change will be built or tested.
