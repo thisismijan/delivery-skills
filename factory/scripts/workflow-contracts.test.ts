@@ -1167,7 +1167,12 @@ describe("bounded recovery and replay safety", () => {
 	});
 
 	test("scripted skips are recorded even when profiling is off", () => {
-		for (const skill of [draft, executeScriptedEdit, addressCommentsFlow, groom]) {
+		for (const skill of [
+			draft,
+			executeScriptedEdit,
+			addressCommentsFlow,
+			groom,
+		]) {
 			expect(skill).toContain("record-skip.ts");
 			expect(skill).toContain("routing-scorecard.ts");
 			expect(plain(skill)).toMatch(/never estimates tokens saved/i);
