@@ -46,7 +46,7 @@ The single-step verbs use the same table to tell the operator what to type next.
    `scope`, `nonGoals`, `tickets` (`key`, `title`, one to three `acceptance`
    criteria, `blockedBy`), `permittedWrites`, every `humanOwned` boundary, and
    `approval` (`who`, exact `words`, ISO `at`), plus `level` when the
-   invocation named `min` or `max` (see `SKILL.md` **Levels**). A later plan also records
+   invocation named `min` or `max` (see `reference/levels.md`). A later plan also records
    `supersedesHash`, `reason`, and `affectedInvariant`. `permittedWrites`
    includes `change-land` so auto may land approved, green changes; a contract
    frozen without it leaves every merge to the operator.
@@ -275,7 +275,7 @@ carries over. Never update the target branch.
      It writes its journal at every step boundary and immediately before and
      after any command that may run for minutes, so the journal is its
      heartbeat.
-  4. Give each worker the fan-out brief and forbid merge (the coordinator
+  4. Give each worker the fan-out brief (`reference/fan-out-brief.md`) and forbid merge (the coordinator
      lands), tracker transitions,
      sibling worktrees, and work outside its key.
   5. Start every worker in the current batch before awaiting any one of them.

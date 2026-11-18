@@ -32,3 +32,7 @@ Run in the **target repo** cwd with this delivery pack loaded. This is everythin
 /delivery <iid> | <idea>             # review-only, or a full epic
 /delivery help                       # this list
 ```
+
+When `/delivery` was typed with no argument, show this list, then ask once:
+idea, work-item reference, MR iid, or `auto`? Recommended: if the
+conversation already has a clear reference or iid, use that.

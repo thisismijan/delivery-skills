@@ -1637,6 +1637,10 @@ describe("status names where the packet is", () => {
 
 describe("the skill and the ledger describe the packet", () => {
 	const SKILL = readFileSync(join(SKILL_ROOT, "SKILL.md"), "utf8");
+	const ENTRIES = readFileSync(
+		join(SKILL_ROOT, "reference", "entries.md"),
+		"utf8",
+	);
 	const LEDGER = readFileSync(
 		join(SKILL_ROOT, "workflows", "delivery-ledger.md"),
 		"utf8",
@@ -1648,7 +1652,9 @@ describe("the skill and the ledger describe the packet", () => {
 	}
 
 	test("the status entry runs where, reports the path, says when none is written, and never runs build", () => {
-		const entry = section(SKILL, "### Entry S — Status");
+		expect(SKILL).toContain("**Entry S — Status**");
+		expect(SKILL).toContain("`reference/entries.md`");
+		const entry = section(ENTRIES, "## Entry S — Status");
 		expect(entry).toContain(skillForm(RESUME_PACKET_WHERE_INVOCATION));
 		expect(entry).toMatch(/path/i);
 		expect(entry).toContain("no packet has been written");

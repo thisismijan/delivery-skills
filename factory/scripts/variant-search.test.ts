@@ -14,7 +14,10 @@ test("a confirmed Medium-or-worse finding is searched for variants and listed on
 	const search = adjudicate.slice(
 		adjudicate.indexOf("### Search for variants"),
 	);
-	const text = search.replace(/\s+/g, " ");
+	expect(search).toContain("reference/variant-search.md");
+	const text = read(
+		"skills/code-review-max/reference/variant-search.md",
+	).replace(/\s+/g, " ");
 	expect(text).toContain(
 		"For each finding you confirmed at Medium or higher, search for the same root cause elsewhere",
 	);
@@ -31,7 +34,14 @@ test("a confirmed Medium-or-worse finding is searched for variants and listed on
 });
 
 test("address-comments fixes every listed instance in the same round", () => {
-	const text = read("skills/address-comments/SKILL.md").replace(/\s+/g, " ");
+	const skill = read("skills/address-comments/SKILL.md").replace(/\s+/g, " ");
+	expect(skill).toContain(
+		"Read `reference/also-at.md` when an action comment, or the review finding it repeats, lists **Also at:** locations",
+	);
+	const text = read("skills/address-comments/reference/also-at.md").replace(
+		/\s+/g,
+		" ",
+	);
 	expect(text).toContain(
 		"lists **Also at:** locations, the fix covers every listed instance in the same commit and round",
 	);
