@@ -144,6 +144,14 @@ const addressCommentsFlow = [
 const groom = read("../skills/groom/SKILL.md");
 const groomPrdAndSplits = read("../skills/groom/reference/prd-and-splits.md");
 const delivery = read("../skills/delivery/SKILL.md");
+const deliveryEntries = read("../skills/delivery/reference/entries.md");
+const deliveryLevels = read("../skills/delivery/reference/levels.md");
+const deliveryOrchestration = read(
+	"../skills/delivery/reference/orchestration.md",
+);
+const deliveryWorkItemChoice = read(
+	"../skills/delivery/reference/work-item-choice.md",
+);
 const setup = read("../skills/delivery/workflows/setup.md");
 const decisionBrief = read("../skills/delivery/reference/decision-brief.md");
 const auto = read("../skills/delivery/workflows/auto.md");
@@ -320,9 +328,10 @@ describe("continuous delivery authorization", () => {
 	});
 
 	test("every live workflow and operator doc states the configured worktree cap", () => {
-		for (const document of [auto, delivery, epicToBacklog, rootReadme]) {
+		for (const document of [auto, deliveryEntries, epicToBacklog, rootReadme]) {
 			expect(plain(document)).toMatch(/maxParallelWorktrees/i);
 		}
+		expect(delivery).toContain("`reference/entries.md`");
 		for (const document of [
 			auto,
 			epicToBacklog,
@@ -1115,7 +1124,10 @@ describe("bounded recovery and replay safety", () => {
 	});
 
 	test("fast-model graduation needs representative evidence, named floors, and approval", () => {
-		for (const text of [runtime, executeFlow, delivery]) {
+		expect(plain(delivery)).toContain(
+			"Read reference/orchestration.md before you dispatch a subagent or isolated worker, register or promote a fast model",
+		);
+		for (const text of [runtime, executeFlow, deliveryOrchestration]) {
 			expect(text).toContain("representative-run");
 			expect(text).toContain("promotion approval");
 			for (const floor of FAST_SAFETY_FLOORS) {
@@ -1125,8 +1137,10 @@ describe("bounded recovery and replay safety", () => {
 		expect(runtime).toContain("Public rankings");
 		expect(executeFlow).toContain("unscored fixture");
 		expect(executeFlow).toContain("test-repo stand-in");
-		expect(delivery).toContain("Public rankings never promote");
-		expect(delivery).toContain("Test-repo stand-in scores never promote");
+		expect(deliveryOrchestration).toContain("Public rankings never promote");
+		expect(deliveryOrchestration).toContain(
+			"Test-repo stand-in scores never promote",
+		);
 	});
 
 	test("draft generates tasks from spec scenarios", () => {
@@ -1248,9 +1262,12 @@ describe("portable mutation boundaries", () => {
 describe("generic work-item selection", () => {
 	test("delivery confirms one repository provider before lifecycle work", () => {
 		expect(delivery).toContain("work-item-config.ts");
-		expect(delivery).toContain("local-files");
-		expect(delivery).toMatch(/Never infer from remotes, credentials, host/i);
-		expect(delivery).toContain("--replace");
+		expect(delivery).toContain("`reference/work-item-choice.md`");
+		expect(deliveryWorkItemChoice).toContain("local-files");
+		expect(deliveryWorkItemChoice).toMatch(
+			/Never infer from remotes, credentials, host/i,
+		);
+		expect(deliveryWorkItemChoice).toContain("--replace");
 		expect(delivery).toMatch(/Human decision brief/);
 	});
 
@@ -1659,10 +1676,10 @@ test("auto runs workers in the confirmed sandbox and never silently without it",
 });
 
 test("the docs state each level's values from the level table and its fixed floors", () => {
-	const start = delivery.indexOf("\n## Levels\n");
-	expect(start).toBeGreaterThan(-1);
-	const end = delivery.indexOf("\n## ", start + 1);
-	const levels = delivery.slice(start, end);
+	expect(plain(delivery)).toContain(
+		"Read reference/levels.md when the arguments name a level word",
+	);
+	const levels = deliveryLevels;
 	for (const level of DELIVERY_LEVELS) {
 		const settings = LEVEL_SETTINGS[level];
 		const row = levels
@@ -1731,7 +1748,7 @@ test("every operator page that tabulates levels copies the level table exactly",
 			expect(row).toBeDefined();
 			return (row ?? "").split("|").map((cell) => cell.trim());
 		});
-	const canonical = rows(levelSection(delivery, "## Levels"));
+	const canonical = rows(deliveryLevels);
 	const troubleshooting = read("../docs/troubleshooting.md");
 	const examples = read("../docs/examples.md");
 	const gettingStarted = read("../docs/getting-started.md");
