@@ -58,14 +58,25 @@ const SKILL_PATH = existsSync(join(ROOT, "SKILL.md"))
 const SKILL = readFileSync(SKILL_PATH, "utf8");
 const HELP = readFileSync(join(ROOT, "reference", "help.md"), "utf8");
 const DECISION_BRIEF = readFileSync(join(ROOT, "reference", "decision-brief.md"), "utf8");
+const ENTRIES = readFileSync(join(ROOT, "reference", "entries.md"), "utf8");
+const ORCHESTRATION = readFileSync(join(ROOT, "reference", "orchestration.md"), "utf8");
 const WORKFLOWS = join(ROOT, "workflows");
 const LEDGER = readFileSync(join(WORKFLOWS, "delivery-ledger.md"), "utf8");
 const CONDUCTOR_WRITES = section(LEDGER, "## Writes the conductor owns");
 const AUTO = readFileSync(join(WORKFLOWS, "auto.md"), "utf8");
 const CODE_REVIEW_MAX = readFileSync(join(SKILLS_ROOT, "code-review-max", "SKILL.md"), "utf8");
+const codeReviewMaxReference = (name: string) =>
+  readFileSync(join(SKILLS_ROOT, "code-review-max", "reference", name), "utf8");
+const CODE_REVIEW_MAX_LENSES = codeReviewMaxReference("lenses.md");
+const CODE_REVIEW_MAX_FOCUSED_PASS = codeReviewMaxReference("focused-pass.md");
+const CODE_REVIEW_MAX_NO_LENSES = codeReviewMaxReference("no-lenses.md");
+const CODE_REVIEW_MAX_MEMORY = codeReviewMaxReference("review-memory.md");
+const CODE_REVIEW_MAX_STANDARD = codeReviewMaxReference("standard-adjudication.md");
+const CODE_REVIEW_MAX_LATER_ROUNDS = codeReviewMaxReference("later-rounds.md");
 const MR_REVIEW = readFileSync(join(SKILLS_ROOT, "mr-review", "SKILL.md"), "utf8");
 const ADDRESS_COMMENTS = readFileSync(join(SKILLS_ROOT, "address-comments", "SKILL.md"), "utf8");
 const EXECUTE = readFileSync(join(SKILLS_ROOT, "execute", "SKILL.md"), "utf8");
+const EXECUTE_RE_ENTRY = readFileSync(join(SKILLS_ROOT, "execute", "reference", "re-entry.md"), "utf8");
 const FORGE_PROVIDER = 'bun "${FACTORY_ROOT}/scripts/forge-provider.ts"';
 const PROVIDER_NATIVE = /\b(?:gl-mr|gl-note|glab)\b/;
 const SPECS = Object.fromEntries(
@@ -224,9 +235,16 @@ describe("one command to remember", () => {
   ];
   for (const command of wrapped) {
     test(`the skill still invokes ${command} itself`, () => {
-      expect(section(SKILL, "### Single steps")).toContain(command);
+      expect(section(ENTRIES, "## Single steps")).toContain(command);
     });
   }
+
+  test("the conductor points every other entry at its section of reference/entries.md", () => {
+    const run = section(SKILL, "### Every other entry");
+    expect(run).toContain("`reference/entries.md`");
+    expect(run).toContain("**Single steps**");
+    expect(run).toContain("**Entry**");
+  });
 });
 
 describe("source of truth", () => {
@@ -587,6 +605,7 @@ describe("ledger vocabulary", () => {
 
   const docs: [string, string][] = [
     ["SKILL.md", SKILL],
+    ["reference/entries.md", ENTRIES],
     ...Object.entries(SPECS).filter(([name]) => !HISTORICAL_FILES.has(name)),
   ];
   for (const [name, doc] of docs) {
@@ -672,10 +691,12 @@ describe("auto", () => {
     expect(choosing).toContain("MAX_PARALLEL_WORKTREES");
     expect(choosing).toContain('scripts/config.ts" ready-wave');
     expect(choosing).toContain(`default ${DEFAULT_MAX_PARALLEL_WORKTREES}`);
-    expect(SKILL).toContain("maxParallelWorktrees");
-    expect(SKILL).toMatch(
+    expect(ENTRIES).toContain("maxParallelWorktrees");
+    expect(ENTRIES).toMatch(
       new RegExp(`scripts/config.ts[\\s\\S]*default\\s+${DEFAULT_MAX_PARALLEL_WORKTREES}`),
     );
+    expect(SKILL).toContain("`workflows/auto.md`");
+    expect(SKILL).toContain("`reference/entries.md`");
     expect(choosing).toContain("one detached git worktree per dispatched key");
     expect(choosing).toContain("Start every worker in the current batch before awaiting any one");
     expect(choosing).toContain("DELIVERY_WORKER_JOURNAL");
@@ -709,7 +730,7 @@ describe("auto", () => {
 
 describe("atomic ticket sizing", () => {
   test("groom and ticket delivery reserve most context for recovery", () => {
-    for (const doc of [SKILL, SPECS["epic-to-backlog.md"], SPECS["ticket-to-mr.md"]]) {
+    for (const doc of [ENTRIES, SPECS["epic-to-backlog.md"], SPECS["ticket-to-mr.md"]]) {
       expect(doc).toContain("~25%");
       expect(doc).not.toContain("~50%");
     }
@@ -1028,8 +1049,15 @@ describe("engineering learning postmortem", () => {
 });
 
 describe("shadow model routing", () => {
+  test("the conductor points at the orchestration policy before dispatch and when profiling is on", () => {
+    const pointer = section(SKILL, "## Orchestration policy");
+    expect(pointer).toContain("Read `reference/orchestration.md` before you dispatch");
+    expect(pointer).toContain("`routingProfiling`");
+    expect(pointer).toContain("ROUTING_PROFILING=always");
+  });
+
   test("the conductor records shadow decisions and does not dispatch them", () => {
-    const policy = section(SKILL, "## Orchestration policy");
+    const policy = ORCHESTRATION;
     expect(policy).toContain("Shadow model routing");
     expect(policy).toContain("task-profile-controller");
     expect(policy).toContain("ROUTING_PROFILING=always");
@@ -1060,7 +1088,7 @@ describe("shadow model routing", () => {
 });
 
 describe("portable dynamic orchestration", () => {
-  const policy = section(SKILL, "## Orchestration policy");
+  const policy = ORCHESTRATION;
 
   test("isolated workers stop at decisions not covered by plan approval", () => {
     expect(policy).toContain("mutating isolated");
@@ -1308,9 +1336,11 @@ describe("max review contract", () => {
     const flat = (text: string) => text.replace(/\s+/g, " ");
     const unquoted = (text: string) => text.replace(/"(<[^">]+>)"/g, "$1");
     const coverage = () => flat(section(CODE_REVIEW_MAX, "## Check coverage"));
+    const focusedPass = () => flat(CODE_REVIEW_MAX_FOCUSED_PASS);
 
     test("every lens ends its report with an examined-files list, on NO FINDINGS too", () => {
-      const lenses = flat(CODE_REVIEW_MAX);
+      expect(CODE_REVIEW_MAX).toContain("reference/lenses.md");
+      const lenses = flat(CODE_REVIEW_MAX_LENSES);
       expect(lenses).toContain("Examined files:");
       expect(lenses).toMatch(
         /Examined files:.{0,300}NO FINDINGS|NO FINDINGS.{0,300}Examined files:/,
@@ -1319,7 +1349,7 @@ describe("max review contract", () => {
     });
 
     test("a file counts as examined only when the lens read it, not when it only named it", () => {
-      const lenses = flat(CODE_REVIEW_MAX);
+      const lenses = flat(CODE_REVIEW_MAX_LENSES);
       expect(lenses).toMatch(/read[^.]{0,80}(changed lines|contents)[^.]{0,80}(pinned diff|head)/i);
       expect(lenses).toMatch(
         /(naming|named)[^.]{0,100}(is not reading|does not count|not examined|never counts)/i,
@@ -1363,20 +1393,22 @@ describe("max review contract", () => {
       expect(text).toMatch(/one batch|one parallel batch/i);
       expect(text).toMatch(/standard/);
       expect(text).toMatch(/exact model identifier/i);
-      expect(text).toMatch(
+      expect(text).toContain("reference/focused-pass.md");
+      expect(focusedPass()).toMatch(
         /never repeated|not repeated|exactly one (focused )?pass|no second pass/i,
       );
-      expect(text).toMatch(/binary[^.]{0,80}(no|never|not)[^.]{0,40}(pass|subagent)/i);
+      expect(focusedPass()).toMatch(/binary[^.]{0,80}(no|never|not)[^.]{0,40}(pass|subagent)/i);
     });
 
     test("a resumed review runs the command again and dispatches only what it still asks for", () => {
-      expect(coverage()).toMatch(
+      expect(coverage()).toMatch(/resuming a review[^.]{0,200}reference\/focused-pass\.md/);
+      expect(focusedPass()).toMatch(
         /resumed review[^.]{0,200}(run the (same )?command again|again from step 1)[^.]{0,200}needsFocusedPass/i,
       );
     });
 
     test("a failed pass leaves its file named as unexamined and adjudication continues", () => {
-      const text = coverage();
+      const text = focusedPass();
       expect(text).toMatch(/fail[^.]{0,200}still unexamined/i);
       expect(text).toMatch(/adjudication continues|continue(s)? (to|at|with) adjudication/i);
     });
@@ -1392,7 +1424,8 @@ describe("max review contract", () => {
       expect(parallel).toMatch(
         /lenses. is empty[\s\S]{0,600}coverage command[^.]{0,80}no reports/i,
       );
-      const text = coverage();
+      expect(coverage()).toContain("reference/no-lenses.md");
+      const text = flat(CODE_REVIEW_MAX_NO_LENSES);
       expect(text).toMatch(/skipped/i);
       expect(text).toMatch(/no lens ran/i);
       expect(text).toMatch(
@@ -1410,7 +1443,7 @@ describe("max review contract", () => {
     });
 
     test("focused-pass candidates join the lens candidates and the adjudication evidence", () => {
-      const text = coverage();
+      const text = focusedPass();
       expect(text).toMatch(/lens-candidates\.json/);
       expect(text).toMatch(/--evidence|evidence/i);
       expect(text).toMatch(/focused-pass-<n>\.md/);
@@ -1469,7 +1502,7 @@ describe("ledger resume", () => {
   });
 
   test("Entry B resumes from the helper instead of walking Stages 2 to 4", () => {
-    const entryB = section(SKILL, "### Entry B — Resume");
+    const entryB = section(ENTRIES, "## Entry B — Resume");
     const command = invocation("NEXT_ACTION_INVOCATION");
     expect(entryB).toContain(command);
     expect(entryB).not.toMatch(/Follow `ticket-to-mr\.md` for the key/);
@@ -1536,7 +1569,7 @@ describe("interrupted execute recovery", () => {
   });
 
   test("resume records a matching merge request iid and proceeds to review", () => {
-    const entryB = section(SKILL, "### Entry B — Resume");
+    const entryB = section(ENTRIES, "## Entry B — Resume");
     expect(entryB).toMatch(/\[executing\]/);
     expect(entryB).toMatch(/matching.*merge request|matching open MR/i);
     expect(entryB).toMatch(/record.*iid|records the iid/i);
@@ -1545,14 +1578,17 @@ describe("interrupted execute recovery", () => {
 
   test("an interrupted execute stop offers the execute-resume command", () => {
     expect(`${SKILL}\n${AUTO}`).toContain("/delivery execute <KEY>");
-    expect(SKILL).toMatch(/interrupt/i);
-    expect(section(SKILL, "### Entry B — Resume")).toMatch(
+    expect(ENTRIES).toMatch(/interrupt/i);
+    expect(section(SKILL, "## Phase 0 — Entry detection")).toContain(
+      "recover first as its\n**Executing recovery** says",
+    );
+    expect(section(ENTRIES, "## Entry B — Resume")).toMatch(
       /does not run execute|must not start execute|not start execute/i,
     );
   });
 
   test("typing execute remains the approval to build after an interrupted stop", () => {
-    expect(SKILL).toMatch(/Typing this verb is the approval to build/);
+    expect(ENTRIES).toMatch(/Typing this verb is the approval to build/);
     expect(AUTO).toMatch(/Never retry a failed stage/);
   });
 });
@@ -1561,6 +1597,7 @@ describe("normalized forge commands", () => {
   const genericDocs: [string, string][] = [
     ["delivery", SKILL],
     ["execute", EXECUTE],
+    ["execute re-entry", EXECUTE_RE_ENTRY],
     ["address-comments", ADDRESS_COMMENTS],
     ["code-review-max", CODE_REVIEW_MAX],
     ["mr-review", MR_REVIEW],
@@ -1574,7 +1611,8 @@ describe("normalized forge commands", () => {
   });
 
   test("execute and address-comments use exact forge-provider operations", () => {
-    expect(EXECUTE).toContain(`${FORGE_PROVIDER} find`);
+    expect(EXECUTE_RE_ENTRY).toContain(`${FORGE_PROVIDER} find`);
+    expect(EXECUTE).toContain("`reference/re-entry.md`");
     expect(EXECUTE).toContain(`${FORGE_PROVIDER} create`);
     expect(EXECUTE).toContain(`${FORGE_PROVIDER} note`);
     expect(ADDRESS_COMMENTS).toContain(`${FORGE_PROVIDER} find`);
@@ -1940,7 +1978,8 @@ describe("review memory in the review skills", () => {
     const end = CODE_REVIEW_MAX.indexOf("- `main`");
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    return flat(CODE_REVIEW_MAX.slice(start, end));
+    expect(CODE_REVIEW_MAX.slice(start, end)).toContain("reference/standard-adjudication.md");
+    return flat(CODE_REVIEW_MAX_STANDARD);
   };
 
   test("every candidate gets an id, the ids go into the candidate file with the severities, and the filter never removes a candidate", () => {
@@ -1957,7 +1996,10 @@ describe("review memory in the review skills", () => {
     const reading = text.indexOf("\n1. Read the cited code");
     expect(comparison).toBeGreaterThan(-1);
     expect(comparison).toBeLessThan(reading);
-    const step = flat(text.slice(comparison, reading));
+    expect(text.slice(comparison, reading)).toContain("reference/review-memory.md");
+    const step = flat(
+      section(CODE_REVIEW_MAX_MEMORY, "## Step 0: a candidate at a remembered rejection"),
+    );
     expect(step).toContain("prior-rejection-at-location");
     expect(step).toMatch(/behaviou?r and (the )?trigger/i);
     expect(step).toMatch(/without re-investigating/i);
@@ -1967,7 +2009,8 @@ describe("review memory in the review skills", () => {
   });
 
   test("the recording rule says what is recorded, what is not, and how guards bound it", () => {
-    const text = flat(CODE_REVIEW_MAX);
+    expect(CODE_REVIEW_MAX).toContain("reference/review-memory.md");
+    const text = flat(CODE_REVIEW_MAX_MEMORY);
     const rule = text.match(/(?:never|do not|must not|does not) record[\s\S]{0,700}/i)?.[0] ?? "";
     expect(rule).not.toBe("");
     expect(rule).toMatch(/duplicate/i);
@@ -1987,7 +2030,7 @@ describe("review memory in the review skills", () => {
   });
 
   test("a reversal names the candidate and the remembered rejection, and a different claim reverses nothing", () => {
-    const text = flat(CODE_REVIEW_MAX);
+    const text = flat(CODE_REVIEW_MAX_MEMORY);
     const reversal = text.match(/reversed[\s\S]{0,700}/i)?.[0] ?? "";
     expect(reversal).toMatch(/same claim/i);
     expect(reversal).toMatch(/\bref/i);
@@ -2007,7 +2050,9 @@ describe("review memory in the review skills", () => {
   });
 
   test("a refused outcome is recovered from in the review, except an unusable file or repository", () => {
-    const text = flat(CODE_REVIEW_MAX);
+    expect(flat(CODE_REVIEW_MAX)).toMatch(/exit (of )?1[^.]{0,80}stops? the review/i);
+    expect(flat(CODE_REVIEW_MAX)).toMatch(/exit (of )?3[^.]{0,120}review-memory\.md/i);
+    const text = flat(CODE_REVIEW_MAX_MEMORY);
     expect(text).toMatch(/exit (of )?3/i);
     expect(text).toMatch(/names every refused item/i);
     expect(text).toMatch(/correct/i);
@@ -2032,7 +2077,8 @@ describe("review memory in the review skills", () => {
   });
 
   test("a review whose every candidate was dropped still reports the list, and the none mode has no list", () => {
-    const text = flat(CODE_REVIEW_MAX);
+    expect(section(CODE_REVIEW_MAX, "## Output")).toContain("reference/review-memory.md");
+    const text = flat(CODE_REVIEW_MAX_MEMORY);
     expect(text).toMatch(/every candidate[^.]{0,120}previously disproved/i);
     expect(text).toMatch(/No findings\.[^.]{0,200}PASS|PASS[^.]{0,200}No findings\./);
     expect(text).toMatch(
@@ -2041,7 +2087,8 @@ describe("review memory in the review skills", () => {
   });
 
   test("the delta paragraph hides the dropped list from the lenses and does not carry it forward", () => {
-    const text = flat(section(CODE_REVIEW_MAX, "## Scope this round"));
+    expect(section(CODE_REVIEW_MAX, "## Scope this round")).toContain("reference/later-rounds.md");
+    const text = flat(section(CODE_REVIEW_MAX_LATER_ROUNDS, "## Delta scope"));
     expect(text).toContain("earlier-review.md");
     expect(text).toMatch(/without[^.]{0,40}### Previously disproved/i);
     expect(text).toMatch(/nothing[^.]{0,80}but[^.]{0,40}finding/i);

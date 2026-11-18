@@ -196,8 +196,13 @@ test("execute runs the pass before the change's tests and the test writer has th
 	expect(execute.indexOf("3c. **Characterization pass.**")).toBeLessThan(
 		execute.indexOf("4. **Write tests first.**"),
 	);
+	const pass = readFileSync(
+		join(root, "skills/execute/reference/characterization.md"),
+		"utf8",
+	);
+	expect(pass.replace(/\s+/g, " ")).toContain("keep them out of the red gate");
 	expect(execute.replace(/\s+/g, " ")).toContain(
-		"keep them out of the red gate",
+		"read `reference/characterization.md` and pin them before step 4",
 	);
 	expect(execute.replace(/\s+/g, " ")).toContain(
 		"Exit 3 lists `pinned` files, each with its reason (no test references it, or yellow zone)",

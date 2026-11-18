@@ -1,6 +1,6 @@
 # Routing profiling
 
-`/execute` reads this only when `routingProfiling` is exactly `always`. It
+`/execute` and `/address-comments` read this only when `routingProfiling` is exactly `always`. It
 adds diagnostic evidence and never changes the live model, the worker, or a
 gate.
 
@@ -68,3 +68,21 @@ verdict's terminal result, repairs, and escalations. Do not omit it;
 persistence refuses a missing outcome. Never write
 `{ "source": "unavailable" }` by hand. When `routingProfiling` is `off`,
 skip the profile, usage-capture, routing-persistence, and scorecard commands.
+
+## Comment classification
+
+`/address-comments` follows this around the `comment-assessor` in step 5 when
+at least one in-scope comment remains. Start a usage timer before dispatching
+the assessor:
+```
+bun "${FACTORY_ROOT}/scripts/capture-usage.ts" start "<reviewDir>/classify-usage-timer.json"
+```
+After a valid verdict, resolve `frontier` and dispatch `task-profile-controller` with that exact available model for the classify task, validate with `task-profile.ts`, persist `bun "${FACTORY_ROOT}/scripts/shadow-route.ts" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-shadow.json"`, and finish capture after the outcome file exists:
+```
+bun "${FACTORY_ROOT}/scripts/capture-usage.ts" finish "<reviewDir>/classify-usage-timer.json" "<reviewDir>/classify-usage.json" --input "<reviewDir>/classify-profile.json" --output "<reviewDir>/classify-outcome.json"
+bun "${FACTORY_ROOT}/scripts/record-routing.ts" persist "<repo>/.delivery/routing" "<changeName>" "<reviewDir>/classify-profile.json" sonnet "<reviewDir>/classify-outcome.json" "<reviewDir>/classify-usage.json" <controller-model> <standard-model>
+bun "${FACTORY_ROOT}/scripts/routing-scorecard.ts" "<repo>/.delivery/routing" "<changeName>"
+```
+The scorecard reports measured live usage and outcomes, while
+shadow quality and savings remain explicitly unevaluated until a
+paired benchmark exists. Pass `--host "<reviewDir>/host-usage.json"` only when the runtime wrote that file. `classify-outcome.json` records whether classification completed, any repairs, and any escalation. Do not omit it; persistence refuses a missing outcome. Never write `{ "source": "unavailable" }` by hand. Classification still used the current semantic standard route; the shadow file must not change that. When `routingProfiling` is `off`, skip the timer, profile, usage capture, routing persistence, and scorecard commands.

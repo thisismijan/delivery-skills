@@ -149,10 +149,25 @@ test("the code review runs one lens on the second family and reports lens models
 	);
 	expect(skill).toContain('scripts/model-catalogue.ts" second-family standard');
 	const text = skill.replace(/\s+/g, " ");
+	const seat = readFileSync(
+		join(
+			import.meta.dir,
+			"..",
+			"..",
+			"skills",
+			"code-review-max",
+			"reference",
+			"second-family.md",
+		),
+		"utf8",
+	).replace(/\s+/g, " ");
 	expect(text).toContain(
+		"When `otherFamily` names a model, read `reference/second-family.md`.",
+	);
+	expect(seat).toContain(
 		"When `otherFamily` names a model, run exactly one lens on it in place of the standard model",
 	);
-	expect(text).toContain("so the lens count and the cost stay the same");
+	expect(seat).toContain("so the lens count and the cost stay the same");
 	expect(text).toContain(
 		"When `otherFamily` is null, every lens uses the standard model.",
 	);

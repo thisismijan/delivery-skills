@@ -63,6 +63,9 @@ function explainBackStep(): string {
 	return plain(end === -1 ? rest : rest.slice(0, end));
 }
 
+const gapsReference = () =>
+	plain(read("../skills/draft/reference/explain-back-gaps.md"));
+
 function explainBackAgent(): { name: string; text: string } {
 	const files = readdirSync(join(ROOT, "agents")).filter((file) =>
 		/explain-back/.test(file),
@@ -121,7 +124,8 @@ describe("explain-back gaps", () => {
 		expect(routing.reason).toContain(secondGap.question);
 
 		const step = explainBackStep();
-		expect(step).toMatch(/each gap/i);
+		expect(step).toContain("read reference/explain-back-gaps.md");
+		expect(gapsReference()).toMatch(/each gap/i);
 		for (const action of ["proceed", "revise", "escalate"]) {
 			expect(step).toContain(action);
 		}
@@ -179,7 +183,8 @@ describe("explain-back escalation", () => {
 	});
 
 	test("the draft step posts one note on escalation and stops on exit 3", () => {
-		const step = explainBackStep();
+		expect(explainBackStep()).toContain(STOP_ID);
+		const step = gapsReference();
 		expect(step).toContain(STOP_ID);
 		expect(step).toMatch(/exit 3/i);
 		expect(step).toMatch(/one (provider )?note/i);
@@ -285,13 +290,13 @@ describe("explain-back misread", () => {
 	});
 
 	test("the draft command compares the restatement to the change files and the work item never goes to the reader", () => {
-		const step = explainBackStep();
-		expect(step).toMatch(/misread/i);
-		expect(step).toMatch(/compar/i);
-		expect(step).toMatch(
+		const gaps = gapsReference();
+		expect(gaps).toMatch(/misread/i);
+		expect(gaps).toMatch(/compar/i);
+		expect(gaps).toMatch(
 			/restatement[^.]*contradict|contradict[^.]*restatement/i,
 		);
-		expect(step).toMatch(/never[^.]*work item/i);
+		expect(explainBackStep()).toMatch(/never[^.]*work item/i);
 	});
 });
 
@@ -326,7 +331,7 @@ describe("explain-back revision", () => {
 		expect(routeComprehension(gapsVerdict(), 2).action).toBe("escalate");
 		expect(routeComprehension(parse({}), 2).action).toBe("proceed");
 
-		const step = explainBackStep();
+		const step = gapsReference();
 		expect(step).toContain("generate-tasks.ts");
 		expect(step).toMatch(/attempt 2/);
 		expect(step).toMatch(/same isolated inputs/i);
