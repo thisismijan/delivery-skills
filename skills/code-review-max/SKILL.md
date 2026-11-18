@@ -26,7 +26,7 @@ nothing.
 
 Stop at the first failure:
 
-1. Parse the skill arguments as a change ref, accepting `840` or `!840` and nothing else. Strip a leading `!`. That value is `<ref>` (the CLI user alias for the opaque change reference).
+1. Parse the skill arguments as a change ref, accepting `840` or `!840` and nothing else. Strip a leading `!`. That value is `<ref>`, the user's alias for the change reference.
 2. Write `{ "ref": "<ref>" }` to `.review/mr-<ref>/read-input.json` and run
    `read`. Before requesting any review evidence, replace that file with
    `{ "ref": "<ref>", "headRevision": "<full-head-sha-from-read>" }`, then run
@@ -377,6 +377,7 @@ the publish checkpoint.
 ## Never
 
 - Review the current working tree instead of the pinned change head.
+- Treat reviewer consensus as proof.
 - Manufacture findings to look thorough.
 - Make code changes.
 - Post notes, approve, merge, or change tracker items.
