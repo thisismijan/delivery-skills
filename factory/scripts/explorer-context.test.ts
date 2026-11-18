@@ -187,7 +187,11 @@ test("groom stamps the head, draft passes the report to feasibility only", () =>
 		EXPLORER_HEAD_INVOCATION.replace("<repoRoot>", '"<repoRoot>"'),
 	);
 	const draft = read("skills/draft/SKILL.md");
-	expect(draft).toContain(
+	expect(draft.replace(/\s+/g, " ")).toContain(
+		"dispatch the `feasibility-analyst` as `reference/feasibility-analyst.md` describes",
+	);
+	const analystDispatch = read("skills/draft/reference/feasibility-analyst.md");
+	expect(analystDispatch).toContain(
 		EXPLORER_CONTEXT_INVOCATION.replace(
 			"<repoRoot> <work-item.json>",
 			'"<repoRoot>" "<reviewDir>/work-item.json"',
