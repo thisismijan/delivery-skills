@@ -211,7 +211,14 @@ bun "$FACTORY_ROOT/scripts/skill-size.ts" raise <skill-path>
 Every `SKILL.md` is reread on each load, so `factory/skill-size-ceilings.json`
 holds a byte ceiling per skill and `check` fails when one grows past it. Raise
 a ceiling with `raise` in the same change that grows the skill, so the growth
-is reviewed.
+is reviewed. Running `raise` after slimming a skill lowers its ceiling to the
+new size.
+
+Each body is kept under the recommended 5,000 tokens. Detail that only some
+runs need sits in `skills/<name>/reference/`, and the skill reads a file there
+only when its pointer's condition holds. A skill whose run hits none of those
+conditions loads nothing extra. [`CONTRIBUTING.md`](../CONTRIBUTING.md#skill-size)
+explains how to slim a skill.
 
 ## Code map for workers
 

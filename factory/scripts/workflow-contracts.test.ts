@@ -1436,6 +1436,9 @@ describe("normalized forge workflow commands", () => {
 		expect(diffAt).toBeGreaterThan(filesAt);
 		expect(commitsAt).toBeGreaterThan(diffAt);
 		expect(codeReviewMax).toMatch(/Never review a partial diff/);
+		expect(textBetween(codeReviewMax, "## Never")).toContain(
+			"Treat reviewer consensus as proof.",
+		);
 		expect(codeReviewMax).toContain(
 			"Do not publish findings through the forge provider.",
 		);

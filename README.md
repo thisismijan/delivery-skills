@@ -703,7 +703,11 @@ implementer fix on it. The test writer re-derives the value from the spec and
 changes nothing if the test was right. The holdout review still checks every
 test.
 
-Skill files are reread on every load, so each `SKILL.md` has a size ceiling in
+Skill files are reread on every load, so each `SKILL.md` body stays under the
+recommended 5,000 tokens. Gates, stop conditions and hard rules stay in the
+main file. Detail that only some runs need lives in the skill's `reference/`
+folder, behind a one-line pointer that says when to read it, so a run loads it
+only when that case arises. Each `SKILL.md` also has a size ceiling in
 `factory/skill-size-ceilings.json`; growing one is a deliberate, reviewed step.
 A malformed advisory subagent output gets one repair turn before it fails
 closed, and a malformed gating output stops at once.
@@ -858,6 +862,7 @@ fresh session after `/code-review-max`. A new head always needs a new max pass.
 ```text
 docs/                      # operator guides (start at docs/README.md)
 skills/                    # generic skills any capable host can load
+skills/<name>/reference/   # detail a skill reads only when its pointer's case applies
 skills/delivery/SDLC-CONSTITUTION.md  # policy kernel loaded by every stage
 factory/                   # gate scripts and subagent prompts
 factory/model-catalogue.json  # capability tiers to exact advertised models
