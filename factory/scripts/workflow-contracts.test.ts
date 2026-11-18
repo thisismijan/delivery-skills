@@ -117,6 +117,30 @@ const executeFlow = [
 	fastModels,
 ].join("\n");
 const addressComments = read("../skills/address-comments/SKILL.md");
+const ADDRESS_COMMENTS_REFERENCES = [
+	"also-at",
+	"empty-scope",
+	"gate-evidence-reuse",
+	"mechanical-edit-unit",
+	"premise-check",
+	"scope-rules",
+	"suggestion-apply",
+	"test-gap",
+] as const;
+const addressCommentsReference = Object.fromEntries(
+	ADDRESS_COMMENTS_REFERENCES.map((name) => [
+		name,
+		read(`../skills/address-comments/reference/${name}.md`),
+	]),
+) as Record<(typeof ADDRESS_COMMENTS_REFERENCES)[number], string>;
+const commentClassificationProfiling =
+	routingProfiling.split("## Comment classification")[1] ?? "";
+const addressCommentsFlow = [
+	addressComments,
+	commentClassificationProfiling,
+	mechanicalEditUnits,
+	...Object.values(addressCommentsReference),
+].join("\n");
 const groom = read("../skills/groom/SKILL.md");
 const groomPrdAndSplits = read("../skills/groom/reference/prd-and-splits.md");
 const delivery = read("../skills/delivery/SKILL.md");
@@ -758,7 +782,7 @@ describe("bounded recovery and replay safety", () => {
 	});
 
 	test("mechanical-edit units are classified before dispatch and never self-assigned", () => {
-		for (const skill of [executeFlow, addressComments]) {
+		for (const skill of [executeFlow, addressCommentsFlow]) {
 			expect(skill).toContain("apply-mechanical-edit.ts");
 			expect(plain(skill)).toMatch(
 				/do not ask the implementer whether the work is menial/i,
@@ -805,7 +829,7 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(executeFlow)).toMatch(
 			/rust, php, and swift format-only.*bin\/rustfmt.*bin\/php-format.*bin\/swift-format/i,
 		);
-		expect(plain(addressComments)).toMatch(
+		expect(plain(addressCommentsFlow)).toMatch(
 			/rust, php, and swift format-only.*bin\/rustfmt.*bin\/php-format.*bin\/swift-format/i,
 		);
 		expect(plain(rootReadme)).toMatch(
@@ -819,7 +843,7 @@ describe("bounded recovery and replay safety", () => {
 	});
 
 	test("repeated failures force a premise check before a third fix", () => {
-		for (const skill of [execute, addressComments]) {
+		for (const skill of [execute, addressCommentsFlow]) {
 			const contract = plain(skill);
 			expect(contract).toMatch(/two failures.*same assumption/i);
 			expect(contract).toMatch(/state the premise/i);
@@ -894,28 +918,31 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(implementer)).toMatch(/exercises the public interface only/i);
 
 		const comments = plain(addressComments);
+		const commentsFlow = plain(addressCommentsFlow);
 		expect(comments).toMatch(
 			/if in-scope comments are empty, do not dispatch/i,
 		);
 		expect(comments).toMatch(/forge-comments\.ts" scope/i);
-		expect(comments).toMatch(/missing path or a new-side line past the end/i);
+		expect(commentsFlow).toMatch(
+			/missing path or a new-side line past the end/i,
+		);
 		expect(comments).toMatch(/drops resolved discussions and resolved notes/i);
-		expect(comments).toMatch(/empty or whitespace-only body is outdated/i);
-		expect(comments).toMatch(
+		expect(commentsFlow).toMatch(/empty or whitespace-only body is outdated/i);
+		expect(commentsFlow).toMatch(
 			/only acknowledgements such as LGTM, thanks, approved, or done is outdated/i,
 		);
-		expect(comments).toMatch(/only a mention is outdated/i);
-		expect(comments).toMatch(/only a URL is outdated/i);
-		expect(comments).toMatch(/only emoji is outdated/i);
+		expect(commentsFlow).toMatch(/only a mention is outdated/i);
+		expect(commentsFlow).toMatch(/only a URL is outdated/i);
+		expect(commentsFlow).toMatch(/only emoji is outdated/i);
 		expect(comments).toMatch(/only a suggestion fence on a new-side/i);
-		expect(comments).toMatch(/forge-comments\.ts" apply-suggestion/i);
-		expect(comments).toMatch(
+		expect(commentsFlow).toMatch(/forge-comments\.ts" apply-suggestion/i);
+		expect(commentsFlow).toMatch(
 			/apply is script ?, the helper already replaced that line, so do not dispatch the implementer/i,
 		);
 		expect(comments).toMatch(
 			/bug still needs its red test\s+first, and the green gate, lint, and typecheck still run/i,
 		);
-		expect(comments).toMatch(
+		expect(commentsFlow).toMatch(
 			/body is only a suggestion fence[\s\S]*suggested text is already in that file[\s\S]*outdated/i,
 		);
 		expect(comments).toMatch(
@@ -948,9 +975,9 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(executeFlow)).toContain("never this run's worker");
 		expect(draft).toContain("do not change the model used to author");
 		expect(draft).toContain("task-profile-controller");
-		expect(addressComments).toContain("semantic standard route");
-		expect(addressComments).toContain("task-profile-controller");
-		for (const skill of [draft, executeFlow, addressComments]) {
+		expect(addressCommentsFlow).toContain("semantic standard route");
+		expect(addressCommentsFlow).toContain("task-profile-controller");
+		for (const skill of [draft, executeFlow, addressCommentsFlow]) {
 			const contract = plain(skill);
 			expect(contract).toMatch(
 				/only when (?:it|routingProfiling) is (?:exactly )?always/i,
@@ -960,7 +987,7 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(executeFlow)).toMatch(
 			/regardless of this setting, dispatch the holdout-reviewer/i,
 		);
-		expect(plain(addressComments)).not.toMatch(/holdout-reviewer/i);
+		expect(plain(addressCommentsFlow)).not.toMatch(/holdout-reviewer/i);
 		for (const document of [
 			delivery,
 			rootReadme,
@@ -1109,7 +1136,7 @@ describe("bounded recovery and replay safety", () => {
 	});
 
 	test("scripted skips are recorded even when profiling is off", () => {
-		for (const skill of [draft, execute, addressComments, groom]) {
+		for (const skill of [draft, execute, addressCommentsFlow, groom]) {
 			expect(skill).toContain("record-skip.ts");
 			expect(skill).toContain("routing-scorecard.ts");
 			expect(plain(skill)).toMatch(/never estimates tokens saved/i);
@@ -1126,12 +1153,12 @@ describe("bounded recovery and replay safety", () => {
 		expect(draft).toContain("author-outcome.json");
 		expect(executeFlow).toContain("implement-outcome.json");
 		expect(executeFlow).toContain("review-outcome.json");
-		expect(addressComments).toContain("classify-outcome.json");
+		expect(addressCommentsFlow).toContain("classify-outcome.json");
 		expect(runtime).toMatch(/explicit outcome/);
 	});
 
 	test("stages capture wall time automatically and never invent token counts", () => {
-		for (const skill of [draft, executeFlow, addressComments]) {
+		for (const skill of [draft, executeFlow, addressCommentsFlow]) {
 			expect(skill).toContain("capture-usage.ts");
 			expect(skill).toContain("routing-scorecard.ts");
 			expect(skill).toContain("start");
@@ -1145,11 +1172,11 @@ describe("bounded recovery and replay safety", () => {
 		expect(executeFlow).toContain("implement-usage-timer.json");
 		expect(executeFlow).toContain("review-usage-timer.json");
 		expect(draft).toContain("author-usage-timer.json");
-		expect(addressComments).toContain("classify-usage-timer.json");
+		expect(addressCommentsFlow).toContain("classify-usage-timer.json");
 	});
 
 	test("run scorecards do not present shadow recommendations as measured savings", () => {
-		for (const skill of [draft, executeFlow, addressComments]) {
+		for (const skill of [draft, executeFlow, addressCommentsFlow]) {
 			expect(skill).toMatch(
 				/shadow quality and savings[\s\S]{0,80}unevaluated/i,
 			);
@@ -1166,7 +1193,7 @@ describe("bounded recovery and replay safety", () => {
 	});
 
 	test("execute and address-comments verify gate evidence before reuse", () => {
-		for (const skill of [execute, addressComments]) {
+		for (const skill of [execute, addressCommentsFlow]) {
 			expect(skill).toContain("verifyGateEvidence");
 			expect(skill).toMatch(/test-gate\.ts"\s+verify/);
 		}
@@ -1799,7 +1826,7 @@ test("review rounds stop patching a repeated assumption and fold formatting and 
 	expect(addressComments).toContain(
 		'scripts/review-rounds.ts" record "<repoRoot>/.review/<changeName>/review-rounds.json" "<reviewDir>/classification.json" <full-head-sha>',
 	);
-	expect(addressComments).toContain(
+	expect(addressCommentsFlow).toContain(
 		'scripts/review-rounds.ts" premise "<repoRoot>/.review/<changeName>/review-rounds.json" <assumption> <outcome.md>',
 	);
 	const reference = referenceDocs.replace(/"\$FACTORY_ROOT\/([^"]+)"/g, "$1");
@@ -2070,7 +2097,7 @@ test("test-gap comments get a mutation proof instead of a red gate, and bugs kee
 	expect(MUTATION_PROOF_INVOCATION).toBe(
 		"scripts/mutation-proof.ts <repoRoot> <gate-command.json> <mutation.patch>",
 	);
-	expect(addressComments).toContain(
+	expect(addressCommentsFlow).toContain(
 		'scripts/mutation-proof.ts" "<repoRoot>" "<reviewDir>/green-command-<commentId>.json" "<reviewDir>/mutation-<commentId>.patch"',
 	);
 	expect(referenceDocs.replace(/"\$FACTORY_ROOT\/([^"]+)"/g, "$1")).toContain(
@@ -2608,4 +2635,41 @@ test("execute names when to read each reference file it moved out", () => {
 	expect(flat).toContain(
 		"Profiling never changes the live model or weakens a quality gate.",
 	);
+});
+
+test("address-comments names when to read each reference file it moved out", () => {
+	const flat = addressComments.replace(/\s+/g, " ");
+	expect(flat).toMatch(
+		/Only when it is exactly `always`, follow \*\*Comment classification\*\* in `\$FACTORY_ROOT\/reference\/routing-profiling\.md`/,
+	);
+	expect(routingProfiling).toContain("## Comment classification");
+	expect(flat).toContain(
+		"The setting never changes classification dispatch or weakens a quality gate.",
+	);
+	expect(
+		addressCommentsReference["mechanical-edit-unit"].replace(/\s+/g, " "),
+	).toContain(
+		"The units it proves are listed in `$FACTORY_ROOT/reference/mechanical-edit.md`",
+	);
+	for (const pointer of [
+		"If in-scope comments are empty, do not dispatch the `comment-assessor`. Read `reference/empty-scope.md`",
+		"Read `reference/gate-evidence-reuse.md` before reusing a persisted per-comment or cumulative gate artifact",
+		"read `reference/scope-rules.md` when a scoping result needs explaining",
+		"Read **Repeated assumption** in `reference/premise-check.md` before writing any fix for those comments",
+		"Read **Repeated fix failures** in `reference/premise-check.md` after two failures that share the same assumption",
+		"Read `reference/suggestion-apply.md` when an action comment's body is only a suggestion fence on a new-side line",
+		"Read `reference/also-at.md` when an action comment, or the review finding it repeats, lists **Also at:** locations",
+		"`reference/mechanical-edit-unit.md` when the comment names a bounded rename, import-only, or format-only change",
+		"**`test-gap`** (action, green with a mutation proof): read `reference/test-gap.md`",
+	]) {
+		expect(flat).toContain(pointer);
+	}
+	for (const name of ADDRESS_COMMENTS_REFERENCES) {
+		const text = addressCommentsReference[name];
+		expect([name, /^# \S/.test(text)]).toEqual([name, true]);
+		expect([name, flat.includes(`reference/${name}.md`)]).toEqual([name, true]);
+	}
+	const premise = addressCommentsReference["premise-check"];
+	expect(premise).toContain("## Repeated assumption");
+	expect(premise).toContain("## Repeated fix failures");
 });
