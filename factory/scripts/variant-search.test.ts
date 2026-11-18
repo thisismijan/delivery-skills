@@ -31,7 +31,14 @@ test("a confirmed Medium-or-worse finding is searched for variants and listed on
 });
 
 test("address-comments fixes every listed instance in the same round", () => {
-	const text = read("skills/address-comments/SKILL.md").replace(/\s+/g, " ");
+	const skill = read("skills/address-comments/SKILL.md").replace(/\s+/g, " ");
+	expect(skill).toContain(
+		"Read `reference/also-at.md` when an action comment, or the review finding it repeats, lists **Also at:** locations",
+	);
+	const text = read("skills/address-comments/reference/also-at.md").replace(
+		/\s+/g,
+		" ",
+	);
 	expect(text).toContain(
 		"lists **Also at:** locations, the fix covers every listed instance in the same commit and round",
 	);
