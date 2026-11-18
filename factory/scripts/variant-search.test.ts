@@ -14,7 +14,10 @@ test("a confirmed Medium-or-worse finding is searched for variants and listed on
 	const search = adjudicate.slice(
 		adjudicate.indexOf("### Search for variants"),
 	);
-	const text = search.replace(/\s+/g, " ");
+	expect(search).toContain("reference/variant-search.md");
+	const text = read(
+		"skills/code-review-max/reference/variant-search.md",
+	).replace(/\s+/g, " ");
 	expect(text).toContain(
 		"For each finding you confirmed at Medium or higher, search for the same root cause elsewhere",
 	);

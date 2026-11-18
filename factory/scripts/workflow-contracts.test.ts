@@ -178,6 +178,18 @@ const epicToBacklog = read("../skills/delivery/workflows/epic-to-backlog.md");
 const ledger = read("../skills/delivery/workflows/delivery-ledger.md");
 const mrReview = read("../skills/mr-review/SKILL.md");
 const codeReviewMax = read("../skills/code-review-max/SKILL.md");
+const codeReviewMaxLenses = read(
+	"../skills/code-review-max/reference/lenses.md",
+);
+const codeReviewMaxNoLenses = read(
+	"../skills/code-review-max/reference/no-lenses.md",
+);
+const codeReviewMaxLaterRounds = read(
+	"../skills/code-review-max/reference/later-rounds.md",
+);
+const codeReviewMaxMemory = read(
+	"../skills/code-review-max/reference/review-memory.md",
+);
 const ticketToMr = read("../skills/delivery/workflows/ticket-to-mr.md");
 const mrReviewToReady = read(
 	"../skills/delivery/workflows/mr-review-to-ready.md",
@@ -282,8 +294,11 @@ describe("smallest complete change", () => {
 		for (const prompt of [holdoutReviewer, maxReview]) {
 			expect(prompt).toMatch(/concrete cost/i);
 			expect(prompt).toMatch(/smallest complete fix/i);
+		}
+		for (const prompt of [holdoutReviewer, codeReviewMaxLenses]) {
 			expect(prompt).toMatch(/validation.*security.*accessibility/i);
 		}
+		expect(maxReview).toContain("reference/lenses.md");
 		expect(holdoutReviewer).toMatch(
 			/Do not fail.*merely because code could be shorter/i,
 		);
@@ -1202,7 +1217,8 @@ describe("bounded recovery and replay safety", () => {
 			expect(skill).toContain("routing-scorecard.ts");
 			expect(plain(skill)).toMatch(/never estimates tokens saved/i);
 		}
-		expect(codeReviewMax).toContain("record-skip.ts");
+		expect(codeReviewMaxNoLenses).toContain("record-skip.ts");
+		expect(codeReviewMax).toContain("reference/no-lenses.md");
 		expect(releaseReadiness).toContain("record-skip.ts");
 		expect(runtime).toContain("record-skip.ts");
 		expect(plain(runtime)).toMatch(/never estimates tokens saved/i);
@@ -1926,9 +1942,10 @@ test("a comment round runs gates only, later reviews read only what changed, and
 		'scripts/review-scope.ts" "<repoRoot>" <ref> <full-base-sha> <full-head-sha>',
 	);
 	expect(reference).toContain(REVIEW_SCOPE_INVOCATION);
-	expect(plain(reviewMax)).toMatch(
+	expect(plain(codeReviewMaxLaterRounds)).toMatch(
 		/confirm whether each earlier finding is fixed at this head/,
 	);
+	expect(reviewMax).toContain("reference/later-rounds.md");
 	expect(plain(reviewMax)).toMatch(/never narrows release readiness/);
 	expect(plain(secondPass)).toMatch(/review-scope\.json says delta/);
 	expect(plain(addressComments)).toMatch(
@@ -2057,7 +2074,7 @@ test("every page that describes review memory says it is for one merge request, 
 		["docs/reference.md", referenceDocs],
 		["docs/workflow.md", workflowDocs],
 		["mr-review-to-ready.md", mrReviewToReady],
-		["code-review-max/SKILL.md", codeReviewMax],
+		["code-review-max/reference/review-memory.md", codeReviewMaxMemory],
 	] as const) {
 		const text = windows(doc);
 		expect([name, text.length > 0]).toEqual([name, true]);
@@ -2077,6 +2094,7 @@ test("every page that describes review memory says it is for one merge request, 
 			),
 		]).toEqual([name, true]);
 	}
+	expect(codeReviewMax).toContain("reference/review-memory.md");
 });
 
 test("the operator docs walk through the current review loop with the real script names", () => {
@@ -2518,8 +2536,13 @@ describe("the code review keeps a candidate that needs an outside fact", () => {
 	});
 
 	test("the delta scope text carries the item forward with its fact copied unchanged", () => {
+		expect(scope).toContain("reference/later-rounds.md");
 		const delta = plain(
-			textBetween(scope, "- **`delta`**", "The scope never narrows"),
+			textBetween(
+				codeReviewMaxLaterRounds,
+				"## Delta scope",
+				"## Carry needs-validation items forward",
+			),
 		);
 		expect(delta).toMatch(/needs-validation/i);
 		expect(delta).toMatch(/unchanged/i);
@@ -2527,7 +2550,14 @@ describe("the code review keeps a candidate that needs an outside fact", () => {
 	});
 
 	test("the full scope text carries the item forward and does not reword it", () => {
-		const full = plain(textBetween(scope, "- **`full`**", "- **`delta`**"));
+		expect(scope).toContain("reference/later-rounds.md");
+		const full = plain(
+			textBetween(
+				codeReviewMaxLaterRounds,
+				"## Full scope after an earlier review",
+				"## Delta scope",
+			),
+		);
 		expect(full).toMatch(/needs-validation/i);
 		expect(full).toMatch(/unchanged|copy/i);
 	});

@@ -287,7 +287,10 @@ test("execute, auto, code-review-max, and the reference name the zone gate", () 
 	expect(read("skills/delivery/workflows/auto.md")).toContain(
 		RISK_ZONES_CHECK_INVOCATION.replace("[ledger]", "<ledger>"),
 	);
-	expect(read("skills/code-review-max/SKILL.md")).toMatch(
+	expect(read("skills/code-review-max/SKILL.md")).toContain(
+		"reference/risk-zones.md",
+	);
+	expect(read("skills/code-review-max/reference/risk-zones.md")).toMatch(
 		/`zones.red` path into the\s+fan-out input as `redZones`/,
 	);
 	expect(read("docs/reference.md")).toContain(RISK_ZONES_CHECK_INVOCATION);
