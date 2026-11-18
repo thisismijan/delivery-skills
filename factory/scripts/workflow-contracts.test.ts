@@ -110,8 +110,17 @@ const execute = read("../skills/execute/SKILL.md");
 const routingProfiling = read("reference/routing-profiling.md");
 const mechanicalEditUnits = read("reference/mechanical-edit.md");
 const fastModels = read("reference/fast-models.md");
+const executeReference = (name: string) =>
+	read(`../skills/execute/reference/${name}.md`);
+const executeReEntry = executeReference("re-entry");
+const executeScriptedEdit = executeReference("scripted-edit");
+const executeVerdictRoutes = executeReference("verdict-routes");
+const executeHeldOutSamples = executeReference("held-out-samples");
+const executeTestContradictsSpec = executeReference("test-contradicts-spec");
+const executeModelSelection = executeReference("model-selection");
 const executeFlow = [
 	execute,
+	executeScriptedEdit,
 	routingProfiling,
 	mechanicalEditUnits,
 	fastModels,
@@ -291,7 +300,7 @@ describe("continuous delivery authorization", () => {
 		for (const doc of [delivery, auto, ledger]) {
 			expect(doc).toContain("continuous-delivery: yes");
 		}
-		expect(execute).toMatch(
+		expect(executeReEntry).toMatch(
 			/continuous-delivery: yes.*without another checkbox/s,
 		);
 		expect(mrReview).toMatch(
@@ -748,6 +757,7 @@ describe("small-context ticket scope", () => {
 describe("bounded recovery and replay safety", () => {
 	test("execute reconciles durable state before writing", () => {
 		expect(execute).toContain("Re-entry reconciliation");
+		expect(executeReEntry).toContain("Re-entry reconciliation");
 		for (const artifact of [
 			"existing MR",
 			"test files",
@@ -755,14 +765,18 @@ describe("bounded recovery and replay safety", () => {
 			"commits",
 			"dirty worktree",
 		]) {
-			expect(execute).toContain(artifact);
+			expect(executeReEntry).toContain(artifact);
 		}
-		expect(execute).toMatch(/never (rewrite|replace) already-proven tests/i);
-		expect(execute).toMatch(/never open a duplicate MR/i);
+		expect(executeReEntry).toMatch(
+			/never (rewrite|replace) already-proven tests/i,
+		);
+		expect(executeReEntry).toMatch(/never open a duplicate MR/i);
 	});
 
 	test("resume and execute escalate unattributable branch, gate, or dirty-tree evidence", () => {
-		expect(plain(execute)).toMatch(/stop and escalate rather than guessing/i);
+		expect(plain(executeReEntry)).toMatch(
+			/stop and escalate rather than guessing/i,
+		);
 		expect(plain(delivery)).toMatch(/cannot be attributed/i);
 		expect(plain(delivery)).toMatch(/never discard/i);
 	});
@@ -778,8 +792,11 @@ describe("bounded recovery and replay safety", () => {
 		expect(route).toMatch(
 			/lists a failing test under test contradicts spec , do not dispatch the implementer for that test/i,
 		);
-		expect(route).toMatch(/dispatch the test-writer once/i);
-		expect(route).toMatch(/never removes or loosens any other assertion/i);
+		const sentToWriter = plain(executeTestContradictsSpec);
+		expect(sentToWriter).toMatch(/dispatch the test-writer once/i);
+		expect(sentToWriter).toMatch(
+			/never removes or loosens any other assertion/i,
+		);
 		expect(route).toMatch(
 			/a second contradiction on the same test stops and escalates/i,
 		);
@@ -1150,7 +1167,7 @@ describe("bounded recovery and replay safety", () => {
 	});
 
 	test("scripted skips are recorded even when profiling is off", () => {
-		for (const skill of [draft, execute, addressCommentsFlow, groom]) {
+		for (const skill of [draft, executeScriptedEdit, addressCommentsFlow, groom]) {
 			expect(skill).toContain("record-skip.ts");
 			expect(skill).toContain("routing-scorecard.ts");
 			expect(plain(skill)).toMatch(/never estimates tokens saved/i);
@@ -1207,7 +1224,7 @@ describe("bounded recovery and replay safety", () => {
 	});
 
 	test("execute and address-comments verify gate evidence before reuse", () => {
-		for (const skill of [execute, addressCommentsFlow]) {
+		for (const skill of [executeReEntry, addressCommentsFlow]) {
 			expect(skill).toContain("verifyGateEvidence");
 			expect(skill).toMatch(/test-gate\.ts"\s+verify/);
 		}
@@ -1320,6 +1337,8 @@ describe("normalized provider contracts", () => {
 describe("normalized forge workflow commands", () => {
 	const genericDocs = [
 		["execute", execute],
+		["execute re-entry", executeReEntry],
+		["execute verdict routes", executeVerdictRoutes],
 		["address-comments", addressComments],
 		["code-review-max", codeReviewMax],
 		["mr-review", mrReview],
@@ -1340,7 +1359,7 @@ describe("normalized forge workflow commands", () => {
 	});
 
 	test("execute finds, creates, and notes through exact forge-provider calls", () => {
-		expect(execute).toContain(`${FORGE_PROVIDER} find`);
+		expect(executeReEntry).toContain(`${FORGE_PROVIDER} find`);
 		expect(execute).toContain(`${FORGE_PROVIDER} create`);
 		expect(execute).toContain(`${FORGE_PROVIDER} note`);
 		expect(execute).toContain('"${FACTORY_ROOT}/runtime-manifest.json"');
@@ -2206,8 +2225,10 @@ test("a rule written from samples is measured on samples it was not written from
 	expect(plain(draft)).toMatch(
 		/Label each one from its source, never by running code/,
 	);
-	expect(plain(execute)).toMatch(/Never send a miss to the implementer/);
-	expect(execute).toContain("held-out-gate-<source-commit>.json");
+	expect(plain(executeHeldOutSamples)).toMatch(
+		/Never send a miss to the implementer/,
+	);
+	expect(executeHeldOutSamples).toContain("held-out-gate-<source-commit>.json");
 	for (const prompt of [implementer, implementerOpus]) {
 		expect(prompt).toContain(`Never read \`${heldOut}\``);
 	}
@@ -2652,6 +2673,41 @@ test("execute names when to read each reference file it moved out", () => {
 	expect(flat).toContain(
 		"Profiling never changes the live model or weakens a quality gate.",
 	);
+	for (const pointer of [
+		"read `reference/re-entry.md` and reconcile before any write",
+		"follow **Before the test writer** in `reference/scripted-edit.md` first",
+		"follow **Before an implementer dispatch** in `reference/scripted-edit.md`",
+		"read `reference/characterization.md` and pin them before step 4",
+		"read `reference/red-zones.md` for what approval counts",
+		"When the meta read exits non-zero or the selection prints `opus`, read `reference/model-selection.md`",
+		"do not dispatch the implementer for that test; read `reference/test-contradicts-spec.md`",
+		"read `reference/held-out-samples.md` once the green gate passes",
+		"**`fix`** or **`escalate`** → read `reference/verdict-routes.md`",
+	]) {
+		expect(flat).toContain(pointer);
+	}
+	expect(executeScriptedEdit).toContain("## Before the test writer");
+	expect(executeScriptedEdit).toContain("## Before an implementer dispatch");
+	const moved = readdirSync(join(ROOT, "../skills/execute/reference"));
+	expect(moved.length).toBeGreaterThan(0);
+	for (const name of moved) {
+		const text = read(`../skills/execute/reference/${name}`);
+		expect([name, /^# .+\n\nThis applies /.test(text)]).toEqual([name, true]);
+		expect([name, flat.includes(`\`reference/${name}\``)]).toEqual([
+			name,
+			true,
+		]);
+	}
+});
+
+test("execute's model edge cases keep the defended-case default and the justification", () => {
+	const edges = plain(executeModelSelection);
+	expect(edges).toMatch(/do not guess/i);
+	expect(edges).toContain(
+		"PRD §9: absent a recorded, defended complexity case, Sonnet",
+	);
+	expect(edges).toMatch(/recorded justification must appear in the MR/i);
+	expect(edges).toMatch(/justification is then the run's level/i);
 });
 
 test("address-comments names when to read each reference file it moved out", () => {

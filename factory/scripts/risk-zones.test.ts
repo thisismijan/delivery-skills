@@ -278,8 +278,11 @@ test("execute, auto, code-review-max, and the reference name the zone gate", () 
 			.replaceAll('.ts"', ".ts");
 	const execute = read("skills/execute/SKILL.md");
 	expect(execute).toContain(RISK_ZONES_CHECK_INVOCATION);
-	expect(execute).toMatch(
+	expect(read("skills/execute/reference/red-zones.md")).toMatch(
 		/`continuous-delivery: yes` and invoking\s+this command do not/,
+	);
+	expect(execute.replace(/\s+/g, " ")).toContain(
+		"read `reference/red-zones.md` for what approval counts",
 	);
 	expect(read("skills/delivery/workflows/auto.md")).toContain(
 		RISK_ZONES_CHECK_INVOCATION.replace("[ledger]", "<ledger>"),
