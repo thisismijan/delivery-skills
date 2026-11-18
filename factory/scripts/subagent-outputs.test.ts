@@ -88,7 +88,12 @@ test("the conventions and the code review state the repair rule", () => {
 		join(root, "skills", "code-review-max", "SKILL.md"),
 		"utf8",
 	).replace(/\s+/g, " ");
-	expect(review).toContain(
+	const repair = readFileSync(
+		join(root, "skills", "code-review-max", "reference", "coverage-repair.md"),
+		"utf8",
+	).replace(/\s+/g, " ");
+	expect(review).toContain("reference/coverage-repair.md");
+	expect(repair).toContain(
 		"give that same lens one repair turn with the script's message",
 	);
 	expect(review).toContain("A second refusal stops the review.");
