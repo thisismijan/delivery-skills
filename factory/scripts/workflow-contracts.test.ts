@@ -106,6 +106,16 @@ const holdoutReviewer = read("agents/holdout-reviewer.md");
 const groomWriter = read("agents/groom-writer.md");
 const ticketAssessor = read("agents/ticket-assessor.md");
 const draft = read("../skills/draft/SKILL.md");
+const draftReference = (name: string) =>
+	read(`../skills/draft/reference/${name}.md`);
+const draftRoutingProfiling = draftReference("routing-profiling");
+const draftFlow = [draft, draftRoutingProfiling].join("\n");
+const draftSeamOptions = draftReference("seam-options");
+const draftScriptedVerdicts = draftReference("scripted-verdicts");
+const draftApproachChallenge = draftReference("approach-challenge");
+const draftDesignRecord = draftReference("design-record");
+const draftHeldOutSamples = draftReference("held-out-samples");
+const draftUnnamedLoad = draftReference("unnamed-load");
 const execute = read("../skills/execute/SKILL.md");
 const routingProfiling = read("reference/routing-profiling.md");
 const mechanicalEditUnits = read("reference/mechanical-edit.md");
@@ -359,7 +369,10 @@ describe("continuous delivery authorization", () => {
 	});
 
 	test("high complexity records a sketch and rejected alternative", () => {
-		const contract = plain(draft);
+		expect(draft).toContain(
+			"`reference/design-record.md` when `complexitySignal`\nis `medium` or `high`",
+		);
+		const contract = plain(draftDesignRecord);
 		expect(contract).toMatch(/complexitySignal.*high/i);
 		expect(contract).toMatch(/usage sketch/i);
 		expect(contract).toMatch(/type or signature sketch/i);
@@ -609,10 +622,13 @@ describe("context-rich human decisions", () => {
 	});
 
 	test("stage skills invoke the brief only when multiple paths are viable", () => {
-		expect(draft).toMatch(
+		expect(plain(draft)).toContain(
+			"Read reference/seam-options.md first when two or more seam sets are viable.",
+		);
+		expect(draftSeamOptions).toMatch(
 			/two or more seam sets are viable.*Human decision brief/is,
 		);
-		expect(draft).toMatch(/Do not invent differences/i);
+		expect(draftSeamOptions).toMatch(/Do not invent differences/i);
 		expect(mrReview).toMatch(/three choices:.*Human\s+decision brief/is);
 		expect(mrReview).toMatch(/no material DSA or\s+system-design difference/i);
 	});
@@ -695,13 +711,17 @@ describe("small-context ticket scope", () => {
 		expect(draft).toMatch(/ticket-structure\.ts"/);
 		expect(draftContract).toMatch(/when skipAssessor is true/i);
 		expect(draftContract).toMatch(/do not dispatch the ticket-assessor/i);
-		expect(draftContract).toMatch(
+		expect(plain(draft)).toContain(
+			"Read reference/scripted-verdicts.md to explain why a script skipped or kept its worker.",
+		);
+		const scriptedVerdicts = plain(draftScriptedVerdicts);
+		expect(scriptedVerdicts).toMatch(
 			/recorded blockers skip the assessor even when the body is otherwise valid/i,
 		);
-		expect(draftContract).toMatch(
+		expect(scriptedVerdicts).toMatch(
 			/complete ticket with no question mark[\s\S]*scripted good verdict/i,
 		);
-		expect(draftContract).toMatch(
+		expect(scriptedVerdicts).toMatch(
 			/size warning skips the assessor as too large/i,
 		);
 		expect(assessor).toMatch(
@@ -714,13 +734,13 @@ describe("small-context ticket scope", () => {
 		expect(draft).toMatch(/ticket-feasibility\.ts"/);
 		expect(draftContract).toMatch(/when skipAnalyst is true/i);
 		expect(draftContract).toMatch(/do not dispatch the feasibility-analyst/i);
-		expect(draftContract).toMatch(
+		expect(scriptedVerdicts).toMatch(
 			/complete ticket with no question mark[\s\S]*scripted feasible verdict/i,
 		);
-		expect(draftContract).toMatch(
+		expect(scriptedVerdicts).toMatch(
 			/question mark in a URL, inline code, or optional syntax does not count/i,
 		);
-		expect(draft).toMatch(
+		expect(draftScriptedVerdicts).toMatch(
 			/no named authentication, authorization, secrets, credentials/i,
 		);
 		expect(plain(mechanicalEditUnits)).toMatch(
@@ -999,8 +1019,13 @@ describe("bounded recovery and replay safety", () => {
 		);
 		expect(executeFlow).toContain("model-catalogue.ts");
 		expect(plain(executeFlow)).toContain("never this run's worker");
-		expect(draft).toContain("do not change the model used to author");
-		expect(draft).toContain("task-profile-controller");
+		expect(plain(draft)).toMatch(
+			/Only when routingProfiling is exactly always ?, read reference\/routing-profiling\.md before authoring and follow it/,
+		);
+		expect(draftRoutingProfiling).toContain(
+			"do not change the model used to author",
+		);
+		expect(draftRoutingProfiling).toContain("task-profile-controller");
 		expect(addressCommentsFlow).toContain("semantic standard route");
 		expect(addressCommentsFlow).toContain("task-profile-controller");
 		for (const skill of [draft, executeFlow, addressCommentsFlow]) {
@@ -1186,7 +1211,7 @@ describe("bounded recovery and replay safety", () => {
 	});
 
 	test("record-routing persist always supplies an explicit outcome file", () => {
-		expect(draft).toContain("author-outcome.json");
+		expect(draftRoutingProfiling).toContain("author-outcome.json");
 		expect(executeFlow).toContain("implement-outcome.json");
 		expect(executeFlow).toContain("review-outcome.json");
 		expect(addressCommentsFlow).toContain("classify-outcome.json");
@@ -1194,7 +1219,7 @@ describe("bounded recovery and replay safety", () => {
 	});
 
 	test("stages capture wall time automatically and never invent token counts", () => {
-		for (const skill of [draft, executeFlow, addressCommentsFlow]) {
+		for (const skill of [draftFlow, executeFlow, addressCommentsFlow]) {
 			expect(skill).toContain("capture-usage.ts");
 			expect(skill).toContain("routing-scorecard.ts");
 			expect(skill).toContain("start");
@@ -1207,12 +1232,12 @@ describe("bounded recovery and replay safety", () => {
 		}
 		expect(executeFlow).toContain("implement-usage-timer.json");
 		expect(executeFlow).toContain("review-usage-timer.json");
-		expect(draft).toContain("author-usage-timer.json");
+		expect(draftRoutingProfiling).toContain("author-usage-timer.json");
 		expect(addressCommentsFlow).toContain("classify-usage-timer.json");
 	});
 
 	test("run scorecards do not present shadow recommendations as measured savings", () => {
-		for (const skill of [draft, executeFlow, addressCommentsFlow]) {
+		for (const skill of [draftFlow, executeFlow, addressCommentsFlow]) {
 			expect(skill).toMatch(
 				/shadow quality and savings[\s\S]{0,80}unevaluated/i,
 			);
@@ -1919,7 +1944,10 @@ test("a comment round runs gates only, later reviews read only what changed, and
 	expect(plain(draft)).toMatch(
 		/complexitySignal is low , skip this step|complexitySignal is low, skip this step/,
 	);
-	expect(plain(draft)).toMatch(/Do not challenge again/);
+	expect(draft).toContain(
+		"dispatch one `approach-challenger` as `reference/approach-challenge.md`",
+	);
+	expect(plain(draftApproachChallenge)).toMatch(/Do not challenge again/);
 	expect(SKIPPED_WORKERS).toContain("approach-challenger");
 	expect(challenger).toMatch(
 		/^---[\s\S]*model: opus[\s\S]*tools: Read, Grep, Glob/,
@@ -2215,8 +2243,11 @@ test("changes say what was decided for the reader and what the checks leave open
 
 test("a rule written from samples is measured on samples it was not written from", () => {
 	const heldOut = ".review/<changeName>/held-out-samples/";
+	expect(draft).toContain(
+		"Read `reference/held-out-samples.md` when an acceptance criterion is met by a\nrule written from sample data",
+	);
 	for (const doc of [
-		draft,
+		draftHeldOutSamples,
 		execute,
 		implementer,
 		implementerOpus,
@@ -2224,10 +2255,10 @@ test("a rule written from samples is measured on samples it was not written from
 	]) {
 		expect(doc).toContain(heldOut);
 	}
-	expect(plain(draft)).toMatch(
+	expect(plain(draftHeldOutSamples)).toMatch(
 		/the samples the rule is written from cannot be its only test/,
 	);
-	expect(plain(draft)).toMatch(
+	expect(plain(draftHeldOutSamples)).toMatch(
 		/Label each one from its source, never by running code/,
 	);
 	expect(plain(executeHeldOutSamples)).toMatch(
@@ -2249,12 +2280,14 @@ const STAGE_TRIGGER_SKILLS = [
 		text: groom,
 		step0Anchor: "### Step 0: Confirm this is a run",
 		firstWriteAnchor: "### Step 2a",
+		step0Reference: "",
 	},
 	{
 		name: "draft",
 		text: draft,
 		step0Anchor: "0. **Confirm this is a run.**",
 		firstWriteAnchor: "1. **Fetch the work item.**",
+		step0Reference: draftUnnamedLoad,
 	},
 ] as const;
 
@@ -2270,7 +2303,7 @@ function step0Section(skill: (typeof STAGE_TRIGGER_SKILLS)[number]): string {
 		skill.name === "groom"
 			? skill.text.slice(start).search(/^### Step 1\b/m) + start
 			: end;
-	return plain(skill.text.slice(start, stop));
+	return plain(`${skill.text.slice(start, stop)}\n${skill.step0Reference}`);
 }
 
 describe("groom and draft descriptions name what starts them and what must not", () => {
@@ -2374,6 +2407,14 @@ describe("loading groom or draft never authorises the run", () => {
 		expect(step0).toMatch(/provider file/i);
 		expect(step0).toMatch(/remote provider|provider directly/i);
 		expect(step0).toMatch(/posts? a note/i);
+	});
+
+	test("draft step 0 points an ambiguous load at its reference", () => {
+		const start = draft.indexOf(STAGE_TRIGGER_SKILLS[1].step0Anchor);
+		const end = draft.indexOf(STAGE_TRIGGER_SKILLS[1].firstWriteAnchor);
+		expect(plain(draft.slice(start, end))).toContain(
+			"Any other request is ambiguous, for example a host matching this skill on a plain question: read reference/unnamed-load.md",
+		);
 	});
 
 	test("draft step 1 still fetches through the read command that step 0 refers to", () => {

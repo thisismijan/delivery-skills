@@ -101,20 +101,24 @@ function stepFrom(heading: RegExp): string {
 	return plain(end === -1 ? rest : rest.slice(0, end));
 }
 const readinessStep = () => stepFrom(/^7c\.\s+\*\*/m);
+const readinessProcedure = () =>
+	plain(read("../skills/draft/reference/first-pass-readiness.md"));
+const readinessSkipRecovery = () =>
+	plain(read("../skills/draft/reference/readiness-skip.md"));
 const CHECKED_PATHS_START = "List the checked paths";
 const CHECKED_PATHS_END = "Persist its single JSON verdict";
 function checkedPathParagraph(): string {
-	const step = readinessStep();
+	const step = readinessProcedure();
 	const start = step.indexOf(CHECKED_PATHS_START);
 	if (start === -1) {
 		throw new Error(
-			`step 7c has no checked-path paragraph: marker "${CHECKED_PATHS_START}" not found`,
+			`the readiness reference has no checked-path paragraph: marker "${CHECKED_PATHS_START}" not found`,
 		);
 	}
 	const end = step.indexOf(CHECKED_PATHS_END, start);
 	if (end === -1) {
 		throw new Error(
-			`step 7c checked-path paragraph has no end: marker "${CHECKED_PATHS_END}" not found after "${CHECKED_PATHS_START}"`,
+			`the readiness reference checked-path paragraph has no end: marker "${CHECKED_PATHS_END}" not found after "${CHECKED_PATHS_START}"`,
 		);
 	}
 	return step.slice(start, end);
@@ -214,7 +218,10 @@ describe("readiness reviewer", () => {
 			/^---[\s\S]*model: opus[\s\S]*tools: Read, Grep, Glob/,
 		);
 		expect(text).toMatch(/^tools: Read, Grep, Glob$/m);
-		const step = readinessStep();
+		expect(readinessStep()).toContain(
+			"Otherwise dispatch one first-pass-reviewer as reference/first-pass-readiness.md describes",
+		);
+		const step = readinessProcedure();
 		expect(step).toContain(AGENT_NAME);
 		expect(step).toMatch(/resolve[^.]*frontier/i);
 		expect(step).toContain("exact available model");
@@ -338,7 +345,7 @@ describe("readiness routing of not ready verdicts", () => {
 		const printed = JSON.parse(result.stdout);
 		expect(printed.action).toBe("revise");
 		expect(printed.reason).toContain(untestable.detail);
-		const step = readinessStep();
+		const step = readinessProcedure();
 		expect(step).toMatch(/each (reported )?item/i);
 		for (const action of ["proceed", "revise", "escalate"]) {
 			expect(step).toContain(action);
@@ -346,7 +353,7 @@ describe("readiness routing of not ready verdicts", () => {
 	});
 
 	test("revision regenerates the task list before the second attempt and keeps the same isolated inputs", () => {
-		const step = readinessStep();
+		const step = readinessProcedure();
 		expect(step).toContain("generate-tasks.ts");
 		expect(step).toMatch(/regenerat/i);
 		expect(step).toMatch(/(never|do not)[^.]*(by hand|hand-(edit|writ))/i);
@@ -382,7 +389,7 @@ describe("readiness escalation", () => {
 	});
 
 	test("the draft step posts one note on escalation, stops with unready-change, and does not verify, commit, or post spec-ready", () => {
-		const step = readinessStep();
+		const step = readinessProcedure();
 		expect(step).toContain(STOP_ID);
 		expect(step).toMatch(/exit 3/i);
 		expect(step).toMatch(/one (provider )?note/i);
@@ -475,7 +482,10 @@ describe("readiness low complexity skip", () => {
 			"skip id already recorded: first-pass-reviewer-DS-2",
 		);
 
-		const step = readinessStep();
+		expect(readinessStep()).toContain(
+			"If persisting fails, read reference/readiness-skip.md",
+		);
+		const step = readinessSkipRecovery();
 		expect(step).toContain(`skip id already recorded: ${SKIP_ID}`);
 		expect(step).toMatch(/exit(s)? 1/i);
 		expect(step).toMatch(/already recorded[^.]*continue/i);
@@ -515,7 +525,7 @@ describe("readiness verdict fails closed", () => {
 	});
 
 	test("the draft step stops on a malformed verdict with one note and never retries with a fresh agent", () => {
-		const step = readinessStep();
+		const step = readinessProcedure();
 		expect(step).toMatch(/exit 1/i);
 		expect(step).toMatch(/malformed/i);
 		expect(step).toMatch(/stop/i);
@@ -591,7 +601,7 @@ describe("readiness verdict contradictions and empties", () => {
 
 describe("readiness reviewer isolation and checked paths", () => {
 	test("reader isolation: the dispatch lists only the change directory and the checked paths and excludes the work item, grooming decisions, draft scratch, and change metadata", () => {
-		const step = readinessStep();
+		const step = readinessProcedure();
 		expect(step).toContain("openspec/changes/<changeName>/");
 		expect(step).toContain("tasks.md");
 		expect(step).toMatch(/only[^.]*change directory/i);
@@ -603,7 +613,7 @@ describe("readiness reviewer isolation and checked paths", () => {
 	});
 
 	test("the draft step lists the checked paths in the dispatch by the checked-path rule", () => {
-		const step = readinessStep();
+		const step = readinessProcedure();
 		expect(step).toMatch(/list[^.]*checked paths?[^.]*dispatch/i);
 		expect(step).toMatch(/backticks/i);
 		expect(step).toMatch(/at least one slash/i);
@@ -612,7 +622,7 @@ describe("readiness reviewer isolation and checked paths", () => {
 	});
 
 	test("a placeholder path is not in the checked list", () => {
-		expect(readinessStep()).toMatch(
+		expect(readinessProcedure()).toMatch(
 			/angle bracket[^.]*(not|never)|(not|never)[^.]*angle bracket/i,
 		);
 	});

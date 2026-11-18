@@ -7,7 +7,10 @@ const read = (path: string) =>
 	readFileSync(join(root, path), "utf8").replace(/\s+/g, " ");
 
 test("draft records rejected alternatives for every change above low complexity", () => {
-	const draft = read("skills/draft/SKILL.md");
+	expect(read("skills/draft/SKILL.md")).toContain(
+		"and `reference/design-record.md` when `complexitySignal` is `medium` or `high`.",
+	);
+	const draft = read("skills/draft/reference/design-record.md");
 	expect(draft).toContain(
 		"When `complexitySignal` is `medium` or `high`, `design.md` has a `## Rejected alternatives` section.",
 	);
