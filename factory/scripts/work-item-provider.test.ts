@@ -11,6 +11,7 @@ import {
 	createLocalWorkItem,
 	listLocalWorkItems,
 	noteLocalWorkItem,
+	planWorkItemOperation,
 	readLocalWorkItem,
 	runWorkItemOperation,
 } from "./work-item-provider";
@@ -277,5 +278,157 @@ console.log(JSON.stringify({
 			settings: { project: "ABC" },
 		});
 		expect(await read()).toMatchObject({ title: '{"project":"ABC"}' });
+	});
+});
+
+test("local items keep the group they were created under, and a replay under another group conflicts", async () => {
+	await withRoot(async (root) => {
+		const input = {
+			approved: true as const,
+			auditId: "run-2:1",
+			title: "Child story",
+			body: "Belongs to the epic.",
+			parent: "LOCAL-40",
+		};
+		const created = await createLocalWorkItem(root, input);
+		expect(created.parent).toBe("LOCAL-40");
+		expect((await readLocalWorkItem(root, created.ref)).parent).toBe(
+			"LOCAL-40",
+		);
+		expect((await createLocalWorkItem(root, input)).ref).toBe(created.ref);
+		await expect(
+			createLocalWorkItem(root, { ...input, parent: "LOCAL-41" }),
+		).rejects.toThrow(/different work-item content/);
+		await expect(
+			createLocalWorkItem(root, { ...input, parent: undefined }),
+		).rejects.toThrow(/different work-item content/);
+	});
+});
+
+async function recordJiraSessionTools(root: string): Promise<void> {
+	const runtimeDir = join(root, ".delivery", "runtime");
+	await mkdir(runtimeDir, { recursive: true });
+	await writeFile(
+		join(runtimeDir, "mcp-inventory.json"),
+		JSON.stringify({
+			version: 1,
+			recordedAt: "2026-11-19T09:00:00.000Z",
+			tools: [
+				{ server: "Atlassian", name: "getJiraIssue" },
+				{ server: "Atlassian", name: "searchJiraIssuesUsingJql" },
+				{ server: "Atlassian", name: "createJiraIssue" },
+				{ server: "Atlassian", name: "addGraphContext" },
+				{ server: "Atlassian", name: "addOrEditJiraIssueComment" },
+			],
+		}),
+	);
+}
+
+function jiraRuntime(invocation?: string) {
+	const base = defaultRuntimeManifest(true);
+	return parseRuntimeManifest({
+		version: 1,
+		capabilities: {
+			...base.capabilities,
+			"tracker.item": invocation
+				? { available: true, mode: "adapter", provider: "jira", invocation }
+				: { available: false, mode: "unavailable" },
+		},
+	});
+}
+
+test("creation uses the adapter that places items even when session tools are recorded", async () => {
+	await withRoot(async (root) => {
+		await recordJiraSessionTools(root);
+		const adapter = await fakeAdapter(
+			root,
+			`const request = JSON.parse(await Bun.stdin.text());
+console.log(JSON.stringify({
+  version: 1,
+  provider: "jira",
+  ref: "DEL-7",
+  type: "story",
+  title: request.input.title,
+  body: request.input.body,
+  blockedBy: [],
+  assignee: "Ada Lovelace",
+  sprint: "Sprint 12",
+  parent: request.input.parent,
+  notes: []
+}));`,
+		);
+		const runtime = jiraRuntime(`exec:${adapter}`);
+		await configureWorkItemProvider({
+			repositoryRoot: root,
+			providerId: "jira",
+			runtime,
+			settings: { project: "DEL", site: "https://example.atlassian.net" },
+		});
+		const input = {
+			approved: true,
+			auditId: "run-3:1",
+			title: "Placed story",
+			body: "Assigned and planned.",
+			parent: "DEL-1",
+		};
+		expect(
+			await planWorkItemOperation({
+				operation: "create",
+				repositoryRoot: root,
+				runtime,
+				input,
+			}),
+		).toEqual({ transport: "adapter", provider: "jira", operation: "create" });
+		expect(
+			await runWorkItemOperation({
+				operation: "create",
+				repositoryRoot: root,
+				runtime,
+				input,
+			}),
+		).toMatchObject({
+			ref: "DEL-7",
+			assignee: "Ada Lovelace",
+			sprint: "Sprint 12",
+			parent: "DEL-1",
+		});
+		expect(
+			await planWorkItemOperation({
+				operation: "read",
+				repositoryRoot: root,
+				runtime,
+				input: { ref: "DEL-7" },
+			}),
+		).toMatchObject({ transport: "mcp" });
+	});
+});
+
+test("without an adapter, creation still goes through the recorded session tools", async () => {
+	await withRoot(async (root) => {
+		await recordJiraSessionTools(root);
+		const runtime = jiraRuntime();
+		await configureWorkItemProvider({
+			repositoryRoot: root,
+			providerId: "jira",
+			runtime,
+			settings: { project: "DEL", site: "https://example.atlassian.net" },
+		});
+		expect(
+			await planWorkItemOperation({
+				operation: "create",
+				repositoryRoot: root,
+				runtime,
+				input: {
+					approved: true,
+					auditId: "run-3:2",
+					title: "Session story",
+					body: "No adapter here.",
+					parent: "DEL-1",
+				},
+			}),
+		).toMatchObject({
+			transport: "mcp",
+			arguments: { projectKey: "DEL", parent: "DEL-1" },
+		});
 	});
 });
