@@ -1,0 +1,7 @@
+{
+	"id": 41,
+	"username": "operator",
+	"name": "Delivery Operator",
+	"state": "active",
+	"web_url": "https://gitlab.example/operator"
+}
