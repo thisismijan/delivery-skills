@@ -291,7 +291,7 @@ export async function createLocalWorkItem(
 			existing.title !== input.title ||
 			existing.body !== input.body ||
 			existing.type !== input.type ||
-			existing.parent !== input.parent ||
+			(input.parent !== undefined && existing.parent !== input.parent) ||
 			JSON.stringify(existing.blockedBy) !== JSON.stringify(input.blockedBy)
 		) {
 			throw new Error(

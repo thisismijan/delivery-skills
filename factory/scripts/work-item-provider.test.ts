@@ -281,7 +281,7 @@ console.log(JSON.stringify({
 	});
 });
 
-test("local items keep the group they were created under, and a replay under another group conflicts", async () => {
+test("local items keep the group they were created under, and only a replay naming another group conflicts", async () => {
 	await withRoot(async (root) => {
 		const input = {
 			approved: true as const,
@@ -299,9 +299,10 @@ test("local items keep the group they were created under, and a replay under ano
 		await expect(
 			createLocalWorkItem(root, { ...input, parent: "LOCAL-41" }),
 		).rejects.toThrow(/different work-item content/);
-		await expect(
-			createLocalWorkItem(root, { ...input, parent: undefined }),
-		).rejects.toThrow(/different work-item content/);
+		const { parent: _parent, ...withoutParent } = input;
+		expect((await createLocalWorkItem(root, withoutParent)).parent).toBe(
+			"LOCAL-40",
+		);
 	});
 });
 
