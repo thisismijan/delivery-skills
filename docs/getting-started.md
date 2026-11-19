@@ -100,6 +100,17 @@ bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items jira \
   --setting project=DEL --setting site=https://example.atlassian.net
 ```
 
+New work items are assigned to the user the provider's credentials belong to.
+To plan them into a sprint or milestone too, record where they should go. For
+Jira, record the board, and new issues go into its active sprint:
+
+```bash
+bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items jira --setting board=42
+```
+
+Each provider's README lists its placement settings: `assignee`, plus `sprint`
+for Jira and `milestone` for GitHub and GitLab.
+
 Init also adds `.delivery/` and `.review/` to `.gitignore` once. After
 configuration it reprints only unresolved doctor checks, not the full ready
 and human-owned lists.

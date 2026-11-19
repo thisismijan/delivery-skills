@@ -143,11 +143,11 @@ Present a **brief** only (not the full draft bodies in the chat dump):
   each ticket sized for **~25% of a session context window**
 - Link/path to optional `prd.md` if present
 - In continuous mode, use the confirmed provider to create exactly one work item
-  from each approved, verified draft. Preserve the title and body, set the
-  group/parent references when the provider supports them, and create only the
-  "blocked by" links in the approved graph. Write one strict JSON input per
-  slice with `approved: true`, its run-and-slice audit id, title, body, type,
-  and approved blockers, then run:
+  from each approved, verified draft. Preserve the title and body, and create
+  only the "blocked by" links in the approved graph. Write one strict JSON input
+  per slice with `approved: true`, its run-and-slice audit id, title, body, type,
+  and approved blockers. When the run started from a work-item group, also set
+  `parent` to that group's reference. Then run:
   ```
   bun "${FACTORY_ROOT}/scripts/work-item-provider.ts" create \
     "$(git rev-parse --show-toplevel)" \
@@ -157,6 +157,14 @@ Present a **brief** only (not the full draft bodies in the chat dump):
   command's `link` operation and an input containing `approved: true`, `ref`,
   and `blockedBy`. Never invoke a provider-specific API or invent an operation.
   Record `slice-number → WORK-ITEM-KEY` in the ledger.
+  The provider assigns each item and plans it into a sprint or milestone from
+  the repository's placement settings. The create result reports `assignee`,
+  `sprint`, and `parent`. Show them for each item in the brief. Name every item
+  that came back without the requested parent, without an assignee (unless the
+  `assignee` setting is `none`), or without a sprint while
+  `.delivery/work-items.json` records a board, sprint, or milestone that is not
+  `none`. The operator can then place it by hand. Never edit an item to place
+  it.
   Creation is idempotent: use one exact audit marker containing the run id and slice number,
   reuse that exact item if it exists, and stop on conflicting or multiple matches.
   Never create an unapproved slice and never transition status.

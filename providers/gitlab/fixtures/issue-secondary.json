@@ -3,5 +3,8 @@
 	"title": "Follow-up story",
 	"description": "<!-- delivery-type: story -->\n\nSecond page item.",
 	"state": "opened",
+	"assignee": null,
+	"assignees": [],
+	"milestone": null,
 	"web_url": "https://gitlab.example/acme/app/-/issues/13"
 }

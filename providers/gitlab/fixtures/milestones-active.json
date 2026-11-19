@@ -1,0 +1,10 @@
+[
+	{
+		"id": 301,
+		"iid": 4,
+		"group_id": 9,
+		"title": "Sprint 42",
+		"state": "active",
+		"web_url": "https://gitlab.example/groups/acme/-/milestones/4"
+	}
+]

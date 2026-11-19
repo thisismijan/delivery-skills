@@ -11,9 +11,11 @@ import {
 	gitlabCall,
 	gitlabGet,
 	gitlabPaged,
+	hostApiUrl,
 	isRecord,
 	resolveGitLabTarget,
 	resolveGitLabToken,
+	withQuery,
 } from "./gitlab-host";
 
 export const GITLAB_WORK_ITEM_OPERATIONS = [
@@ -55,6 +57,8 @@ export interface GitLabWorkItem {
 	body: string;
 	blockedBy: string[];
 	sourceAuditId?: string;
+	assignee?: string;
+	sprint?: string;
 	notes: Array<{ auditId: string; body: string }>;
 }
 
@@ -230,6 +234,21 @@ function notesFromRaw(raw: unknown[]): GitLabWorkItem["notes"] {
 	return notes;
 }
 
+function usernameOf(raw: unknown): string | undefined {
+	if (!isRecord(raw)) return undefined;
+	return asString(raw.username)?.trim() || undefined;
+}
+
+function assigneeOf(raw: Record<string, unknown>): string | undefined {
+	const first = Array.isArray(raw.assignees) ? raw.assignees[0] : undefined;
+	return usernameOf(first) ?? usernameOf(raw.assignee);
+}
+
+function sprintOf(raw: Record<string, unknown>): string | undefined {
+	if (!isRecord(raw.milestone)) return undefined;
+	return asString(raw.milestone.title)?.trim() || undefined;
+}
+
 function normalizeIssue(
 	raw: unknown,
 	links: unknown[],
@@ -257,6 +276,10 @@ function normalizeIssue(
 		notes: notesFromRaw(notes),
 	};
 	if (sourceAuditId) item.sourceAuditId = sourceAuditId;
+	const assignee = assigneeOf(raw);
+	if (assignee) item.assignee = assignee;
+	const sprint = sprintOf(raw);
+	if (sprint) item.sprint = sprint;
 	return item;
 }
 
@@ -366,11 +389,91 @@ async function handleRead(
 	return loadIssue(deps, token, target, iid);
 }
 
+function setting(envelope: unknown, key: string): string | undefined {
+	if (!isRecord(envelope) || !isRecord(envelope.settings)) return undefined;
+	return asString(envelope.settings[key])?.trim() || undefined;
+}
+
+const USERNAME = /^[A-Za-z0-9_.][A-Za-z0-9_.-]*$/;
+
+function numericIdOf(raw: unknown): number | undefined {
+	if (!isRecord(raw)) return undefined;
+	const id = raw.id;
+	return typeof id === "number" && Number.isInteger(id) ? id : undefined;
+}
+
+async function resolveAssigneeId(
+	deps: GitLabWorkItemDeps,
+	token: string,
+	target: GitLabTarget,
+	value: string | undefined,
+): Promise<number | undefined> {
+	if (value === "none") return undefined;
+	if (value === undefined || value === "me") {
+		const id = numericIdOf(
+			await gitlabGet(deps, token, hostApiUrl(target, "/user")),
+		);
+		if (id === undefined) fail("GitLab did not return the current user.");
+		return id;
+	}
+	if (value.length > 255 || !USERNAME.test(value)) {
+		fail(`The assignee setting '${value}' is not a GitLab username.`);
+	}
+	const users = await gitlabGet(
+		deps,
+		token,
+		withQuery(hostApiUrl(target, "/users"), { username: value }),
+	);
+	if (!Array.isArray(users) || users.length === 0) {
+		fail(`GitLab user '${value}' was not found.`);
+	}
+	if (users.length > 1) {
+		fail(`GitLab username '${value}' matches more than one user.`);
+	}
+	const id = numericIdOf(users[0]);
+	if (id === undefined) fail(`GitLab user '${value}' has no id.`);
+	return id;
+}
+
+async function resolveMilestoneId(
+	deps: GitLabWorkItemDeps,
+	token: string,
+	target: GitLabTarget,
+	title: string | undefined,
+): Promise<number | undefined> {
+	if (title === undefined || title === "none") return undefined;
+	const query = new URLSearchParams({
+		state: "active",
+		title,
+		include_ancestors: "true",
+	});
+	const milestones = await gitlabPaged(
+		deps,
+		token,
+		target,
+		`/milestones?${query.toString()}`,
+	);
+	const matches = milestones.filter(
+		(entry) => isRecord(entry) && asString(entry.title)?.trim() === title,
+	);
+	if (matches.length === 0) {
+		fail(`GitLab has no active milestone titled '${title}' for this project.`);
+	}
+	if (matches.length > 1) {
+		fail(`More than one active GitLab milestone is titled '${title}'.`);
+	}
+	const id = numericIdOf(matches[0]);
+	if (id === undefined) fail(`GitLab milestone '${title}' has no id.`);
+	return id;
+}
+
 async function handleCreate(
 	envelope: unknown,
 	deps: GitLabWorkItemDeps,
 ): Promise<GitLabWorkItem> {
 	const { input, token, target } = await context(envelope, deps);
+	// `parent` is accepted and never sent: GitLab epics need a paid tier and a group, so the
+	// returned item leaves `parent` off and the caller reports that it did not land.
 	unexpectedKeys(input, [
 		"approved",
 		"auditId",
@@ -379,6 +482,7 @@ async function handleCreate(
 		"title",
 		"body",
 		"blockedBy",
+		"parent",
 	]);
 	requireApproved(input);
 	const auditId = parseAuditId(input.auditId, "auditId");
@@ -401,6 +505,18 @@ async function handleCreate(
 	if (input.ref !== undefined) {
 		fail("GitLab assigns issue ids; omit ref when creating.");
 	}
+	const assigneeId = await resolveAssigneeId(
+		deps,
+		token,
+		target,
+		setting(envelope, "assignee"),
+	);
+	const milestoneId = await resolveMilestoneId(
+		deps,
+		token,
+		target,
+		setting(envelope, "milestone"),
+	);
 	const created = await gitlabCall(
 		deps,
 		token,
@@ -409,6 +525,8 @@ async function handleCreate(
 		{
 			title,
 			description: descriptionFor(type, auditId, body),
+			...(assigneeId !== undefined ? { assignee_ids: [assigneeId] } : {}),
+			...(milestoneId !== undefined ? { milestone_id: milestoneId } : {}),
 		},
 	);
 	const iid = iidOf(created);
@@ -473,11 +591,6 @@ async function handleNote(
 		);
 	}
 	return loadIssue(deps, token, target, iid);
-}
-
-function boardSetting(envelope: unknown): string | undefined {
-	if (!isRecord(envelope) || !isRecord(envelope.settings)) return undefined;
-	return asString(envelope.settings.board)?.trim() || undefined;
 }
 
 async function boardColumns(
@@ -559,7 +672,7 @@ async function handleStatuses(
 		deps,
 		token,
 		target,
-		boardSetting(envelope),
+		setting(envelope, "board"),
 	);
 	const issue = await gitlabGet(deps, token, apiUrl(target, `/issues/${iid}`));
 	return issueBoard(issue, iid, columns);
@@ -578,7 +691,7 @@ async function handleTransition(
 		deps,
 		token,
 		target,
-		boardSetting(envelope),
+		setting(envelope, "board"),
 	);
 	if (!columns.includes(to))
 		fail(`'${to}' is not a column on the GitLab issue board.`);

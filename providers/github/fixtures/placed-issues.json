@@ -1,0 +1,35 @@
+[
+	{
+		"id": 8010,
+		"number": 21,
+		"title": "Assigned and planned",
+		"body": "Has every placement field.",
+		"assignee": { "login": "grace" },
+		"assignees": [{ "login": "ada" }, { "login": "grace" }],
+		"milestone": { "number": 3, "title": "Sprint 9" },
+		"parent_issue_url": "https://api.github.com/repos/Acme/App/issues/5",
+		"html_url": "https://github.com/acme/app/issues/21"
+	},
+	{
+		"id": 8011,
+		"number": 22,
+		"title": "Older payload",
+		"body": "Carries only the single assignee field.",
+		"assignee": { "login": "grace" },
+		"assignees": [],
+		"milestone": null,
+		"parent_issue_url": "https://api.github.com/repos/acme/platform/issues/40",
+		"html_url": "https://github.com/acme/app/issues/22"
+	},
+	{
+		"id": 8012,
+		"number": 23,
+		"title": "Not placed",
+		"body": "No assignee, milestone or parent.",
+		"assignee": null,
+		"assignees": [],
+		"milestone": null,
+		"parent_issue_url": null,
+		"html_url": "https://github.com/acme/app/issues/23"
+	}
+]

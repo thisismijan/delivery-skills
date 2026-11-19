@@ -40,6 +40,20 @@ Create inputs require `approved: true` and a stable `auditId`; link inputs
 require `approved: true`. Notes use one `auditId`, so replay updates that note
 instead of adding duplicates.
 
+## Placement
+
+A create input may name a `parent`, the group the item belongs to. A provider
+places each new item from the repository's settings. The `assignee` setting
+defaults to the user the credentials belong to. A sprint or milestone setting
+chooses where the item is planned. A provider resolves every placement before
+it creates anything, and does not re-place an item that a replay reuses.
+Normalized items report `assignee`, `sprint` (a sprint, iteration, or
+milestone name), and `parent` when the provider knows them. An absent field
+means the item was not placed that way. Session tools create bare items, so
+create uses the provider's executable adapter whenever one is ready. Each
+provider's README lists its placement settings. Local files record only the
+parent, because they have no users or sprints.
+
 ## Remote providers
 
 Remote systems appear when the runtime advertises an available

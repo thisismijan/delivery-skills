@@ -1346,6 +1346,27 @@ describe("generic work-item selection", () => {
 			"work-item-provider.ts",
 		);
 	});
+
+	test("created work items are parented, placed by the provider, and unplaced ones are named", () => {
+		const materialize = plain(epicToBacklog);
+		expect(materialize).toMatch(
+			/started from a work-item group, also set parent to that group's reference/,
+		);
+		expect(materialize).toMatch(
+			/create result reports assignee ?, sprint ?, and parent/,
+		);
+		expect(materialize).toMatch(
+			/Name every item that came back without the requested parent, without an assignee/,
+		);
+		expect(materialize).toContain("Never edit an item to place it.");
+		const placement = plain(setup);
+		expect(placement).toMatch(/ask where created work items should land/);
+		expect(placement).toContain("--setting <key>=<value>");
+		expect(placement).toContain("When they keep the defaults, record nothing.");
+		expect(placement).toMatch(
+			/Never pick a work-item provider, a placement setting/,
+		);
+	});
 });
 
 describe("normalized provider contracts", () => {
