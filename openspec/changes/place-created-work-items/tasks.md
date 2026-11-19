@@ -8,7 +8,7 @@
 
 - [x] 2.1 Jira assigns, plans into a sprint, and parents in the create request
 - [x] 2.2 GitLab assigns and sets a milestone
-- [x] 2.3 GitHub assigns and sets a milestone
+- [x] 2.3 GitHub assigns, sets a milestone, and attaches the parent as a sub-issue
 
 ## 3. Workflow and docs
 

@@ -451,7 +451,13 @@ async function replayCreate(
 	existing: Record<string, unknown>,
 	parent: string | undefined,
 ): Promise<unknown> {
-	if (!parent || parentRef(target, existing) !== undefined) {
+	const current = parentRef(target, existing);
+	if (parent && current !== undefined && current !== parent) {
+		fail(
+			`audit id already identifies different work-item content: issue #${issueNumber(existing)} is under parent ${current}, not #${parent}.`,
+		);
+	}
+	if (!parent || current !== undefined) {
 		return normalizeIssue(deps, token, target, existing);
 	}
 	if (parent === issueNumber(existing)) {

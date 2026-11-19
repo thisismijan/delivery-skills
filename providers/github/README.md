@@ -62,7 +62,7 @@ A work item's `parent` must be an issue number in the same repository, such as
 Every lookup runs before the issue is created, so an unknown login, milestone
 or parent creates nothing. A replayed create returns the existing issue
 without reassigning or re-planning it. It only adds a parent when the issue
-has none. Issues report their first assignee as `assignee`, their milestone
+has none, and refuses a replay that names a different parent. Issues report their first assignee as `assignee`, their milestone
 title as `sprint`, and their parent issue as `parent`.
 
 ## Credentials

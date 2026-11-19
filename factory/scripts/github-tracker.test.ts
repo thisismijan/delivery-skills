@@ -673,3 +673,28 @@ test("settings must be text", async () => {
 	).rejects.toThrow("GitHub adapter setting assignee must be text.");
 	expect(requests).toEqual([]);
 });
+
+test("replay refuses a parent other than the one the issue already has", async () => {
+	const parented = {
+		...(loadFixture("issue.json") as Record<string, unknown>),
+		parent_issue_url: "https://api.github.com/repos/acme/app/issues/5",
+	};
+	const { deps, requests } = placementDeps([parented]);
+	await expect(
+		runGitHubTracker(
+			"create",
+			envelope({ ...CREATE_INPUT, parent: "6" }),
+			deps,
+		),
+	).rejects.toThrow(/different work-item content/);
+	expect(
+		WorkItem.parse(
+			await runGitHubTracker(
+				"create",
+				envelope({ ...CREATE_INPUT, parent: "#5" }),
+				deps,
+			),
+		),
+	).toMatchObject({ ref: "11", parent: "5" });
+	expect(requests.some((request) => request.method !== "GET")).toBe(false);
+});

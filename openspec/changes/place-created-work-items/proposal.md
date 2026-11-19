@@ -11,7 +11,8 @@ every ticket by hand before the team can plan with it.
 - Providers place each new item from the repository's settings. `assignee`
   defaults to the user the credentials belong to. Jira's `sprint` defaults to
   the board's one active sprint once a board is recorded. GitHub and GitLab
-  take a `milestone`. Every lookup runs before the create request, and a
+  take a `milestone`. Jira and GitHub attach the parent; GitLab accepts it
+  but does not send it, because its epics need a paid tier. Every lookup runs before the create request, and a
   replay never re-places an item.
 - Create uses the provider's executable adapter whenever one is ready,
   because session tools create bare items.
@@ -31,7 +32,8 @@ None.
   create prefers the adapter, and the workflow reports unplaced items.
 - `jira-work-items`: create assigns, plans into a sprint, and parents.
 - `gitlab-issue-tracking`: create assigns and sets a milestone.
-- `github-delivery-provider`: create assigns and sets a milestone.
+- `github-delivery-provider`: create assigns, sets a milestone, and attaches
+  the parent as a sub-issue.
 
 ## Impact
 

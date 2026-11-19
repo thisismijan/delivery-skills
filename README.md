@@ -265,7 +265,8 @@ After approval, it automatically:
 
 1. Creates or reuses exactly the approved work items and dependency links
    through the repository's confirmed provider. Each new item is assigned to
-   you and placed under the epic the run started from. When the repository
+   you and, where the tracker supports it, placed under the epic the run
+   started from. When the repository
    records a board or milestone, the item is also planned into the current
    sprint or that milestone. The brief names any item that could not be
    placed.
