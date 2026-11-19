@@ -50,6 +50,20 @@ order. With more than one board, record the one to use with
 `--setting board=<board-id>`. A move adds the target list label and removes
 the previous one. A closed issue is never moved or reopened.
 
+A created issue is assigned and planned from the repository settings, which
+`delivery-init.ts --work-items gitlab --setting key=value` records.
+`assignee` unset or `me` assigns the user the token belongs to, `none` leaves
+the issue unassigned, and any other value is a GitLab username that must match
+exactly one user. `milestone` unset or `none` plans nothing, and any other
+value is a milestone title that must match exactly one active milestone of the
+project or one of its ancestor groups. Both are looked up before the issue is
+created, so a failed lookup creates nothing. Replaying a create whose audit id
+already names an issue returns that issue as it is, without assigning or
+planning it again. A `parent` on create is accepted but not sent, because
+GitLab epics need a paid tier and a group, so the returned issue has no
+`parent`. Every issue read, listed, or created reports its first assignee's
+username as `assignee` and its milestone title as `sprint`.
+
 Host and project come from origin. Override with `GL_HOST` and `GL_PROJECT`
 for self-hosted GitLab when origin is not enough. Credentials:
 `GITLAB_TOKEN`, `GL_TOKEN_FILE`, or `~/token` (never argv). Publishing notes
