@@ -16,6 +16,14 @@
   Use `--replace` only after explicit confirmation of a changed choice. Init may
   add `.delivery/` and `.review/` to `.gitignore` and persist
   `.delivery/work-items.json`; it creates no remote resource or work item.
+  Then ask where created work items should land. By default a provider assigns
+  each new item to the user its credentials belong to. A provider with sprints
+  plans it into the board's active sprint once its board is recorded. Show the
+  operator the provider's placement settings from its README: who items are
+  assigned to, and which sprint or milestone they go into. Record each value
+  the operator chooses with
+  `bun "${FACTORY_ROOT}/scripts/delivery-init.ts" --work-items <provider-id> --setting <key>=<value>`.
+  When they keep the defaults, record nothing.
   Then map the board. Pick one existing ticket and run
   `bun "${FACTORY_ROOT}/scripts/board-status.ts" propose "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <work-item-key>`.
   Show the operator the board columns, each proposed phase (`ready`,
@@ -50,8 +58,8 @@
 
 ## Never
 
-- Never pick a work-item provider, a board column, a worktree file, or a
-  sandbox setting for the operator.
+- Never pick a work-item provider, a placement setting, a board column, a
+  worktree file, or a sandbox setting for the operator.
 - Never show the contents of a candidate worktree file.
 - Never create a remote resource or a work item during setup.
 
