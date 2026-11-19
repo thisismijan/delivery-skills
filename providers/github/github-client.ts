@@ -307,6 +307,7 @@ export async function githubPaged(
 export function envelopeInput(raw: unknown): {
 	repositoryRoot: string;
 	input: Record<string, unknown>;
+	settings: Record<string, string>;
 	dryRun: boolean;
 } {
 	if (!isRecord(raw)) fail("GitHub adapter expected version-1 JSON on stdin.");
@@ -322,8 +323,24 @@ export function envelopeInput(raw: unknown): {
 	return {
 		repositoryRoot: asString(raw.repositoryRoot)?.trim() || "",
 		input,
+		settings: envelopeSettings(raw),
 		dryRun: asBoolean(raw.dryRun) === true || asBoolean(input.dryRun) === true,
 	};
+}
+
+function envelopeSettings(
+	raw: Record<string, unknown>,
+): Record<string, string> {
+	if (raw.settings === undefined) return {};
+	if (!isRecord(raw.settings))
+		fail("GitHub adapter settings must be an object.");
+	const settings: Record<string, string> = {};
+	for (const [key, value] of Object.entries(raw.settings)) {
+		const text = asString(value);
+		if (text === undefined) fail(`GitHub adapter setting ${key} must be text.`);
+		settings[key] = text;
+	}
+	return settings;
 }
 
 function omitEnvelopeKeys(
@@ -335,6 +352,7 @@ function omitEnvelopeKeys(
 			key === "version" ||
 			key === "provider" ||
 			key === "repositoryRoot" ||
+			key === "settings" ||
 			key === "input"
 		) {
 			continue;
@@ -349,6 +367,7 @@ export async function withGitHubContext(
 	deps: GitHubDeps,
 ): Promise<{
 	input: Record<string, unknown>;
+	settings: Record<string, string>;
 	target: GitHubTarget;
 	token: string;
 	repositoryRoot: string;
@@ -360,6 +379,7 @@ export async function withGitHubContext(
 	const target = await resolveGitHubTarget(repositoryRoot, deps);
 	return {
 		input: parsed.input,
+		settings: parsed.settings,
 		target,
 		token,
 		repositoryRoot,

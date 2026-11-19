@@ -6,6 +6,7 @@ import {
 	PROVIDER_ID,
 	SOURCE_AUDIT_PREFIX,
 	TYPE_MARKER_PREFIX,
+	asNumber,
 	asString,
 	defaultGitHubDeps,
 	fail,
@@ -116,6 +117,42 @@ function isPullRequest(raw: Record<string, unknown>): boolean {
 	return raw.pull_request !== undefined && raw.pull_request !== null;
 }
 
+function isNotFound(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : "";
+	return message.includes("did not find") || message.includes("HTTP 404");
+}
+
+function firstAssignee(raw: Record<string, unknown>): string | undefined {
+	const first = Array.isArray(raw.assignees) ? raw.assignees[0] : undefined;
+	const login = isRecord(first) ? asString(first.login)?.trim() : undefined;
+	if (login) return login;
+	return isRecord(raw.assignee)
+		? asString(raw.assignee.login)?.trim() || undefined
+		: undefined;
+}
+
+function milestoneTitle(raw: Record<string, unknown>): string | undefined {
+	return isRecord(raw.milestone)
+		? asString(raw.milestone.title)?.trim() || undefined
+		: undefined;
+}
+
+// A parent in this repository is reported as its issue number, like every other reference here.
+// GitHub also allows a parent in another repository of the same owner, reported as owner/repo#n.
+function parentRef(
+	target: GitHubTarget,
+	raw: Record<string, unknown>,
+): string | undefined {
+	const url = asString(raw.parent_issue_url)?.trim();
+	const match = url?.match(/\/repos\/([^/]+\/[^/]+)\/issues\/(\d+)\/?$/);
+	const repository = match?.[1];
+	const number = match?.[2];
+	if (!repository || !number) return undefined;
+	return repository.toLowerCase() === target.repository.toLowerCase()
+		? number
+		: `${repository}#${number}`;
+}
+
 async function loadBlockedBy(
 	deps: GitHubDeps,
 	token: string,
@@ -182,6 +219,9 @@ async function normalizeIssue(
 			token,
 			repoUrl(target, `/issues/${number}/comments`),
 		));
+	const assignee = firstAssignee(raw);
+	const sprint = milestoneTitle(raw);
+	const parent = parentRef(target, raw);
 	return {
 		version: PROTOCOL_VERSION,
 		provider: PROVIDER_ID,
@@ -193,6 +233,9 @@ async function normalizeIssue(
 		...(parseMarker(rawBody, SOURCE_AUDIT_PREFIX)
 			? { sourceAuditId: parseMarker(rawBody, SOURCE_AUDIT_PREFIX) }
 			: {}),
+		...(assignee ? { assignee } : {}),
+		...(sprint ? { sprint } : {}),
+		...(parent ? { parent } : {}),
 		notes: parseNotes(loadedComments),
 	};
 }
@@ -275,11 +318,158 @@ function sameCreateContent(
 	);
 }
 
+function requestedParent(input: Record<string, unknown>): string | undefined {
+	if (input.parent === undefined) return undefined;
+	const match = asString(input.parent)
+		?.trim()
+		.match(/^#?(\d+)$/);
+	const number = match?.[1];
+	if (!number) {
+		fail(
+			"GitHub parent must be an issue number in this repository, such as 12 or #12.",
+		);
+	}
+	return number;
+}
+
+async function resolveAssignee(
+	deps: GitHubDeps,
+	token: string,
+	target: GitHubTarget,
+	settings: Record<string, string>,
+): Promise<string | undefined> {
+	const setting = settings.assignee?.trim() || "me";
+	if (setting === "none") return undefined;
+	if (setting === "me") {
+		const user = await githubGet(deps, token, `${target.apiBase}/user`);
+		const login = isRecord(user) ? asString(user.login)?.trim() : undefined;
+		if (!login)
+			fail("GitHub did not say which user the credential belongs to.");
+		return login;
+	}
+	if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(setting)) {
+		fail(`GitHub assignee '${setting}' is not a valid login.`);
+	}
+	let user: unknown;
+	try {
+		user = await githubGet(
+			deps,
+			token,
+			`${target.apiBase}/users/${encodeURIComponent(setting)}`,
+		);
+	} catch (error) {
+		if (isNotFound(error))
+			fail(`GitHub has no user with the login '${setting}'.`);
+		throw error;
+	}
+	const login = isRecord(user) ? asString(user.login)?.trim() : undefined;
+	if (!login || login.toLowerCase() !== setting.toLowerCase()) {
+		fail(`GitHub has no user with the login '${setting}'.`);
+	}
+	return login;
+}
+
+async function resolveMilestone(
+	deps: GitHubDeps,
+	token: string,
+	target: GitHubTarget,
+	settings: Record<string, string>,
+): Promise<number | undefined> {
+	const title = settings.milestone?.trim();
+	if (!title || title === "none") return undefined;
+	const listed = await githubPaged(
+		deps,
+		token,
+		withQuery(repoUrl(target, "/milestones"), { state: "open" }),
+	);
+	const matches = listed.filter(
+		(entry) => isRecord(entry) && asString(entry.title) === title,
+	);
+	if (matches.length === 0) {
+		fail(`GitHub has no open milestone titled '${title}'.`);
+	}
+	if (matches.length > 1) {
+		fail(`GitHub has more than one open milestone titled '${title}'.`);
+	}
+	const match = matches[0];
+	const number = isRecord(match) ? asNumber(match.number) : undefined;
+	if (number === undefined) {
+		fail(`GitHub milestone '${title}' is missing a number.`);
+	}
+	return number;
+}
+
+async function requireParentIssue(
+	deps: GitHubDeps,
+	token: string,
+	target: GitHubTarget,
+	parent: string,
+): Promise<void> {
+	let raw: unknown;
+	try {
+		raw = await githubGet(deps, token, repoUrl(target, `/issues/${parent}`));
+	} catch (error) {
+		if (isNotFound(error)) {
+			fail(`GitHub parent issue #${parent} does not exist in this repository.`);
+		}
+		throw error;
+	}
+	if (!isRecord(raw) || isPullRequest(raw)) {
+		fail(`GitHub parent #${parent} is a pull request, not an issue.`);
+	}
+}
+
+async function attachToParent(
+	deps: GitHubDeps,
+	token: string,
+	target: GitHubTarget,
+	child: Record<string, unknown>,
+	parent: string,
+): Promise<unknown> {
+	const childId = asNumber(child.id);
+	if (childId === undefined) fail("GitHub issue is missing its numeric id.");
+	await githubCall(
+		deps,
+		token,
+		"POST",
+		repoUrl(target, `/issues/${parent}/sub_issues`),
+		{ sub_issue_id: childId },
+	);
+	return githubGet(
+		deps,
+		token,
+		repoUrl(target, `/issues/${issueNumber(child)}`),
+	);
+}
+
+// Replay returns the issue a person may since have reassigned or re-planned, so it is not
+// placed again. Only a missing parent is added, the same additive way links are.
+async function replayCreate(
+	deps: GitHubDeps,
+	token: string,
+	target: GitHubTarget,
+	existing: Record<string, unknown>,
+	parent: string | undefined,
+): Promise<unknown> {
+	if (!parent || parentRef(target, existing) !== undefined) {
+		return normalizeIssue(deps, token, target, existing);
+	}
+	if (parent === issueNumber(existing)) {
+		fail(`GitHub issue #${parent} cannot be its own parent.`);
+	}
+	await requireParentIssue(deps, token, target, parent);
+	const refreshed = await attachToParent(deps, token, target, existing, parent);
+	return normalizeIssue(deps, token, target, refreshed);
+}
+
 async function handleCreate(
 	envelope: unknown,
 	deps: GitHubDeps,
 ): Promise<unknown> {
-	const { input, target, token } = await withGitHubContext(envelope, deps);
+	const { input, settings, target, token } = await withGitHubContext(
+		envelope,
+		deps,
+	);
 	requireApproved(input);
 	const auditId = requireText(input, "auditId");
 	const title = requireText(input, "title");
@@ -288,6 +478,7 @@ async function handleCreate(
 	if (!(WORK_ITEM_TYPES as readonly string[]).includes(type)) {
 		fail("GitHub work-item type is invalid.");
 	}
+	const parent = requestedParent(input);
 	const existing = await findByAuditId(deps, token, target, auditId);
 	if (existing) {
 		if (!sameCreateContent(existing, input)) {
@@ -295,13 +486,16 @@ async function handleCreate(
 				`audit id '${auditId}' already identifies different work-item content`,
 			);
 		}
-		return normalizeIssue(deps, token, target, existing);
+		return replayCreate(deps, token, target, existing, parent);
 	}
 	const requestedRef = asString(input.ref)?.trim();
 	if (requestedRef) {
 		fail("GitHub assigns issue numbers; omit ref when creating an issue.");
 	}
-	const created = await githubCall(
+	const assignee = await resolveAssignee(deps, token, target, settings);
+	const milestone = await resolveMilestone(deps, token, target, settings);
+	if (parent) await requireParentIssue(deps, token, target, parent);
+	let created = await githubCall(
 		deps,
 		token,
 		"POST",
@@ -309,13 +503,19 @@ async function handleCreate(
 		{
 			title,
 			body: `${body}\n\n${sourceAuditMarker(auditId)}\n${typeMarker(type)}`,
+			...(assignee ? { assignees: [assignee] } : {}),
+			...(milestone !== undefined ? { milestone } : {}),
 		},
 	);
+	if (!isRecord(created)) fail("GitHub returned a malformed issue.");
 	const blockedBy = Array.isArray(input.blockedBy)
 		? input.blockedBy.map((value) => String(value))
 		: [];
-	if (blockedBy.length > 0 && isRecord(created)) {
+	if (blockedBy.length > 0) {
 		await addBlockedBy(deps, token, target, issueNumber(created), blockedBy);
+	}
+	if (parent) {
+		created = await attachToParent(deps, token, target, created, parent);
 	}
 	return normalizeIssue(deps, token, target, created);
 }
