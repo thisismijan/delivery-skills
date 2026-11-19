@@ -54,6 +54,10 @@ function resource(url: string): string {
 	return index >= 0 ? url.slice(index) : url;
 }
 
+function apiPath(url: string): string {
+	return new URL(url).pathname.replace(/^\/api\/v4/, "");
+}
+
 function recordingDeps(
 	handler: (request: GitLabRequest) => unknown,
 	perPage = 1,
@@ -235,6 +239,9 @@ test("create replay returns the existing item and conflict refuses without POST"
 test("approved create posts an issue then dependency links", async () => {
 	const created = loadFixture("issue-create.json");
 	const { deps, requests } = recordingDeps((request) => {
+		if (request.method === "GET" && apiPath(request.url) === "/user") {
+			return loadFixture("current-user.json");
+		}
 		if (request.method === "POST" && resource(request.url) === "/issues") {
 			expect(request.body).toMatchObject({
 				title: "Keep provider notes",
@@ -274,6 +281,340 @@ test("approved create posts an issue then dependency links", async () => {
 				request.method === "POST" && resource(request.url) === "/issues",
 		),
 	).toBe(true);
+});
+
+const NEW_ISSUE = {
+	approved: true,
+	auditId: "run-1:new",
+	type: "bug",
+	title: "Keep provider notes",
+	body: "The selected provider stores one note per audit id.",
+};
+
+const USERNAMES: Record<number, string> = { 41: "operator", 57: "dana" };
+
+function placementHandler(
+	options: { users?: unknown[]; milestones?: unknown[] } = {},
+) {
+	let created: Record<string, unknown> | undefined;
+	const handler = (request: GitLabRequest): unknown => {
+		const path = apiPath(request.url);
+		if (request.method === "GET" && path === "/user") {
+			return loadFixture("current-user.json");
+		}
+		if (request.method === "GET" && path === "/users") {
+			return options.users ?? loadFixture("users-by-username.json");
+		}
+		if (request.method === "GET" && path.endsWith("/milestones")) {
+			const milestones =
+				options.milestones ??
+				(loadFixture("milestones-active.json") as unknown[]);
+			return paged(milestones, request.url, 1);
+		}
+		if (request.method === "POST" && resource(request.url) === "/issues") {
+			created = request.body as Record<string, unknown>;
+			return loadFixture("issue-create.json");
+		}
+		if (
+			request.method === "GET" &&
+			created &&
+			resource(request.url) === "/issues/12"
+		) {
+			const ids = (created.assignee_ids as number[] | undefined) ?? [];
+			const assignees = ids.map((id) => ({ id, username: USERNAMES[id] }));
+			return {
+				...(loadFixture("issue-create.json") as Record<string, unknown>),
+				assignee: assignees[0] ?? null,
+				assignees,
+				milestone:
+					created.milestone_id === 301
+						? { id: 301, title: "Sprint 42", state: "active" }
+						: null,
+			};
+		}
+		return issueGraphHandler()(request);
+	};
+	return { handler, created: () => created };
+}
+
+const isCreatePost = (request: GitLabRequest) =>
+	request.method === "POST" && resource(request.url) === "/issues";
+
+test("create assigns the token's own user by default and with assignee=me", async () => {
+	for (const extra of [{}, { settings: { assignee: "me" } }]) {
+		const placement = placementHandler();
+		const { deps, requests } = recordingDeps(placement.handler);
+		const item = await runGitLabWorkItem(
+			"create",
+			envelope(NEW_ISSUE, extra),
+			deps,
+		);
+		const lookup = requests.findIndex(
+			(request) => request.method === "GET" && apiPath(request.url) === "/user",
+		);
+		expect(lookup).toBeGreaterThanOrEqual(0);
+		expect(requests[lookup]?.url).toBe("https://gitlab.example/api/v4/user");
+		expect(lookup).toBeLessThan(requests.findIndex(isCreatePost));
+		expect(placement.created()).toMatchObject({ assignee_ids: [41] });
+		expect(placement.created()).not.toHaveProperty("milestone_id");
+		const parsed = WorkItem.parse(item);
+		expect(parsed).toMatchObject({ ref: "12", assignee: "operator" });
+		expect(parsed.sprint).toBeUndefined();
+	}
+});
+
+test("assignee=none creates the issue unassigned without a user lookup", async () => {
+	const placement = placementHandler();
+	const { deps, requests } = recordingDeps(placement.handler);
+	const item = await runGitLabWorkItem(
+		"create",
+		envelope(NEW_ISSUE, { settings: { assignee: "none" } }),
+		deps,
+	);
+	expect(
+		requests.some((request) => apiPath(request.url).startsWith("/user")),
+	).toBe(false);
+	expect(placement.created()).not.toHaveProperty("assignee_ids");
+	expect(WorkItem.parse(item).assignee).toBeUndefined();
+});
+
+test("an explicit assignee is resolved by username before the issue is created", async () => {
+	const placement = placementHandler();
+	const { deps, requests } = recordingDeps(placement.handler);
+	const item = await runGitLabWorkItem(
+		"create",
+		envelope(NEW_ISSUE, { settings: { assignee: "dana" } }),
+		deps,
+	);
+	const lookup = requests.findIndex(
+		(request) => request.method === "GET" && apiPath(request.url) === "/users",
+	);
+	expect(lookup).toBeGreaterThanOrEqual(0);
+	expect(
+		new URL(requests[lookup]?.url ?? "").searchParams.get("username"),
+	).toBe("dana");
+	expect(lookup).toBeLessThan(requests.findIndex(isCreatePost));
+	expect(requests.some((request) => apiPath(request.url) === "/user")).toBe(
+		false,
+	);
+	expect(placement.created()).toMatchObject({ assignee_ids: [57] });
+	expect(WorkItem.parse(item).assignee).toBe("dana");
+});
+
+test("an unknown, ambiguous, or malformed assignee fails before any create request", async () => {
+	const cases: Array<{
+		assignee: string;
+		users?: unknown[];
+		error: RegExp;
+	}> = [
+		{
+			assignee: "ghost",
+			users: [],
+			error: /GitLab user 'ghost' was not found/,
+		},
+		{
+			assignee: "dana",
+			users: [
+				{ id: 57, username: "dana" },
+				{ id: 58, username: "dana" },
+			],
+			error: /GitLab username 'dana' matches more than one user/,
+		},
+		{ assignee: "two words", error: /'two words' is not a GitLab username/ },
+	];
+	for (const { assignee, users, error } of cases) {
+		const placement = placementHandler(users ? { users } : {});
+		const { deps, requests } = recordingDeps(placement.handler);
+		await expect(
+			runGitLabWorkItem(
+				"create",
+				envelope(NEW_ISSUE, { settings: { assignee } }),
+				deps,
+			),
+		).rejects.toThrow(error);
+		expect(requests.every((request) => request.method === "GET")).toBe(true);
+		expect(placement.created()).toBeUndefined();
+	}
+});
+
+test("a milestone title resolves to one active milestone and is sent on create", async () => {
+	const placement = placementHandler();
+	const { deps, requests } = recordingDeps(placement.handler);
+	const item = await runGitLabWorkItem(
+		"create",
+		envelope(NEW_ISSUE, {
+			settings: { assignee: "none", milestone: "Sprint 42" },
+		}),
+		deps,
+	);
+	const lookup = requests.findIndex(
+		(request) =>
+			request.method === "GET" && apiPath(request.url).endsWith("/milestones"),
+	);
+	expect(lookup).toBeGreaterThanOrEqual(0);
+	const query = new URL(requests[lookup]?.url ?? "").searchParams;
+	expect(query.get("state")).toBe("active");
+	expect(query.get("title")).toBe("Sprint 42");
+	expect(query.get("include_ancestors")).toBe("true");
+	expect(lookup).toBeLessThan(requests.findIndex(isCreatePost));
+	expect(placement.created()).toMatchObject({ milestone_id: 301 });
+	expect(WorkItem.parse(item).sprint).toBe("Sprint 42");
+
+	const unplanned = placementHandler();
+	const none = recordingDeps(unplanned.handler);
+	await runGitLabWorkItem(
+		"create",
+		envelope(NEW_ISSUE, { settings: { milestone: "none" } }),
+		none.deps,
+	);
+	expect(
+		none.requests.some((request) =>
+			apiPath(request.url).endsWith("/milestones"),
+		),
+	).toBe(false);
+	expect(unplanned.created()).not.toHaveProperty("milestone_id");
+});
+
+test("an unknown or ambiguous milestone fails before any create request and names the title", async () => {
+	const cases: Array<{ milestones: unknown[]; error: RegExp }> = [
+		{
+			milestones: [],
+			error: /no active milestone titled 'Sprint 42'/,
+		},
+		{
+			milestones: [{ id: 302, title: "Sprint 420", state: "active" }],
+			error: /no active milestone titled 'Sprint 42'/,
+		},
+		{
+			milestones: [
+				{ id: 301, title: "Sprint 42", group_id: 9 },
+				{ id: 310, title: "Sprint 42", project_id: 5 },
+			],
+			error: /More than one active GitLab milestone is titled 'Sprint 42'/,
+		},
+	];
+	for (const { milestones, error } of cases) {
+		const placement = placementHandler({ milestones });
+		const { deps, requests } = recordingDeps(placement.handler);
+		await expect(
+			runGitLabWorkItem(
+				"create",
+				envelope(NEW_ISSUE, { settings: { milestone: "Sprint 42" } }),
+				deps,
+			),
+		).rejects.toThrow(error);
+		expect(requests.every((request) => request.method === "GET")).toBe(true);
+		expect(placement.created()).toBeUndefined();
+	}
+});
+
+test("create replay returns the existing issue without re-assigning or re-planning it", async () => {
+	const placement = placementHandler();
+	const { deps, requests } = recordingDeps(placement.handler);
+	const replayed = await runGitLabWorkItem(
+		"create",
+		envelope(
+			{
+				approved: true,
+				auditId: "run-1:1",
+				type: "bug",
+				title: "Keep provider notes",
+				body: "The selected provider stores one note per audit id.",
+				blockedBy: ["9"],
+			},
+			{ settings: { assignee: "dana", milestone: "Sprint 42" } },
+		),
+		deps,
+	);
+	expect(WorkItem.parse(replayed)).toMatchObject({ ref: "12" });
+	expect(requests.every((request) => request.method === "GET")).toBe(true);
+	expect(
+		requests.some((request) => {
+			const path = apiPath(request.url);
+			return path.startsWith("/user") || path.endsWith("/milestones");
+		}),
+	).toBe(false);
+});
+
+test("read and list report the first assignee's username and the milestone title", async () => {
+	const handler = (request: GitLabRequest): unknown => {
+		if (resource(request.url) === "/issues/12") {
+			return loadFixture("issue-placed.json");
+		}
+		return issueGraphHandler()(request);
+	};
+	const { deps } = recordingDeps(handler);
+	const item = await runGitLabWorkItem("read", envelope({ ref: "12" }), deps);
+	expect(WorkItem.parse(item)).toMatchObject({
+		assignee: "operator",
+		sprint: "Sprint 42",
+	});
+
+	const items = (await runGitLabWorkItem(
+		"list",
+		envelope({}),
+		deps,
+	)) as unknown[];
+	const [placed, unplaced] = items.map((entry) => WorkItem.parse(entry));
+	expect(placed).toMatchObject({
+		ref: "12",
+		assignee: "operator",
+		sprint: "Sprint 42",
+	});
+	expect(unplaced?.ref).toBe("13");
+	expect(unplaced?.assignee).toBeUndefined();
+	expect(unplaced?.sprint).toBeUndefined();
+
+	const singular = recordingDeps((request) => {
+		if (resource(request.url) === "/issues/12") {
+			return {
+				...(loadFixture("issue.json") as Record<string, unknown>),
+				assignee: { id: 57, username: "dana" },
+			};
+		}
+		return issueGraphHandler()(request);
+	});
+	expect(
+		WorkItem.parse(
+			await runGitLabWorkItem("read", envelope({ ref: "12" }), singular.deps),
+		).assignee,
+	).toBe("dana");
+});
+
+test("parent is accepted on create, never sent, and left off the returned issue", async () => {
+	const placement = placementHandler();
+	const { deps, requests } = recordingDeps(placement.handler);
+	const item = await runGitLabWorkItem(
+		"create",
+		envelope({ ...NEW_ISSUE, parent: "&5" }),
+		deps,
+	);
+	const parsed = WorkItem.parse(item);
+	expect(parsed.ref).toBe("12");
+	expect(parsed.parent).toBeUndefined();
+	expect(JSON.stringify(placement.created())).not.toMatch(/epic|parent|&5/);
+	expect(
+		requests.some((request) => /epic/i.test(new URL(request.url).pathname)),
+	).toBe(false);
+
+	const replay = recordingDeps(issueGraphHandler());
+	const replayed = await runGitLabWorkItem(
+		"create",
+		envelope({
+			approved: true,
+			auditId: "run-1:1",
+			type: "bug",
+			title: "Keep provider notes",
+			body: "The selected provider stores one note per audit id.",
+			blockedBy: ["9"],
+			parent: "&5",
+		}),
+		replay.deps,
+	);
+	expect(WorkItem.parse(replayed).parent).toBeUndefined();
+	expect(replay.requests.every((request) => request.method === "GET")).toBe(
+		true,
+	);
 });
 
 test("link adds missing blockers and refuses a shrinking set without DELETE", async () => {

@@ -350,6 +350,7 @@ export const MCP_CATALOGUES: readonly McpFamilyCatalogue[] = [
 					summary: "{{title}}",
 					description: "{{body}}",
 					issueType: "Story",
+					parent: "{{parent}}",
 				},
 			},
 			link: {

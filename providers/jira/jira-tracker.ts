@@ -30,7 +30,8 @@ const FORBIDDEN_OPERATIONS = new Set([
 ]);
 
 const ISSUE_FIELDS =
-	"summary,description,issuetype,issuelinks,labels,comment,project";
+	"summary,description,issuetype,issuelinks,labels,comment,project,assignee,parent";
+export const SPRINT_FIELD_SCHEMA = "com.pyxis.greenhopper.jira:gh-sprint";
 
 export interface JiraRequest {
 	method: "GET" | "POST" | "PUT" | "DELETE";
@@ -56,6 +57,8 @@ export interface JiraCredentials {
 export interface JiraConfig extends JiraCredentials {
 	site: string;
 	project: string;
+	// The site's Sprint custom field, once a create has looked it up, so reads report the sprint.
+	sprintField?: string;
 }
 
 interface NormalizedBoard {
@@ -75,6 +78,9 @@ interface NormalizedWorkItem {
 	body: string;
 	blockedBy: string[];
 	sourceAuditId?: string;
+	assignee?: string;
+	sprint?: string;
+	parent?: string;
 	notes: Array<{ auditId: string; body: string }>;
 }
 
@@ -394,13 +400,19 @@ function searchUrl(
 	url.searchParams.set("jql", jql);
 	if (nextPageToken) url.searchParams.set("nextPageToken", nextPageToken);
 	url.searchParams.set("maxResults", String(maxResults));
-	url.searchParams.set("fields", ISSUE_FIELDS);
+	url.searchParams.set("fields", issueFields(config));
 	return url.toString();
+}
+
+function issueFields(config: JiraConfig): string {
+	return config.sprintField
+		? `${ISSUE_FIELDS},${config.sprintField}`
+		: ISSUE_FIELDS;
 }
 
 function issueUrl(config: JiraConfig, ref: string): string {
 	const url = new URL(apiUrl(config, `/issue/${encodeURIComponent(ref)}`));
-	url.searchParams.set("fields", ISSUE_FIELDS);
+	url.searchParams.set("fields", issueFields(config));
 	url.searchParams.set("properties", PROPERTY_KEY);
 	return url.toString();
 }
@@ -541,11 +553,45 @@ function requireIssue(
 	return raw;
 }
 
+// Jira lists every sprint an issue has been in; the one it is planned in is the active one, else
+// the next future one, else the last it was in.
+function sprintNameOf(value: unknown): string | undefined {
+	if (!Array.isArray(value)) return undefined;
+	const sprints = value.filter(isRecord);
+	const chosen =
+		sprints.find((sprint) => sprint.state === "active") ??
+		sprints.find((sprint) => sprint.state === "future") ??
+		sprints.at(-1);
+	return chosen ? asString(chosen.name)?.trim() || undefined : undefined;
+}
+
+function placementOf(
+	fields: Record<string, unknown>,
+	sprintField: string | undefined,
+): Pick<NormalizedWorkItem, "assignee" | "sprint" | "parent"> {
+	const placement: Pick<NormalizedWorkItem, "assignee" | "sprint" | "parent"> =
+		{};
+	if (isRecord(fields.assignee)) {
+		const assignee =
+			asString(fields.assignee.displayName)?.trim() ||
+			asString(fields.assignee.accountId)?.trim();
+		if (assignee) placement.assignee = assignee;
+	}
+	const sprint = sprintField ? sprintNameOf(fields[sprintField]) : undefined;
+	if (sprint) placement.sprint = sprint;
+	if (isRecord(fields.parent)) {
+		const parent = asString(fields.parent.key)?.trim();
+		if (parent) placement.parent = parent;
+	}
+	return placement;
+}
+
 function normalizeIssue(
 	raw: unknown,
 	secrets: string[],
 	requestedRef?: string,
 	comments?: unknown[],
+	sprintField?: string,
 ): NormalizedWorkItem {
 	const issue = requireIssue(raw, secrets, requestedRef);
 	const fields = issue.fields as Record<string, unknown>;
@@ -568,6 +614,7 @@ function normalizeIssue(
 		title,
 		body: description || title,
 		blockedBy: blockedByFromLinks(fields.issuelinks),
+		...placementOf(fields, sprintField),
 		notes: notesFromComments(loadedComments),
 	};
 	if (sourceAuditId) item.sourceAuditId = sourceAuditId;
@@ -617,7 +664,7 @@ async function loadIssue(
 	const issue = requireIssue(raw, secrets, trimmed);
 	const fields = issue.fields as Record<string, unknown>;
 	const comments = await loadComments(deps, config, trimmed, fields.comment);
-	return normalizeIssue(issue, secrets, trimmed, comments);
+	return normalizeIssue(issue, secrets, trimmed, comments, config.sprintField);
 }
 
 function envelopeSettings(
@@ -745,7 +792,9 @@ async function handleList(
 		const ref = asString(record.key)?.trim();
 		if (!ref) fail("Jira issue is missing a key.", secrets);
 		const comments = await loadComments(deps, config, ref, fields.comment);
-		items.push(normalizeIssue(record, secrets, ref, comments));
+		items.push(
+			normalizeIssue(record, secrets, ref, comments, config.sprintField),
+		);
 	}
 	return items;
 }
@@ -858,10 +907,196 @@ async function setBlockedBy(
 	}
 }
 
+interface JiraPlacement {
+	assignee?: { accountId: string };
+	sprint?: { field: string; id: number };
+	parent?: string;
+}
+
+function agileUrl(config: JiraConfig, resource: string): string {
+	return `${config.site}/rest/agile/1.0${resource}`;
+}
+
+async function resolveAssignee(
+	deps: JiraTrackerDeps,
+	config: JiraConfig,
+	setting: string | undefined,
+): Promise<JiraPlacement["assignee"]> {
+	const secrets = secretsOf(config.email, config.token);
+	const value = setting?.trim() || "me";
+	if (value === "none") return undefined;
+	if (value === "me") {
+		const myself = await jiraCall(
+			deps,
+			config,
+			"GET",
+			apiUrl(config, "/myself"),
+		);
+		const accountId = isRecord(myself)
+			? asString(myself.accountId)?.trim()
+			: undefined;
+		if (!accountId) {
+			fail(
+				"Jira did not say which account these credentials belong to.",
+				secrets,
+			);
+		}
+		return { accountId };
+	}
+	if (!/^[A-Za-z0-9:_-]{1,128}$/.test(value)) {
+		fail(
+			"The Jira assignee setting must be me, none, or an Atlassian account id.",
+			secrets,
+		);
+	}
+	const url = new URL(apiUrl(config, "/user"));
+	url.searchParams.set("accountId", value);
+	const user = await jiraCall(deps, config, "GET", url.toString());
+	if (!isRecord(user) || asString(user.accountId)?.trim() !== value) {
+		fail(`Jira has no user with account id ${value}.`, secrets);
+	}
+	return { accountId: value };
+}
+
+async function boardSprints(
+	deps: JiraTrackerDeps,
+	config: JiraConfig,
+	board: string,
+	state: "active" | "future",
+): Promise<Array<{ id: number; name: string }>> {
+	const secrets = secretsOf(config.email, config.token);
+	const perPage = deps.perPage ?? PER_PAGE;
+	const maxPages = deps.maxPages ?? MAX_PAGES;
+	const sprints: Array<{ id: number; name: string }> = [];
+	for (let page = 0; page < maxPages; page += 1) {
+		const url = new URL(agileUrl(config, `/board/${board}/sprint`));
+		url.searchParams.set("state", state);
+		url.searchParams.set("startAt", String(page * perPage));
+		url.searchParams.set("maxResults", String(perPage));
+		const payload = await jiraCall(deps, config, "GET", url.toString());
+		if (!isRecord(payload) || !Array.isArray(payload.values)) {
+			fail(`Jira board ${board} did not list its sprints.`, secrets);
+		}
+		for (const entry of payload.values) {
+			const id = isRecord(entry) ? asNumber(entry.id) : undefined;
+			const name = isRecord(entry) ? asString(entry.name)?.trim() : undefined;
+			if (id === undefined || !name) {
+				fail(`Jira board ${board} listed a malformed sprint.`, secrets);
+			}
+			sprints.push({ id, name });
+		}
+		if (payload.isLast === true || payload.values.length < perPage) {
+			return sprints;
+		}
+	}
+	fail(`Jira board ${board} sprint listing exceeded the page limit.`, secrets);
+}
+
+async function sprintField(
+	deps: JiraTrackerDeps,
+	config: JiraConfig,
+): Promise<string> {
+	const secrets = secretsOf(config.email, config.token);
+	const fields = await jiraCall(deps, config, "GET", apiUrl(config, "/field"));
+	if (!Array.isArray(fields)) fail("Jira did not list its fields.", secrets);
+	const match = fields.find(
+		(field) =>
+			isRecord(field) &&
+			isRecord(field.schema) &&
+			field.schema.custom === SPRINT_FIELD_SCHEMA,
+	);
+	const id = isRecord(match) ? asString(match.id)?.trim() : undefined;
+	if (!id) {
+		fail(
+			"This Jira site has no Sprint field. Set the sprint setting to none.",
+			secrets,
+		);
+	}
+	return id;
+}
+
+async function resolveSprint(
+	deps: JiraTrackerDeps,
+	config: JiraConfig,
+	settings: Record<string, string>,
+): Promise<JiraPlacement["sprint"]> {
+	const secrets = secretsOf(config.email, config.token);
+	const board = settings.board?.trim();
+	const value = settings.sprint?.trim() || (board ? "active" : "none");
+	if (value === "none") return undefined;
+	let id: number;
+	if (/^\d+$/.test(value)) {
+		const sprint = await jiraCall(
+			deps,
+			config,
+			"GET",
+			agileUrl(config, `/sprint/${value}`),
+		);
+		const state = isRecord(sprint) ? asString(sprint.state) : undefined;
+		if (state !== "active" && state !== "future") {
+			fail(
+				`Jira sprint ${value} is not open. Set the sprint setting to an active or future sprint.`,
+				secrets,
+			);
+		}
+		id = Number(value);
+	} else if (value === "active" || value === "next") {
+		if (!board || !/^\d+$/.test(board)) {
+			fail(
+				`The Jira sprint setting ${value} needs the board setting set to the board's numeric id.`,
+				secrets,
+			);
+		}
+		const sprints = await boardSprints(
+			deps,
+			config,
+			board,
+			value === "active" ? "active" : "future",
+		);
+		const listed = sprints
+			.map((sprint) => `${sprint.name} (${sprint.id})`)
+			.join(", ");
+		if (sprints.length === 0) {
+			fail(
+				value === "active"
+					? `Jira board ${board} has no active sprint. Set the sprint setting to next, none, or a sprint id.`
+					: `Jira board ${board} has no future sprint. Set the sprint setting to active, none, or a sprint id.`,
+				secrets,
+			);
+		}
+		if (value === "active" && sprints.length > 1) {
+			fail(
+				`Jira board ${board} has more than one active sprint: ${listed}. Set the sprint setting to one sprint id.`,
+				secrets,
+			);
+		}
+		id = (sprints[0] as { id: number }).id;
+	} else {
+		fail(
+			"The Jira sprint setting must be active, next, none, or a numeric sprint id.",
+			secrets,
+		);
+	}
+	return { field: await sprintField(deps, config), id };
+}
+
+function optionalParent(
+	input: Record<string, unknown>,
+	secrets: string[],
+): string | undefined {
+	if (input.parent === undefined) return undefined;
+	const parent = asString(input.parent)?.trim();
+	if (!parent || !/^[A-Z][A-Z0-9_]*-\d+$/.test(parent)) {
+		fail("The Jira parent must be an issue key such as ABC-12.", secrets);
+	}
+	return parent;
+}
+
 async function handleCreate(
 	deps: JiraTrackerDeps,
 	config: JiraConfig,
 	input: Record<string, unknown>,
+	settings: Record<string, string> = {},
 ): Promise<NormalizedWorkItem> {
 	const secrets = secretsOf(config.email, config.token);
 	requireApproved(input, secrets);
@@ -874,6 +1109,7 @@ async function handleCreate(
 	}
 	const type = typeRaw as "bug" | "story" | "task" | "other";
 	const blockedBy = requireStringArray(input, "blockedBy", secrets);
+	const parent = optionalParent(input, secrets);
 	const requestedRef = asString(input.ref)?.trim();
 	const existing = await findByAuditId(deps, config, auditId);
 	if (existing) {
@@ -887,6 +1123,7 @@ async function handleCreate(
 			existing.title !== title ||
 			existing.body !== body ||
 			existing.type !== type ||
+			(parent !== undefined && existing.parent !== parent) ||
 			!sameSet(existing.blockedBy, blockedBy)
 		) {
 			fail(
@@ -902,6 +1139,8 @@ async function handleCreate(
 			secrets,
 		);
 	}
+	const assignee = await resolveAssignee(deps, config, settings.assignee);
+	const sprint = await resolveSprint(deps, config, settings);
 	const issueType = await resolveCreateType(deps, config, type);
 	const created = await jiraCall(
 		deps,
@@ -915,6 +1154,9 @@ async function handleCreate(
 				description: textToAdf(body),
 				issuetype: { name: issueType },
 				labels: [auditLabel(auditId)],
+				...(assignee ? { assignee } : {}),
+				...(sprint ? { [sprint.field]: sprint.id } : {}),
+				...(parent ? { parent: { key: parent } } : {}),
 			},
 		},
 	);
@@ -942,7 +1184,11 @@ async function handleCreate(
 		const current = normalizeIssue(currentRaw, secrets, ref);
 		await setBlockedBy(deps, config, ref, blockedBy, current, currentRaw);
 	}
-	const loaded = await loadIssue(deps, config, ref);
+	const loaded = await loadIssue(
+		deps,
+		sprint ? { ...config, sprintField: sprint.field } : config,
+		ref,
+	);
 	return { ...loaded, sourceAuditId: loaded.sourceAuditId ?? auditId };
 }
 
@@ -1190,7 +1436,7 @@ export async function runJiraTracker(
 		case "read":
 			return loadIssue(deps, config, requireRef(input, secrets));
 		case "create":
-			return handleCreate(deps, config, input);
+			return handleCreate(deps, config, input, settings);
 		case "link":
 			return handleLink(deps, config, input);
 		case "note":

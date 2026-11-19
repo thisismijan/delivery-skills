@@ -710,7 +710,7 @@ that needs a model or forge API needs `open`.
 |----------|-------------|--------------------|
 | GitHub | `GITHUB_TOKEN`, `GH_TOKEN`, `GH_TOKEN_FILE`, `~/token` | `GH_HOST` / `GITHUB_HOST`, `GH_REPO` / `GITHUB_REPOSITORY` |
 | GitLab | `GITLAB_TOKEN`, `GL_TOKEN_FILE`, `~/token` | `GL_HOST`, `GL_PROJECT` |
-| Jira | `JIRA_SITE`, email+token or token file | Project key per repository: `delivery-init.ts --work-items jira --setting project=<KEY>`; MCP transport also records `--setting site=<url>` for `cloudId`. Board moves need `--setting board=<board-id>` |
+| Jira | `JIRA_SITE`, email+token or token file | Project key per repository: `delivery-init.ts --work-items jira --setting project=<KEY>`; MCP transport also records `--setting site=<url>` for `cloudId`. Board moves need `--setting board=<board-id>`. Placement: `--setting assignee=<me, none, or account id>` and `--setting sprint=<active, next, none, or sprint id>` (see `providers/jira/README.md`) |
 
 ## Artifacts (gitignored in the target repo)
 

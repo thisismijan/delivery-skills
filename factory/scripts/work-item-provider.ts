@@ -54,6 +54,11 @@ export const WorkItem = z
 		blockedBy: z.array(Reference),
 		sourceAuditId: AuditId.optional(),
 		status: z.string().trim().min(1).optional(),
+		// Where the tracker placed the item: who it is assigned to, the sprint or milestone it is
+		// planned in, and the group (epic) it belongs to. Absent means not placed, or not reported.
+		assignee: z.string().trim().min(1).optional(),
+		sprint: z.string().trim().min(1).optional(),
+		parent: Reference.optional(),
 		notes: z.array(
 			z.object({
 				auditId: AuditId,
@@ -95,6 +100,7 @@ export const CreateWorkItemInput = z
 		title: z.string().trim().min(1),
 		body: z.string().trim().min(1),
 		blockedBy: z.array(Reference).default([]),
+		parent: Reference.optional(),
 	})
 	.strict();
 export type CreateWorkItemInput = z.input<typeof CreateWorkItemInput>;
@@ -285,6 +291,7 @@ export async function createLocalWorkItem(
 			existing.title !== input.title ||
 			existing.body !== input.body ||
 			existing.type !== input.type ||
+			(input.parent !== undefined && existing.parent !== input.parent) ||
 			JSON.stringify(existing.blockedBy) !== JSON.stringify(input.blockedBy)
 		) {
 			throw new Error(
@@ -324,6 +331,7 @@ export async function createLocalWorkItem(
 			body: input.body,
 			blockedBy: input.blockedBy,
 			sourceAuditId: input.auditId,
+			...(input.parent ? { parent: input.parent } : {}),
 			notes: [],
 		});
 		await writeLocalItem(repositoryRoot, item);
@@ -421,6 +429,23 @@ function assertLanded(board: WorkItemBoard, to: string): WorkItemBoard {
 		);
 	}
 	return board;
+}
+
+// Session tools create a bare item, while the adapter also assigns it, plans it into a sprint or
+// milestone, and parents it from the repository's settings. So creation uses the adapter whenever
+// one serves the selected provider.
+function adapterCreates(
+	operation: WorkItemOperation,
+	runtime: RuntimeManifest,
+	provider: string,
+): boolean {
+	const tracker = runtime.capabilities["tracker.item"];
+	return (
+		operation === "create" &&
+		Boolean(tracker?.available) &&
+		tracker?.provider === provider &&
+		Boolean(tracker?.invocation)
+	);
 }
 
 function operationSchema(operation: WorkItemOperation): z.ZodType {
@@ -542,6 +567,9 @@ export async function planWorkItemOperation(options: {
 		};
 	}
 	const provider = status.selection.provider.id;
+	if (adapterCreates(options.operation, options.runtime, provider)) {
+		return { transport: "adapter", provider, operation: options.operation };
+	}
 	const inventory = await loadMcpInventory(options.repositoryRoot);
 	const rawPlan = planMcpOperation({
 		route: routeMcpInventory(inventory),
@@ -658,6 +686,7 @@ export async function runWorkItemOperation(options: {
 	const inventory = await loadMcpInventory(options.repositoryRoot);
 	if (
 		!BOARD_OPERATIONS.has(options.operation) &&
+		!adapterCreates(options.operation, options.runtime, provider) &&
 		planMcpOperation({
 			route: routeMcpInventory(inventory),
 			kind: "tracker",

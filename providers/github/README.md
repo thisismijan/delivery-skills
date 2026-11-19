@@ -45,6 +45,26 @@ reads, so board sync always skips on GitHub.
 
 Note bodies are checked by delivery core before `note` or `reply`.
 
+### Placing created issues
+
+`create` assigns and plans the new issue from the repository's settings,
+recorded with `delivery-init.ts --work-items github --setting key=value`:
+
+- `assignee`: unset or `me` assigns the user the credential belongs to.
+  `none` leaves the issue unassigned. Any other value is a GitHub login, which
+  must exist.
+- `milestone`: unset or `none` sets no milestone. Any other value must be the
+  exact title of one open milestone in the repository.
+
+A work item's `parent` must be an issue number in the same repository, such as
+`12` or `#12`. The new issue is added as a sub-issue of it.
+
+Every lookup runs before the issue is created, so an unknown login, milestone
+or parent creates nothing. A replayed create returns the existing issue
+without reassigning or re-planning it. It only adds a parent when the issue
+has none, and refuses a replay that names a different parent. Issues report their first assignee as `assignee`, their milestone
+title as `sprint`, and their parent issue as `parent`.
+
 ## Credentials
 
 A fine-grained token needs contents, pull requests, and issues on the target

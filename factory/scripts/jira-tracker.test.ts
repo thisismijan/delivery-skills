@@ -240,6 +240,9 @@ test("approved create is idempotent on audit id and refuses conflicting replay",
 		if (request.method === "GET" && path === "/rest/api/3/project/DELIV") {
 			return loadFixture("project.json");
 		}
+		if (request.method === "GET" && path === "/rest/api/3/myself") {
+			return { accountId: "acc-ada", displayName: "Ada Lovelace" };
+		}
 		if (request.method === "POST" && path === "/rest/api/3/issue") {
 			expect(request.body).toMatchObject({
 				fields: {
@@ -247,6 +250,7 @@ test("approved create is idempotent on audit id and refuses conflicting replay",
 					summary: "Create through the adapter",
 					issuetype: { name: "Story" },
 					labels: [auditLabel("run-1:create")],
+					assignee: { accountId: "acc-ada" },
 				},
 			});
 			exists = true;
@@ -769,4 +773,349 @@ test("transition applies the one workflow transition into the target status", as
 	expect(requests.filter((request) => request.method === "POST")).toHaveLength(
 		1,
 	);
+});
+
+const SPRINT_FIELD = "customfield_10020";
+
+interface FakeJiraSite {
+	activeSprints?: Array<{ id: number; name: string; state: string }>;
+	futureSprints?: Array<{ id: number; name: string; state: string }>;
+	sprints?: Record<string, { id: number; name: string; state: string }>;
+	users?: Record<string, string>;
+}
+
+function placementSite(site: FakeJiraSite = {}) {
+	let createdBody: { fields: Record<string, unknown> } | undefined;
+	const sprintById = (id: number) =>
+		[
+			...(site.activeSprints ?? []),
+			...(site.futureSprints ?? []),
+			...Object.values(site.sprints ?? {}),
+		].find((sprint) => sprint.id === id);
+	const recorded = recordingDeps((request) => {
+		const parsed = new URL(request.url);
+		const path = parsed.pathname;
+		if (request.method === "GET" && path === "/rest/api/3/search/jql") {
+			if (!createdBody) return loadFixture("search-empty.json");
+			return { issues: [createdIssue()], isLast: true };
+		}
+		if (request.method === "GET" && path === "/rest/api/3/project/DELIV") {
+			return loadFixture("project.json");
+		}
+		if (request.method === "GET" && path === "/rest/api/3/myself") {
+			return { accountId: "acc-ada", displayName: "Ada Lovelace" };
+		}
+		if (request.method === "GET" && path === "/rest/api/3/user") {
+			const accountId = parsed.searchParams.get("accountId") ?? "";
+			const name = site.users?.[accountId];
+			if (!name) throw new Error("Jira answered 404");
+			return { accountId, displayName: name };
+		}
+		if (request.method === "GET" && path === "/rest/api/3/field") {
+			return [
+				{ id: "summary", schema: { type: "string", system: "summary" } },
+				{
+					id: SPRINT_FIELD,
+					name: "Sprint",
+					schema: {
+						type: "array",
+						custom: "com.pyxis.greenhopper.jira:gh-sprint",
+					},
+				},
+			];
+		}
+		if (request.method === "GET" && path === "/rest/agile/1.0/board/7/sprint") {
+			const state = parsed.searchParams.get("state");
+			return {
+				isLast: true,
+				values:
+					state === "active"
+						? (site.activeSprints ?? [])
+						: (site.futureSprints ?? []),
+			};
+		}
+		const sprintPath = path.match(/^\/rest\/agile\/1\.0\/sprint\/(\d+)$/);
+		if (request.method === "GET" && sprintPath) {
+			const sprint = site.sprints?.[sprintPath[1] ?? ""];
+			if (!sprint) throw new Error("Jira answered 404");
+			return sprint;
+		}
+		if (request.method === "POST" && path === "/rest/api/3/issue") {
+			createdBody = request.body as { fields: Record<string, unknown> };
+			return loadFixture("create-issue.json");
+		}
+		if (request.method === "PUT" && path.includes("/properties/")) {
+			return null;
+		}
+		if (request.method === "GET" && path === "/rest/api/3/issue/DELIV-3") {
+			return createdIssue();
+		}
+		throw new Error(`unexpected ${request.method} ${restPath(request.url)}`);
+	});
+	function createdIssue() {
+		const issue = clone(loadFixture("issue-created.json")) as {
+			fields: Record<string, unknown>;
+		};
+		issue.fields.issuelinks = [];
+		const fields = createdBody?.fields ?? {};
+		const assignee = fields.assignee as { accountId: string } | undefined;
+		if (assignee) {
+			issue.fields.assignee = {
+				accountId: assignee.accountId,
+				displayName:
+					assignee.accountId === "acc-ada"
+						? "Ada Lovelace"
+						: site.users?.[assignee.accountId],
+			};
+		}
+		const sprintId = fields[SPRINT_FIELD] as number | undefined;
+		if (sprintId !== undefined) {
+			issue.fields[SPRINT_FIELD] = [
+				{ id: 30, name: "Sprint 11", state: "closed", boardId: 7 },
+				{ ...sprintById(sprintId), boardId: 7 },
+			];
+		}
+		const parent = fields.parent as { key: string } | undefined;
+		if (parent) issue.fields.parent = { key: parent.key };
+		return issue;
+	}
+	return {
+		...recorded,
+		createdFields: () => createdBody?.fields,
+		posted: () =>
+			recorded.requests.some(
+				(request) =>
+					request.method === "POST" &&
+					new URL(request.url).pathname === "/rest/api/3/issue",
+			),
+		asked: (path: string) =>
+			recorded.requests.some(
+				(request) => new URL(request.url).pathname === path,
+			),
+	};
+}
+
+const PLACED_INPUT = {
+	approved: true,
+	auditId: "run-1:create",
+	type: "story",
+	title: "Create through the adapter",
+	body: "Approved creation should stay idempotent.",
+};
+
+test("create assigns the item to the credentials' user by default and plans no sprint without a board", async () => {
+	const site = placementSite();
+	const item = WorkItem.parse(
+		await runJiraTracker("create", envelope(PLACED_INPUT), site.deps),
+	);
+	expect(site.createdFields()).toMatchObject({
+		assignee: { accountId: "acc-ada" },
+	});
+	expect(site.createdFields()).not.toHaveProperty(SPRINT_FIELD);
+	expect(site.asked("/rest/api/3/field")).toBe(false);
+	expect(item.assignee).toBe("Ada Lovelace");
+	expect(item.sprint).toBeUndefined();
+});
+
+test("with a board, create plans the item into the board's one active sprint under its parent", async () => {
+	const site = placementSite({
+		activeSprints: [{ id: 37, name: "Sprint 12", state: "active" }],
+	});
+	const item = WorkItem.parse(
+		await runJiraTracker(
+			"create",
+			envelope(
+				{ ...PLACED_INPUT, parent: "DELIV-1" },
+				{ settings: { project: PROJECT, board: "7" } },
+			),
+			site.deps,
+		),
+	);
+	expect(site.createdFields()).toMatchObject({
+		assignee: { accountId: "acc-ada" },
+		[SPRINT_FIELD]: 37,
+		parent: { key: "DELIV-1" },
+	});
+	expect(item).toMatchObject({
+		assignee: "Ada Lovelace",
+		sprint: "Sprint 12",
+		parent: "DELIV-1",
+	});
+});
+
+test("the assignee setting can leave the item unassigned or name one account", async () => {
+	const unassigned = placementSite();
+	const left = WorkItem.parse(
+		await runJiraTracker(
+			"create",
+			envelope(PLACED_INPUT, {
+				settings: { project: PROJECT, assignee: "none" },
+			}),
+			unassigned.deps,
+		),
+	);
+	expect(unassigned.createdFields()).not.toHaveProperty("assignee");
+	expect(unassigned.asked("/rest/api/3/myself")).toBe(false);
+	expect(left.assignee).toBeUndefined();
+
+	const named = placementSite({ users: { "acc-grace": "Grace Hopper" } });
+	const assigned = WorkItem.parse(
+		await runJiraTracker(
+			"create",
+			envelope(PLACED_INPUT, {
+				settings: { project: PROJECT, assignee: "acc-grace" },
+			}),
+			named.deps,
+		),
+	);
+	expect(named.createdFields()).toMatchObject({
+		assignee: { accountId: "acc-grace" },
+	});
+	expect(assigned.assignee).toBe("Grace Hopper");
+});
+
+test("an unknown assignee or unusable sprint fails before anything is created", async () => {
+	const cases: Array<{
+		settings: Record<string, string>;
+		site?: FakeJiraSite;
+		error: RegExp;
+	}> = [
+		{ settings: { assignee: "acc-nobody" }, error: /Jira answered 404/ },
+		{ settings: { assignee: "Ada Lovelace" }, error: /account id/ },
+		{ settings: { board: "7" }, error: /board 7 has no active sprint/ },
+		{
+			settings: { board: "7" },
+			site: {
+				activeSprints: [
+					{ id: 37, name: "Team A 12", state: "active" },
+					{ id: 38, name: "Team B 12", state: "active" },
+				],
+			},
+			error: /more than one active sprint: Team A 12 \(37\), Team B 12 \(38\)/,
+		},
+		{ settings: { board: "7", sprint: "next" }, error: /no future sprint/ },
+		{ settings: { sprint: "active" }, error: /needs the board setting/ },
+		{
+			settings: { sprint: "30" },
+			site: {
+				sprints: { "30": { id: 30, name: "Sprint 11", state: "closed" } },
+			},
+			error: /sprint 30 is not open/,
+		},
+		{ settings: { sprint: "soon" }, error: /active, next, none/ },
+	];
+	for (const entry of cases) {
+		const site = placementSite(entry.site);
+		await expect(
+			runJiraTracker(
+				"create",
+				envelope(PLACED_INPUT, {
+					settings: { project: PROJECT, ...entry.settings },
+				}),
+				site.deps,
+			),
+		).rejects.toThrow(entry.error);
+		expect(site.posted()).toBe(false);
+	}
+	const badParent = placementSite();
+	await expect(
+		runJiraTracker(
+			"create",
+			envelope({ ...PLACED_INPUT, parent: "epic one" }),
+			badParent.deps,
+		),
+	).rejects.toThrow(/issue key/);
+	expect(badParent.requests).toHaveLength(0);
+});
+
+test("the sprint setting can pick the board's next sprint or one sprint id", async () => {
+	const next = placementSite({
+		futureSprints: [
+			{ id: 38, name: "Sprint 13", state: "future" },
+			{ id: 39, name: "Sprint 14", state: "future" },
+		],
+	});
+	const planned = WorkItem.parse(
+		await runJiraTracker(
+			"create",
+			envelope(PLACED_INPUT, {
+				settings: { project: PROJECT, board: "7", sprint: "next" },
+			}),
+			next.deps,
+		),
+	);
+	expect(next.createdFields()).toMatchObject({ [SPRINT_FIELD]: 38 });
+	expect(planned.sprint).toBe("Sprint 13");
+
+	const chosen = placementSite({
+		sprints: { "41": { id: 41, name: "Hardening", state: "future" } },
+	});
+	const pinned = WorkItem.parse(
+		await runJiraTracker(
+			"create",
+			envelope(PLACED_INPUT, {
+				settings: { project: PROJECT, sprint: "41" },
+			}),
+			chosen.deps,
+		),
+	);
+	expect(chosen.createdFields()).toMatchObject({ [SPRINT_FIELD]: 41 });
+	expect(pinned.sprint).toBe("Hardening");
+});
+
+test("a replayed create returns the item without re-placing it, and refuses another parent", async () => {
+	const site = placementSite({
+		activeSprints: [{ id: 37, name: "Sprint 12", state: "active" }],
+	});
+	const settings = { settings: { project: PROJECT, board: "7" } };
+	const input = { ...PLACED_INPUT, parent: "DELIV-1" };
+	await runJiraTracker("create", envelope(input, settings), site.deps);
+	const before = site.requests.length;
+	const replayed = WorkItem.parse(
+		await runJiraTracker("create", envelope(input, settings), site.deps),
+	);
+	expect(replayed.ref).toBe("DELIV-3");
+	const replayPaths = site.requests
+		.slice(before)
+		.map((request) => `${request.method} ${new URL(request.url).pathname}`);
+	expect(replayPaths.some((path) => !path.startsWith("GET"))).toBe(false);
+	expect(
+		replayPaths.some(
+			(path) =>
+				path.includes("/myself") ||
+				path.includes("/agile/") ||
+				path.endsWith("/field"),
+		),
+	).toBe(false);
+	await expect(
+		runJiraTracker(
+			"create",
+			envelope({ ...input, parent: "DELIV-2" }, settings),
+			site.deps,
+		),
+	).rejects.toThrow(/different work-item content/);
+	expect(
+		WorkItem.parse(
+			await runJiraTracker(
+				"create",
+				envelope(PLACED_INPUT, settings),
+				site.deps,
+			),
+		).ref,
+	).toBe("DELIV-3");
+});
+
+test("read reports the assignee and parent Jira returns", async () => {
+	const issue = clone(loadFixture("issue-deliv-1.json")) as {
+		key: string;
+		fields: Record<string, unknown>;
+	};
+	issue.fields.assignee = { accountId: "acc-ada", displayName: "Ada Lovelace" };
+	issue.fields.parent = { key: "DELIV-40" };
+	const { deps } = recordingDeps(() => issue);
+	expect(
+		WorkItem.parse(
+			await runJiraTracker("read", envelope({ ref: issue.key }), deps),
+		),
+	).toMatchObject({ assignee: "Ada Lovelace", parent: "DELIV-40" });
 });

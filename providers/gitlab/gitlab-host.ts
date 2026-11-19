@@ -149,6 +149,10 @@ export function apiUrl(target: GitLabTarget, resource: string): string {
 	return `${target.host}/api/v4/projects/${encodeURIComponent(target.project)}${resource}`;
 }
 
+export function hostApiUrl(target: GitLabTarget, resource: string): string {
+	return `${target.host}/api/v4${resource}`;
+}
+
 export function withQuery(url: string, params: Record<string, string>): string {
 	const query = new URLSearchParams(params).toString();
 	return `${url}${url.includes("?") ? "&" : "?"}${query}`;
