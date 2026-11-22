@@ -1311,7 +1311,7 @@ export async function runForgeOperation(options: {
 export function forgeProviderHelp(operation?: string): string {
 	return helpText({
 		usage: [
-			`forge-provider.ts <operation> <repository-root> <runtime-manifest> <input.json>`,
+			"forge-provider.ts <operation> <repository-root> <runtime-manifest> <input.json>",
 			"forge-provider.ts plan <operation> <repository-root> <runtime-manifest> <input.json>",
 			"forge-provider.ts normalize <operation> <provider> <raw.json> [input.json]",
 			"forge-provider.ts --help [operation]",

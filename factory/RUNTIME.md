@@ -69,10 +69,10 @@ range rather than running the command again.
 
 Every factory skill loads `$FACTORY_ROOT/agents/<name>.md` and gives that
 prompt to the runtime's `agent.dispatch` capability. Do not invent a cheaper
-substitute prompt. When the host provides a subagent of that exact name, as a
-plugin install does, dispatch it rather than a generic one carrying the
-prompt, so the host enforces the permissions it declares. Pass the model the
-step resolved.
+substitute prompt. When a step names a subagent and the host provides a
+subagent of that exact name, as a plugin install does, dispatch that subagent
+rather than a generic one carrying the prompt, so the host enforces the
+permissions it declares. Pass the model the step resolved.
 
 For a continuous-delivery wave, `agent.dispatch` must support isolated mutating
 workers with an explicit cwd and environment. The conductor creates one git
