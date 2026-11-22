@@ -1674,6 +1674,10 @@ describe("comments on an open change", () => {
     expect(pre).toContain(`${FORGE_PROVIDER} discussions`);
     expect(pre).toContain(scoping);
     expect(ADDRESS_COMMENTS).toContain(scoping);
+    expect(pre).toContain(`${scoping} --change <read.json>`);
+    expect(pre).toContain("<read-input.json> > <read.json>");
+    expect(ADDRESS_COMMENTS).toContain(`${scoping} --change "<reviewDir>/find.json"`);
+    expect(ADDRESS_COMMENTS).toContain('"<reviewDir>/find-input.json" > "<reviewDir>/find.json"');
     expect(pre).toMatch(/becomes a comment blocker in step 6/);
     const decide = section(readiness, "### 6. Decide");
     expect(decide).toMatch(/comment on the change is unanswered[\s\S]*comment\s+blocker/);
