@@ -6,8 +6,14 @@ export {
 } from "./glab-comments";
 import { lstat, readFile, realpath, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
+import { AUDIT_PREFIX } from "./audit";
+import { isHelpRequest } from "./cli-help";
 import { ForgeDiscussions } from "./forge-provider";
-import { type MrComment, excludeHandledThreads } from "./glab-comments";
+import {
+	DEFAULT_FACTORY_AUTHORS,
+	type MrComment,
+	excludeHandledThreads,
+} from "./glab-comments";
 
 export function parseForgeDiscussions(input: unknown): MrComment[] {
 	const result = ForgeDiscussions.parse(input);
@@ -334,8 +340,25 @@ const USAGE = [
 	"       forge-comments.ts apply-suggestion <comment.json> <repo-root>",
 ].join("\n");
 
+export const FORGE_COMMENTS_HELP = [
+	USAGE,
+	"",
+	"With no command, reads normalized discussions JSON on stdin and prints the comments still to",
+	`handle. A thread is handled up to its last note that starts with "${AUDIT_PREFIX}" and was`,
+	"written by a factory author: that note and everything before it in the thread are dropped,",
+	"later notes stay. Factory authors come from DELIVERY_FACTORY_AUTHORS, a comma-separated list",
+	`that defaults to ${DEFAULT_FACTORY_AUTHORS.join(",")}. Audit notes are always dropped.`,
+	"scope: comments.json is the comment list; head-files.json maps each path to its contents at",
+	"the head, or null when the file is gone. Prints { inScope, outdated }.",
+	"apply-suggestion: comment.json is one comment with a suggestion block.",
+].join("\n");
+
 if (import.meta.main) {
 	const [command, commentsPath, filesPath] = process.argv.slice(2);
+	if (isHelpRequest(process.argv.slice(2))) {
+		console.log(FORGE_COMMENTS_HELP);
+		process.exit(0);
+	}
 	try {
 		if (command === "apply-suggestion") {
 			if (!commentsPath || !filesPath) {

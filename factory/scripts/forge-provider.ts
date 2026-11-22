@@ -1,6 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { z } from "zod";
+import { helpText, isHelpRequest } from "./cli-help";
 import { loadConfig } from "./config";
 import { decideLand } from "./land-gate";
 import { loadMcpInventory } from "./mcp-inventory";
@@ -1307,10 +1308,32 @@ export async function runForgeOperation(options: {
 	});
 }
 
+export function forgeProviderHelp(operation?: string): string {
+	return helpText({
+		usage: [
+			`forge-provider.ts <operation> <repository-root> <runtime-manifest> <input.json>`,
+			"forge-provider.ts plan <operation> <repository-root> <runtime-manifest> <input.json>",
+			"forge-provider.ts normalize <operation> <provider> <raw.json> [input.json]",
+			"forge-provider.ts --help [operation]",
+		],
+		inputs: Object.fromEntries(
+			FORGE_OPERATIONS.map((name) => [name, operationSchema(name)]),
+		),
+		notes: [
+			"A field marked ? is optional. Mutations also need approved: true; a dry run sets dryRun: true instead.",
+		],
+		operation,
+	});
+}
+
 if (import.meta.main) {
 	const [operation, repositoryRoot, manifestPath, inputPath] =
 		process.argv.slice(2);
 	try {
+		if (isHelpRequest(process.argv.slice(2))) {
+			console.log(forgeProviderHelp(repositoryRoot));
+			process.exit(0);
+		}
 		if (operation === "plan") {
 			const plannedOp = repositoryRoot;
 			const repo = manifestPath;
