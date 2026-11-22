@@ -7,6 +7,8 @@ import {
 	type GateEvidence,
 	type TestGateResult,
 	evaluateGate,
+	gateSummary,
+	outputExcerpt,
 	runTestGate,
 	verifyGateEvidence,
 } from "./test-gate";
@@ -200,4 +202,119 @@ describe("verifyGateEvidence", () => {
 	])("rejects a changed %s", (_label, changes) => {
 		expect(verifyGateEvidence(recorded(), recorded(changes)).ok).toBe(false);
 	});
+});
+
+describe("the gate summary", () => {
+	const noisy = [
+		...Array.from({ length: 300 }, (_, index) => `ok ${index} passes quietly`),
+		"(fail) fees > rounds half up",
+		"Expected: 3",
+		"Received: 2",
+		...Array.from(
+			{ length: 300 },
+			(_, index) => `ok ${index + 300} passes quietly`,
+		),
+		" 599 pass",
+		" 1 fail",
+	].join("\n");
+
+	test("a failing run keeps the failure lines and the end of the run, marking the gaps", () => {
+		const excerpt = outputExcerpt(noisy, false);
+		expect(excerpt).toContain("(fail) fees > rounds half up");
+		expect(excerpt).toContain("Expected: 3");
+		expect(excerpt).toContain("Received: 2");
+		expect(excerpt.slice(-2)).toEqual([" 599 pass", " 1 fail"]);
+		expect(excerpt).toContain("…");
+		expect(excerpt.length).toBeLessThan(30);
+	});
+
+	test("a passing run keeps only its last lines, and long lines are cut", () => {
+		expect(outputExcerpt(noisy, true)).toEqual([
+			"ok 597 passes quietly",
+			"ok 598 passes quietly",
+			"ok 599 passes quietly",
+			" 599 pass",
+			" 1 fail",
+		]);
+		const [line] = outputExcerpt("x".repeat(1000), true);
+		expect(line).toHaveLength(301);
+	});
+
+	test("the summary names the report file and keeps the verdict", () => {
+		const report = {
+			...result({ output: noisy }),
+			evaluation: { ok: true, reason: "RED GATE PASSED" },
+		};
+		expect(gateSummary(report, "/r/red-gate-abc.json")).toMatchObject({
+			reportPath: "/r/red-gate-abc.json",
+			evaluation: { ok: true },
+			exitCode: 1,
+			outputChars: noisy.length,
+		});
+	});
+});
+
+test("with --out the full report goes to the file and only the summary is printed", async () => {
+	const root = await mkdtemp(join(tmpdir(), "test-gate-out-"));
+	try {
+		const body = "test('sample', () => { throw new Error('red'); });\n";
+		await writeFile(join(root, SAMPLE), body);
+		for (const argv of [
+			["git", "init", "-q"],
+			["git", "add", SAMPLE],
+			[
+				"git",
+				"-c",
+				"user.name=Gate Test",
+				"-c",
+				"user.email=gate@example.test",
+				"commit",
+				"-q",
+				"-m",
+				"red test",
+			],
+		]) {
+			expect(
+				Bun.spawnSync(argv, { cwd: root, env: { ...process.env } }).exitCode,
+			).toBe(0);
+		}
+		const command = join(root, "red-command.json");
+		await writeFile(
+			command,
+			JSON.stringify({
+				argv: printAndExit(`${join(root, SAMPLE)} (fail) assertion failed`, 1),
+				cwd: root,
+				expectedTestPaths: [join(root, SAMPLE)],
+			}),
+		);
+		const out = join(root, "red-gate-abc.json");
+		const child = Bun.spawn(
+			[
+				"bun",
+				join(import.meta.dir, "test-gate.ts"),
+				command,
+				"red",
+				"--out",
+				out,
+			],
+			{ stdout: "pipe", stderr: "pipe", env: { ...process.env } },
+		);
+		const [stdout, code] = await Promise.all([
+			new Response(child.stdout).text(),
+			child.exited,
+		]);
+		expect(code).toBe(0);
+		const summary = JSON.parse(stdout);
+		expect(summary).toMatchObject({
+			reportPath: out,
+			evaluation: { ok: true },
+		});
+		expect(summary).not.toHaveProperty("output");
+		const saved = JSON.parse(await Bun.file(out).text());
+		expect(saved.evaluation.ok).toBe(true);
+		expect(saved.output).toContain("assertion failed");
+		expect(saved).toHaveProperty("evidence");
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
 });

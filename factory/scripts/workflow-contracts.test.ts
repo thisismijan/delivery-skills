@@ -1545,6 +1545,26 @@ describe("runtime notes stay small", () => {
 		);
 	});
 
+	test("gates and long commands keep their full output in files", () => {
+		const notes = plain(runtime);
+		expect(notes).toContain("test-gate.ts ... --out <report.json>");
+		expect(notes).toContain(
+			'scripts/quiet-run.ts" <log-file> -- <command> [args...]',
+		);
+		expect(notes).toMatch(
+			/read the log by line range rather than running the command again/,
+		);
+		for (const skill of [execute, addressComments]) {
+			expect(skill).not.toMatch(/test-gate\.ts[^\n]*\| tee/);
+			expect(skill).toMatch(
+				/test-gate\.ts" "<reviewDir>\/red-command[^"]*\.json" red --out "<reviewDir>\/red-gate-/,
+			);
+			expect(skill).toMatch(
+				/test-gate\.ts" "<reviewDir>\/green-command[^"]*\.json" green --out "<reviewDir>\/green-gate-/,
+			);
+		}
+	});
+
 	test("a run reuses a recent host-tool inventory", () => {
 		const notes = plain(runtime);
 		expect(notes).toContain('scripts/mcp-inventory.ts" fresh "<repoRoot>"');

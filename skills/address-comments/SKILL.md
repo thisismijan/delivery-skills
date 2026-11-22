@@ -141,7 +141,7 @@ You are running **/address-comments** for the work item named in the skill argum
 
    - **`bug`** (action, tests-first): add a failing test limited to what the comment raises, and prove it red:
      ```
-     bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/red-command-<commentId>.json" red | tee "<reviewDir>/red-gate-<commentId>-<test-commit>.json"
+     bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/red-command-<commentId>.json" red --out "<reviewDir>/red-gate-<commentId>-<test-commit>.json"
      ```
      non-zero exit (test passed before the fix) → stop + escalate. Read
      `reference/mechanical-edit-unit.md` when the comment names a bounded
@@ -151,7 +151,7 @@ You are running **/address-comments** for the work item named in the skill argum
      catalogue fast model. A payload flag is not proof that a script ran. Then
      bring the suite green:
      ```
-     bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/green-command-<commentId>.json" green | tee "<reviewDir>/green-gate-<commentId>-<source-commit>.json"
+     bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/green-command-<commentId>.json" green --out "<reviewDir>/green-gate-<commentId>-<source-commit>.json"
      ```
      Before the fix commit, run the repository's formatter in fix mode on the
      changed files (the one the lint gate checks, such as `biome check --write`

@@ -57,6 +57,14 @@ operation's input shape. Other scripts print their usage when run without
 arguments. Never read a script's source to learn how to call it. Read it only
 to diagnose a failure the script's own message does not explain.
 
+Run test gates with `test-gate.ts ... --out <report.json>`, which keeps the
+full report in that file and prints a short summary. Run lint, typecheck, and
+any other command whose full output you do not need with
+`bun "$FACTORY_ROOT/scripts/quiet-run.ts" <log-file> -- <command> [args...]`.
+It exits with the command's code and prints only the lines that name a
+failure and the end of the run. When that is not enough, read the log by line
+range rather than running the command again.
+
 ## Dispatching subagents
 
 Every factory skill loads `$FACTORY_ROOT/agents/<name>.md` and gives that
