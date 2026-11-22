@@ -1412,6 +1412,12 @@ async function handleTransition(
 	};
 }
 
+// Jira answers 404 when the account cannot browse an issue or project, so a missing issue and an
+// account without permission look the same. Say what was asked.
+export function jiraNotFoundMessage(method: string, url: string): string {
+	return `Jira answered HTTP 404 for ${method} ${decodeURIComponent(new URL(url).pathname)}. Either it does not exist, or the Jira account these credentials belong to cannot browse it: Jira answers 404 when an account lacks browse permission.`;
+}
+
 export async function runJiraTracker(
 	operation: string,
 	rawEnvelope: unknown,
@@ -1470,7 +1476,7 @@ export function defaultJiraTrackerDeps(
 				}
 				if (response.status === 404) {
 					if (request.url.includes("/properties/")) return null;
-					fail("Jira did not find that issue.");
+					fail(jiraNotFoundMessage(request.method, request.url));
 				}
 				fail(`Jira request failed (HTTP ${response.status}).`);
 			}
