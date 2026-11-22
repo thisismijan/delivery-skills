@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	applySuggestion,
+	changeAuthor,
 	parseForgeDiscussions,
 	planSuggestion,
 	scopeComments,
@@ -611,4 +612,123 @@ test("apply-suggestion writes inside the repository and refuses escapes", async 
 		await rm(root, { recursive: true, force: true });
 		await rm(outside, { recursive: true, force: true });
 	}
+});
+
+function change(author: string, ref = "change-1") {
+	return {
+		version: 1,
+		provider: "sample-forge",
+		ref,
+		state: "open",
+		draft: true,
+		branches: { source: "feature", target: "main" },
+		revisions: { head: "abc123" },
+		title: "Feature",
+		description: "",
+		author,
+		url: "https://forge.example/change-1",
+		pipeline: { available: false },
+		mergeability: { available: false },
+	};
+}
+
+function operatorReplied() {
+	const threads = discussions();
+	const reply = threads.discussions[1]?.notes[1];
+	if (reply) reply.author = "operator";
+	return threads;
+}
+
+test("the change's author counts as a factory author, from a read or a find result", () => {
+	expect(changeAuthor(change("operator"), "change-1")).toBe("operator");
+	expect(
+		changeAuthor(
+			{
+				version: 1,
+				provider: "sample-forge",
+				changes: [change("operator"), change("someone", "change-2")],
+			},
+			"change-1",
+		),
+	).toBe("operator");
+	expect(() =>
+		changeAuthor(change("operator", "change-9"), "change-1"),
+	).toThrow(/is for change change-9, not change-1/);
+	expect(() =>
+		changeAuthor(
+			{ version: 1, provider: "sample-forge", changes: [] },
+			"change-1",
+		),
+	).toThrow(/does not name change change-1 exactly once/);
+	expect(() => changeAuthor({ author: "x" }, "change-1")).toThrow(
+		/normalized result of forge-provider read or find/,
+	);
+});
+
+async function scopeCli(input: unknown, args: string[], dir: string) {
+	const child = Bun.spawn(
+		["bun", join(import.meta.dir, "forge-comments.ts"), ...args],
+		{
+			cwd: dir,
+			stdin: "pipe",
+			stdout: "pipe",
+			stderr: "pipe",
+			env: { ...process.env, DELIVERY_FACTORY_AUTHORS: "factory" },
+		},
+	);
+	child.stdin.write(JSON.stringify(input));
+	child.stdin.end();
+	const [stdout, stderr, code] = await Promise.all([
+		new Response(child.stdout).text(),
+		new Response(child.stderr).text(),
+		child.exited,
+	]);
+	return {
+		code,
+		stderr,
+		ids: code === 0 ? JSON.parse(stdout).map((c: MrComment) => c.id) : [],
+	};
+}
+
+test("an audit reply posted as the change's author marks its thread handled when --change is given", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "forge-comments-author-"));
+	try {
+		const without = await scopeCli(operatorReplied(), [], dir);
+		expect(without.code).toBe(0);
+		expect(without.ids).toEqual(["note-1", "note-2"]);
+		await writeFile(
+			join(dir, "change.json"),
+			JSON.stringify(change("operator")),
+		);
+		const withChange = await scopeCli(
+			operatorReplied(),
+			["--change", join(dir, "change.json")],
+			dir,
+		);
+		expect(withChange.code).toBe(0);
+		expect(withChange.ids).toEqual(["note-1"]);
+		await writeFile(
+			join(dir, "other.json"),
+			JSON.stringify(change("operator", "change-2")),
+		);
+		const mismatched = await scopeCli(
+			operatorReplied(),
+			["--change", join(dir, "other.json")],
+			dir,
+		);
+		expect(mismatched.code).toBe(1);
+		expect(mismatched.stderr).toContain("not change-1");
+		expect((await scopeCli(operatorReplied(), ["--change"], dir)).code).toBe(2);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+test("the troubleshooting guide names the audit prefix the filter matches", async () => {
+	const guide = await readFile(
+		join(import.meta.dir, "..", "..", "docs", "troubleshooting.md"),
+		"utf8",
+	);
+	expect(guide).toContain(`one starting with \`${AUDIT_PREFIX}\``);
+	expect(guide).toContain("DELIVERY_FACTORY_AUTHORS");
 });

@@ -48,7 +48,7 @@ You are running **/address-comments** for the work item named in the skill argum
 
 2. **Confirm an open change exists.** Resolve `<repoRoot>` with `git rev-parse --show-toplevel`. Create `<reviewDir> = <repoRoot>/.review/<changeName>/address-comments`. Write `{ "sourceBranch": "<changeName>" }` to `<reviewDir>/find-input.json`, then:
    ```
-   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" find "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/find-input.json"
+   bun "${FACTORY_ROOT}/scripts/forge-provider.ts" find "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/find-input.json" > "<reviewDir>/find.json"
    ```
    Non-zero exit, or **no** open change for the branch → **stop + escalate** (`scripts/escalate.ts` semantics / `assertOrEscalate`) with zero commits and nothing posted. Record the returned opaque change `ref` as `<change-ref>` (an MR iid is an alias for it).
 
@@ -67,10 +67,10 @@ You are running **/address-comments** for the work item named in the skill argum
    `<reviewDir>/discussions-input.json`, then fetch discussion threads:
    ```
    bun "${FACTORY_ROOT}/scripts/forge-provider.ts" discussions "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" "<reviewDir>/discussions-input.json" \
-     | bun "${FACTORY_ROOT}/scripts/forge-comments.ts" \
+     | bun "${FACTORY_ROOT}/scripts/forge-comments.ts" --change "<reviewDir>/find.json" \
      > "<reviewDir>/comments.json"
    ```
-   Non-zero exit or unparseable output → **stop + escalate**. The provider result is normalized JSON bound to the requested change and head revision. `forge-comments.ts` flattens it to one entry per non-system note, drops resolved discussions and resolved notes, carries each parent `discussionId` (needed to reply on its thread), and applies `excludeHandledThreads`: a discussion with an authenticated factory note starting with the audit prefix is excluded **entirely**, so its human note is not actioned twice on re-entry.
+   Non-zero exit or unparseable output → **stop + escalate**. `forge-comments.ts` flattens the normalized threads to one entry per non-system note, drops resolved discussions and resolved notes, keeps each `discussionId` (needed to reply), and applies `excludeHandledThreads`: a discussion with an audit-prefixed note by a factory author or the change's author is excluded **entirely**, so it is not actioned twice on re-entry.
 
    For every remaining comment with a new-side `anchor`, read that path at the
    pinned head (`git show <head>:<path>`). Write those contents, or `null` when

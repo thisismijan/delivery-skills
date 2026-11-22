@@ -23,7 +23,7 @@ Check these in order. The first one that fails is a terminal stop.
    create one for the key and record that readiness started without one.
 2. **Change is open.** Write `{ "ref": "<ref>" }` (CLI alias: the MR iid) and
    read it with the exact forge command:
-   `bun "${FACTORY_ROOT}/scripts/forge-provider.ts" read "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <read-input.json>`.
+   `bun "${FACTORY_ROOT}/scripts/forge-provider.ts" read "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <read-input.json> > <read.json>`.
    Use only the normalized `state`, `draft`, `branches`, `revisions`,
    `pipeline`, and `mergeability` fields.
    - `merged` → stop: "already merged; run `/delivery verify <iid>` after
@@ -63,7 +63,7 @@ Check these in order. The first one that fails is a terminal stop.
    `/address-comments` uses:
    ```
    bun "${FACTORY_ROOT}/scripts/forge-provider.ts" discussions "<repoRoot>" "${FACTORY_ROOT}/runtime-manifest.json" <discussions-input.json> \
-     | bun "${FACTORY_ROOT}/scripts/forge-comments.ts"
+     | bun "${FACTORY_ROOT}/scripts/forge-comments.ts" --change <read.json>
    ```
    Non-zero exit is a terminal stop. Every returned comment that this run did
    not publish itself is unanswered and becomes a comment blocker in step 6.

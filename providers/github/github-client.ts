@@ -174,6 +174,26 @@ export function stripMarkers(body: string): string {
 		.trim();
 }
 
+// Names where the token came from, in the order resolveGitHubToken looks, without its value.
+export function githubTokenSource(
+	env: Record<string, string | undefined>,
+): string {
+	if (env.GITHUB_TOKEN?.trim()) return "GITHUB_TOKEN";
+	if (env.GH_TOKEN?.trim()) return "GH_TOKEN";
+	if (env.GH_TOKEN_FILE?.trim()) return "the file in GH_TOKEN_FILE";
+	return "~/token";
+}
+
+// GitHub answers 404, not 403, when a token cannot read a private repository, so a missing pull
+// request and a token without access look the same. Say what was asked and which token asked.
+export function githubNotFoundMessage(
+	method: string,
+	url: string,
+	env: Record<string, string | undefined>,
+): string {
+	return `GitHub answered HTTP 404 for ${method} ${decodeURIComponent(new URL(url).pathname)}. Either it does not exist, or the token from ${githubTokenSource(env)} cannot see that repository: GitHub answers 404, not 403, when a token cannot read a private repository.`;
+}
+
 export async function resolveGitHubToken(deps: GitHubDeps): Promise<string> {
 	const envToken = deps.env.GITHUB_TOKEN?.trim() || deps.env.GH_TOKEN?.trim();
 	if (envToken) return envToken;
@@ -453,7 +473,7 @@ export function defaultGitHubDeps(
 				}
 				if (response.status === 404) {
 					throw new GitHubHttpError(
-						"GitHub did not find that pull request or issue.",
+						githubNotFoundMessage(request.method, request.url, env),
 						response.status,
 					);
 				}

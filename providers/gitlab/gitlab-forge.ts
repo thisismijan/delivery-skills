@@ -1315,9 +1315,7 @@ export async function runGitLabForge(
 export function defaultGitLabForgeDeps(
 	env: Record<string, string | undefined> = process.env,
 ): GitLabForgeDeps {
-	return defaultGitLabHostDeps(env, {
-		notFoundMessage: "GitLab did not find that merge request.",
-	});
+	return defaultGitLabHostDeps(env);
 }
 
 export async function handleGitLabForgeCli(options: {

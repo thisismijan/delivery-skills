@@ -190,3 +190,23 @@ The plugin's agents or stage-skill markings no longer match the factory it
 carries, usually after pulling a new pack version without reinstalling the
 plugin. A judge listed as "not read-only" can edit files. Reinstall with
 `bash adapters/cursor/install-plugin.sh` and reload Cursor.
+
+## A provider answered HTTP 404
+
+GitHub and GitLab answer 404, not 403, when a token cannot read a private
+repository or project. Jira answers 404 when an account lacks browse
+permission. So "answered HTTP 404 for GET /projects/..." usually means the
+token lacks access, not that the change or issue is missing. The message names
+the request and where the token came from, such as `GITLAB_TOKEN`. When a
+machine holds several tokens, check that this one is a member of the project
+the repository's origin points to. For GitLab, set `GL_PROJECT` and `GL_HOST`
+if the origin names a different project.
+
+## Replies the factory posted are answered again
+
+The comment filter treats a thread as handled once it holds an audit reply,
+one starting with `**delivery** ·`, from a factory author. The factory posts
+as the account that opened the change, so `/address-comments` and release
+readiness pass that change to the filter with `--change`, and its author
+counts. Replies posted from any other account count only when that account is
+named in `DELIVERY_FACTORY_AUTHORS`.
