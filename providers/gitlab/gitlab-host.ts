@@ -93,6 +93,29 @@ export function targetFromHostProject(
 	return { host: host.replace(/\/+$/, ""), project };
 }
 
+// Names where the token came from, in the order resolveGitLabToken looks, without its value.
+export function gitlabTokenSource(
+	env: Record<string, string | undefined>,
+): string {
+	if (env.GITLAB_TOKEN?.trim()) return "GITLAB_TOKEN";
+	if (env.GL_TOKEN_FILE?.trim()) return "the file in GL_TOKEN_FILE";
+	return "~/token";
+}
+
+// GitLab answers 404, not 403, when a token cannot read a private project, so a missing merge
+// request and a token without access look the same. Say what was asked and which token asked.
+export function gitlabNotFoundMessage(
+	method: string,
+	url: string,
+	env: Record<string, string | undefined>,
+): string {
+	const path = decodeURIComponent(new URL(url).pathname).replace(
+		/^\/api\/v4/,
+		"",
+	);
+	return `GitLab answered HTTP 404 for ${method} ${path}. Either it does not exist, or the token from ${gitlabTokenSource(env)} cannot see that project: GitLab answers 404, not 403, when a token cannot read a private project.`;
+}
+
 export async function resolveGitLabToken(
 	deps: GitLabHostDeps,
 ): Promise<string> {
@@ -257,10 +280,7 @@ export async function gitlabPaged(
 
 export function defaultGitLabHostDeps(
 	env: Record<string, string | undefined> = process.env,
-	options: { notFoundMessage?: string } = {},
 ): GitLabHostDeps {
-	const notFoundMessage =
-		options.notFoundMessage ?? "GitLab did not find that resource.";
 	return {
 		env,
 		cwd: () => process.cwd(),
@@ -294,7 +314,7 @@ export function defaultGitLabHostDeps(
 					fail("GitLab authentication failed.");
 				}
 				if (response.status === 404) {
-					fail(notFoundMessage);
+					fail(gitlabNotFoundMessage(request.method, request.url, env));
 				}
 				fail(`GitLab request failed (HTTP ${response.status}).`);
 			}

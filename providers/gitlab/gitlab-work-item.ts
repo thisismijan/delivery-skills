@@ -745,9 +745,7 @@ export async function runGitLabWorkItem(
 export function defaultGitLabWorkItemDeps(
 	env: Record<string, string | undefined> = process.env,
 ): GitLabWorkItemDeps {
-	return defaultGitLabHostDeps(env, {
-		notFoundMessage: "GitLab did not find that issue.",
-	});
+	return defaultGitLabHostDeps(env);
 }
 
 export async function handleGitLabWorkItemCli(options: {

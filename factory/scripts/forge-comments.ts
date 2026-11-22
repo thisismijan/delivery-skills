@@ -8,7 +8,12 @@ import { lstat, readFile, realpath, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { AUDIT_PREFIX } from "./audit";
 import { isHelpRequest } from "./cli-help";
-import { ForgeDiscussions } from "./forge-provider";
+import { loadConfig } from "./config";
+import {
+	ForgeChange,
+	ForgeDiscussions,
+	ForgeFindResult,
+} from "./forge-provider";
 import {
 	DEFAULT_FACTORY_AUTHORS,
 	type MrComment,
@@ -334,8 +339,37 @@ export function scopeComments(
 	return { inScope, outdated };
 }
 
+// The account that opened the change is the one the factory posts as, so its audit replies mark a
+// thread handled exactly like a configured factory author's.
+export function changeAuthor(raw: unknown, ref: string): string {
+	const change = ForgeChange.safeParse(raw);
+	if (change.success) {
+		if (change.data.ref !== ref) {
+			throw new Error(
+				`change.json is for change ${change.data.ref}, not ${ref}`,
+			);
+		}
+		return change.data.author;
+	}
+	const found = ForgeFindResult.safeParse(raw);
+	if (found.success) {
+		const match = found.data.changes.filter((entry) => entry.ref === ref);
+		if (match.length !== 1) {
+			throw new Error(`change.json does not name change ${ref} exactly once`);
+		}
+		return (match[0] as ForgeChange).author;
+	}
+	throw new Error(
+		"change.json must be the normalized result of forge-provider read or find",
+	);
+}
+
+export function factoryAuthors(author?: string): Set<string> {
+	return new Set([...loadConfig().factoryAuthors, ...(author ? [author] : [])]);
+}
+
 const USAGE = [
-	"usage: forge-comments.ts",
+	"usage: forge-comments.ts [--change <change.json>]",
 	"       forge-comments.ts scope <comments.json> <head-files.json>",
 	"       forge-comments.ts apply-suggestion <comment.json> <repo-root>",
 ].join("\n");
@@ -347,7 +381,8 @@ export const FORGE_COMMENTS_HELP = [
 	`handle. A thread is handled up to its last note that starts with "${AUDIT_PREFIX}" and was`,
 	"written by a factory author: that note and everything before it in the thread are dropped,",
 	"later notes stay. Factory authors come from DELIVERY_FACTORY_AUTHORS, a comma-separated list",
-	`that defaults to ${DEFAULT_FACTORY_AUTHORS.join(",")}. Audit notes are always dropped.`,
+	`that defaults to ${DEFAULT_FACTORY_AUTHORS.join(",")}, plus the change's author when --change names`,
+	"the normalized read or find result for the same change. Audit notes are always dropped.",
 	"scope: comments.json is the comment list; head-files.json maps each path to its contents at",
 	"the head, or null when the file is gone. Prints { inScope, outdated }.",
 	"apply-suggestion: comment.json is one comment with a suggestion block.",
@@ -407,20 +442,19 @@ if (import.meta.main) {
 			console.log(JSON.stringify(scopeComments(comments, headFiles), null, 2));
 			process.exit(0);
 		}
-		if (command) {
+		const changePath = command === "--change" ? commentsPath : undefined;
+		if (command && !changePath) {
 			console.error(USAGE);
 			process.exit(2);
 		}
-		const input = await Bun.stdin.text();
-		const authors = new Set(
-			(process.env.DELIVERY_FACTORY_AUTHORS ?? "factory,delivery-bot")
-				.split(",")
-				.map((author) => author.trim())
-				.filter(Boolean),
-		);
+		const discussions = JSON.parse(await Bun.stdin.text()) as unknown;
+		const ref = ForgeDiscussions.parse(discussions).ref;
+		const author = changePath
+			? changeAuthor(JSON.parse(await Bun.file(changePath).text()), ref)
+			: undefined;
 		const comments = excludeHandledThreads(
-			parseForgeDiscussions(JSON.parse(input) as unknown),
-			authors,
+			parseForgeDiscussions(discussions),
+			factoryAuthors(author),
 		);
 		console.log(JSON.stringify(comments));
 	} catch (error) {
