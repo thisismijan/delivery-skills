@@ -206,6 +206,11 @@ const orchestrator = read(
 );
 const conventions = read("CONVENTIONS.md");
 const runtime = read("RUNTIME.md");
+const runtimeModelEvaluation = read("reference/model-evaluation.md");
+const runtimeReviewFanout = read("reference/review-fanout.md");
+const runtimeFlow = [runtime, runtimeModelEvaluation, runtimeReviewFanout].join(
+	"\n",
+);
 const FORGE_PROVIDER = 'bun "${FACTORY_ROOT}/scripts/forge-provider.ts"';
 const PROVIDER_NATIVE = /\b(?:gl-mr|gl-note|glab)\b/;
 const cursorAdapter = read("../adapters/cursor/README.md");
@@ -868,19 +873,19 @@ describe("bounded recovery and replay safety", () => {
 		);
 		expect(addressComments).toMatch(/nitpick/i);
 		expect(plain(addressComments)).toMatch(/make no code change/i);
-		expect(runtime).toContain("mechanical-edit.ts");
-		expect(runtime).toContain("apply-mechanical-edit.ts");
-		expect(runtime).toContain("mechanical-edit-scoring.ts");
-		expect(runtime).toContain("mechanical-edit-test-repos.ts");
-		expect(runtime).toContain("test-repo-stand-in");
-		expect(runtime).toContain("mechanical-edit-model-runs.ts");
-		expect(runtime).toContain("model-run");
-		expect(runtime).toContain("TypeScript");
-		expect(runtime).toContain("Python");
-		expect(runtime).toContain("Java");
-		expect(runtime).toContain("Go");
-		expect(runtime).toContain("C#");
-		expect(runtime).toContain("Kotlin");
+		expect(runtimeFlow).toContain("mechanical-edit.ts");
+		expect(runtimeFlow).toContain("apply-mechanical-edit.ts");
+		expect(runtimeFlow).toContain("mechanical-edit-scoring.ts");
+		expect(runtimeFlow).toContain("mechanical-edit-test-repos.ts");
+		expect(runtimeFlow).toContain("test-repo-stand-in");
+		expect(runtimeFlow).toContain("mechanical-edit-model-runs.ts");
+		expect(runtimeFlow).toContain("model-run");
+		expect(runtimeFlow).toContain("TypeScript");
+		expect(runtimeFlow).toContain("Python");
+		expect(runtimeFlow).toContain("Java");
+		expect(runtimeFlow).toContain("Go");
+		expect(runtimeFlow).toContain("C#");
+		expect(runtimeFlow).toContain("Kotlin");
 		expect(plain(executeFlow)).toMatch(/unique python parameter or local/i);
 		expect(plain(executeFlow)).toMatch(/unique java field/i);
 		expect(plain(executeFlow)).toMatch(
@@ -1118,14 +1123,21 @@ describe("bounded recovery and replay safety", () => {
 	});
 
 	test("operator docs describe risk-based review spend", () => {
-		for (const document of [rootReadme, workflowDocs, referenceDocs, runtime]) {
+		for (const document of [
+			rootReadme,
+			workflowDocs,
+			referenceDocs,
+			runtimeFlow,
+		]) {
 			expect(document).toContain("review-fanout.ts");
 			expect(plain(document)).toMatch(/small reversible change/i);
 		}
 		expect(plain(rootReadme)).toMatch(/reply-only round/i);
 		expect(plain(workflowDocs)).toMatch(/reply-only round/i);
 		expect(plain(referenceDocs)).toMatch(/lenses array is authoritative/i);
-		expect(plain(runtime)).toMatch(/lenses array is authoritative/i);
+		expect(plain(runtimeReviewFanout)).toMatch(
+			/lenses array is authoritative/i,
+		);
 		expect(plain(rootReadme)).toMatch(
 			/typescript, javascript, python, java, go, c#, or kotlin/i,
 		);
@@ -1184,14 +1196,14 @@ describe("bounded recovery and replay safety", () => {
 		expect(plain(delivery)).toContain(
 			"Read reference/orchestration.md before you dispatch a subagent or isolated worker, register or promote a fast model",
 		);
-		for (const text of [runtime, executeFlow, deliveryOrchestration]) {
+		for (const text of [runtimeFlow, executeFlow, deliveryOrchestration]) {
 			expect(text).toContain("representative-run");
 			expect(text).toContain("promotion approval");
 			for (const floor of FAST_SAFETY_FLOORS) {
 				expect(text).toContain(floor);
 			}
 		}
-		expect(runtime).toContain("Public rankings");
+		expect(runtimeModelEvaluation).toContain("Public rankings");
 		expect(executeFlow).toContain("unscored fixture");
 		expect(executeFlow).toContain("test-repo stand-in");
 		expect(deliveryOrchestration).toContain("Public rankings never promote");
@@ -1220,8 +1232,10 @@ describe("bounded recovery and replay safety", () => {
 		expect(codeReviewMaxNoLenses).toContain("record-skip.ts");
 		expect(codeReviewMax).toContain("reference/no-lenses.md");
 		expect(releaseReadiness).toContain("record-skip.ts");
-		expect(runtime).toContain("record-skip.ts");
-		expect(plain(runtime)).toMatch(/never estimates tokens saved/i);
+		expect(runtimeModelEvaluation).toContain("record-skip.ts");
+		expect(plain(runtimeModelEvaluation)).toMatch(
+			/never estimates tokens saved/i,
+		);
 		expect(plain(rootReadme)).toMatch(/never estimates tokens saved/i);
 		expect(plain(referenceDocs)).toMatch(/never estimates tokens saved/i);
 	});
@@ -1231,7 +1245,7 @@ describe("bounded recovery and replay safety", () => {
 		expect(executeFlow).toContain("implement-outcome.json");
 		expect(executeFlow).toContain("review-outcome.json");
 		expect(addressCommentsFlow).toContain("classify-outcome.json");
-		expect(runtime).toMatch(/explicit outcome/);
+		expect(runtimeModelEvaluation).toMatch(/explicit outcome/);
 	});
 
 	test("stages capture wall time automatically and never invent token counts", () => {
@@ -1415,7 +1429,7 @@ describe("normalized forge workflow commands", () => {
 		["release-readiness", releaseReadiness],
 		["NOTES", notes],
 		["delivery-orchestrator", orchestrator],
-		["RUNTIME", runtime],
+		["RUNTIME", runtimeFlow],
 		["CONVENTIONS", conventions],
 	] as const;
 
@@ -1509,6 +1523,40 @@ describe("normalized forge workflow commands", () => {
 	});
 });
 
+describe("runtime notes stay small", () => {
+	test("rarely needed runtime detail loads on demand", () => {
+		const notes = plain(runtime);
+		expect(notes).toMatch(
+			/When a stage fans out review lenses, read \$FACTORY_ROOT\/reference\/review-fanout\.md first/,
+		);
+		expect(notes).toMatch(
+			/To evaluate, register, or promote a fast model, score a mechanical edit, or record routing evidence, read \$FACTORY_ROOT\/reference\/model-evaluation\.md/,
+		);
+		expect(notes).toMatch(/Never dispatch one in live delivery/);
+		expect(notes).toContain("Read this file once per run.");
+	});
+
+	test("scripts explain their own inputs, so nobody reads their source to call them", () => {
+		const notes = plain(runtime);
+		expect(notes).toMatch(/Learn a provider command's inputs with bun/);
+		expect(notes).toContain("--help");
+		expect(notes).toContain(
+			"Never read a script's source to learn how to call it.",
+		);
+	});
+
+	test("a run reuses a recent host-tool inventory", () => {
+		const notes = plain(runtime);
+		expect(notes).toContain('scripts/mcp-inventory.ts" fresh "<repoRoot>"');
+		expect(notes).toMatch(
+			/Exit 0 means the recorded inventory is recent: reuse it/,
+		);
+		expect(notes).toMatch(
+			/planned host tool turns out to be missing or unauthenticated, record the inventory again and plan again/,
+		);
+	});
+});
+
 describe("diff surface scan", () => {
 	const scan = 'diff-scan.ts" <base-sha> <head-sha>';
 
@@ -1530,7 +1578,9 @@ describe("diff surface scan", () => {
 
 	test("the script is named in the conventions and runtime notes", () => {
 		expect(conventions).toContain("scripts/diff-scan.ts");
-		expect(runtime).toContain('scripts/diff-scan.ts" <base> <head>');
+		expect(runtimeReviewFanout).toContain(
+			'scripts/diff-scan.ts" <base> <head>',
+		);
 	});
 });
 
@@ -1560,7 +1610,7 @@ describe("release-readiness lens tier", () => {
 	test("operator docs name the same standard-tier rule", () => {
 		for (const document of [
 			conventions,
-			runtime,
+			runtimeReviewFanout,
 			workflowDocs,
 			referenceDocs,
 			rootReadme,
