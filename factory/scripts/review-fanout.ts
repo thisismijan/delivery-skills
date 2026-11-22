@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { helpText, isHelpRequest } from "./cli-help";
 import { loadConfig } from "./config";
 import type { ReviewBreadth } from "./levels";
 
@@ -296,7 +297,12 @@ const CoverageInputSchema = z
 		scope: z.enum(["full", "delta"]),
 		plannedLenses: z.array(LensName),
 		reports: z.array(
-			z.object({ lens: z.string(), examined: z.unknown() }).strict(),
+			z
+				.object({
+					lens: z.string(),
+					examined: z.unknown().describe("string[] of repository paths"),
+				})
+				.strict(),
 		),
 		focused: z
 			.array(
@@ -304,7 +310,9 @@ const CoverageInputSchema = z
 					.object({
 						path: z.string(),
 						status: z.enum(["returned", "failed"]),
-						examined: z.unknown(),
+						examined: z
+							.unknown()
+							.describe("string[] of repository paths, absent when failed"),
 					})
 					.strict(),
 			)
@@ -651,8 +659,29 @@ const USAGE = [
 	"       review-fanout readiness <input.json>",
 ].join("\n");
 
+export function reviewFanoutHelp(): string {
+	return helpText({
+		usage: USAGE.replace(/^usage: /, "")
+			.split("\n")
+			.map((line) => line.trim()),
+		inputs: {
+			"<input.json> and readiness": ReviewFanoutInput,
+			"coverage <input.json>": CoverageInputSchema,
+			adjudication: LensCandidates,
+			"measure and paths": null,
+		},
+		notes: [
+			"A field marked ? is optional. measure and paths read git, not a file.",
+		],
+	});
+}
+
 if (import.meta.main) {
 	const [first, ...rest] = process.argv.slice(2);
+	if (isHelpRequest(process.argv.slice(2))) {
+		console.log(reviewFanoutHelp());
+		process.exit(0);
+	}
 	if (!first) {
 		console.error(USAGE);
 		process.exit(2);

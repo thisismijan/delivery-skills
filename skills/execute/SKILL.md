@@ -89,8 +89,7 @@ before mutating; non-zero exit is a terminal stop. Add no scope the frozen plan 
 
 5. **Red gate (enforced).** Write `<reviewDir>/red-command.json` (an argv array, never a shell string; the repo cwd; every expected new test path; a timeout), run it, and persist its JSON under an append-only name containing the test commit:
    ```
-   set -o pipefail  # tee must not mask the gate's exit code
-   bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/red-command.json" red | tee "<reviewDir>/red-gate-<test-commit>.json"
+   bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/red-command.json" red --out "<reviewDir>/red-gate-<test-commit>.json"
    ```
    Only that exit code decides. Non-zero (the new tests pass without an implementation) → **stop + escalate**, no MR.
 
@@ -138,8 +137,7 @@ before mutating; non-zero exit is a terminal stop. Add no scope the frozen plan 
    result under an append-only name containing the source commit, and wait for
    all three:
    ```
-   set -o pipefail  # likewise
-   bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/green-command.json" green | tee "<reviewDir>/green-gate-<source-commit>.json"
+   bun "${FACTORY_ROOT}/scripts/test-gate.ts" "<reviewDir>/green-command.json" green --out "<reviewDir>/green-gate-<source-commit>.json"
    ```
    If any fails, dispatch the `implementer` again to fix the source (not the tests). Loop a small bounded number of times (the formal ceiling is N6), then **stop + escalate**.
 

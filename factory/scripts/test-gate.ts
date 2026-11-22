@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, rename, writeFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { z } from "zod";
 
@@ -259,19 +259,80 @@ async function verifyCommand(recordedFile: string, commandFile: string) {
 	return verdict.ok;
 }
 
-async function gateCommand(commandFile: string, gate: Gate) {
+const FAILURE_LINE =
+	/\b(fail(ed|ing|ure)?|error|exception|expected|received|assert(ion)?|panic|timed? ?out)\b|✗|×/i;
+const EXCERPT_FAILURE_LINES = 40;
+const EXCERPT_TAIL_LINES = 20;
+const EXCERPT_PASSING_TAIL_LINES = 5;
+const EXCERPT_LINE_CHARS = 300;
+
+// The few lines of a test run a reader needs: on failure, the lines that name a failure plus the
+// end of the run; on success, only the end. The full output stays in the report file.
+export function outputExcerpt(output: string, ok: boolean): string[] {
+	const lines = output.replace(/\r\n/g, "\n").split("\n");
+	while (lines.length > 0 && lines.at(-1)?.trim() === "") lines.pop();
+	const tailCount = ok ? EXCERPT_PASSING_TAIL_LINES : EXCERPT_TAIL_LINES;
+	const tailStart = Math.max(0, lines.length - tailCount);
+	const picked = new Set<number>();
+	if (!ok) {
+		for (const [index, line] of lines.entries()) {
+			if (index >= tailStart) break;
+			if (picked.size >= EXCERPT_FAILURE_LINES) break;
+			if (FAILURE_LINE.test(line)) picked.add(index);
+		}
+	}
+	for (let index = tailStart; index < lines.length; index += 1)
+		picked.add(index);
+	const excerpt: string[] = [];
+	let previous = -1;
+	for (const index of [...picked].sort((left, right) => left - right)) {
+		if (previous >= 0 && index > previous + 1) excerpt.push("…");
+		const line = lines[index] ?? "";
+		excerpt.push(
+			line.length > EXCERPT_LINE_CHARS
+				? `${line.slice(0, EXCERPT_LINE_CHARS)}…`
+				: line,
+		);
+		previous = index;
+	}
+	return excerpt;
+}
+
+export function gateSummary(
+	report: TestGateResult & { evaluation: GateEvaluation },
+	reportPath: string,
+) {
+	return {
+		reportPath,
+		evaluation: report.evaluation,
+		exitCode: report.exitCode,
+		timedOut: report.timedOut,
+		executedExpectedTests: report.executedExpectedTests,
+		outputChars: report.output.length,
+		outputExcerpt: outputExcerpt(report.output, report.evaluation.ok),
+	};
+}
+
+async function gateCommand(commandFile: string, gate: Gate, outPath?: string) {
 	const result = await runTestGate(await readCommand(commandFile));
 	const evaluation = evaluateGate(result, gate);
 	const report = { ...result, evaluation };
-	console.log(JSON.stringify(report));
+	if (outPath) {
+		const temporary = `${outPath}.${process.pid}.tmp`;
+		await writeFile(temporary, `${JSON.stringify(report)}\n`);
+		await rename(temporary, outPath);
+		console.log(JSON.stringify(gateSummary(report, outPath), null, 2));
+	} else {
+		console.log(JSON.stringify(report));
+	}
 	return evaluation.ok;
 }
 
 const VERIFY_USAGE = "test-gate verify <recorded.json> <command.json>";
-const RUN_USAGE = "test-gate <command.json> <red|green>";
+const RUN_USAGE = "test-gate <command.json> <red|green> [--out <report.json>]";
 
 if (import.meta.main) {
-	const [first, second, third] = process.argv.slice(2);
+	const [first, second, third, fourth] = process.argv.slice(2);
 	let job: () => Promise<boolean>;
 	if (first === "verify") {
 		if (!second || !third) {
@@ -280,11 +341,16 @@ if (import.meta.main) {
 		}
 		job = () => verifyCommand(second, third);
 	} else {
-		if (!first || (second !== "red" && second !== "green")) {
+		const outPath = third === "--out" ? fourth : undefined;
+		if (
+			!first ||
+			(second !== "red" && second !== "green") ||
+			(third !== undefined && !outPath)
+		) {
 			console.error(`usage: ${RUN_USAGE}\n       ${VERIFY_USAGE}`);
 			process.exit(2);
 		}
-		job = () => gateCommand(first, second);
+		job = () => gateCommand(first, second, outPath);
 	}
 	try {
 		process.exit((await job()) ? 0 : 1);
