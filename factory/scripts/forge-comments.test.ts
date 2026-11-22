@@ -723,3 +723,12 @@ test("an audit reply posted as the change's author marks its thread handled when
 		await rm(dir, { recursive: true, force: true });
 	}
 });
+
+test("the troubleshooting guide names the audit prefix the filter matches", async () => {
+	const guide = await readFile(
+		join(import.meta.dir, "..", "..", "docs", "troubleshooting.md"),
+		"utf8",
+	);
+	expect(guide).toContain(`one starting with \`${AUDIT_PREFIX}\``);
+	expect(guide).toContain("DELIVERY_FACTORY_AUTHORS");
+});
