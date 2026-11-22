@@ -60,6 +60,10 @@ bun "$FACTORY_ROOT/scripts/routing-scorecard.ts" <routing-root> <run-id>
 bun "$FACTORY_ROOT/scripts/review-packet.ts" --ticket <file> --spec <change-dir> [--diff <file>] [--evidence <file>]... [--context <file>]... --out <file>
 bun "$FACTORY_ROOT/scripts/look-away-metrics.ts" <state-root> <run-id>
 bun "$FACTORY_ROOT/scripts/cost-review.ts" <repoRoot> <ledger.md>
+bun "$FACTORY_ROOT/scripts/transcript-cost.ts" <transcript.json>... [--json]
+bun "$FACTORY_ROOT/scripts/quiet-run.ts" <log-file> -- <command> [args...]
+bun "$FACTORY_ROOT/scripts/test-gate.ts" <command.json> <red|green> [--out <report.json>]
+bun "$FACTORY_ROOT/scripts/mcp-inventory.ts" fresh <repoRoot> [--max-age-hours <n>]
 ```
 
 `config.ts` prints the validated knobs, including `level`,
@@ -75,6 +79,30 @@ It flags three or more review rounds, three or more green gate runs, a packet
 of 60,000 characters or more, one kind of work holding half the measured
 tokens, cheaper shadow recommendations, and an unmeasured run. It never
 estimates a token figure and changes nothing.
+
+`transcript-cost.ts` reads exported session transcripts after a run, so it
+costs the run nothing. It reports where the main session's tool output went:
+file reads by area, searches, git, test and lint output, provider commands,
+and host tool listings, each as a share of all characters and as a share once
+every result counts again on each later step that re-sends it. It also counts
+re-reads of a file already read, reads of a factory script's source, whole-file
+reads over 350 lines, and host tool listings per session. It counts characters
+of tool output, not billed tokens, because a transcript does not record the
+system prompt, thinking, or the model's own output.
+
+Three habits keep that output small:
+
+- `forge-provider.ts`, `work-item-provider.ts`, `review-fanout.ts`, and
+  `forge-comments.ts` print every operation's input shape with `--help`, so
+  no session reads their source to learn how to call them.
+- `test-gate.ts --out <report.json>` keeps the full gate report, test output
+  included, in that file and prints a short summary. `quiet-run.ts` does the
+  same for lint, typecheck, and other long commands: it keeps the whole output
+  in a log, exits with the command's code, and prints only the lines that name
+  a failure and the end of the run.
+- `mcp-inventory.ts fresh` exits 0 when the recorded host-tool inventory is
+  under 12 hours old and not empty, so a run reuses it instead of listing every
+  host tool again.
 
 ## Review rounds
 
@@ -594,7 +622,9 @@ branch.
 ## Session tools
 
 `/delivery doctor` writes `.delivery/runtime/mcp-inventory.json` from the host
-tools visible in the current session. `mcp-route.ts` maps those tools onto the
+tools visible in the current session. A later run reuses it while
+`mcp-inventory.ts fresh` exits 0, and records it again when a planned host tool
+turns out to be missing or unauthenticated. `mcp-route.ts` maps those tools onto the
 portable forge and work-item operations. Authenticated session tools do not
 need the matching CLI binary or env token for the operations they cover.
 

@@ -257,6 +257,14 @@ the ledger found in Preconditions. It reads, for every key in the ledger:
   focused passes, green gate attempts, the largest subagent packet, and
   workers a script made unnecessary.
 
+When the host can export the run's session transcripts, also run
+`bun "${FACTORY_ROOT}/scripts/transcript-cost.ts" <transcript.json>...` on
+them. It reads them after the fact, so it costs the run nothing. It reports
+where each session's tool output went: file reads, searches, command and test
+output, re-reads of a file already read, reads of a factory script's source,
+and host tool listings. It counts characters of tool output, not billed
+tokens. When no transcript can be exported, say so and skip it.
+
 Present it in plain words, with no field names:
 
 - **Where the tokens went.** When measured figures exist, give the totals and

@@ -39,7 +39,7 @@ interface GlabDiscussion {
 	notes?: GlabNote[];
 }
 
-const DEFAULT_FACTORY_AUTHORS = ["factory", "delivery-bot"];
+export const DEFAULT_FACTORY_AUTHORS = ["factory", "delivery-bot"];
 const NOT_AN_ARRAY = "glab discussions payload is not a JSON array";
 const NOT_JSON = "glab discussions payload is not valid JSON";
 

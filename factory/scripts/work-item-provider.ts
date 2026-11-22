@@ -10,6 +10,7 @@ import {
 import { isAbsolute, join } from "node:path";
 import { z } from "zod";
 import { mappedColumns, readBoardMap } from "./board-map";
+import { helpText, isHelpRequest } from "./cli-help";
 import { loadMcpInventory } from "./mcp-inventory";
 import { mapMcpWorkItemResult } from "./mcp-normalize";
 import {
@@ -720,9 +721,34 @@ export async function runWorkItemOperation(options: {
 		: result;
 }
 
+export function workItemProviderHelp(operation?: string): string {
+	return helpText({
+		usage: [
+			"work-item-provider.ts <operation> <repository-root> <runtime-manifest> [input.json]",
+			"work-item-provider.ts plan <operation> <repository-root> <runtime-manifest> [input.json]",
+			"work-item-provider.ts normalize <operation> <provider> <raw.json> [input.json]",
+			"work-item-provider.ts --help [operation]",
+		],
+		inputs: Object.fromEntries(
+			WORK_ITEM_OPERATIONS.map((name) => [
+				name,
+				name === "list" ? null : operationSchema(name),
+			]),
+		),
+		notes: [
+			"A field marked ? is optional. auditId is lowercase letters, digits and . _ : - , starting with a letter or digit.",
+		],
+		operation,
+	});
+}
+
 if (import.meta.main) {
 	const [operation, repositoryRoot, manifestPath, inputPath] =
 		process.argv.slice(2);
+	if (isHelpRequest(process.argv.slice(2))) {
+		console.log(workItemProviderHelp(repositoryRoot));
+		process.exit(0);
+	}
 	try {
 		if (operation === "plan") {
 			const plannedOp = repositoryRoot as WorkItemOperation;

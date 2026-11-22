@@ -2,54 +2,25 @@
 
 This `factory/` directory is the portable delivery runtime: gate scripts,
 subagent prompts, and capability specs. The installer copies it beside the
-skills as `_factory/` so a host that can load skills can also resolve the
-runtime without a named product layout.
+skills as `_factory/`.
 
 ## Prerequisites
 
-The runtime is bounded. It needs:
+The runtime needs a writable target repository for `.delivery/` and
+`.review/`, subprocess execution for deterministic gates, an enforceable
+mutation boundary before mutating stages (read-only stages still run without
+it), and forge, tracker, or review-publication capabilities only when a stage
+reaches them. A missing capability stops with that gap, completed work intact,
+and a configuration remedy. Do not invent a tool the host did not expose.
 
-- A writable target repository for `.delivery/` and `.review/` artifacts.
-- Subprocess execution for deterministic gates. A text-only chat cannot run
-  tests, write ledgers, or enforce verdicts.
-- An enforceable mutation boundary before mutating stages. Read-only stages
-  remain available when that guard is absent; mutating stages stop closed.
-- Provider capabilities for forge, tracker, and review publication only when a
-  stage reaches those boundaries. A missing provider stops with completed work
-  intact.
-
-If a required capability is missing, stop with that gap and a configuration
-remedy. Do not invent a tool the host did not expose.
-
-When a step names a subagent and the host provides a subagent of that exact
-name, as a plugin install does, dispatch that subagent rather than a generic
-one carrying the prompt, so the host enforces the permissions it declares.
-Pass the model the step resolved.
-
-Every install writes `runtime-manifest.json` in this directory. The generic
-manifest is complete and fail closed; selected adapters and providers overlay
-only capabilities their setup can substantiate. Check the installation from
-inside the target repository:
-
-```
-bun "$FACTORY_ROOT/scripts/doctor.ts"
-bun "$FACTORY_ROOT/scripts/work-item-config.ts" options \
-  "$FACTORY_ROOT/runtime-manifest.json"
-bun "$FACTORY_ROOT/scripts/delivery-init.ts" --work-items <confirmed-provider-id>
-```
-
-Doctor reports ready capabilities, the repository's confirmed work-item
-provider, setup remedies, host limitations, and human-owned actions separately.
-It distinguishes read-only lifecycle from full lifecycle. Init persists that
-explicit provider choice, adds `.delivery/` and `.review/` to `.gitignore`
-once, and then reprints only unresolved doctor checks. It never infers a
-provider from remotes or credentials. The SDLC constitution
-(`SDLC-CONSTITUTION.md`) remains required on every run; a missing or mismatched
-constitution is a terminal stop. After plan approval, later stages also check
+Every install writes `runtime-manifest.json` here. Setup checks it from the
+target repository with `scripts/doctor.ts`, `scripts/work-item-config.ts
+options`, and `scripts/delivery-init.ts`; init never infers a provider from
+remotes or credentials. The SDLC constitution (`SDLC-CONSTITUTION.md`) is
+required on every run; a missing or mismatched constitution is a terminal
+stop, and `bun "$FACTORY_ROOT/scripts/sdlc-constitution.ts" preflight`
+verifies it alone. After plan approval, later stages also check
 `.delivery/runs/<id>.run-contract.json`.
-
-For constitution-only verification, run
-`bun "$FACTORY_ROOT/scripts/sdlc-constitution.ts" preflight`.
 
 ## Resolve FACTORY_ROOT
 
@@ -75,13 +46,33 @@ export FACTORY_ROOT='<resolved>'
 ```
 
 The gate scripts read this directory from `FACTORY_ROOT`, and fall back to the
-parent of `scripts/` when it is unset.
+parent of `scripts/` when it is unset. Read this file once per run.
+
+## Running factory scripts
+
+Learn a provider command's inputs with
+`bun "$FACTORY_ROOT/scripts/<command>.ts" --help`: `forge-provider`,
+`work-item-provider`, `review-fanout`, and `forge-comments` print every
+operation's input shape. Other scripts print their usage when run without
+arguments. Never read a script's source to learn how to call it. Read it only
+to diagnose a failure the script's own message does not explain.
+
+Run test gates with `test-gate.ts ... --out <report.json>`, which keeps the
+full report in that file and prints a short summary. Run lint, typecheck, and
+any other command whose full output you do not need with
+`bun "$FACTORY_ROOT/scripts/quiet-run.ts" <log-file> -- <command> [args...]`.
+It exits with the command's code and prints only the lines that name a
+failure and the end of the run. When that is not enough, read the log by line
+range rather than running the command again.
 
 ## Dispatching subagents
 
 Every factory skill loads `$FACTORY_ROOT/agents/<name>.md` and gives that
 prompt to the runtime's `agent.dispatch` capability. Do not invent a cheaper
-substitute prompt.
+substitute prompt. When a step names a subagent and the host provides a
+subagent of that exact name, as a plugin install does, dispatch that subagent
+rather than a generic one carrying the prompt, so the host enforces the
+permissions it declares. Pass the model the step resolved.
 
 For a continuous-delivery wave, `agent.dispatch` must support isolated mutating
 workers with an explicit cwd and environment. The conductor creates one git
@@ -93,12 +84,9 @@ commands. It must not silently execute an independent wave sequentially.
 
 ## Providers
 
-Stage invocations are identical on every conforming runtime. Native review
-commands, hooks, forge wrappers, tracker setup, and spec tooling live in
-optional adapters or providers selected during installation.
-
-Generic skills never call those wrappers. Change inspection and review
-publication use one command:
+Native review commands, hooks, forge wrappers, tracker setup, and spec tooling
+live in optional adapters or providers. Generic skills never call those
+wrappers. Change inspection and review publication use one command:
 
 ```
 bun "$FACTORY_ROOT/scripts/forge-provider.ts" <operation> <repoRoot> \
@@ -124,10 +112,16 @@ Work items use the same plan/normalize pair on
 `scripts/work-item-provider.ts`, including the original input file when
 normalizing a mutation. A create, link, or note returns a receipt; read the
 affected item afterwards when later decisions need its current fields or
-dependencies. Record available host tools at doctor and at
-the start of a run with `scripts/mcp-inventory.ts`. Never call a host tool that
-the plan did not name. Never call a tool that merges, closes, approves, deletes,
-resolves threads, or transitions work-item status.
+dependencies. Never call a host tool that the plan did not name. Never call a
+tool that merges, closes, approves, deletes, resolves threads, or transitions
+work-item status.
+
+Host tools are recorded in `.delivery/runtime/mcp-inventory.json` with
+`scripts/mcp-inventory.ts`. Doctor always records them. At the start of a run,
+first run `bun "$FACTORY_ROOT/scripts/mcp-inventory.ts" fresh "<repoRoot>"`.
+Exit 0 means the recorded inventory is recent: reuse it and do not list the
+host's tools again. Otherwise record them. When a planned host tool turns out
+to be missing or unauthenticated, record the inventory again and plan again.
 
 After a normalized `read`, include its exact full head revision as
 `headRevision` in every `files`, `diff`, `commits`, `discussions`, and
@@ -136,24 +130,26 @@ of being labelled with a placeholder.
 
 Operations are `find`, `read`, `pipeline`, `files`, `diff`, `commits`, `discussions`,
 `anchors`, `approvals`, `create`, `set-draft`, `note`, `reply`, `land`, `failures`, and `retry`.
-Inputs are JSON files.
-`note` and `reply` name a body file under the target repository's `.review/`
-directory; the command checks that path before any adapter. Mutations require
-`"approved": true`. A dry-run uses `"dryRun": true` and must not set
-`"approved": true`. The interface does not expose merge, close, delete,
-approve, or thread resolution; humans own those actions. The one exception is
-`land`: inside a continuous auto run it squash-merges a change only after its
-own gate holds (see `skills/delivery/workflows/auto.md`). It runs only through
-the executable adapter, never through session tools. `retry` is gated the same
-way: it reruns a failed pipeline once, only when every failed job is known
-infrastructure and the run contract allows it (see
-`skills/delivery/workflows/pipeline-monitoring.md`). `failures` reads the failed
-jobs it decides from.
+Inputs are JSON files. `note` and `reply` name a body file under the target
+repository's `.review/` directory; the command checks that path before any
+adapter. Mutations require `"approved": true`. A dry-run uses `"dryRun": true`
+and must not set `"approved": true`. The interface does not expose merge,
+close, delete, approve, or thread resolution; humans own those actions. The
+one exception is `land`: inside a continuous auto run it squash-merges a
+change only after its own gate holds (see `skills/delivery/workflows/auto.md`).
+It runs only through the executable adapter, never through session tools.
+`retry` is gated the same way: it reruns a failed pipeline once, only when
+every failed job is known infrastructure and the run contract allows it (see
+`skills/delivery/workflows/pipeline-monitoring.md`). `failures` reads the
+failed jobs it decides from.
 
 `forge.change` and `review.publish` must advertise the same provider. A
 missing, mismatched, or failed capability is a terminal stop with a
 configuration remedy. Session tools may satisfy those capabilities when the
 recorded inventory maps every required operation.
+
+When a stage fans out review lenses, read
+`$FACTORY_ROOT/reference/review-fanout.md` first.
 
 ## Runtime model inventory
 
@@ -172,92 +168,17 @@ current session may use. At the start of a factory run:
    runtime cannot override models.
 4. A missing model for the required tier is a terminal capability failure. Do
    not silently choose a model from another tier.
-5. Unpromoted `fast` candidates are `evaluation-only`. They may be
-   resolved with `--evaluation` for corpus benchmarking. Register a new
-   exact id with `model-catalogue.ts register-fast <id>`. Promote with
-   `fast-dispatch.ts promote <corpus> <id> --approve <id>`. Live delivery
-   may resolve `muse-spark-1.3-medium` and `haiku` without `--evaluation`.
-   When the inventory names an alias, resolve returns that advertised id
-   so the host can dispatch it. Composer stays evaluation-only. A later
-   version id does not inherit scores.
-   `fast-dispatch.ts` still gates the exact candidate and task class on
-   representative-run scores. Live scores are never mixed into that
-   sample. Fewer than five cases, a mean below the 90 percent bar, or any
-   critical miss keeps an unpromoted model evaluation-only. Named safety
-   floors block auth, migration, concurrency, distributed-state,
-   weak-verification, and holdout work even after the bar clears. Passing
-   evidence does not change live availability without an exact operator
-   promotion approval naming that candidate. A classified mechanical-edit may
-   be scored for later graduation. The command classifies it with
-   `mechanical-edit.ts` and applies proven TypeScript, JavaScript, Python, Java, Go, C#, and Kotlin
-   rename, import-only, and format-only units with `apply-mechanical-edit.ts`,
-   including a unique Python parameter or local, a unique Java field, a Java
-   type whose listed file name matches, a unique TypeScript, Python, Java, Go, C#, or Kotlin missing import, and
-   a repo Prettier, Ruff, or google-java-format binary, the Go standard formatter, repo-local `bin/csharpier`, `bin/ktfmt`, `bin/rustfmt`, `bin/php-format`, or `bin/swift-format` when names and literals
-   stay identical.
-   Units the scripts cannot prove are listed in `mechanical-edit-scoring.ts`
-   for representative scoring only. `mechanical-edit-test-repos.ts`
-   materializes those fixtures as git test repositories and writes paired
-   corpus files to a caller directory. A local stand-in rewrite is
-   `test-repo-stand-in` evidence and is not counted.
-   `mechanical-edit-model-runs.ts` prepare/ingest scores captured baseline
-   and candidate trees as `model-run` evidence for an exact fast catalogue
-   candidate. It requires host tokens, named workers, and hidden checks,
-   and refuses a non-fast model and character-only usage. The host must
-   accept that exact id as a dispatchable model before the candidate arm.
-   Inventory membership and `--evaluation` resolve are not a run. A
-   refused host id writes no corpus scores and does not promote.
-   It never asks the
-   implementer whether the work is menial. Public rankings and unscored fixtures never promote.
-   `record-routing.ts persist` requires an explicit outcome
-   file validated against the outcome schema. A missing or invalid outcome is
-   refused and writes nothing; it is never stored as a successful result.
-   `record-skip.ts persist` records each scripted skipped worker under the
-   same run. The scorecard counts those skips and never estimates tokens saved.
-   Skip recording still runs when diagnostic profiling is off.
-   `generate-tasks.ts` writes `tasks.md` from delta spec scenarios after
-   `/draft` authors the specs. A spec with no scenarios fails closed.
-   Usage files come from `capture-usage.ts`: start a timer before the worker,
-   finish after the outcome exists, overlay host tokens and cost only from a
-   host-written file, and otherwise record character counts of named artifacts.
-   Invalid usage is refused the same way as an invalid outcome. Scored
-   corpus entries record utility and critical misses for one exact candidate and
-   task class. Promotion reports keep `live` and `representative-run` evidence in
-   separate groups and never pool them.
+5. Unpromoted `fast` candidates are `evaluation-only`. Never dispatch one in
+   live delivery. To evaluate, register, or promote a fast model, score a
+   mechanical edit, or record routing evidence, read
+   `$FACTORY_ROOT/reference/model-evaluation.md`.
 
 Diagnostic shadow profiling is opt-in. Read `routingProfiling` from
 `bun "$FACTORY_ROOT/scripts/config.ts"`; it defaults to `off` and is enabled
 only when `ROUTING_PROFILING=always`. In `off` mode, skip the
 `task-profile-controller` call and its dependent usage, persistence, and
 scorecard telemetry. Live model selection, implementation, holdout review of
-new or changed code, and every quality gate remain unchanged. In `always`
-mode, persist profiles and shadow recommendations as evaluation evidence.
-A cheaper shadow recommendation is recorded, never dispatched.
-
-Independently adjudicated `/code-review-max` lenses use the resolved
-`standard` model. Release-readiness lens subagents resolve that same
-`standard` capability and pass the exact identifier; `review-fanout.ts readiness`
-skips those subagents on an empty or proven small reversible measured diff.
-The main conversation still decides GO or NO-GO. Fast-tier models do not run
-those lenses. Write measured counts and surfaces to
-`.review/mr-<iid>/<full-head-sha>/review-fanout-input.json`, then run
-`bun "$FACTORY_ROOT/scripts/review-fanout.ts" <that file>`. The returned
-`lenses` array is authoritative. An empty `lenses` array means no reviewable code; do not dispatch
-review-lens subagents. A small reversible change, or a contained one
-(reversible, at most 6 files and under 400 lines, no sensitive surface or
-dependency change), runs two essential lenses; larger, one-way, sensitive, or
-unknown classification runs all four.
-Invalid input is a terminal stop. Counts come from
-`review-fanout.ts measure <base> <head>`, which leaves out OpenSpec and
-delivery artefacts. `review-fanout.ts adjudication <candidates.json>` decides
-who verifies the lens candidates: nobody when there are none, one standard-tier
-subagent when all are Low, and the main conversation when any is Medium or
-above.
-
-Surfaces, one-way signals, and lowered-bar hits start from
-`bun "$FACTORY_ROOT/scripts/diff-scan.ts" <base> <head>`, used by
-`/code-review-max` and release readiness. Its marks are a floor that the model
-may add to and never remove. A non-zero exit stops the stage.
+new or changed code, and every quality gate remain unchanged.
 
 The catalogue is ordered policy. Runtime availability chooses among catalogue
 candidates; it never lowers safety floors.
