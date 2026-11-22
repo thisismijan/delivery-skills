@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+	LARGE_READ_LINES,
 	TRANSCRIPT_COST_INVOCATION,
 	formatSummary,
 	packSkillNames,
@@ -167,4 +168,12 @@ test("the retro's token-cost step runs it on exported transcripts and says what 
 	expect(flat).toContain(
 		"When no transcript can be exported, say so and skip it.",
 	);
+});
+
+test("the reference guide states the large-read threshold the script uses", () => {
+	const guide = readFileSync(
+		join(import.meta.dir, "..", "..", "docs", "reference.md"),
+		"utf8",
+	).replace(/\s+/g, " ");
+	expect(guide).toContain(`whole-file reads over ${LARGE_READ_LINES} lines`);
 });

@@ -840,7 +840,10 @@ ambiguous match stops the run instead of guessing.
   does not invent algorithmic depth when the change had none. It also shows
   where the tokens went, measured when the run recorded usage and otherwise by
   cost drivers such as review rounds, repairs, and packet size, and lists
-  savings to consider. A saving never removes or weakens a gate or a review.
+  savings to consider. When the host can export the run's session
+  transcripts, it also shows where each session's tool output went: file
+  reads, re-reads, test and command output, and host tool listings. A saving
+  never removes or weakens a gate or a review.
 
 ## Artifacts
 

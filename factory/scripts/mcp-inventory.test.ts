@@ -100,3 +100,12 @@ test("fresh exits zero only for a reusable inventory, and a malformed one is rec
 		await rm(root, { recursive: true, force: true });
 	}
 });
+
+test("the reference guide states the reuse age the command uses", async () => {
+	const guide = await Bun.file(
+		join(import.meta.dir, "..", "..", "docs", "reference.md"),
+	).text();
+	expect(guide.replace(/\s+/g, " ")).toContain(
+		`under ${DEFAULT_INVENTORY_MAX_AGE_HOURS} hours old`,
+	);
+});
