@@ -1,0 +1,10 @@
+{
+  "file": "src/fees.ts",
+  "spec": "Fees are the amount times the currency's rate, rounded half up to a whole minor unit. A discount never makes a total negative. An empty amount counts as zero.",
+  "candidates": [
+    { "id": "C1", "claim": "roundFee truncates instead of rounding half up, so a fee of 2.5 becomes 2." },
+    { "id": "C2", "claim": "applyDiscount can return a negative total when the discount is larger than the total." },
+    { "id": "C3", "claim": "parseAmount throws on an empty string instead of returning zero." },
+    { "id": "C4", "claim": "feeFor silently charges the GBP rate for an unknown currency." }
+  ]
+}
