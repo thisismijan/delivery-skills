@@ -4,11 +4,6 @@
 		"frontier": {
 			"candidates": [
 				{
-					"id": "muse-wonder-1.0-high",
-					"availability": "live",
-					"family": "muse"
-				},
-				{
 					"id": "claude-opus-5-5-high",
 					"availability": "live",
 					"family": "claude"
@@ -22,6 +17,11 @@
 					"id": "opus",
 					"availability": "live",
 					"family": "claude"
+				},
+				{
+					"id": "muse-wonder-1.0-high",
+					"availability": "live",
+					"family": "muse"
 				}
 			],
 			"purpose": "routing, architecture, high-risk reasoning, and adjudication"
