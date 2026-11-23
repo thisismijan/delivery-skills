@@ -19,6 +19,11 @@
 					"family": "claude"
 				},
 				{
+					"id": "gemini-4-neon-xhigh",
+					"availability": "live",
+					"family": "gemini"
+				},
+				{
 					"id": "muse-wonder-1.0-high",
 					"availability": "live",
 					"family": "muse"

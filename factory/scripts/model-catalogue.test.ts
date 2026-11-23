@@ -45,9 +45,33 @@ test("the resolver chooses the first frontier model the runtime advertises", asy
 	expect(
 		resolveAvailableModel(catalogue, "frontier", {
 			...inventory,
+			models: [
+				"claude-sonnet-5-5-medium",
+				"muse-wonder-1.0-high",
+				"gemini-4-neon-xhigh",
+			],
+		}).model,
+	).toBe("gemini-4-neon-xhigh");
+	expect(
+		resolveAvailableModel(catalogue, "frontier", {
+			...inventory,
 			models: ["claude-sonnet-5-5-medium", "muse-wonder-1.0-high"],
 		}).model,
 	).toBe("muse-wonder-1.0-high");
+});
+
+test("frontier work prefers Claude, then Gemini 4 Neon xhigh, then Muse Wonder", async () => {
+	const catalogue = await loadModelCatalogue();
+	const order = catalogue.tiers.frontier.candidates.map(
+		(candidate) => candidate.id,
+	);
+	expect(order.indexOf("claude-opus-5-5-high")).toBe(0);
+	expect(order.indexOf("gemini-4-neon-xhigh")).toBeGreaterThan(
+		order.indexOf("opus"),
+	);
+	expect(order.indexOf("gemini-4-neon-xhigh")).toBeLessThan(
+		order.indexOf("muse-wonder-1.0-high"),
+	);
 });
 
 test("the resolver falls through when the first frontier candidate is unavailable", async () => {
