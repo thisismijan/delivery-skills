@@ -132,3 +132,22 @@ test("the webhook fixture scores its three planted gaps, the decoy, and five can
 		scoreFrontierAnswer(JSON.stringify(missing), "m", "webhook").criticalMisses,
 	).toBe(3);
 });
+
+test("a race described as a retry arriving while the first delivery is still executing counts as found", () => {
+	const answer = structuredClone(webhookPerfect);
+	answer.approach.gaps[0] = {
+		case: "A retried delivery of the same payment event arrives while the first delivery is still executing in the 8-worker queue, so both deliveries miss the pre-handler in-memory Set check and execute the handler twice.",
+		evidence: "src/queue.ts:8,12-13,20-27; src/webhook.ts:12",
+	};
+	const score = scoreFrontierAnswer(JSON.stringify(answer), "m", "webhook");
+	expect(score.criticalMisses).toBe(0);
+	const unrelated = structuredClone(webhookPerfect);
+	unrelated.approach.gaps[0] = {
+		case: "The handler logs too much",
+		evidence: "src/webhook.ts:12",
+	};
+	expect(
+		scoreFrontierAnswer(JSON.stringify(unrelated), "m", "webhook")
+			.criticalMisses,
+	).toBe(1);
+});

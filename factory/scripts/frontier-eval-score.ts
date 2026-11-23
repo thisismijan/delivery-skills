@@ -82,7 +82,7 @@ const KEYS: Record<FrontierFixture, AnswerKey> = {
 			{
 				id: "approach-finds-concurrent-duplicate-race",
 				found: (gap) =>
-					/concurren|race|in parallel|simultaneous|at the same time|at once|overlap/i.test(
+					/concurren|race|in parallel|simultaneous|at the same time|at once|overlap|while (the )?(first|earlier|original)[^.]*still|still (running|executing|in flight|being handled)/i.test(
 						text(gap),
 					) && /src\/(queue|webhook)\.ts/.test(gap.evidence),
 			},
