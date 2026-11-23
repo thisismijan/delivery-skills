@@ -1,0 +1,83 @@
+{
+	"version": 3,
+	"tiers": {
+		"frontier": {
+			"candidates": [
+				{
+					"id": "gpt-5.6-terra-high",
+					"availability": "live",
+					"family": "gpt"
+				},
+				{
+					"id": "claude-opus-5-5-high",
+					"availability": "live",
+					"family": "claude"
+				},
+				{
+					"id": "claude-opus-4-8-thinking-high",
+					"availability": "live",
+					"family": "claude"
+				},
+				{
+					"id": "opus",
+					"availability": "live",
+					"family": "claude"
+				},
+				{
+					"id": "gemini-4-neon-xhigh",
+					"availability": "live",
+					"family": "gemini"
+				},
+				{
+					"id": "muse-wonder-1.0-high",
+					"availability": "live",
+					"family": "muse"
+				}
+			],
+			"purpose": "routing, architecture, high-risk reasoning, and adjudication"
+		},
+		"standard": {
+			"candidates": [
+				{
+					"id": "claude-sonnet-5-5-medium",
+					"availability": "live",
+					"family": "claude"
+				},
+				{
+					"id": "gemini-4-argon-medium",
+					"availability": "live",
+					"family": "gemini"
+				},
+				{
+					"id": "sonnet",
+					"availability": "live",
+					"family": "claude"
+				}
+			],
+			"purpose": "ordinary implementation and bounded reasoning"
+		},
+		"fast": {
+			"candidates": [
+				{
+					"id": "muse-spark-1.3-medium",
+					"availability": "live",
+					"family": "muse"
+				},
+				{
+					"id": "composer-1",
+					"availability": "evaluation-only",
+					"family": "composer"
+				},
+				{
+					"id": "haiku",
+					"availability": "live",
+					"aliases": [
+						"claude-haiku-5-5-medium"
+					],
+					"family": "claude"
+				}
+			],
+			"purpose": "mechanical and strongly verified work"
+		}
+	}
+}

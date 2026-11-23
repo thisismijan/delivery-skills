@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "candidateId": "frontier-claude-opus-4-8-thinking-high",
+  "intendedEffect": "worker-selection",
+  "model": "frontier-tier",
+  "timeoutMs": 1800000,
+  "fixed": {
+    "taskFixture": "controls/fixture",
+    "environment": "controls/environment.md",
+    "allowedContext": [
+      "controls/task.md",
+      "controls/approach-challenger.md"
+    ],
+    "tools": "controls/tools.md",
+    "outputContract": "controls/output-contract.md"
+  },
+  "hiddenChecks": {
+    "available": true
+  },
+  "mutation": {
+    "required": false,
+    "reason": "Read-only frontier roles produce verdicts, not code, so there is nothing to mutate."
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "baseline": {
+        "managedTree": "arms/claude-opus-5-5-high",
+        "usage": "baseline/1/usage.json",
+        "result": "baseline/1/result.json",
+        "outputs": [
+          "baseline/1/answer.json"
+        ]
+      },
+      "candidate": {
+        "managedTree": "arms/claude-opus-4-8-thinking-high",
+        "usage": "runs/claude-opus-4-8-thinking-high/1/usage.json",
+        "result": "runs/claude-opus-4-8-thinking-high/1/result.json",
+        "outputs": [
+          "runs/claude-opus-4-8-thinking-high/1/answer.json"
+        ]
+      }
+    },
+    {
+      "order": "candidate-first",
+      "baseline": {
+        "managedTree": "arms/claude-opus-5-5-high",
+        "usage": "baseline/2/usage.json",
+        "result": "baseline/2/result.json",
+        "outputs": [
+          "baseline/2/answer.json"
+        ]
+      },
+      "candidate": {
+        "managedTree": "arms/claude-opus-4-8-thinking-high",
+        "usage": "runs/claude-opus-4-8-thinking-high/2/usage.json",
+        "result": "runs/claude-opus-4-8-thinking-high/2/result.json",
+        "outputs": [
+          "runs/claude-opus-4-8-thinking-high/2/answer.json"
+        ]
+      }
+    },
+    {
+      "order": "baseline-first",
+      "baseline": {
+        "managedTree": "arms/claude-opus-5-5-high",
+        "usage": "baseline/3/usage.json",
+        "result": "baseline/3/result.json",
+        "outputs": [
+          "baseline/3/answer.json"
+        ]
+      },
+      "candidate": {
+        "managedTree": "arms/claude-opus-4-8-thinking-high",
+        "usage": "runs/claude-opus-4-8-thinking-high/3/usage.json",
+        "result": "runs/claude-opus-4-8-thinking-high/3/result.json",
+        "outputs": [
+          "runs/claude-opus-4-8-thinking-high/3/answer.json"
+        ]
+      }
+    }
+  ]
+}

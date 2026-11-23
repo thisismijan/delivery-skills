@@ -1,0 +1,41 @@
+{
+  "candidateId": "frontier-composer-2.5",
+  "decision": "fail",
+  "passed": false,
+  "runsPerArm": 3,
+  "extendToRunsPerArm": null,
+  "relativeUtility": 1,
+  "pairsClearingBar": 3,
+  "signTestP": 0.125,
+  "criticalMisses": 1,
+  "reasons": [
+    "run 2: candidate has 1 Critical miss(es)",
+    "run 2: candidate passed 11/12 required checks"
+  ],
+  "efficiency": {
+    "usageUnit": "characters",
+    "inputDelta": 3597,
+    "outputDelta": -1832,
+    "costUsdDelta": null,
+    "wallTimeMsDelta": -17517,
+    "repairAttemptsDelta": 0,
+    "deliveredCodeBytesDelta": -1913
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    },
+    {
+      "order": "candidate-first",
+      "relativeUtility": 0.9166666666666666,
+      "passed": true
+    },
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    }
+  ]
+}

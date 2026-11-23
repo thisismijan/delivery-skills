@@ -1,0 +1,38 @@
+{
+  "candidateId": "frontier-claude-4.6-opus-high-thinking",
+  "decision": "pass",
+  "passed": true,
+  "runsPerArm": 3,
+  "extendToRunsPerArm": null,
+  "relativeUtility": 1,
+  "pairsClearingBar": 3,
+  "signTestP": 0.125,
+  "criticalMisses": 0,
+  "reasons": [],
+  "efficiency": {
+    "usageUnit": "characters",
+    "inputDelta": 11,
+    "outputDelta": -1359,
+    "costUsdDelta": null,
+    "wallTimeMsDelta": 28707,
+    "repairAttemptsDelta": 0,
+    "deliveredCodeBytesDelta": -1345
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    },
+    {
+      "order": "candidate-first",
+      "relativeUtility": 1,
+      "passed": true
+    },
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    }
+  ]
+}
