@@ -20,6 +20,14 @@ The answer key lives only in `scripts/frontier-eval-score.ts`, which the
 model under test never sees. Missing a planted gap, or rejecting a real bug,
 is a critical miss.
 
+`webhook/` is the harder fixture: a webhook de-duplication plan with three
+planted gaps (two deliveries racing through an eight-job queue, a
+de-duplication key from a header the signature does not cover, and a refund
+handler registered under an event name the provider never sends) and a decoy
+(the code runs one instance, so a multi-process concern is a false alarm). Its
+adjudication has five findings about `src/ledger.ts`, two of them real. Its
+answer key was committed before any run.
+
 ## Running it
 
 For each run, copy `fixture/`, `task.md`, `output-contract.md`, and
@@ -66,3 +74,28 @@ fixture came back unchanged.
 - **Efficiency:** wall time was taken when each result reached the
   coordinator, so it is approximate; Gemini's runs finished about 48 seconds
   later. Usage is in characters, not tokens, so cost was not measured.
+
+### 2026-11-23: the harder webhook fixture, five runs per arm
+
+Ten runs, started together at 17:32 UTC. Every run's copy came back
+unchanged.
+
+- **Evaluator decision under the key committed before the runs: fail.** One
+  Gemini run (run 5) had a critical miss on the race. Every other check passed
+  on every run in both arms: the median utility ratio is 1.0 and all five
+  pairs clear the 90 percent bar.
+- **That miss is a scorer error.** Run 5 wrote "a retried delivery arrives
+  while the first delivery is still executing in the 8-worker queue, so both
+  deliveries miss the in-memory Set check and execute the handler twice". That
+  is the race, in words the key did not match. The matcher was widened after
+  the runs to accept "while the first ... still" and "still executing", with a
+  test, and it changes no other score in either arm.
+- **Re-scored with that matcher (labelled, beside the official result):
+  pass,** with no critical misses.
+- **Both models found the replayable unsigned header on every run,** unlike
+  the first fixture. Both also raised real problems that were not planted: a
+  crash between the handler and the record, an empty-header collision, and an
+  acknowledgement sent before processing.
+- **Efficiency:** Gemini's runs finished about 3.3 minutes later on average,
+  and its answers were longer. Wall times are approximate. Cost was not
+  measured.

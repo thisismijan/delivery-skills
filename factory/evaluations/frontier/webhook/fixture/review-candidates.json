@@ -1,0 +1,11 @@
+{
+  "file": "src/ledger.ts",
+  "spec": "Money is held in whole minor units. A transfer never overdraws the source account, even when transfers run at the same time, and never moves money between currencies. The refunds on a charge never add up to more than the charge. An adjustment is rounded half away from zero, so 2.5 becomes 3 and -2.5 becomes -3.",
+  "candidates": [
+    { "id": "C1", "claim": "total adds amounts as floating-point numbers, so sums of many amounts drift by fractions of a minor unit." },
+    { "id": "C2", "claim": "transfer can overdraw the source account when two transfers from it run at the same time, because the balance check and the debit are separate steps." },
+    { "id": "C3", "claim": "refund lets the refunds on a charge add up to more than the charge, because it compares each refund only with the charge amount." },
+    { "id": "C4", "claim": "transfer moves money between accounts in different currencies without any check." },
+    { "id": "C5", "claim": "roundAdjustment rounds -2.5 to -2, not -3, because Math.round rounds halves toward positive infinity." }
+  ]
+}
