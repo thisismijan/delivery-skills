@@ -73,6 +73,7 @@ describe("checkCapabilities", () => {
         "address",
         "review",
         "ship",
+        "walkthrough",
         "archive",
         "verify",
         "auto",

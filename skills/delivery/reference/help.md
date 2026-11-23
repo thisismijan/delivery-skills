@@ -17,6 +17,7 @@ Run in the **target repo** cwd with this delivery pack loaded. This is everythin
 /delivery review <iid> [KEY]         # code review + MR review
 /delivery address <KEY>              # address review comments
 /delivery ship <iid>                 # go/no-go brief with rollback plan
+/delivery walkthrough <iid>          # optional: check you understand it before merging
 # you: approve the MR (auto lands it once green) or merge it yourself
 /delivery archive <KEY>              # archive the OpenSpec change
 /delivery verify <iid>               # check it on the deployed environment

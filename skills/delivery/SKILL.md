@@ -45,9 +45,8 @@ the one for the stage you are about to run.
 
 ## Phase 0 — Entry detection
 
-Classify the skill arguments (trim whitespace). Rows are checked top to
-bottom and the first match wins, so verb rows win over the bare-key and
-bare-iid rows.
+Classify the trimmed skill arguments. The first matching row wins, so verb
+rows win over the bare-key and bare-iid rows.
 
 First take one optional level word, `min`, `standard`, or `max`, from the
 first position or right after the verb. The rows below match what is left. A level anywhere
@@ -69,6 +68,7 @@ existing run keeps its recorded level and a new run is `standard`. See
 | `^review\s+\d+(\s+\S+)?$` | Review | Stage 3 |
 | `^address\s+\S+$` | Address comments | Stage 3, address-comments only |
 | `^ship\s+\d+$` | Release readiness | Stage 4 |
+| `^walkthrough\s+\d+$` | Walkthrough | Operator questions, read-only |
 | `^archive\s+[A-Za-z0-9-]+$` | Archive | Archive one OpenSpec change |
 | `^verify\s+\d+$` | Post-merge verify | Stage 5 |
 | `^retro\s+\S+$` | Retro (work item or group) | Stage 6 |
@@ -82,8 +82,7 @@ existing run keeps its recorded level and a new run is `standard`. See
 | Empty / absent | Help | The cheat-sheet, then the one question `reference/help.md` names |
 
 Before you start a bare-key or prose entry, apply **Routing checks** in
-`reference/entries.md`. If ambiguous (e.g. "740" meaning a ticket in a numeric-only project), ask once.
-Recommended default: pure digits = MR iid.
+`reference/entries.md`. If ambiguous, ask once; pure digits default to an MR iid.
 
 A first token that is a command word, is not a known verb, and is followed by
 nothing, a ticket key, or an MR iid, is unknown. After Phase 1 reconciles the
@@ -208,7 +207,7 @@ does not run; stop with the capability, the stages it blocks, and its fix.
 | Stage specs | The bundled file resolves | The stage that reads it | Reinstall this delivery-skills version |
 | Factory | `/groom`, `/draft`, `/execute`, `/address-comments` resolve, and the runtime selected by `RUNTIME.md` finds `scripts/find-change.ts` | groom, draft, execute, address | Install delivery-skills with `./install.sh --skills-dir <path>`. Do not load a second factory pack in the same session |
 | Review commands | `/code-review-max` and `/mr-review` are available. Change reads and note publication use `scripts/forge-provider.ts`. A lightweight built-in review does not count | review | Run `./install.sh`. Confirm `forge.change` and `review.publish` on the runtime manifest |
-| Forge | `scripts/forge-provider.ts` `read` succeeds against the runtime manifest. A configured forge credential is enough | draft, execute, address, review, ship, archive, verify, auto | Configure the forge provider advertised by the runtime |
+| Forge | `scripts/forge-provider.ts` `read` succeeds against the runtime manifest. A configured forge credential is enough | draft, execute, address, review, ship, walkthrough, archive, verify, auto | Configure the forge provider advertised by the runtime |
 | Work items | `work-item-config.ts check` validates the confirmed repository provider. Local files require no remote capability. A remote provider must pass a real work-item read; a failed read or result with no key stops. Continuous delivery additionally probes create and link with no write before plan approval | triage, draft, discover, retro, auto | Confirm `local-files` or configure and confirm the exact remote or custom provider advertised by the runtime |
 | Spec tool | The selected spec provider's version probe succeeds | draft, execute, archive | Install and configure the selected spec provider |
 | Deployed environment | The environment's hostnames resolve and answer | verify | Run verify on a machine on the internal network, such as the operator's self-hosted worker |
