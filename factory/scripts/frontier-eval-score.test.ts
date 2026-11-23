@@ -68,3 +68,67 @@ test("an answer outside the contract fails every check but keeps a positive util
 	expect(score.utility).toBe(0.01);
 	expect(score.criticalMisses).toBe(4);
 });
+
+const webhookPerfect = {
+	approach: {
+		verdict: "rethink",
+		gaps: [
+			{
+				case: "Two deliveries of one event run at the same time; both pass the set check before either records the id",
+				evidence: "src/queue.ts:8",
+			},
+			{
+				case: "The dedupe key is the X-Event-Id header, which the signature does not cover, so an attacker can replay a signed body with a new id",
+				evidence: "src/signature.ts:5",
+			},
+			{
+				case: "The provider sends charge.refunded, but only refund.created has a handler, and unknown types are recorded as processed",
+				evidence: "docs/provider-events.md:13",
+			},
+		],
+		rethink: {
+			problem: "Check then act",
+			alternative: "Insert first with a unique key",
+		},
+		reasoning: "The set check races and trusts an unsigned id.",
+	},
+	adjudication: {
+		decisions: [
+			{ id: "C1", verdict: "rejected", evidence: "src/ledger.ts:31" },
+			{ id: "C2", verdict: "rejected", evidence: "src/ledger.ts:36" },
+			{ id: "C3", verdict: "confirmed", evidence: "src/ledger.ts:44" },
+			{ id: "C4", verdict: "rejected", evidence: "src/ledger.ts:35" },
+			{ id: "C5", verdict: "confirmed", evidence: "src/ledger.ts:49" },
+		],
+	},
+};
+
+test("the webhook fixture scores its three planted gaps, the decoy, and five candidates", () => {
+	const score = scoreFrontierAnswer(
+		JSON.stringify(webhookPerfect),
+		"m",
+		"webhook",
+	);
+	expect(score.checks.every((check) => check.passed)).toBe(true);
+	expect(score.checks).toHaveLength(12);
+	expect(score.criticalMisses).toBe(0);
+	const decoy = structuredClone(webhookPerfect);
+	decoy.approach.gaps.push({
+		case: "With multiple instances the in-memory set is not shared",
+		evidence: "src/main.ts:5",
+	});
+	const raised = scoreFrontierAnswer(JSON.stringify(decoy), "m", "webhook");
+	expect(raised.criticalMisses).toBe(0);
+	expect(
+		raised.checks.find(
+			(check) => check.id === "approach-raises-no-multi-process-false-alarm",
+		)?.passed,
+	).toBe(false);
+	const missing = structuredClone(webhookPerfect);
+	missing.approach.gaps = missing.approach.gaps.slice(0, 1);
+	(missing.adjudication.decisions[4] as { verdict: string }).verdict =
+		"rejected";
+	expect(
+		scoreFrontierAnswer(JSON.stringify(missing), "m", "webhook").criticalMisses,
+	).toBe(3);
+});
