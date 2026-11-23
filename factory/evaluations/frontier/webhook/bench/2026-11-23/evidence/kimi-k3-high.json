@@ -1,0 +1,545 @@
+{
+  "version": 2,
+  "candidateId": "frontier-kimi-k3-high",
+  "intendedEffect": "worker-selection",
+  "hiddenChecks": {
+    "available": true
+  },
+  "mutation": {
+    "required": false,
+    "reason": "Read-only frontier roles produce verdicts, not code, so there is nothing to mutate."
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "baseline": {
+        "controls": {
+          "taskFixtureHash": "7ea594a6c2d88b4a3e5f1d0f24422cedd64f83526dd0da0e79ea3f0a55c09113",
+          "model": "frontier-tier",
+          "environmentHash": "bf4a4853f04d4cee74f452d1d5deda824730568d6570f375d63d57847e3c0f2d",
+          "allowedContextHash": "d74b03ed12c6f861562f4b012bfb2a58b7507be62a33730f0a554d992e022311",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "72ad2ca401f7b443ddbffe41a0bc9c7f56ed122650dd4bc0b6580917457c3dd0",
+        "selectedWorkerModel": "claude-opus-5-5-high",
+        "utility": 1,
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-concurrent-duplicate-race",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-unsigned-event-id-header",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-refund-event-name-mismatch",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-multi-process-false-alarm",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-ledger",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 17991,
+            "output": 3455
+          },
+          "wallTimeMs": 37060,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 3456
+        }
+      },
+      "candidate": {
+        "controls": {
+          "taskFixtureHash": "7ea594a6c2d88b4a3e5f1d0f24422cedd64f83526dd0da0e79ea3f0a55c09113",
+          "model": "frontier-tier",
+          "environmentHash": "bf4a4853f04d4cee74f452d1d5deda824730568d6570f375d63d57847e3c0f2d",
+          "allowedContextHash": "d74b03ed12c6f861562f4b012bfb2a58b7507be62a33730f0a554d992e022311",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "beb84c294ed2e733fd21d36dd6a0794c61df3d0a454bba7a3090464b2363706a",
+        "selectedWorkerModel": "kimi-k3-high",
+        "utility": 1,
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-concurrent-duplicate-race",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-unsigned-event-id-header",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-refund-event-name-mismatch",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-multi-process-false-alarm",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-ledger",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 17985,
+            "output": 3705
+          },
+          "wallTimeMs": 50030,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 3710
+        }
+      }
+    },
+    {
+      "order": "candidate-first",
+      "baseline": {
+        "controls": {
+          "taskFixtureHash": "7ea594a6c2d88b4a3e5f1d0f24422cedd64f83526dd0da0e79ea3f0a55c09113",
+          "model": "frontier-tier",
+          "environmentHash": "bf4a4853f04d4cee74f452d1d5deda824730568d6570f375d63d57847e3c0f2d",
+          "allowedContextHash": "d74b03ed12c6f861562f4b012bfb2a58b7507be62a33730f0a554d992e022311",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "72ad2ca401f7b443ddbffe41a0bc9c7f56ed122650dd4bc0b6580917457c3dd0",
+        "selectedWorkerModel": "claude-opus-5-5-high",
+        "utility": 1,
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-concurrent-duplicate-race",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-unsigned-event-id-header",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-refund-event-name-mismatch",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-multi-process-false-alarm",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-ledger",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 17991,
+            "output": 3280
+          },
+          "wallTimeMs": 38497,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 3281
+        }
+      },
+      "candidate": {
+        "controls": {
+          "taskFixtureHash": "7ea594a6c2d88b4a3e5f1d0f24422cedd64f83526dd0da0e79ea3f0a55c09113",
+          "model": "frontier-tier",
+          "environmentHash": "bf4a4853f04d4cee74f452d1d5deda824730568d6570f375d63d57847e3c0f2d",
+          "allowedContextHash": "d74b03ed12c6f861562f4b012bfb2a58b7507be62a33730f0a554d992e022311",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "beb84c294ed2e733fd21d36dd6a0794c61df3d0a454bba7a3090464b2363706a",
+        "selectedWorkerModel": "kimi-k3-high",
+        "utility": 1,
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-concurrent-duplicate-race",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-unsigned-event-id-header",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-refund-event-name-mismatch",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-multi-process-false-alarm",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-ledger",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 17985,
+            "output": 2949
+          },
+          "wallTimeMs": 45112,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 2958
+        }
+      }
+    },
+    {
+      "order": "baseline-first",
+      "baseline": {
+        "controls": {
+          "taskFixtureHash": "7ea594a6c2d88b4a3e5f1d0f24422cedd64f83526dd0da0e79ea3f0a55c09113",
+          "model": "frontier-tier",
+          "environmentHash": "bf4a4853f04d4cee74f452d1d5deda824730568d6570f375d63d57847e3c0f2d",
+          "allowedContextHash": "d74b03ed12c6f861562f4b012bfb2a58b7507be62a33730f0a554d992e022311",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "72ad2ca401f7b443ddbffe41a0bc9c7f56ed122650dd4bc0b6580917457c3dd0",
+        "selectedWorkerModel": "claude-opus-5-5-high",
+        "utility": 1,
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-concurrent-duplicate-race",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-unsigned-event-id-header",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-refund-event-name-mismatch",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-multi-process-false-alarm",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-ledger",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 17991,
+            "output": 3585
+          },
+          "wallTimeMs": 43043,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 3586
+        }
+      },
+      "candidate": {
+        "controls": {
+          "taskFixtureHash": "7ea594a6c2d88b4a3e5f1d0f24422cedd64f83526dd0da0e79ea3f0a55c09113",
+          "model": "frontier-tier",
+          "environmentHash": "bf4a4853f04d4cee74f452d1d5deda824730568d6570f375d63d57847e3c0f2d",
+          "allowedContextHash": "d74b03ed12c6f861562f4b012bfb2a58b7507be62a33730f0a554d992e022311",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "beb84c294ed2e733fd21d36dd6a0794c61df3d0a454bba7a3090464b2363706a",
+        "selectedWorkerModel": "kimi-k3-high",
+        "utility": 1,
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-concurrent-duplicate-race",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-unsigned-event-id-header",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-refund-event-name-mismatch",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-multi-process-false-alarm",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-ledger",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 21247,
+            "output": 3427
+          },
+          "wallTimeMs": 56539,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 3258
+        }
+      }
+    }
+  ]
+}

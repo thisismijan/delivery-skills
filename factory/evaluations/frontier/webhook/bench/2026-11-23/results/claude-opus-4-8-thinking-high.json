@@ -1,0 +1,43 @@
+{
+  "candidateId": "frontier-claude-opus-4-8-thinking-high",
+  "decision": "fail",
+  "passed": false,
+  "runsPerArm": 3,
+  "extendToRunsPerArm": null,
+  "relativeUtility": 0.01,
+  "pairsClearingBar": 1,
+  "signTestP": 0.875,
+  "criticalMisses": 5,
+  "reasons": [
+    "run 1: candidate has 5 Critical miss(es)",
+    "run 1: candidate passed 0/12 required checks",
+    "run 2: candidate has 5 Critical miss(es)",
+    "run 2: candidate passed 0/12 required checks"
+  ],
+  "efficiency": {
+    "usageUnit": "characters",
+    "inputDelta": -57,
+    "outputDelta": 40,
+    "costUsdDelta": null,
+    "wallTimeMsDelta": 69413,
+    "repairAttemptsDelta": 0,
+    "deliveredCodeBytesDelta": 56
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "relativeUtility": 0.01,
+      "passed": false
+    },
+    {
+      "order": "candidate-first",
+      "relativeUtility": 0.01,
+      "passed": false
+    },
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    }
+  ]
+}

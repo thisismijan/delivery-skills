@@ -1,0 +1,361 @@
+{
+  "keyCommit": "5a5c1dabdbfff11128779be318f24c87dd86bac7",
+  "startedAt": "2026-11-23T18:19:15.360Z",
+  "missing": [],
+  "models": [
+    {
+      "model": "gpt-5.6-sol-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 30.2,
+      "medianReasoningChars": 962,
+      "medianAnswerChars": 2179,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "claude-sonnet-5-5-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 34.5,
+      "medianReasoningChars": 1841,
+      "medianAnswerChars": 3976,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "gpt-5.6-terra-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 36.6,
+      "medianReasoningChars": 995,
+      "medianAnswerChars": 1543,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "claude-opus-5-5-high",
+      "runs": 5,
+      "meanUtility": 1,
+      "perfectRuns": 5,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 39.9,
+      "medianReasoningChars": 1358,
+      "medianAnswerChars": 3455,
+      "evaluator": {
+        "decision": "baseline",
+        "reasons": []
+      }
+    },
+    {
+      "model": "gpt-5.6-luna-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 42.0,
+      "medianReasoningChars": 2968,
+      "medianAnswerChars": 1884,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "glm-5.2-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 44.1,
+      "medianReasoningChars": 17940,
+      "medianAnswerChars": 2502,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "kimi-k3-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 50.0,
+      "medianReasoningChars": 40041,
+      "medianAnswerChars": 3253,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "muse-spark-1.3-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 51.7,
+      "medianReasoningChars": 0,
+      "medianAnswerChars": 1889,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "muse-wonder-1.0-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 64.3,
+      "medianReasoningChars": 0,
+      "medianAnswerChars": 2941,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "claude-4.6-opus-high-thinking",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 65.8,
+      "medianReasoningChars": 5733,
+      "medianAnswerChars": 2074,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "cursor-grok-4.5-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 80.1,
+      "medianReasoningChars": 4431,
+      "medianAnswerChars": 1933,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "gemini-4-neon-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 124.8,
+      "medianReasoningChars": 12664,
+      "medianAnswerChars": 4019,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "cursor-grok-4.6-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 136.5,
+      "medianReasoningChars": 17089,
+      "medianAnswerChars": 2029,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "gemini-4-neon-xhigh",
+      "runs": 5,
+      "meanUtility": 1,
+      "perfectRuns": 5,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 273.0,
+      "medianReasoningChars": 25786,
+      "medianAnswerChars": 4817,
+      "evaluator": {
+        "decision": "pass (five-run rerun)",
+        "reasons": []
+      }
+    },
+    {
+      "model": "gemini-4-carbon-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 331.0,
+      "medianReasoningChars": 31912,
+      "medianAnswerChars": 5573,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "composer-2.5",
+      "runs": 3,
+      "meanUtility": 0.972,
+      "perfectRuns": 2,
+      "criticalMisses": 1,
+      "failedChecks": {
+        "approach-finds-concurrent-duplicate-race": 1
+      },
+      "medianWallSeconds": 23.1,
+      "medianReasoningChars": 4640,
+      "medianAnswerChars": 1672,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 2: candidate has 1 Critical miss(es)",
+          "run 2: candidate passed 11/12 required checks"
+        ]
+      }
+    },
+    {
+      "model": "kimi-k2.7-code",
+      "runs": 3,
+      "meanUtility": 0.972,
+      "perfectRuns": 2,
+      "criticalMisses": 1,
+      "failedChecks": {
+        "approach-finds-concurrent-duplicate-race": 1
+      },
+      "medianWallSeconds": 623.2,
+      "medianReasoningChars": 31800,
+      "medianAnswerChars": 2213,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 2: candidate has 1 Critical miss(es)",
+          "run 2: candidate passed 11/12 required checks"
+        ]
+      }
+    },
+    {
+      "model": "gemini-3.1-pro",
+      "runs": 3,
+      "meanUtility": 0.944,
+      "perfectRuns": 1,
+      "criticalMisses": 2,
+      "failedChecks": {
+        "approach-finds-unsigned-event-id-header": 1,
+        "approach-finds-concurrent-duplicate-race": 1
+      },
+      "medianWallSeconds": 87.8,
+      "medianReasoningChars": 10216,
+      "medianAnswerChars": 1658,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 2: candidate has 1 Critical miss(es)",
+          "run 2: candidate passed 11/12 required checks",
+          "run 3: candidate has 1 Critical miss(es)",
+          "run 3: candidate passed 11/12 required checks"
+        ]
+      }
+    },
+    {
+      "model": "claude-opus-4-7-thinking-high",
+      "runs": 3,
+      "meanUtility": 0.34,
+      "perfectRuns": 1,
+      "criticalMisses": 10,
+      "failedChecks": {
+        "output-contract": 2,
+        "approach-not-sound": 2,
+        "approach-finds-concurrent-duplicate-race": 2,
+        "approach-finds-unsigned-event-id-header": 2,
+        "approach-finds-refund-event-name-mismatch": 2,
+        "approach-raises-no-multi-process-false-alarm": 2,
+        "adjudication-confirms-C3": 2,
+        "adjudication-confirms-C5": 2,
+        "adjudication-rejects-C1": 2,
+        "adjudication-rejects-C2": 2,
+        "adjudication-rejects-C4": 2,
+        "adjudication-confirmed-evidence-cites-ledger": 2
+      },
+      "medianWallSeconds": 83.4,
+      "medianReasoningChars": 3761,
+      "medianAnswerChars": 3813,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 1: candidate has 5 Critical miss(es)",
+          "run 1: candidate passed 0/12 required checks",
+          "run 2: candidate has 5 Critical miss(es)",
+          "run 2: candidate passed 0/12 required checks"
+        ]
+      }
+    },
+    {
+      "model": "claude-opus-4-8-thinking-high",
+      "runs": 3,
+      "meanUtility": 0.34,
+      "perfectRuns": 1,
+      "criticalMisses": 10,
+      "failedChecks": {
+        "output-contract": 2,
+        "approach-not-sound": 2,
+        "approach-finds-concurrent-duplicate-race": 2,
+        "approach-finds-unsigned-event-id-header": 2,
+        "approach-finds-refund-event-name-mismatch": 2,
+        "approach-raises-no-multi-process-false-alarm": 2,
+        "adjudication-confirms-C3": 2,
+        "adjudication-confirms-C5": 2,
+        "adjudication-rejects-C1": 2,
+        "adjudication-rejects-C2": 2,
+        "adjudication-rejects-C4": 2,
+        "adjudication-confirmed-evidence-cites-ledger": 2
+      },
+      "medianWallSeconds": 108.0,
+      "medianReasoningChars": 7084,
+      "medianAnswerChars": 3433,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 1: candidate has 5 Critical miss(es)",
+          "run 1: candidate passed 0/12 required checks",
+          "run 2: candidate has 5 Critical miss(es)",
+          "run 2: candidate passed 0/12 required checks"
+        ]
+      }
+    }
+  ]
+}

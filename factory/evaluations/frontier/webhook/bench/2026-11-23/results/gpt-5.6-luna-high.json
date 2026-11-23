@@ -1,0 +1,38 @@
+{
+  "candidateId": "frontier-gpt-5.6-luna-high",
+  "decision": "pass",
+  "passed": true,
+  "runsPerArm": 3,
+  "extendToRunsPerArm": null,
+  "relativeUtility": 1,
+  "pairsClearingBar": 3,
+  "signTestP": 0.125,
+  "criticalMisses": 0,
+  "reasons": [],
+  "efficiency": {
+    "usageUnit": "characters",
+    "inputDelta": -1,
+    "outputDelta": -1518,
+    "costUsdDelta": null,
+    "wallTimeMsDelta": 4761,
+    "repairAttemptsDelta": 0,
+    "deliveredCodeBytesDelta": -1518
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    },
+    {
+      "order": "candidate-first",
+      "relativeUtility": 1,
+      "passed": true
+    },
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    }
+  ]
+}
