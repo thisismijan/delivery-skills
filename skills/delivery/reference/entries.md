@@ -134,6 +134,13 @@ tree, say they need committing; do not commit them.
 1. Follow `release-readiness.md` for the iid. It ends with a GO or NO-GO brief.
    A GO always carries a rollback plan. The human merges; only `auto` lands.
 
+## Entry W — Walkthrough
+
+1. Follow `walkthrough.md` for the iid. It asks the operator a few questions
+   about the change, one at a time, and records how each went under
+   `.review/`. It is opt-in and never a gate: it changes no verdict, no
+   ticket, and no ledger entry.
+
 ## Entry E — Post-merge verify
 
 1. Follow `post-merge-verify.md` for the iid once the operator reports it

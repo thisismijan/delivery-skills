@@ -271,6 +271,11 @@ The brief is for a person deciding whether to merge. Follow the human-facing
 output rules: plain language, no internal jargon, no raw field names, and no
 AI or tool attribution.
 
+Run `bun "${FACTORY_ROOT}/scripts/walkthrough.ts" summary "<repoRoot>" <ref> <full-head-sha>`.
+When it reports a walkthrough, put its lines under "Your walkthrough". When it
+reports none, put its line under "Steps only a person can do". It is
+information for the person merging and never changes GO or NO-GO.
+
 ```markdown
 ## Release readiness: !<iid> <title>
 
@@ -314,6 +319,9 @@ verdict unless the change itself stays the same.
 - Trigger: <signal and level>
 - Steps: <exact steps>
 - Expected recovery time: <estimate>
+
+### Your walkthrough
+<the walkthrough summary lines, when one exists at this head>
 
 ### Steps only a person can do
 - <step>
