@@ -39,9 +39,15 @@ test("the resolver chooses the first frontier model the runtime advertises", asy
 	};
 	expect(resolveAvailableModel(catalogue, "frontier", inventory)).toEqual({
 		tier: "frontier",
-		model: "muse-wonder-1.0-high",
+		model: "claude-opus-5-5-high",
 		availability: "live",
 	});
+	expect(
+		resolveAvailableModel(catalogue, "frontier", {
+			...inventory,
+			models: ["claude-sonnet-5-5-medium", "muse-wonder-1.0-high"],
+		}).model,
+	).toBe("muse-wonder-1.0-high");
 });
 
 test("the resolver falls through when the first frontier candidate is unavailable", async () => {
