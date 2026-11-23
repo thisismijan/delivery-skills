@@ -64,7 +64,18 @@ bun "$FACTORY_ROOT/scripts/transcript-cost.ts" <transcript.json>... [--json]
 bun "$FACTORY_ROOT/scripts/quiet-run.ts" <log-file> -- <command> [args...]
 bun "$FACTORY_ROOT/scripts/test-gate.ts" <command.json> <red|green> [--out <report.json>]
 bun "$FACTORY_ROOT/scripts/mcp-inventory.ts" fresh <repoRoot> [--max-age-hours <n>]
+bun "$FACTORY_ROOT/scripts/walkthrough.ts" topics <repoRoot> <changeDir> <base> <head>
+bun "$FACTORY_ROOT/scripts/walkthrough.ts" record <repoRoot> <record.json>
+bun "$FACTORY_ROOT/scripts/walkthrough.ts" summary <repoRoot> <ref> <head>
 ```
+
+`walkthrough.ts` supports `/delivery walkthrough`. `topics` lists up to 12
+grounded topics for the questions: hard-to-undo changes and risky surfaces
+from the diff, acceptance scenarios, alternatives the design turned down, and
+the source files that changed most, each with its file. `record` validates the
+outcome of each question asked, between 1 and 5, and saves it as
+`.review/mr-<ref>/<head>/walkthrough.json`. `summary` prints the plain-language
+lines release readiness shows. None of them changes a verdict.
 
 `config.ts` prints the validated knobs, including `level`,
 `maxParallelWorktrees`, `maxReviewRounds`, `overrides`, and

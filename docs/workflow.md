@@ -220,9 +220,22 @@ job, reverting, and merging remain human decisions.
 | `/delivery discover` / `triage` / `groom` | Shape work |
 | `/delivery draft` / `execute` | Spec then build (execute is the build approval) |
 | `/delivery review` / `address` / `ship` | Review and go/no-go |
+| `/delivery walkthrough <iid>` | Optional: answer a few questions about the change before you merge it |
 | `/delivery archive` / `verify` / `retro` | After you merge |
 | `/delivery improve …` | Skill candidates; apply/rollback stay human-owned |
 | `/delivery help` | Cheat-sheet |
+
+## Walkthrough before you merge
+
+The factory writes the change, so it is easy to merge one you could not
+explain. `/delivery walkthrough <iid>` asks you three to five questions about
+it, one at a time, drawn from its hard-to-undo parts, its acceptance
+scenarios, and the alternatives its design turned down. It does not give the
+answer first. A wrong or vague answer gets a narrower question, and after two
+of those it explains, citing the file, and asks once more from another angle.
+Say "just tell me" or "stop" at any point. It records how each question went
+under `.review/`, and release readiness shows that for the same head. It is
+never a gate: it changes no verdict, ticket, or ledger entry.
 
 ## Host difference
 
