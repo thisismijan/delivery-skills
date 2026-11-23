@@ -445,7 +445,11 @@ export function scanDiff(diff: string, zones: Zone[] | null = null): DiffScan {
 	return zones === null ? scan : { ...scan, zones: zoneHits(paths, zones) };
 }
 
-async function gitDiff(base: string, head: string): Promise<string> {
+export async function gitDiff(
+	base: string,
+	head: string,
+	cwd?: string,
+): Promise<string> {
 	const proc = Bun.spawn(
 		[
 			"git",
@@ -457,7 +461,7 @@ async function gitDiff(base: string, head: string): Promise<string> {
 			"-M",
 			`${base}...${head}`,
 		],
-		{ stdout: "pipe", stderr: "pipe" },
+		{ cwd, stdout: "pipe", stderr: "pipe" },
 	);
 	const [out, err, code] = await Promise.all([
 		new Response(proc.stdout).text(),

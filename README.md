@@ -344,7 +344,10 @@ release-risk acceptance, bypassing a gate, or installing a skill candidate.
    that falls into conflict is squashed, rebased onto its target, and pushed
    with lease by script; one conflict-resolver agent runs only for real
    conflicts, and the green gate and a delta review rerun. If someone else
-   moved the branch, auto stops rather than overwrite it.
+   moved the branch, auto stops rather than overwrite it. Before you approve,
+   `/delivery walkthrough <iid>` can check that you understand the change: it
+   asks a few questions about it one at a time, never answering first, and
+   release readiness shows how they went. It is optional and never a gate.
 
 What each review reads:
 
