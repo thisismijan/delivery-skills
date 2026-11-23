@@ -99,3 +99,22 @@ unchanged.
 - **Efficiency:** Gemini's runs finished about 3.3 minutes later on average,
   and its answers were longer. Wall times are approximate. Cost was not
   measured.
+
+### 2026-11-23: webhook rerun, five runs per arm, with measured time
+
+Ten fresh runs, started together at 17:51 UTC and scored with the key that
+was on main at `10bc0fb` before any of them started. Every run's copy came
+back unchanged. Answers, wall times, and character counts come from each
+run's own record, not from when the result reached the coordinator.
+
+- **Evaluator decision: pass.** Every run in both arms passed every check:
+  the utility ratio is 1.0, all five pairs clear the 90 percent bar, and
+  there are no critical misses.
+- **Time:** Opus took 37 to 43 seconds per run, and Gemini 243 to 323 seconds,
+  about seven times longer. The median difference is 230 seconds.
+- **Output:** Gemini's answers averaged about 1,300 characters longer.
+  Visible reasoning was about 26,000 characters per Gemini run against about
+  1,400 per Opus run (`visible-reasoning-chars.json`). The two hosts may
+  expose reasoning differently, so this is not a token comparison.
+- **Cost:** not measured. This environment does not expose billed token
+  counts for these runs.
