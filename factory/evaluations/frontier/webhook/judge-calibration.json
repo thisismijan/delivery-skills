@@ -1,0 +1,440 @@
+{
+	"fixture": "webhook",
+	"cases": [
+		{
+			"name": "good",
+			"role": "good",
+			"source": "written with the answer key",
+			"answer": {
+				"approach": {
+					"verdict": "rethink",
+					"gaps": [
+						{
+							"case": "Two deliveries of one event run at the same time; both pass the set check before either records the id",
+							"evidence": "src/queue.ts:8"
+						},
+						{
+							"case": "The dedupe key is the X-Event-Id header, which the signature does not cover, so an attacker can replay a signed body with a new id",
+							"evidence": "src/signature.ts:5"
+						},
+						{
+							"case": "The provider sends charge.refunded, but only refund.created has a handler, and unknown types are recorded as processed",
+							"evidence": "docs/provider-events.md:13"
+						}
+					],
+					"rethink": null,
+					"reasoning": "See the gaps."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:31"
+						},
+						{
+							"id": "C2",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:36"
+						},
+						{
+							"id": "C3",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:44"
+						},
+						{
+							"id": "C4",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:35"
+						},
+						{
+							"id": "C5",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:49"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-finds-concurrent-duplicate-race": true,
+				"approach-finds-unsigned-event-id-header": true,
+				"approach-finds-refund-event-name-mismatch": true,
+				"approach-raises-no-multi-process-false-alarm": false
+			}
+		},
+		{
+			"name": "bad",
+			"role": "bad",
+			"source": "written with the answer key",
+			"answer": {
+				"approach": {
+					"verdict": "gaps",
+					"gaps": [
+						{
+							"case": "The handler logs too much",
+							"evidence": "src/webhook.ts:12"
+						},
+						{
+							"case": "With several instances behind a load balancer, each keeps its own in-memory set, so a retry routed to another instance is processed again",
+							"evidence": "src/main.ts:5"
+						}
+					],
+					"rethink": null,
+					"reasoning": "See the gaps."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:31"
+						},
+						{
+							"id": "C2",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:36"
+						},
+						{
+							"id": "C3",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:44"
+						},
+						{
+							"id": "C4",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:35"
+						},
+						{
+							"id": "C5",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:49"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-finds-concurrent-duplicate-race": false,
+				"approach-finds-unsigned-event-id-header": false,
+				"approach-finds-refund-event-name-mismatch": false,
+				"approach-raises-no-multi-process-false-alarm": true
+			}
+		},
+		{
+			"name": "composer-2.5-run-2",
+			"role": "labelled",
+			"source": "webhook/bench/2026-11-23/runs/composer-2.5/2: the keyword key missed its race",
+			"answer": {
+				"approach": {
+					"verdict": "gaps",
+					"gaps": [
+						{
+							"case": "Two deliveries of the same event enqueued while workers are busy can both pass the in-memory Set check before either inserts the id, so the handler runs twice.",
+							"evidence": "src/queue.ts:8-13"
+						},
+						{
+							"case": "Idempotency is keyed on job.eventId from X-Event-Id, but the provider’s canonical event id is the signed JSON body id field; a missing header becomes \"\" and unrelated deliveries can share one key.",
+							"evidence": "docs/provider-events.md:5-6"
+						},
+						{
+							"case": "Recording processed only after the handler finishes leaves a failed or partial handler unrecorded, so a provider retry will run the handler again.",
+							"evidence": "openspec/changes/idempotent-webhooks/design.md:15-16"
+						}
+					],
+					"rethink": null,
+					"reasoning": "The planned check-then-handle-then-record flow does not serialize or claim event ids under the existing eight-way concurrent queue, so duplicate deliveries can race past the Set. The dedupe key should come from the signed body id, not the optional header, and the spec needs explicit scenarios for concurrent retries and handler failure before retry."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:31"
+						},
+						{
+							"id": "C2",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:36-39"
+						},
+						{
+							"id": "C3",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:43-45"
+						},
+						{
+							"id": "C4",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:35"
+						},
+						{
+							"id": "C5",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:49"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-finds-concurrent-duplicate-race": true,
+				"approach-finds-refund-event-name-mismatch": false,
+				"approach-raises-no-multi-process-false-alarm": false
+			}
+		},
+		{
+			"name": "kimi-k2.7-code-run-2",
+			"role": "labelled",
+			"source": "webhook/bench/2026-11-23/runs/kimi-k2.7-code/2: the keyword key missed its race",
+			"answer": {
+				"approach": {
+					"verdict": "rethink",
+					"gaps": [
+						{
+							"case": "Two jobs with the same event id can both pass the in-memory set check before either inserts, so the handler runs twice.",
+							"evidence": "openspec/changes/idempotent-webhooks/design.md:3-6 and src/queue.ts:5-28"
+						},
+						{
+							"case": "The deduplication key comes from the unsigned X-Event-Id header instead of the signed body id.",
+							"evidence": "docs/provider-events.md:5-6 and src/main.ts:15"
+						},
+						{
+							"case": "Provider sends charge.refunded but the only refund handler is registered for refund.created.",
+							"evidence": "docs/provider-events.md:11-12 and src/events.ts:7"
+						},
+						{
+							"case": "Event types without a handler return without being recorded as processed.",
+							"evidence": "src/webhook.ts:11-12 and openspec/changes/idempotent-webhooks/design.md:9-10"
+						}
+					],
+					"rethink": {
+						"problem": "The design checks the in-memory set, runs the handler, and only then inserts the id, so concurrent jobs for the same event id can both execute; adding scenarios cannot make a non-atomic check-then-act sequence atomic.",
+						"alternative": "Acquire a lock keyed by the event id around the whole check-handler-insert sequence, or use a database unique constraint to claim the event as processing before the handler and mark it processed after."
+					},
+					"reasoning": "The core deduplication pattern is racy under the existing concurrent queue, the deduplication key is drawn from an unsigned header, and the provider's refund event type is not handled."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:31"
+						},
+						{
+							"id": "C2",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:34-39"
+						},
+						{
+							"id": "C3",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:43-44"
+						},
+						{
+							"id": "C4",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:35"
+						},
+						{
+							"id": "C5",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:49"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-finds-concurrent-duplicate-race": true,
+				"approach-finds-unsigned-event-id-header": true,
+				"approach-finds-refund-event-name-mismatch": true,
+				"approach-raises-no-multi-process-false-alarm": false
+			}
+		},
+		{
+			"name": "gemini-3.1-pro-run-2",
+			"role": "labelled",
+			"source": "webhook/bench/2026-11-23/runs/gemini-3.1-pro/2: the keyword key credited a refund finding it never made",
+			"answer": {
+				"approach": {
+					"verdict": "rethink",
+					"gaps": [
+						{
+							"case": "concurrent deliveries of the same event",
+							"evidence": "src/queue.ts:8"
+						},
+						{
+							"case": "an event delivered without the X-Event-Id header",
+							"evidence": "docs/provider-events.md:5"
+						}
+					],
+					"rethink": {
+						"problem": "checking the set before the handler and updating it after allows concurrent deliveries of the same event to both pass the check",
+						"alternative": "insert the event id into the database first with a unique constraint"
+					},
+					"reasoning": "The approach relies on an unsigned header that can be missing or spoofed, and its check-then-update logic has a race condition under the queue's concurrency. Adding cases cannot fix the race condition, so the rejected insert-first alternative must be used."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:30"
+						},
+						{
+							"id": "C2",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:36"
+						},
+						{
+							"id": "C3",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:44"
+						},
+						{
+							"id": "C4",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:35"
+						},
+						{
+							"id": "C5",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:49"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-finds-concurrent-duplicate-race": true,
+				"approach-finds-unsigned-event-id-header": false,
+				"approach-finds-refund-event-name-mismatch": false,
+				"approach-raises-no-multi-process-false-alarm": false
+			}
+		},
+		{
+			"name": "gemini-3.1-pro-run-3",
+			"role": "labelled",
+			"source": "webhook/bench/2026-11-23/runs/gemini-3.1-pro/3: the keyword key missed its race, cited from the design",
+			"answer": {
+				"approach": {
+					"verdict": "rethink",
+					"gaps": [
+						{
+							"case": "concurrent deliveries of the same event bypass the idempotency check because the set is updated after processing",
+							"evidence": "design.md:6"
+						},
+						{
+							"case": "an attacker replays a webhook with a modified unsigned X-Event-Id header to bypass the idempotency set",
+							"evidence": "docs/provider-events.md:4"
+						},
+						{
+							"case": "the provider sends charge.refunded but the handler expects refund.created, so the refund falls to the fail-open default",
+							"evidence": "src/events.ts:7"
+						}
+					],
+					"rethink": {
+						"problem": "The check-then-act memory set allows race conditions, using an unsigned header allows spoofing, and the fail-open default silently discards mismatched events.",
+						"alternative": "Use the signed body 'id' with a database unique constraint for atomic idempotency, and fail closed on unrecognized events to prevent silent data loss."
+					},
+					"reasoning": "The check-then-act approach allows concurrent duplicates, while using an unsigned header permits replay attacks. Additionally, the fail-open default silently drops essential events like refunds when handler names mismatch, none of which can be fixed simply by adding cases."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:30"
+						},
+						{
+							"id": "C2",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:36"
+						},
+						{
+							"id": "C3",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:43"
+						},
+						{
+							"id": "C4",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:35"
+						},
+						{
+							"id": "C5",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:49"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-finds-concurrent-duplicate-race": true,
+				"approach-finds-unsigned-event-id-header": true,
+				"approach-finds-refund-event-name-mismatch": true,
+				"approach-raises-no-multi-process-false-alarm": false
+			}
+		},
+		{
+			"name": "near-misses",
+			"role": "labelled",
+			"source": "written with the answer key: topics named without the planted mechanism",
+			"answer": {
+				"approach": {
+					"verdict": "gaps",
+					"gaps": [
+						{
+							"case": "The provider retries an event after a timeout; the second delivery arrives after the first has finished, and the design must skip it",
+							"evidence": "docs/provider-events.md:3"
+						},
+						{
+							"case": "If the process crashes after the handler and before the insert, the event is processed again when it is redelivered",
+							"evidence": "openspec/changes/idempotent-webhooks/design.md:5"
+						},
+						{
+							"case": "An event delivered without an X-Event-Id header gets an empty id, so every such event shares one key",
+							"evidence": "src/main.ts:13"
+						},
+						{
+							"case": "Event types without a handler are acknowledged and dropped, so a new event type is silently lost",
+							"evidence": "openspec/changes/idempotent-webhooks/design.md:8"
+						}
+					],
+					"rethink": null,
+					"reasoning": "See the gaps."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:31"
+						},
+						{
+							"id": "C2",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:36"
+						},
+						{
+							"id": "C3",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:44"
+						},
+						{
+							"id": "C4",
+							"verdict": "rejected",
+							"evidence": "src/ledger.ts:35"
+						},
+						{
+							"id": "C5",
+							"verdict": "confirmed",
+							"evidence": "src/ledger.ts:49"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-finds-concurrent-duplicate-race": false,
+				"approach-finds-unsigned-event-id-header": false,
+				"approach-finds-refund-event-name-mismatch": false,
+				"approach-raises-no-multi-process-false-alarm": false
+			}
+		}
+	]
+}
