@@ -1,0 +1,43 @@
+{
+  "candidateId": "frontier-gpt-5.6-terra-high",
+  "decision": "fail",
+  "passed": false,
+  "runsPerArm": 3,
+  "extendToRunsPerArm": null,
+  "relativeUtility": 0.8,
+  "pairsClearingBar": 1,
+  "signTestP": 0.875,
+  "criticalMisses": 4,
+  "reasons": [
+    "run 2: candidate has 4 Critical miss(es)",
+    "run 2: candidate passed 11/15 required checks",
+    "run 3: candidate has 3 Critical miss(es)",
+    "run 3: candidate passed 12/15 required checks"
+  ],
+  "efficiency": {
+    "usageUnit": "characters",
+    "inputDelta": 3011,
+    "outputDelta": -2227,
+    "costUsdDelta": null,
+    "wallTimeMsDelta": -12979,
+    "repairAttemptsDelta": 0,
+    "deliveredCodeBytesDelta": -2227
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    },
+    {
+      "order": "candidate-first",
+      "relativeUtility": 0.7333333333333333,
+      "passed": false
+    },
+    {
+      "order": "baseline-first",
+      "relativeUtility": 0.8,
+      "passed": false
+    }
+  ]
+}

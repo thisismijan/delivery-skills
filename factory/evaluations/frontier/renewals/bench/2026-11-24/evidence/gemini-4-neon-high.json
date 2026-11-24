@@ -1,0 +1,695 @@
+{
+  "version": 2,
+  "candidateId": "frontier-gemini-4-neon-high",
+  "intendedEffect": "worker-selection",
+  "hiddenChecks": {
+    "available": true
+  },
+  "mutation": {
+    "required": false,
+    "reason": "Read-only frontier roles produce verdicts, not code, so there is nothing to mutate."
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "baseline": {
+        "controls": {
+          "taskFixtureHash": "9ab6e786b48dc80938ab84edf48495aa70b20dfeecb79b9852d4b15a0e548f1b",
+          "model": "frontier-tier",
+          "environmentHash": "c5a61423454eb8cab07d41e3e3927404488f2d85885da61911997caf330a8b46",
+          "allowedContextHash": "70a00ea37f4cf3dbd3420e24f53aaa06ed7a8beb70b2531fdd45efeb5ca1276e",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "e9f768fd9ea52224d8ce39bc42c9f54755ba6b526c94c8a4cd98e1180da13549",
+        "selectedWorkerModel": "claude-opus-5-5-high",
+        "utility": 1,
+        "scoring": {
+          "scoredBy": "judge",
+          "selfTest": {
+            "model": "claude-opus-5-5-high",
+            "goodReference": "renewals:good",
+            "badReference": "renewals:bad",
+            "goodScore": 1,
+            "badScore": 0.6
+          }
+        },
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-month-end-overflow",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-requires-action-renewed",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-retry-reuses-idempotency-key",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-resumed-stale-renewal",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-replica-double-run",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-crash-double-charge",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C6",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-proration",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 25376,
+            "output": 4424
+          },
+          "wallTimeMs": 59618,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 4425
+        }
+      },
+      "candidate": {
+        "controls": {
+          "taskFixtureHash": "9ab6e786b48dc80938ab84edf48495aa70b20dfeecb79b9852d4b15a0e548f1b",
+          "model": "frontier-tier",
+          "environmentHash": "c5a61423454eb8cab07d41e3e3927404488f2d85885da61911997caf330a8b46",
+          "allowedContextHash": "70a00ea37f4cf3dbd3420e24f53aaa06ed7a8beb70b2531fdd45efeb5ca1276e",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "7fc71ab227eaaf0482f59a1139be720eab6fceb25a52d4cd7d4459aa2efed2e1",
+        "selectedWorkerModel": "gemini-4-neon-high",
+        "utility": 1,
+        "scoring": {
+          "scoredBy": "judge",
+          "selfTest": {
+            "model": "claude-opus-5-5-high",
+            "goodReference": "renewals:good",
+            "badReference": "renewals:bad",
+            "goodScore": 1,
+            "badScore": 0.6
+          }
+        },
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-month-end-overflow",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-requires-action-renewed",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-retry-reuses-idempotency-key",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-resumed-stale-renewal",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-replica-double-run",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-crash-double-charge",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C6",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-proration",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 24454,
+            "output": 6264
+          },
+          "wallTimeMs": 210533,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 6265
+        }
+      }
+    },
+    {
+      "order": "candidate-first",
+      "baseline": {
+        "controls": {
+          "taskFixtureHash": "9ab6e786b48dc80938ab84edf48495aa70b20dfeecb79b9852d4b15a0e548f1b",
+          "model": "frontier-tier",
+          "environmentHash": "c5a61423454eb8cab07d41e3e3927404488f2d85885da61911997caf330a8b46",
+          "allowedContextHash": "70a00ea37f4cf3dbd3420e24f53aaa06ed7a8beb70b2531fdd45efeb5ca1276e",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "e9f768fd9ea52224d8ce39bc42c9f54755ba6b526c94c8a4cd98e1180da13549",
+        "selectedWorkerModel": "claude-opus-5-5-high",
+        "utility": 1,
+        "scoring": {
+          "scoredBy": "judge",
+          "selfTest": {
+            "model": "claude-opus-5-5-high",
+            "goodReference": "renewals:good",
+            "badReference": "renewals:bad",
+            "goodScore": 1,
+            "badScore": 0.6
+          }
+        },
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-month-end-overflow",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-requires-action-renewed",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-retry-reuses-idempotency-key",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-resumed-stale-renewal",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-replica-double-run",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-crash-double-charge",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C6",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-proration",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 24456,
+            "output": 3870
+          },
+          "wallTimeMs": 58901,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 3871
+        }
+      },
+      "candidate": {
+        "controls": {
+          "taskFixtureHash": "9ab6e786b48dc80938ab84edf48495aa70b20dfeecb79b9852d4b15a0e548f1b",
+          "model": "frontier-tier",
+          "environmentHash": "c5a61423454eb8cab07d41e3e3927404488f2d85885da61911997caf330a8b46",
+          "allowedContextHash": "70a00ea37f4cf3dbd3420e24f53aaa06ed7a8beb70b2531fdd45efeb5ca1276e",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "7fc71ab227eaaf0482f59a1139be720eab6fceb25a52d4cd7d4459aa2efed2e1",
+        "selectedWorkerModel": "gemini-4-neon-high",
+        "utility": 1,
+        "scoring": {
+          "scoredBy": "judge",
+          "selfTest": {
+            "model": "claude-opus-5-5-high",
+            "goodReference": "renewals:good",
+            "badReference": "renewals:bad",
+            "goodScore": 1,
+            "badScore": 0.6
+          }
+        },
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-month-end-overflow",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-requires-action-renewed",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-retry-reuses-idempotency-key",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-resumed-stale-renewal",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-replica-double-run",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-crash-double-charge",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C6",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-proration",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 24454,
+            "output": 6258
+          },
+          "wallTimeMs": 249704,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 6261
+        }
+      }
+    },
+    {
+      "order": "baseline-first",
+      "baseline": {
+        "controls": {
+          "taskFixtureHash": "9ab6e786b48dc80938ab84edf48495aa70b20dfeecb79b9852d4b15a0e548f1b",
+          "model": "frontier-tier",
+          "environmentHash": "c5a61423454eb8cab07d41e3e3927404488f2d85885da61911997caf330a8b46",
+          "allowedContextHash": "70a00ea37f4cf3dbd3420e24f53aaa06ed7a8beb70b2531fdd45efeb5ca1276e",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "e9f768fd9ea52224d8ce39bc42c9f54755ba6b526c94c8a4cd98e1180da13549",
+        "selectedWorkerModel": "claude-opus-5-5-high",
+        "utility": 1,
+        "scoring": {
+          "scoredBy": "judge",
+          "selfTest": {
+            "model": "claude-opus-5-5-high",
+            "goodReference": "renewals:good",
+            "badReference": "renewals:bad",
+            "goodScore": 1,
+            "badScore": 0.6
+          }
+        },
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-month-end-overflow",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-requires-action-renewed",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-retry-reuses-idempotency-key",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-resumed-stale-renewal",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-replica-double-run",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-crash-double-charge",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C6",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-proration",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 25488,
+            "output": 4516
+          },
+          "wallTimeMs": 63530,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 4517
+        }
+      },
+      "candidate": {
+        "controls": {
+          "taskFixtureHash": "9ab6e786b48dc80938ab84edf48495aa70b20dfeecb79b9852d4b15a0e548f1b",
+          "model": "frontier-tier",
+          "environmentHash": "c5a61423454eb8cab07d41e3e3927404488f2d85885da61911997caf330a8b46",
+          "allowedContextHash": "70a00ea37f4cf3dbd3420e24f53aaa06ed7a8beb70b2531fdd45efeb5ca1276e",
+          "toolsHash": "542fdf36035ff5e5f7820d17473acf002b0e6133165f0411fe57485863d9bb66",
+          "outputContractHash": "30ef2a743219ca3bc432d0bea9f135cd3356cc4becd618897a24a01f09ba2701",
+          "timeoutMs": 1800000
+        },
+        "managedTreeHash": "7fc71ab227eaaf0482f59a1139be720eab6fceb25a52d4cd7d4459aa2efed2e1",
+        "selectedWorkerModel": "gemini-4-neon-high",
+        "utility": 1,
+        "scoring": {
+          "scoredBy": "judge",
+          "selfTest": {
+            "model": "claude-opus-5-5-high",
+            "goodReference": "renewals:good",
+            "badReference": "renewals:bad",
+            "goodScore": 1,
+            "badScore": 0.6
+          }
+        },
+        "criticalMisses": 0,
+        "checks": [
+          {
+            "id": "output-contract",
+            "hidden": false,
+            "passed": true
+          },
+          {
+            "id": "approach-not-sound",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-month-end-overflow",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-requires-action-renewed",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-retry-reuses-idempotency-key",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-finds-resumed-stale-renewal",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-replica-double-run",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "approach-raises-no-crash-double-charge",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C1",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C4",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirms-C6",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C2",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C3",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-rejects-C5",
+            "hidden": true,
+            "passed": true
+          },
+          {
+            "id": "adjudication-confirmed-evidence-cites-proration",
+            "hidden": true,
+            "passed": true
+          }
+        ],
+        "metrics": {
+          "usage": {
+            "unit": "characters",
+            "input": 24454,
+            "output": 6874
+          },
+          "wallTimeMs": 226017,
+          "repairAttempts": 0,
+          "deliveredCodeBytes": 6875
+        }
+      }
+    }
+  ]
+}

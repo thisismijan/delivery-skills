@@ -1,0 +1,43 @@
+{
+  "candidateId": "frontier-glm-5.2-high",
+  "decision": "fail",
+  "passed": false,
+  "runsPerArm": 3,
+  "extendToRunsPerArm": null,
+  "relativeUtility": 0.8,
+  "pairsClearingBar": 1,
+  "signTestP": 0.875,
+  "criticalMisses": 7,
+  "reasons": [
+    "run 2: candidate has 2 Critical miss(es)",
+    "run 2: candidate passed 12/15 required checks",
+    "run 3: candidate has 7 Critical miss(es)",
+    "run 3: candidate passed 0/15 required checks"
+  ],
+  "efficiency": {
+    "usageUnit": "characters",
+    "inputDelta": 774,
+    "outputDelta": -498,
+    "costUsdDelta": null,
+    "wallTimeMsDelta": -1543,
+    "repairAttemptsDelta": 0,
+    "deliveredCodeBytesDelta": -498
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    },
+    {
+      "order": "candidate-first",
+      "relativeUtility": 0.8,
+      "passed": false
+    },
+    {
+      "order": "baseline-first",
+      "relativeUtility": 0.01,
+      "passed": false
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+name: billing
+replicas: 3
+env:
+  TZ: Europe/London
+  NODE_ENV: production

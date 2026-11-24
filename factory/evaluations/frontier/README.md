@@ -28,19 +28,76 @@ handler registered under an event name the provider never sends) and a decoy
 adjudication has five findings about `src/ledger.ts`, two of them real. Its
 answer key was committed before any run.
 
+`renewals/` is the hardest, built because fifteen models tied at full marks
+on `webhook/`. A nightly subscription-renewal plan has four planted gaps, and
+each one shows up only by reading across files:
+
+- `addMonths` turns 31 January into 3 March.
+- A `requires_action` charge, where no money moved, renews the subscription
+  because the design checks only for `declined`.
+- The next night's retry of a declined card sends the same idempotency key, so
+  the gateway returns the stored decline for seven days without trying the
+  card.
+- `resume` leaves `renewsAt` in the past, so a resumed subscription is charged
+  for the months it was paused.
+
+It also has two decoys that the code refutes. Three replicas run the
+scheduler, but a unique key on `job_runs` runs the job once a night. A crash
+between the charge and the save looks like a double charge, but the repeated
+idempotency key returns the first result.
+
+Its adjudication has six findings about `src/proration.ts`. The three real
+ones are a text sort, a text comparison, and March counted as 30 days under
+the deployment's `Europe/London` clock change. The three false ones are a
+division the code guards, `parseInt("08")`, and a `reduce` the code guards. A
+test runs the fixture's own code to keep those facts true.
+
+## Scoring
+
+The output contract and the adjudication are checked by code. Whether a gap
+finds a planted problem, or raises a decoy, is decided by a judge model
+against a rubric in `scripts/frontier-eval-score.ts`. Each rubric item says
+what counts and what does not. Keywords were tried first and misread answers
+in both directions (`webhook/bench/2026-11-23`).
+
+A judge's scores count only after it passes the fixture's calibration set,
+`judge-calibration.json` beside each fixture:
+
+- One known-good answer and one known-bad answer.
+- Labelled answers whose reading is fixed in advance: paraphrases, near
+  misses, and, for `webhook/`, the benchmark answers the keyword key misread.
+
+The judge must agree with every label, and must score the good answer above
+the bad one. A judgement names the answer it judged by a hash of the answer
+text, so it cannot be applied to another answer.
+
 ## Running it
 
 For each run, copy `fixture/`, `task.md`, `output-contract.md`, and
 `agents/approach-challenger.md` (as `agent/approach-challenger.md`) into a
 fresh directory. Start one read-only subagent on the model under test with
 that directory as its only context, and save its final reply as the run's
-answer. Then:
+answer.
+
+Calibrate the judge once per fixture. Start the judge with each prompt alone,
+under a file name that does not reveal the case, and save each reply as
+`<case>.judgement.json`:
 
 ```bash
-bun scripts/frontier-eval-score.ts <answer.json> <result.json> <model>
+bun scripts/frontier-judge.ts calibration <fixture> <dir>
+bun scripts/frontier-judge.ts self-test <fixture> <judge-model> <dir> <self-test.json>
+```
+
+Then, for each answer:
+
+```bash
+bun scripts/frontier-judge.ts prompt <fixture> <answer.json> > prompt.md
+bun scripts/frontier-eval-score.ts <answer.json> <result.json> <model> <fixture> --self-test <self-test.json> --judgement <judgement.json>
 bun scripts/generate-paired-evidence.ts <paired-plan.json> <paired-evidence.json>
 bun scripts/paired-evaluation.ts <paired-evidence.json> [paired-result.json]
 ```
+
+An answer outside the output contract, or with no gaps, needs no judgement.
 
 The plan follows the version 2 format in `docs/reference.md`: three or five
 runs per arm, with alternating order, identical controls, and the run's
@@ -118,3 +175,33 @@ run's own record, not from when the result reached the coordinator.
   expose reasoning differently, so this is not a token comparison.
 - **Cost:** not measured. This environment does not expose billed token
   counts for these runs.
+
+### 2026-11-24: the webhook benchmark re-scored by the judge
+
+All 64 webhook answers (`webhook/bench/2026-11-23`, plus the five-run rerun)
+were re-scored with judged gap checks: Claude Opus 5.5 high scoring, GPT-5.6
+Sol high checking. The judged results are in `webhook/bench/2026-11-23/judged`.
+
+- **The judge changed 9 checks from the keyword key.**
+  - It gave the race back to Composer 2.5 run 2, Kimi K2.7 Code run 2, and
+    Gemini 3.1 Pro run 3.
+  - It took away five credits the keywords had given: the refund mismatch
+    from Opus 4.6 runs 1 and 2 and from Gemini 3.1 Pro run 2, and the unsigned
+    header from Composer 2.5 runs 2 and 3. Composer run 3 says the body id is
+    the unsigned one, the wrong way round.
+- **The two judges agreed on 252 of 256 gap decisions.** All four
+  disagreements are terse GPT-5.6 Luna and Terra answers. Sol, the stricter
+  judge, wanted the `refund.created` registration named.
+
+### 2026-11-24: the renewals fixture, every model
+
+Every model from the webhook benchmark, three runs each, scored with judged
+gap checks. Full results are in `renewals/bench/2026-11-24`.
+
+- **Nine models passed every check on every run:** Sonnet 5.5, GPT-5.6 Sol,
+  Opus 5.5, Kimi K3, Muse Spark 1.3, Opus 4.7, Gemini 4 Neon high and xhigh,
+  and Gemini 4 Carbon.
+- **The other eleven missed something.** Scores ran from 98% (Opus 4.6) down
+  to 60% (GLM 5.2).
+- **The repeated idempotency key was the gap most often missed.**
+- **The judges agreed on 358 of 360 decisions.**
