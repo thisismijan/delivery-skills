@@ -1,4 +1,7 @@
 import { expect, test } from "bun:test";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
 	FRONTIER_FIXTURES,
 	FRONTIER_KEYS,
@@ -102,6 +105,25 @@ test("the judge's prompt carries the rubric, every gap, and the answer's id, and
 	expect(prompt).not.toContain("C4");
 	expect(() => judgePrompt("renewals", "not json")).toThrow(
 		"outside the output contract",
+	);
+});
+
+test("the prompt command says plainly when an answer needs no judge", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "frontier-judge-"));
+	await writeFile(join(dir, "answer.json"), "Looking at this: {}");
+	const result = Bun.spawnSync(
+		[
+			"bun",
+			join(import.meta.dir, "frontier-judge.ts"),
+			"prompt",
+			"webhook",
+			join(dir, "answer.json"),
+		],
+		{ env: process.env },
+	);
+	expect(result.exitCode).toBe(1);
+	expect(result.stderr.toString().trim()).toBe(
+		"the answer is outside the output contract, so it scores without a judge",
 	);
 });
 

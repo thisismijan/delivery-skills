@@ -107,6 +107,7 @@ function rubricSection(item: RubricItem, kind: string): string {
 		`Counts when: ${item.counts}`,
 		"",
 		`Does not count when: ${item.doesNotCount}`,
+		"",
 	].join("\n");
 }
 
@@ -132,7 +133,6 @@ export function judgePrompt(fixture: FrontierFixture, raw: string): string {
 		"",
 		...key.gaps.map((item) => rubricSection(item, "planted problem")),
 		...key.falseAlarms.map((item) => rubricSection(item, "false alarm")),
-		"",
 		`## The answer's gaps (answer ${id})`,
 		"",
 		...answer.approach.gaps.map(
@@ -268,7 +268,14 @@ if (import.meta.main) {
 	const fixture = fixtureArg as FrontierFixture;
 	if (!FRONTIER_FIXTURES.includes(fixture)) usage();
 	if (command === "prompt" && args[2]) {
-		process.stdout.write(judgePrompt(fixture, await readFile(args[2], "utf8")));
+		const raw = await readFile(args[2], "utf8");
+		if (!parseFrontierAnswer(raw)) {
+			console.error(
+				"the answer is outside the output contract, so it scores without a judge",
+			);
+			process.exit(1);
+		}
+		process.stdout.write(judgePrompt(fixture, raw));
 	} else if (command === "calibration" && args[2]) {
 		const outDir = args[2];
 		await mkdir(outDir, { recursive: true });
