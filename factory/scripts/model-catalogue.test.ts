@@ -74,6 +74,25 @@ test("frontier work prefers Claude, then Gemini 4 Neon xhigh, then Muse Wonder",
 	);
 });
 
+// Opus 4.8 broke the "JSON only" output contract on two of three benchmark runs
+// (evaluations/frontier/webhook/bench/2026-11-23), and the pipeline refuses such answers.
+test("frontier work prefers Gemini 4 Neon xhigh over Opus 4.8", async () => {
+	const catalogue = await loadModelCatalogue();
+	const order = catalogue.tiers.frontier.candidates.map(
+		(candidate) => candidate.id,
+	);
+	expect(order.indexOf("claude-opus-4-8-thinking-high")).toBeGreaterThan(
+		order.indexOf("gemini-4-neon-xhigh"),
+	);
+	expect(
+		resolveAvailableModel(catalogue, "frontier", {
+			version: 1,
+			recordedAt: "2026-11-24T09:00:00.000Z",
+			models: ["claude-opus-4-8-thinking-high", "gemini-4-neon-xhigh"],
+		}).model,
+	).toBe("gemini-4-neon-xhigh");
+});
+
 test("the resolver falls through when the first frontier candidate is unavailable", async () => {
 	const catalogue = await loadModelCatalogue();
 	const inventory = {
