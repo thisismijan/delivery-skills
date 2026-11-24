@@ -9,11 +9,6 @@
 					"family": "claude"
 				},
 				{
-					"id": "claude-opus-4-8-thinking-high",
-					"availability": "live",
-					"family": "claude"
-				},
-				{
 					"id": "opus",
 					"availability": "live",
 					"family": "claude"
@@ -22,6 +17,11 @@
 					"id": "gemini-4-neon-xhigh",
 					"availability": "live",
 					"family": "gemini"
+				},
+				{
+					"id": "claude-opus-4-8-thinking-high",
+					"availability": "live",
+					"family": "claude"
 				},
 				{
 					"id": "muse-wonder-1.0-high",
