@@ -1,0 +1,78 @@
+{
+  "utility": 1,
+  "criticalMisses": 0,
+  "repairAttempts": 0,
+  "checks": [
+    {
+      "id": "output-contract",
+      "hidden": false,
+      "passed": true
+    },
+    {
+      "id": "approach-not-sound",
+      "hidden": true,
+      "passed": true
+    },
+    {
+      "id": "approach-finds-concurrent-duplicate-race",
+      "hidden": true,
+      "passed": true
+    },
+    {
+      "id": "approach-finds-unsigned-event-id-header",
+      "hidden": true,
+      "passed": true
+    },
+    {
+      "id": "approach-finds-refund-event-name-mismatch",
+      "hidden": true,
+      "passed": true
+    },
+    {
+      "id": "approach-raises-no-multi-process-false-alarm",
+      "hidden": true,
+      "passed": true
+    },
+    {
+      "id": "adjudication-confirms-C3",
+      "hidden": true,
+      "passed": true
+    },
+    {
+      "id": "adjudication-confirms-C5",
+      "hidden": true,
+      "passed": true
+    },
+    {
+      "id": "adjudication-rejects-C1",
+      "hidden": true,
+      "passed": true
+    },
+    {
+      "id": "adjudication-rejects-C2",
+      "hidden": true,
+      "passed": true
+    },
+    {
+      "id": "adjudication-rejects-C4",
+      "hidden": true,
+      "passed": true
+    },
+    {
+      "id": "adjudication-confirmed-evidence-cites-ledger",
+      "hidden": true,
+      "passed": true
+    }
+  ],
+  "selectedWorkerModel": "cursor-grok-4.6-high",
+  "scoring": {
+    "scoredBy": "judge",
+    "selfTest": {
+      "model": "claude-opus-5-5-high",
+      "goodReference": "webhook:good",
+      "badReference": "webhook:bad",
+      "goodScore": 1,
+      "badScore": 0.6666666666666666
+    }
+  }
+}

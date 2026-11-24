@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "candidateId": "frontier-gpt-5.6-terra-high",
+  "intendedEffect": "worker-selection",
+  "model": "frontier-tier",
+  "timeoutMs": 1800000,
+  "fixed": {
+    "taskFixture": "controls/fixture",
+    "environment": "controls/environment.md",
+    "allowedContext": [
+      "controls/task.md",
+      "controls/approach-challenger.md"
+    ],
+    "tools": "controls/tools.md",
+    "outputContract": "controls/output-contract.md"
+  },
+  "hiddenChecks": {
+    "available": true
+  },
+  "mutation": {
+    "required": false,
+    "reason": "Read-only frontier roles produce verdicts, not code, so there is nothing to mutate."
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "baseline": {
+        "managedTree": "arms/claude-opus-5-5-high",
+        "usage": "runs/claude-opus-5-5-high/1/usage.json",
+        "result": "runs/claude-opus-5-5-high/1/result.json",
+        "outputs": [
+          "runs/claude-opus-5-5-high/1/answer.json"
+        ]
+      },
+      "candidate": {
+        "managedTree": "arms/gpt-5.6-terra-high",
+        "usage": "runs/gpt-5.6-terra-high/1/usage.json",
+        "result": "runs/gpt-5.6-terra-high/1/result.json",
+        "outputs": [
+          "runs/gpt-5.6-terra-high/1/answer.json"
+        ]
+      }
+    },
+    {
+      "order": "candidate-first",
+      "baseline": {
+        "managedTree": "arms/claude-opus-5-5-high",
+        "usage": "runs/claude-opus-5-5-high/2/usage.json",
+        "result": "runs/claude-opus-5-5-high/2/result.json",
+        "outputs": [
+          "runs/claude-opus-5-5-high/2/answer.json"
+        ]
+      },
+      "candidate": {
+        "managedTree": "arms/gpt-5.6-terra-high",
+        "usage": "runs/gpt-5.6-terra-high/2/usage.json",
+        "result": "runs/gpt-5.6-terra-high/2/result.json",
+        "outputs": [
+          "runs/gpt-5.6-terra-high/2/answer.json"
+        ]
+      }
+    },
+    {
+      "order": "baseline-first",
+      "baseline": {
+        "managedTree": "arms/claude-opus-5-5-high",
+        "usage": "runs/claude-opus-5-5-high/3/usage.json",
+        "result": "runs/claude-opus-5-5-high/3/result.json",
+        "outputs": [
+          "runs/claude-opus-5-5-high/3/answer.json"
+        ]
+      },
+      "candidate": {
+        "managedTree": "arms/gpt-5.6-terra-high",
+        "usage": "runs/gpt-5.6-terra-high/3/usage.json",
+        "result": "runs/gpt-5.6-terra-high/3/result.json",
+        "outputs": [
+          "runs/gpt-5.6-terra-high/3/answer.json"
+        ]
+      }
+    }
+  ]
+}

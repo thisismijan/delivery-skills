@@ -1,0 +1,297 @@
+{
+	"fixture": "renewals",
+	"cases": [
+		{
+			"name": "good",
+			"role": "good",
+			"source": "written with the answer key",
+			"answer": {
+				"approach": {
+					"verdict": "rethink",
+					"gaps": [
+						{
+							"case": "A subscription renewing on 31 January moves to 3 March: addMonths calls setUTCMonth, which rolls the days February lacks into March, so February is skipped and the renewal day drifts to the 3rd",
+							"evidence": "src/dates.ts:11"
+						},
+						{
+							"case": "A requires_action result moved no money, but step 3 only keeps renewsAt for declined, so renewsAt moves on a month and the subscription renews unpaid",
+							"evidence": "src/gateway.ts:1 and openspec/changes/nightly-renewals/design.md:13-15"
+						},
+						{
+							"case": "After a decline renewsAt is unchanged, so the next night sends the same idempotency key and the gateway returns the stored decline without trying the card; all seven nightly retries fall inside the key's 7 days",
+							"evidence": "docs/gateway.md:20-22 and openspec/changes/nightly-renewals/design.md:8"
+						},
+						{
+							"case": "resume leaves renewsAt in the past, so a subscription paused for three months is charged for each paused month on successive nights, because the job renews from renewsAt rather than from the day it runs",
+							"evidence": "src/pause.ts:14-21 and openspec/changes/nightly-renewals/design.md:18"
+						}
+					],
+					"rethink": null,
+					"reasoning": "See the gaps."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:37"
+						},
+						{
+							"id": "C2",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:23"
+						},
+						{
+							"id": "C3",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:29"
+						},
+						{
+							"id": "C4",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:15,19 and deploy/app.yaml:4"
+						},
+						{
+							"id": "C5",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:45"
+						},
+						{
+							"id": "C6",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:41"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-finds-month-end-overflow": true,
+				"approach-finds-requires-action-renewed": true,
+				"approach-finds-retry-reuses-idempotency-key": true,
+				"approach-finds-resumed-stale-renewal": true,
+				"approach-raises-no-replica-double-run": false,
+				"approach-raises-no-crash-double-charge": false
+			}
+		},
+		{
+			"name": "bad",
+			"role": "bad",
+			"source": "written with the answer key",
+			"answer": {
+				"approach": {
+					"verdict": "gaps",
+					"gaps": [
+						{
+							"case": "Three replicas each run the nightly job, so every customer is charged three times",
+							"evidence": "deploy/app.yaml:2"
+						},
+						{
+							"case": "If the job crashes after charging and before saving, the next run charges the customer again",
+							"evidence": "openspec/changes/nightly-renewals/design.md:9"
+						},
+						{
+							"case": "Month ends need a test",
+							"evidence": "openspec/changes/nightly-renewals/specs/billing/spec.md:18"
+						}
+					],
+					"rethink": null,
+					"reasoning": "See the gaps."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:37"
+						},
+						{
+							"id": "C2",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:23"
+						},
+						{
+							"id": "C3",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:29"
+						},
+						{
+							"id": "C4",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:15,19 and deploy/app.yaml:4"
+						},
+						{
+							"id": "C5",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:45"
+						},
+						{
+							"id": "C6",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:41"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-finds-month-end-overflow": false,
+				"approach-finds-requires-action-renewed": false,
+				"approach-finds-retry-reuses-idempotency-key": false,
+				"approach-finds-resumed-stale-renewal": false,
+				"approach-raises-no-replica-double-run": true,
+				"approach-raises-no-crash-double-charge": true
+			}
+		},
+		{
+			"name": "paraphrases",
+			"role": "labelled",
+			"source": "written with the answer key: the planted problems in other words",
+			"answer": {
+				"approach": {
+					"verdict": "gaps",
+					"gaps": [
+						{
+							"case": "A subscription renewing on 30 January next renews on 2 March, because setting the month to February overflows into March",
+							"evidence": "src/dates.ts:9-13"
+						},
+						{
+							"case": "A charge waiting for strong customer authentication is treated like a paid one: renewsAt moves forward a month although nothing was collected",
+							"evidence": "src/gateway.ts:1"
+						},
+						{
+							"case": "Tomorrow's retry of a declined renewal is not a retry: the key is built from the unchanged renewsAt, so the gateway replays yesterday's response without contacting the card network",
+							"evidence": "docs/gateway.md:20"
+						},
+						{
+							"case": "A subscription paused in February and resumed in May still has a February renewsAt, so the job charges it night after night, a month at a time, until it catches up",
+							"evidence": "src/pause.ts:14"
+						}
+					],
+					"rethink": null,
+					"reasoning": "See the gaps."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:37"
+						},
+						{
+							"id": "C2",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:23"
+						},
+						{
+							"id": "C3",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:29"
+						},
+						{
+							"id": "C4",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:15,19 and deploy/app.yaml:4"
+						},
+						{
+							"id": "C5",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:45"
+						},
+						{
+							"id": "C6",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:41"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-finds-month-end-overflow": true,
+				"approach-finds-requires-action-renewed": true,
+				"approach-finds-retry-reuses-idempotency-key": true,
+				"approach-finds-resumed-stale-renewal": true,
+				"approach-raises-no-replica-double-run": false,
+				"approach-raises-no-crash-double-charge": false
+			}
+		},
+		{
+			"name": "near-misses",
+			"role": "labelled",
+			"source": "written with the answer key: topics named without the planted mechanism, and decoys correctly dismissed",
+			"answer": {
+				"approach": {
+					"verdict": "gaps",
+					"gaps": [
+						{
+							"case": "Leap years and month ends are edge cases the design should test",
+							"evidence": "openspec/changes/nightly-renewals/specs/billing/spec.md:18"
+						},
+						{
+							"case": "When the gateway answers requires_action, the design sends no authentication email",
+							"evidence": "openspec/changes/nightly-renewals/specs/billing/spec.md:37"
+						},
+						{
+							"case": "Retrying every night ignores the gateway's advice to wait before retrying a declined card",
+							"evidence": "docs/gateway.md:11"
+						},
+						{
+							"case": "Paused subscriptions are not returned by dueForRenewal, so they are never charged while paused",
+							"evidence": "src/subscriptions.ts:13"
+						},
+						{
+							"case": "Several replicas call tick, but the unique key on job_runs means only one of them runs the job each night",
+							"evidence": "src/jobs/schedule.ts:17-19"
+						},
+						{
+							"case": "A crash between the charge and the save is safe: the next night sends the same key and gets the first response back",
+							"evidence": "docs/gateway.md:20"
+						}
+					],
+					"rethink": null,
+					"reasoning": "See the gaps."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:37"
+						},
+						{
+							"id": "C2",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:23"
+						},
+						{
+							"id": "C3",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:29"
+						},
+						{
+							"id": "C4",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:15,19 and deploy/app.yaml:4"
+						},
+						{
+							"id": "C5",
+							"verdict": "rejected",
+							"evidence": "src/proration.ts:45"
+						},
+						{
+							"id": "C6",
+							"verdict": "confirmed",
+							"evidence": "src/proration.ts:41"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-finds-month-end-overflow": false,
+				"approach-finds-requires-action-renewed": false,
+				"approach-finds-retry-reuses-idempotency-key": false,
+				"approach-finds-resumed-stale-renewal": false,
+				"approach-raises-no-replica-double-run": false,
+				"approach-raises-no-crash-double-charge": false
+			}
+		}
+	]
+}

@@ -1,0 +1,580 @@
+{
+  "primaryJudge": "claude-opus-5-5-high",
+  "secondJudge": "gpt-5.6-sol-high",
+  "changedChecks": [
+    {
+      "run": "bench/claude-4.6-opus-high-thinking/1",
+      "check": "approach-finds-refund-event-name-mismatch",
+      "keyword": true,
+      "judge": false
+    },
+    {
+      "run": "bench/claude-4.6-opus-high-thinking/2",
+      "check": "approach-finds-refund-event-name-mismatch",
+      "keyword": true,
+      "judge": false
+    },
+    {
+      "run": "bench/composer-2.5/2",
+      "check": "approach-finds-concurrent-duplicate-race",
+      "keyword": false,
+      "judge": true
+    },
+    {
+      "run": "bench/composer-2.5/2",
+      "check": "approach-finds-unsigned-event-id-header",
+      "keyword": true,
+      "judge": false
+    },
+    {
+      "run": "bench/composer-2.5/2",
+      "check": "approach-finds-refund-event-name-mismatch",
+      "keyword": true,
+      "judge": false
+    },
+    {
+      "run": "bench/composer-2.5/3",
+      "check": "approach-finds-unsigned-event-id-header",
+      "keyword": true,
+      "judge": false
+    },
+    {
+      "run": "bench/gemini-3.1-pro/2",
+      "check": "approach-finds-refund-event-name-mismatch",
+      "keyword": true,
+      "judge": false
+    },
+    {
+      "run": "bench/gemini-3.1-pro/3",
+      "check": "approach-finds-concurrent-duplicate-race",
+      "keyword": false,
+      "judge": true
+    },
+    {
+      "run": "bench/kimi-k2.7-code/2",
+      "check": "approach-finds-concurrent-duplicate-race",
+      "keyword": false,
+      "judge": true
+    }
+  ],
+  "judgeAgreement": {
+    "items": 256,
+    "agree": 252,
+    "disagreements": [
+      {
+        "run": "bench/gpt-5.6-luna-high/1",
+        "check": "approach-finds-refund-event-name-mismatch",
+        "claude-opus-5-5-high": true,
+        "gpt-5.6-sol-high": false
+      },
+      {
+        "run": "bench/gpt-5.6-luna-high/3",
+        "check": "approach-finds-unsigned-event-id-header",
+        "claude-opus-5-5-high": true,
+        "gpt-5.6-sol-high": false
+      },
+      {
+        "run": "bench/gpt-5.6-luna-high/3",
+        "check": "approach-finds-refund-event-name-mismatch",
+        "claude-opus-5-5-high": true,
+        "gpt-5.6-sol-high": false
+      },
+      {
+        "run": "bench/gpt-5.6-terra-high/3",
+        "check": "approach-finds-refund-event-name-mismatch",
+        "claude-opus-5-5-high": true,
+        "gpt-5.6-sol-high": false
+      }
+    ]
+  },
+  "scores": {
+    "claude-4.6-opus-high-thinking": [
+      {
+        "run": "bench/claude-4.6-opus-high-thinking/1",
+        "keyword": 1,
+        "judge": 0.9166666666666666,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 1
+      },
+      {
+        "run": "bench/claude-4.6-opus-high-thinking/2",
+        "keyword": 1,
+        "judge": 0.9166666666666666,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 1
+      },
+      {
+        "run": "bench/claude-4.6-opus-high-thinking/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "claude-opus-4-7-thinking-high": [
+      {
+        "run": "bench/claude-opus-4-7-thinking-high/1",
+        "keyword": 0.01,
+        "judge": 0.01,
+        "criticalMissesKeyword": 5,
+        "criticalMissesJudge": 5
+      },
+      {
+        "run": "bench/claude-opus-4-7-thinking-high/2",
+        "keyword": 0.01,
+        "judge": 0.01,
+        "criticalMissesKeyword": 5,
+        "criticalMissesJudge": 5
+      },
+      {
+        "run": "bench/claude-opus-4-7-thinking-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "claude-opus-4-8-thinking-high": [
+      {
+        "run": "bench/claude-opus-4-8-thinking-high/1",
+        "keyword": 0.01,
+        "judge": 0.01,
+        "criticalMissesKeyword": 5,
+        "criticalMissesJudge": 5
+      },
+      {
+        "run": "bench/claude-opus-4-8-thinking-high/2",
+        "keyword": 0.01,
+        "judge": 0.01,
+        "criticalMissesKeyword": 5,
+        "criticalMissesJudge": 5
+      },
+      {
+        "run": "bench/claude-opus-4-8-thinking-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "claude-sonnet-5-5-high": [
+      {
+        "run": "bench/claude-sonnet-5-5-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/claude-sonnet-5-5-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/claude-sonnet-5-5-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "composer-2.5": [
+      {
+        "run": "bench/composer-2.5/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/composer-2.5/2",
+        "keyword": 0.9166666666666666,
+        "judge": 0.8333333333333334,
+        "criticalMissesKeyword": 1,
+        "criticalMissesJudge": 2
+      },
+      {
+        "run": "bench/composer-2.5/3",
+        "keyword": 1,
+        "judge": 0.9166666666666666,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 1
+      }
+    ],
+    "cursor-grok-4.5-high": [
+      {
+        "run": "bench/cursor-grok-4.5-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/cursor-grok-4.5-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/cursor-grok-4.5-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "cursor-grok-4.6-high": [
+      {
+        "run": "bench/cursor-grok-4.6-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/cursor-grok-4.6-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/cursor-grok-4.6-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "gemini-3.1-pro": [
+      {
+        "run": "bench/gemini-3.1-pro/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/gemini-3.1-pro/2",
+        "keyword": 0.9166666666666666,
+        "judge": 0.8333333333333334,
+        "criticalMissesKeyword": 1,
+        "criticalMissesJudge": 2
+      },
+      {
+        "run": "bench/gemini-3.1-pro/3",
+        "keyword": 0.9166666666666666,
+        "judge": 1,
+        "criticalMissesKeyword": 1,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "gemini-4-carbon-high": [
+      {
+        "run": "bench/gemini-4-carbon-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/gemini-4-carbon-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/gemini-4-carbon-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "gemini-4-neon-high": [
+      {
+        "run": "bench/gemini-4-neon-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/gemini-4-neon-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/gemini-4-neon-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "glm-5.2-high": [
+      {
+        "run": "bench/glm-5.2-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/glm-5.2-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/glm-5.2-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "gpt-5.6-luna-high": [
+      {
+        "run": "bench/gpt-5.6-luna-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/gpt-5.6-luna-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/gpt-5.6-luna-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "gpt-5.6-sol-high": [
+      {
+        "run": "bench/gpt-5.6-sol-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/gpt-5.6-sol-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/gpt-5.6-sol-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "gpt-5.6-terra-high": [
+      {
+        "run": "bench/gpt-5.6-terra-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/gpt-5.6-terra-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/gpt-5.6-terra-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "kimi-k2.7-code": [
+      {
+        "run": "bench/kimi-k2.7-code/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/kimi-k2.7-code/2",
+        "keyword": 0.9166666666666666,
+        "judge": 1,
+        "criticalMissesKeyword": 1,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/kimi-k2.7-code/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "kimi-k3-high": [
+      {
+        "run": "bench/kimi-k3-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/kimi-k3-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/kimi-k3-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "muse-spark-1.3-high": [
+      {
+        "run": "bench/muse-spark-1.3-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/muse-spark-1.3-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/muse-spark-1.3-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "muse-wonder-1.0-high": [
+      {
+        "run": "bench/muse-wonder-1.0-high/1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/muse-wonder-1.0-high/2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "bench/muse-wonder-1.0-high/3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "claude-opus-5-5-high": [
+      {
+        "run": "rerun/baseline-1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "rerun/baseline-2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "rerun/baseline-3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "rerun/baseline-4",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "rerun/baseline-5",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ],
+    "gemini-4-neon-xhigh": [
+      {
+        "run": "rerun/candidate-1",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "rerun/candidate-2",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "rerun/candidate-3",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "rerun/candidate-4",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      },
+      {
+        "run": "rerun/candidate-5",
+        "keyword": 1,
+        "judge": 1,
+        "criticalMissesKeyword": 0,
+        "criticalMissesJudge": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,205 @@
+{
+	"fixture": "rate-limit",
+	"cases": [
+		{
+			"name": "good",
+			"role": "good",
+			"source": "written with the answer key",
+			"answer": {
+				"approach": {
+					"verdict": "rethink",
+					"gaps": [
+						{
+							"case": "The server forks four worker processes, so each keeps its own counter",
+							"evidence": "src/server.ts:9"
+						},
+						{
+							"case": "Anonymous clients have no user id to key the limit by",
+							"evidence": "src/auth.ts:13"
+						}
+					],
+					"rethink": null,
+					"reasoning": "See the gaps."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "confirmed",
+							"evidence": "src/fees.ts:12"
+						},
+						{
+							"id": "C2",
+							"verdict": "confirmed",
+							"evidence": "src/fees.ts:22"
+						},
+						{
+							"id": "C3",
+							"verdict": "rejected",
+							"evidence": "src/fees.ts:5"
+						},
+						{
+							"id": "C4",
+							"verdict": "rejected",
+							"evidence": "src/fees.ts:17"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-cites-multi-process-server": true,
+				"approach-names-anonymous-clients": true
+			}
+		},
+		{
+			"name": "bad",
+			"role": "bad",
+			"source": "written with the answer key",
+			"answer": {
+				"approach": {
+					"verdict": "gaps",
+					"gaps": [
+						{
+							"case": "Counters are lost when the server restarts",
+							"evidence": "openspec/changes/rate-limit/design.md:3"
+						},
+						{
+							"case": "The spec has no scenario for a client allowed again after the minute",
+							"evidence": "openspec/changes/rate-limit/specs/api/spec.md:5"
+						}
+					],
+					"rethink": null,
+					"reasoning": "See the gaps."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "confirmed",
+							"evidence": "src/fees.ts:12"
+						},
+						{
+							"id": "C2",
+							"verdict": "confirmed",
+							"evidence": "src/fees.ts:22"
+						},
+						{
+							"id": "C3",
+							"verdict": "rejected",
+							"evidence": "src/fees.ts:5"
+						},
+						{
+							"id": "C4",
+							"verdict": "rejected",
+							"evidence": "src/fees.ts:17"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-cites-multi-process-server": false,
+				"approach-names-anonymous-clients": false
+			}
+		},
+		{
+			"name": "paraphrases",
+			"role": "labelled",
+			"source": "written with the answer key: the planted problems in other words",
+			"answer": {
+				"approach": {
+					"verdict": "gaps",
+					"gaps": [
+						{
+							"case": "A client whose requests are spread over the cluster's workers gets the limit once per worker, because each forked worker holds its own Map",
+							"evidence": "src/server.ts:8-10"
+						},
+						{
+							"case": "Signed-out visitors are never limited: authenticate returns no user for them, so there is nothing to key the counter on",
+							"evidence": "src/auth.ts:8"
+						}
+					],
+					"rethink": null,
+					"reasoning": "See the gaps."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "confirmed",
+							"evidence": "src/fees.ts:12"
+						},
+						{
+							"id": "C2",
+							"verdict": "confirmed",
+							"evidence": "src/fees.ts:22"
+						},
+						{
+							"id": "C3",
+							"verdict": "rejected",
+							"evidence": "src/fees.ts:5"
+						},
+						{
+							"id": "C4",
+							"verdict": "rejected",
+							"evidence": "src/fees.ts:17"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-cites-multi-process-server": true,
+				"approach-names-anonymous-clients": true
+			}
+		},
+		{
+			"name": "near-misses",
+			"role": "labelled",
+			"source": "written with the answer key: real concerns that are not the planted problems",
+			"answer": {
+				"approach": {
+					"verdict": "gaps",
+					"gaps": [
+						{
+							"case": "A signed-in client can get a fresh limit by sending a new token, because any token is accepted and its first 8 characters become the user id",
+							"evidence": "src/auth.ts:14"
+						},
+						{
+							"case": "The counter map grows without bound because entries are never removed",
+							"evidence": "openspec/changes/rate-limit/design.md:4"
+						}
+					],
+					"rethink": null,
+					"reasoning": "See the gaps."
+				},
+				"adjudication": {
+					"decisions": [
+						{
+							"id": "C1",
+							"verdict": "confirmed",
+							"evidence": "src/fees.ts:12"
+						},
+						{
+							"id": "C2",
+							"verdict": "confirmed",
+							"evidence": "src/fees.ts:22"
+						},
+						{
+							"id": "C3",
+							"verdict": "rejected",
+							"evidence": "src/fees.ts:5"
+						},
+						{
+							"id": "C4",
+							"verdict": "rejected",
+							"evidence": "src/fees.ts:17"
+						}
+					]
+				}
+			},
+			"expected": {
+				"approach-cites-multi-process-server": false,
+				"approach-names-anonymous-clients": false
+			}
+		}
+	]
+}

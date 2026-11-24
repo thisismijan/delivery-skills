@@ -1,0 +1,7 @@
+{
+  "model": "claude-opus-5-5-high",
+  "goodReference": "webhook:good",
+  "badReference": "webhook:bad",
+  "goodScore": 1,
+  "badScore": 0.6666666666666666
+}
