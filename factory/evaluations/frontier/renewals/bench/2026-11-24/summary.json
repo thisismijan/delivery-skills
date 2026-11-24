@@ -1,0 +1,486 @@
+{
+  "keyCommit": "ac48aaa",
+  "promptCommit": "f691fd3",
+  "startedAt": "2026-11-24T06:46:47.135Z",
+  "primaryJudge": "claude-opus-5-5-high",
+  "secondJudge": "gpt-5.6-sol-high",
+  "judgeAgreement": {
+    "items": 360,
+    "agree": 358,
+    "disagreements": [
+      {
+        "run": "gemini-4-neon-xhigh/2",
+        "check": "approach-raises-no-crash-double-charge",
+        "claude-opus-5-5-high": true,
+        "gpt-5.6-sol-high": false
+      },
+      {
+        "run": "gpt-5.6-luna-high/3",
+        "check": "approach-raises-no-crash-double-charge",
+        "claude-opus-5-5-high": false,
+        "gpt-5.6-sol-high": true
+      }
+    ]
+  },
+  "models": [
+    {
+      "model": "claude-sonnet-5-5-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "secondJudgeMeanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "contractFailures": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 43.5,
+      "medianReasoningChars": 2668,
+      "medianAnswerChars": 5580,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "gpt-5.6-sol-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "secondJudgeMeanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "contractFailures": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 48.3,
+      "medianReasoningChars": 2417,
+      "medianAnswerChars": 2366,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "claude-opus-5-5-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "secondJudgeMeanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "contractFailures": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 59.6,
+      "medianReasoningChars": 3238,
+      "medianAnswerChars": 4424,
+      "evaluator": {
+        "decision": "baseline",
+        "reasons": []
+      }
+    },
+    {
+      "model": "kimi-k3-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "secondJudgeMeanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "contractFailures": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 71.7,
+      "medianReasoningChars": 41976,
+      "medianAnswerChars": 2858,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "muse-spark-1.3-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "secondJudgeMeanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "contractFailures": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 79.9,
+      "medianReasoningChars": 0,
+      "medianAnswerChars": 2039,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "claude-opus-4-7-thinking-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "secondJudgeMeanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "contractFailures": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 113.6,
+      "medianReasoningChars": 6695,
+      "medianAnswerChars": 2348,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "gemini-4-neon-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "secondJudgeMeanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "contractFailures": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 226.0,
+      "medianReasoningChars": 13489,
+      "medianAnswerChars": 6264,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "gemini-4-neon-xhigh",
+      "runs": 3,
+      "meanUtility": 1,
+      "secondJudgeMeanUtility": 0.978,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "contractFailures": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 362.3,
+      "medianReasoningChars": 46606,
+      "medianAnswerChars": 7949,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "gemini-4-carbon-high",
+      "runs": 3,
+      "meanUtility": 1,
+      "secondJudgeMeanUtility": 1,
+      "perfectRuns": 3,
+      "criticalMisses": 0,
+      "contractFailures": 0,
+      "failedChecks": {},
+      "medianWallSeconds": 531.4,
+      "medianReasoningChars": 31297,
+      "medianAnswerChars": 6407,
+      "evaluator": {
+        "decision": "pass",
+        "reasons": []
+      }
+    },
+    {
+      "model": "claude-4.6-opus-high-thinking",
+      "runs": 3,
+      "meanUtility": 0.978,
+      "secondJudgeMeanUtility": 0.978,
+      "perfectRuns": 2,
+      "criticalMisses": 1,
+      "contractFailures": 0,
+      "failedChecks": {
+        "approach-finds-resumed-stale-renewal": 1
+      },
+      "medianWallSeconds": 90.9,
+      "medianReasoningChars": 8605,
+      "medianAnswerChars": 1983,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 1: candidate has 1 Critical miss(es)",
+          "run 1: candidate passed 14/15 required checks"
+        ]
+      }
+    },
+    {
+      "model": "muse-wonder-1.0-high",
+      "runs": 3,
+      "meanUtility": 0.956,
+      "secondJudgeMeanUtility": 0.956,
+      "perfectRuns": 1,
+      "criticalMisses": 0,
+      "contractFailures": 0,
+      "failedChecks": {
+        "approach-raises-no-crash-double-charge": 2
+      },
+      "medianWallSeconds": 125.0,
+      "medianReasoningChars": 0,
+      "medianAnswerChars": 3277,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 1: candidate passed 14/15 required checks",
+          "run 2: candidate passed 14/15 required checks"
+        ]
+      }
+    },
+    {
+      "model": "gemini-3.1-pro",
+      "runs": 3,
+      "meanUtility": 0.956,
+      "secondJudgeMeanUtility": 0.956,
+      "perfectRuns": 1,
+      "criticalMisses": 2,
+      "contractFailures": 0,
+      "failedChecks": {
+        "approach-finds-month-end-overflow": 2
+      },
+      "medianWallSeconds": 117.9,
+      "medianReasoningChars": 10598,
+      "medianAnswerChars": 2153,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 1: candidate has 1 Critical miss(es)",
+          "run 1: candidate passed 14/15 required checks",
+          "run 3: candidate has 1 Critical miss(es)",
+          "run 3: candidate passed 14/15 required checks"
+        ]
+      }
+    },
+    {
+      "model": "composer-2.5",
+      "runs": 3,
+      "meanUtility": 0.933,
+      "secondJudgeMeanUtility": 0.933,
+      "perfectRuns": 0,
+      "criticalMisses": 3,
+      "contractFailures": 0,
+      "failedChecks": {
+        "approach-finds-requires-action-renewed": 1,
+        "approach-finds-retry-reuses-idempotency-key": 2
+      },
+      "medianWallSeconds": 34.7,
+      "medianReasoningChars": 6416,
+      "medianAnswerChars": 1707,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 1: candidate has 1 Critical miss(es)",
+          "run 1: candidate passed 14/15 required checks",
+          "run 2: candidate has 1 Critical miss(es)",
+          "run 2: candidate passed 14/15 required checks",
+          "run 3: candidate has 1 Critical miss(es)",
+          "run 3: candidate passed 14/15 required checks"
+        ]
+      }
+    },
+    {
+      "model": "kimi-k2.7-code",
+      "runs": 3,
+      "meanUtility": 0.933,
+      "secondJudgeMeanUtility": 0.933,
+      "perfectRuns": 0,
+      "criticalMisses": 3,
+      "contractFailures": 0,
+      "failedChecks": {
+        "approach-finds-retry-reuses-idempotency-key": 3
+      },
+      "medianWallSeconds": 186.2,
+      "medianReasoningChars": 28585,
+      "medianAnswerChars": 2379,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 1: candidate has 1 Critical miss(es)",
+          "run 1: candidate passed 14/15 required checks",
+          "run 2: candidate has 1 Critical miss(es)",
+          "run 2: candidate passed 14/15 required checks",
+          "run 3: candidate has 1 Critical miss(es)",
+          "run 3: candidate passed 14/15 required checks"
+        ]
+      }
+    },
+    {
+      "model": "cursor-grok-4.5-high",
+      "runs": 3,
+      "meanUtility": 0.911,
+      "secondJudgeMeanUtility": 0.911,
+      "perfectRuns": 2,
+      "criticalMisses": 4,
+      "contractFailures": 0,
+      "failedChecks": {
+        "approach-finds-month-end-overflow": 1,
+        "approach-finds-requires-action-renewed": 1,
+        "approach-finds-retry-reuses-idempotency-key": 1,
+        "approach-finds-resumed-stale-renewal": 1
+      },
+      "medianWallSeconds": 128.5,
+      "medianReasoningChars": 9298,
+      "medianAnswerChars": 2455,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 3: candidate has 4 Critical miss(es)",
+          "run 3: candidate passed 11/15 required checks"
+        ]
+      }
+    },
+    {
+      "model": "cursor-grok-4.6-high",
+      "runs": 3,
+      "meanUtility": 0.911,
+      "secondJudgeMeanUtility": 0.911,
+      "perfectRuns": 2,
+      "criticalMisses": 4,
+      "contractFailures": 0,
+      "failedChecks": {
+        "approach-finds-month-end-overflow": 1,
+        "approach-finds-requires-action-renewed": 1,
+        "approach-finds-retry-reuses-idempotency-key": 1,
+        "approach-finds-resumed-stale-renewal": 1
+      },
+      "medianWallSeconds": 160.3,
+      "medianReasoningChars": 20190,
+      "medianAnswerChars": 2301,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 1: candidate has 4 Critical miss(es)",
+          "run 1: candidate passed 11/15 required checks"
+        ]
+      }
+    },
+    {
+      "model": "gpt-5.6-terra-high",
+      "runs": 3,
+      "meanUtility": 0.844,
+      "secondJudgeMeanUtility": 0.844,
+      "perfectRuns": 1,
+      "criticalMisses": 7,
+      "contractFailures": 0,
+      "failedChecks": {
+        "approach-finds-month-end-overflow": 2,
+        "approach-finds-requires-action-renewed": 2,
+        "approach-finds-retry-reuses-idempotency-key": 1,
+        "approach-finds-resumed-stale-renewal": 2
+      },
+      "medianWallSeconds": 45.9,
+      "medianReasoningChars": 3951,
+      "medianAnswerChars": 2160,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 2: candidate has 4 Critical miss(es)",
+          "run 2: candidate passed 11/15 required checks",
+          "run 3: candidate has 3 Critical miss(es)",
+          "run 3: candidate passed 12/15 required checks"
+        ]
+      }
+    },
+    {
+      "model": "gpt-5.6-luna-high",
+      "runs": 3,
+      "meanUtility": 0.711,
+      "secondJudgeMeanUtility": 0.733,
+      "perfectRuns": 0,
+      "criticalMisses": 12,
+      "contractFailures": 0,
+      "failedChecks": {
+        "approach-finds-month-end-overflow": 3,
+        "approach-finds-requires-action-renewed": 3,
+        "approach-finds-retry-reuses-idempotency-key": 3,
+        "approach-finds-resumed-stale-renewal": 3,
+        "approach-raises-no-crash-double-charge": 1
+      },
+      "medianWallSeconds": 107.6,
+      "medianReasoningChars": 5670,
+      "medianAnswerChars": 2026,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 1: candidate has 4 Critical miss(es)",
+          "run 1: candidate passed 11/15 required checks",
+          "run 2: candidate has 4 Critical miss(es)",
+          "run 2: candidate passed 11/15 required checks",
+          "run 3: candidate has 4 Critical miss(es)",
+          "run 3: candidate passed 10/15 required checks"
+        ]
+      }
+    },
+    {
+      "model": "claude-opus-4-8-thinking-high",
+      "runs": 3,
+      "meanUtility": 0.626,
+      "secondJudgeMeanUtility": 0.626,
+      "perfectRuns": 0,
+      "criticalMisses": 9,
+      "contractFailures": 1,
+      "failedChecks": {
+        "approach-finds-month-end-overflow": 3,
+        "output-contract": 1,
+        "approach-not-sound": 1,
+        "approach-finds-requires-action-renewed": 1,
+        "approach-finds-retry-reuses-idempotency-key": 1,
+        "approach-finds-resumed-stale-renewal": 1,
+        "approach-raises-no-replica-double-run": 1,
+        "approach-raises-no-crash-double-charge": 1,
+        "adjudication-confirms-C1": 1,
+        "adjudication-confirms-C4": 1,
+        "adjudication-confirms-C6": 1,
+        "adjudication-rejects-C2": 1,
+        "adjudication-rejects-C3": 1,
+        "adjudication-rejects-C5": 1,
+        "adjudication-confirmed-evidence-cites-proration": 1
+      },
+      "medianWallSeconds": 193.2,
+      "medianReasoningChars": 13217,
+      "medianAnswerChars": 2760,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 1: candidate has 1 Critical miss(es)",
+          "run 1: candidate passed 14/15 required checks",
+          "run 2: candidate has 7 Critical miss(es)",
+          "run 2: candidate passed 0/15 required checks",
+          "run 3: candidate has 1 Critical miss(es)",
+          "run 3: candidate passed 14/15 required checks"
+        ]
+      }
+    },
+    {
+      "model": "glm-5.2-high",
+      "runs": 3,
+      "meanUtility": 0.603,
+      "secondJudgeMeanUtility": 0.603,
+      "perfectRuns": 1,
+      "criticalMisses": 9,
+      "contractFailures": 1,
+      "failedChecks": {
+        "adjudication-confirms-C1": 2,
+        "adjudication-confirms-C4": 2,
+        "adjudication-confirmed-evidence-cites-proration": 2,
+        "output-contract": 1,
+        "approach-not-sound": 1,
+        "approach-finds-month-end-overflow": 1,
+        "approach-finds-requires-action-renewed": 1,
+        "approach-finds-retry-reuses-idempotency-key": 1,
+        "approach-finds-resumed-stale-renewal": 1,
+        "approach-raises-no-replica-double-run": 1,
+        "approach-raises-no-crash-double-charge": 1,
+        "adjudication-confirms-C6": 1,
+        "adjudication-rejects-C2": 1,
+        "adjudication-rejects-C3": 1,
+        "adjudication-rejects-C5": 1
+      },
+      "medianWallSeconds": 58.1,
+      "medianReasoningChars": 20052,
+      "medianAnswerChars": 3926,
+      "evaluator": {
+        "decision": "fail",
+        "reasons": [
+          "run 2: candidate has 2 Critical miss(es)",
+          "run 2: candidate passed 12/15 required checks",
+          "run 3: candidate has 7 Critical miss(es)",
+          "run 3: candidate passed 0/15 required checks"
+        ]
+      }
+    }
+  ]
+}

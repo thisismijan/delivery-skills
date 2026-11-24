@@ -1,0 +1,41 @@
+{
+  "candidateId": "frontier-cursor-grok-4.5-high",
+  "decision": "fail",
+  "passed": false,
+  "runsPerArm": 3,
+  "extendToRunsPerArm": null,
+  "relativeUtility": 1,
+  "pairsClearingBar": 2,
+  "signTestP": 0.5,
+  "criticalMisses": 4,
+  "reasons": [
+    "run 3: candidate has 4 Critical miss(es)",
+    "run 3: candidate passed 11/15 required checks"
+  ],
+  "efficiency": {
+    "usageUnit": "characters",
+    "inputDelta": 2307,
+    "outputDelta": -1703,
+    "costUsdDelta": null,
+    "wallTimeMsDelta": 69646,
+    "repairAttemptsDelta": 0,
+    "deliveredCodeBytesDelta": -1773
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    },
+    {
+      "order": "candidate-first",
+      "relativeUtility": 1,
+      "passed": true
+    },
+    {
+      "order": "baseline-first",
+      "relativeUtility": 0.7333333333333333,
+      "passed": false
+    }
+  ]
+}

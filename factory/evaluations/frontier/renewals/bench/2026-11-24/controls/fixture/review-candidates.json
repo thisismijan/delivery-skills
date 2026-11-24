@@ -1,0 +1,12 @@
+{
+  "file": "src/proration.ts",
+  "spec": "openspec/specs/proration/spec.md",
+  "candidates": [
+    { "id": "C1", "claim": "refundOrder sorts the amounts as text, so 1000 comes before 250 and the smallest refund is not applied first." },
+    { "id": "C2", "claim": "prorate divides by periodDays, so a period of zero days returns Infinity or NaN." },
+    { "id": "C3", "claim": "parseDayOfMonth calls parseInt without a radix, so \"08\" and \"09\" are read as octal and rejected." },
+    { "id": "C4", "claim": "daysBetween gives March 30 days, not 31, because the period bounds are local midnights and the clocks go forward during March." },
+    { "id": "C5", "claim": "totalCredit calls reduce without an initial value, so an empty list of credit lines throws a TypeError." },
+    { "id": "C6", "claim": "capped compares amount and cap as text, so an amount of \"900\" with a cap of \"1000\" contributes 1000." }
+  ]
+}

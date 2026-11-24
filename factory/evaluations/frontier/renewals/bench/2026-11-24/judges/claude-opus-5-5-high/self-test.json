@@ -1,0 +1,7 @@
+{
+  "model": "claude-opus-5-5-high",
+  "goodReference": "renewals:good",
+  "badReference": "renewals:bad",
+  "goodScore": 1,
+  "badScore": 0.6
+}

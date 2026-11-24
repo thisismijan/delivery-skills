@@ -1,0 +1,38 @@
+{
+  "candidateId": "frontier-gemini-4-neon-high",
+  "decision": "pass",
+  "passed": true,
+  "runsPerArm": 3,
+  "extendToRunsPerArm": null,
+  "relativeUtility": 1,
+  "pairsClearingBar": 3,
+  "signTestP": 0.125,
+  "criticalMisses": 0,
+  "reasons": [],
+  "efficiency": {
+    "usageUnit": "characters",
+    "inputDelta": -922,
+    "outputDelta": 2358,
+    "costUsdDelta": null,
+    "wallTimeMsDelta": 162487,
+    "repairAttemptsDelta": 0,
+    "deliveredCodeBytesDelta": 2358
+  },
+  "pairs": [
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    },
+    {
+      "order": "candidate-first",
+      "relativeUtility": 1,
+      "passed": true
+    },
+    {
+      "order": "baseline-first",
+      "relativeUtility": 1,
+      "passed": true
+    }
+  ]
+}
